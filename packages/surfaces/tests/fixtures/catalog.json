@@ -1,0 +1,9 @@
+{
+  "catalog_id": "coalitionkit/v0_9",
+  "components": {
+    "Card": {"props": ["title", "fields", "status", "provenance"], "required": ["title"], "doors": ["child"]},
+    "List": {"props": ["items", "columns", "sort"], "doors": ["children"]},
+    "Gauge": {"props": ["value", "min", "max", "unit"], "required": ["value"]},
+    "ApprovalButton": {"props": ["subject", "label", "consequence"], "required": ["subject", "label"]}
+  }
+}

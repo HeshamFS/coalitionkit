@@ -11,6 +11,7 @@ members = [
     "coalitionkit-models",
     "coalitionkit-runtime",
     "coalitionkit-steward",
+    "coalitionkit-surfaces",
     "coalitionkit-vault",
     "coalitionkit-workspace",
 ]
@@ -40,6 +41,18 @@ http-server = [
 ]
 signing = [
     { name = "pyjwt" },
+]
+
+[[package]]
+name = "ag-ui-protocol"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/57/92/d88fdc7f4648dc38d3d54c595066bb3e63a4c091884ffb2f98272c33eef8/ag_ui_protocol-1.0.0.tar.gz", hash = "sha256:cfebecef2e7bc942cc8a52d908a4ea86a98f631d2ffdc6ec5812bb843eac74fb", size = 30759, upload-time = "2026-09-17T18:31:19.448Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/b0/850be4576e6443dc575daa54188d8136ae2b2eca3f19e098e7a088fc9ebc/ag_ui_protocol-1.0.0-py3-none-any.whl", hash = "sha256:0058eaf0522201089d444e430fc35180bc8ad0222cae39e8568b313e8105d9e6", size = 36842, upload-time = "2026-09-17T18:31:18.471Z" },
 ]
 
 [[package]]
@@ -323,6 +336,29 @@ requires-dist = [
 ]
 
 [[package]]
+name = "coalitionkit-surfaces"
+version = "0.1.0.dev0"
+source = { editable = "packages/surfaces" }
+dependencies = [
+    { name = "ag-ui-protocol" },
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-runtime" },
+    { name = "fastapi" },
+    { name = "jsonpatch" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ag-ui-protocol", specifier = "==1.0.0" },
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "fastapi", specifier = "==0.162.0" },
+    { name = "jsonpatch", specifier = "==1.38" },
+    { name = "uvicorn", specifier = "==0.54.0" },
+]
+
+[[package]]
 name = "coalitionkit-vault"
 version = "0.1.0.dev0"
 source = { editable = "packages/vault" }
@@ -353,6 +389,7 @@ dev = [
     { name = "coalitionkit-models" },
     { name = "coalitionkit-runtime" },
     { name = "coalitionkit-steward" },
+    { name = "coalitionkit-surfaces" },
     { name = "coalitionkit-vault" },
     { name = "hypothesis" },
     { name = "import-linter" },
@@ -374,6 +411,7 @@ dev = [
     { name = "coalitionkit-models", editable = "packages/models" },
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
+    { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
     { name = "coalitionkit-vault", editable = "packages/vault" },
     { name = "hypothesis", specifier = "==6.170.13" },
     { name = "import-linter", specifier = "==2.15" },
@@ -723,6 +761,27 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6d/9e/59f4a5b7855ced7346ebf40a2e9a8942863f644378d956f68bcef2c88b90/json-rpc-1.15.0.tar.gz", hash = "sha256:e6441d56c1dcd54241c937d0a2dcd193bdf0bdc539b5316524713f554b7f85b9", size = 28854, upload-time = "2023-06-11T09:45:49.078Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/94/9e/820c4b086ad01ba7d77369fb8b11470a01fac9b4977f02e18659cf378b6b/json_rpc-1.15.0-py2.py3-none-any.whl", hash = "sha256:4a4668bbbe7116feb4abbd0f54e64a4adcf4b8f648f19ffa0848ad0f6606a9bf", size = 39450, upload-time = "2023-06-11T09:45:47.136Z" },
+]
+
+[[package]]
+name = "jsonpatch"
+version = "1.38"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jsonpointer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/31/fd/359c6b0bf41d43eba15cafcd185fd82a11250f00606599ca8f296820fae2/jsonpatch-1.38.tar.gz", hash = "sha256:debc3e7bdc3d446468d64987f51a0e7a9deea42987ff90a6d1005a489b471c19", size = 42237, upload-time = "2026-10-26T21:19:22.05Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/67/3589e1fae8c43bcb2b3ca28afca742ed7cded199dd9d95bc74f67b1e1991/jsonpatch-1.38-py3-none-any.whl", hash = "sha256:46260c5df952abd4734a098f94512dc00bc38539152ac3ef069ed0475e4f5695", size = 17440, upload-time = "2026-10-26T21:19:20.75Z" },
+]
+
+[[package]]
+name = "jsonpointer"
+version = "3.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/04/e35b34f4e441473e62d82d6ed9a8f748d93d895f4c05d4e645aa0fde51d7/jsonpointer-3.6.tar.gz", hash = "sha256:82e839a3ba3a9e2b54394fda8b3d276c2459d80408d06ef9a6fbc369d7544ffc", size = 14352, upload-time = "2026-10-26T20:59:26.307Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6e/34/cee746fb30473bfaa92f19267fcc102a1118eaec83e7e2b5652a91ead01c/jsonpointer-3.6-py3-none-any.whl", hash = "sha256:a45c858f8a9e171f6b3790ed9446c9382782f6c4cb4589176813c5a553f4cfcd", size = 9333, upload-time = "2026-10-26T20:59:24.947Z" },
 ]
 
 [[package]]
