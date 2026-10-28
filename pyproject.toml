@@ -9,6 +9,7 @@ dependencies = []
 dev = [
     "coalitionkit-contracts",
     "coalitionkit-vault",
+    "coalitionkit-edges",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -26,6 +27,7 @@ members = ["packages/*"]
 [tool.uv.sources]
 coalitionkit-contracts = { workspace = true }
 coalitionkit-vault = { workspace = true }
+coalitionkit-edges = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -36,16 +38,17 @@ extend-exclude = [".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["coalitionkit_contracts"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_edges"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/edges", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
+extraPaths = ["packages/contracts/tests", "packages/edges/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_edges"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -57,6 +60,7 @@ forbidden_modules = [
     "coalitionkit",
     "coalitionkit_conformance",
     "coalitionkit_edge",
+    "coalitionkit_edges",
     "coalitionkit_gardener",
     "coalitionkit_host",
     "coalitionkit_mcp",
@@ -77,6 +81,17 @@ forbidden_modules = [
     "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
     "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_runtime",
     "coalitionkit_steward", "coalitionkit_surfaces",
+]
+
+[[tool.importlinter.contracts]]
+name = "edges import only contracts from coalitionkit (not the runtime yet)"
+type = "forbidden"
+source_modules = ["coalitionkit_edges"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_runtime",
+    "coalitionkit_steward", "coalitionkit_surfaces", "coalitionkit_vault",
 ]
 
 [tool.pytest.ini_options]
