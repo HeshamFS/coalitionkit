@@ -1,9 +1,30 @@
 {
-  "catalog_id": "coalitionkit/v0_9",
+  "catalogId": "coalitionkit/v0_9",
   "components": {
-    "Card": {"props": ["title", "fields", "status", "provenance"], "required": ["title"], "doors": ["child"]},
-    "List": {"props": ["items", "columns", "sort"], "doors": ["children"]},
-    "Gauge": {"props": ["value", "min", "max", "unit"], "required": ["value"]},
-    "ApprovalButton": {"props": ["subject", "label", "consequence"], "required": ["subject", "label"]}
+    "Card": {"props": {
+      "title": {"type": "string", "required": true},
+      "fields": {"type": "array"},
+      "status": {"type": "enum", "values": ["agreed", "needs-you", "changed", "private", "blocked"]},
+      "provenance": {"type": "enum", "values": ["measured", "vault", "signed", "model", "estimate"]},
+      "child": {"type": "child"}
+    }},
+    "List": {"props": {
+      "items": {"type": "array"},
+      "columns": {"type": "array"},
+      "sort": {"type": "object"},
+      "children": {"type": "children"}
+    }},
+    "Gauge": {"props": {
+      "value": {"type": "number", "required": true},
+      "min": {"type": "number"},
+      "max": {"type": "number"},
+      "unit": {"type": "string"}
+    }},
+    "ApprovalButton": {"props": {
+      "subject": {"type": "subject", "required": true},
+      "label": {"type": "string", "required": true},
+      "consequence": {"type": "string", "required": true},
+      "decision_deadline": {"type": "datetime"}
+    }}
   }
 }

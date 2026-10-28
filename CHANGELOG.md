@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Spec revision R2 (second review): see `spec/OPEN-QUESTIONS.md` R2-1 to R2-10 and H1 to H3. New wire fields: `match.task_id` (required), `tension.task_ids` and `tension.decision_deadline` (required), `propose.decision_deadline` (required), `query.task_id` (optional), `projection.source.prev_hash` and `.hash` (required). Members now mint `commitment_id`.
 - `coalitionkit-contracts`: `lifecycle` (task status table, commitment states, decision deadline), `delivery_form`, `projection_stub`, `verify_projection`, `tally_choice`, `ScopeSource.projected`; `resolve_narrowest` now never returns a `redact` list. `coalitionkit-vault`: `Context.task_id`.
+- The core A2UI catalog `coalitionkit/v0_9` is now `spec/catalog/coalitionkit-v0_9.json` (201 generic components in 11 families with typed props, six doors; the surfaces validator now loads this typed format); discipline views move to pack catalog extensions (ADR 019).
 
 ### Security
 

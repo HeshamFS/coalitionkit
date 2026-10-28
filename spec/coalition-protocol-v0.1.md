@@ -440,25 +440,27 @@ Surfaces use AG-UI 1.0 for the live stream and A2UI v0.9.1 (the current stable r
 | A tool call visible to this viewer | `TOOL_CALL_START`, `TOOL_CALL_END` | Feeds the wiring overlay |
 | A failure | `RUN_ERROR` | Keeps the last good surface, shows the error quietly and reconnects with a new run |
 
-**The v0.1 catalog** is a closed custom catalog, `coalitionkit/v0_9`; renderers refuse any other catalog ID.
+**The v0.1 catalog** is a closed custom catalog, `coalitionkit/v0_9`; renderers refuse any other catalog ID. Its normative definition is `spec/catalog/coalitionkit-v0_9.json`: 201 components in 11 families (foundations; shell, doors and templates; conversation and calls; forms and flows; coalition and people; needs, offers, tasks and plans; places and time; privacy and consent; live and proof; mint and machines; channels, ending and memory), each with its typed props, events, states and the doors it renders on. Every prop declares a type (string, number, integer, boolean, datetime, id, enum with its values, binding, subject, scope, child, children, array, object or any), whether it is required, and may instead be a data binding `{"path": ...}`; numbers are bound `{value, event_ref}`; consent components carry a required `subject` `{kind, id, revision}` and a `decision_deadline`. The host validator loads this file and enforces the types; values held in a member's vault never appear in a tree. The core catalog is domain-agnostic. A Discipline Pack may add components for its own discipline as a pack catalog extension, accepted only while that pack is active; a pack component never replaces or renames a core component (ADR 019).
+
+Components the protocol itself depends on, and their key props:
 
 | Component | Shows | Key props |
 |---|---|---|
-| Card | One object with a title and fields | `title`, `fields`, `status`, `provenance` |
+| Card, Panel, Grid | One object, a group, a layout | `title`, `fields`, `status`, `provenance`, `children` |
 | List, Table | Several objects | `items` or `rows`, `columns`, `sort` |
-| Timeline | Tasks and commitments over time | `items` with `start`, `end`, `assignee` |
-| Form, Choice | Input from a person | `fields` or `options`, `submit_event` |
-| ApprovalButton | A one-tap consent | `subject`, `label`, `consequence` |
-| PlanCompare | Plan universes side by side | `plans`, `objectives` |
+| Timeline, Gantt | Tasks and commitments over time | `items` with `start`, `end`, `assignee` |
+| Form, ChoicePicker | Input from a person | `fields` or `options`, `submit_event` |
+| ConsentCard, ApprovalButton | A consent request | `subject` (kind, id, revision), `consequence`, `decision_deadline` |
+| PlanCompare | Plan universes side by side | `plans`, `objectives`, `rejected` |
 | TensionCard | A conflict and its trade-offs | `options`, `tradeoffs`, `deciders` |
-| Progress, Gauge | A value against a goal or range | `value`, `min`, `max`, `unit` |
-| Map | Places | `points`, `areas` |
-| MediaWithMasks | An image or video frame with SAM masks | `media_ref`, `masks`, `labels` |
-| Evidence | Proof that a task was done | `kind`, `ref`, `verified_by` |
+| Progress, Meter | A value against a goal or range | `value`, `min`, `max`, `unit` |
+| MapView | Places | `points`, `routes`, `areas` |
+| MediaWithMasks | An image or video frame with segmentation masks | `media_ref`, `masks`, `labels` |
+| EvidenceCard | Proof that a task was done | `kind`, `ref`, `verified_by` |
 | DecisionLog | Who decided what, and why | `entries` |
-| WiringOverlay | The protocol message behind any element | `event_ref` |
+| WiringDrawer | The protocol message behind any element | `event_ref` |
 
-Every component has an accessible label, a right-to-left layout and four device variants (wide, compact, message, voice). The host validates every tree before sending it: known components only, one root, no orphans or cycles, at most 500 components and a depth of 24, no HTML in props, and every number bound to the event it came from. Renderers show values as text only. A tree that fails validation is replaced by the fixed layout.
+Every component has an accessible label and a right-to-left layout, and declares the doors it renders on: wide, compact, message, voice, lens (glasses) and mcp-app. The host validates every tree before sending it: known components only, one root, no orphans or cycles, at most 500 components and a depth of 24, no HTML in props, and every number bound to the event it came from. Renderers show values as text only. A tree that fails validation is replaced by the fixed layout.
 
 ## Discipline Pack format
 
