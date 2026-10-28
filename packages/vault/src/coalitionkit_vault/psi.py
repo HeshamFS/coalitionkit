@@ -55,9 +55,13 @@ class Context:
     requester: str
     responder: str
     reveal: Reveal
+    #: The task the exchange concerns. Carried in every payload, not in the context digest.
+    task_id: str
 
     def __post_init__(self) -> None:
-        if not all((self.coalition_id, self.match_id, self.requester, self.responder)):
+        if not all(
+            (self.coalition_id, self.match_id, self.requester, self.responder, self.task_id)
+        ):
             raise PSIError("context identifiers required")
         if self.requester == self.responder or self.reveal not in ("count", "overlap"):
             raise PSIError("invalid context")
@@ -181,6 +185,7 @@ class _Party:
         return MatchPayload.model_validate(
             {
                 "match_id": self.context.match_id,
+                "task_id": self.context.task_id,
                 "peer": self._peer_id,
                 "round": round,
                 "reveal": self.context.reveal,
@@ -191,8 +196,9 @@ class _Party:
     def _open(self, payload: MatchPayload, round: str) -> bytes:
         if len(payload.blob) > MAX_BLOB:
             raise LimitExceeded("oversize blob")
-        if (payload.match_id, payload.peer, payload.reveal, payload.round) != (
+        if (payload.match_id, payload.task_id, payload.peer, payload.reveal, payload.round) != (
             self.context.match_id,
+            self.context.task_id,
             self._own_id,
             self.context.reveal,
             round,

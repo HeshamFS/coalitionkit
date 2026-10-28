@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from .canonical import canonicalize, envelope_dict, prev_hash, sha256_hex
 from .envelope import Envelope
+from .payloads import ProjectionPayload
 from .signing import SignatureError, verify_envelope
 
 Kind = Literal["bad_genesis", "gap", "broken_chain", "truncated", "receipt_mismatch"]
@@ -49,6 +50,50 @@ class ReceiptInfo:
 Entry = Envelope | Mapping[str, Any] | LogStub
 
 
+def projection_stub(projection: Envelope | Mapping[str, Any]) -> LogStub:
+    """The stub ``{seq, prev_hash, hash}`` a ``coalition.projection`` carries for its source."""
+    data = envelope_dict(projection)
+    if data.get("type") != "coalition.projection":
+        raise ValueError("not a coalition.projection envelope")
+    source = ProjectionPayload.model_validate(data.get("payload")).source
+    return LogStub(seq=source.seq, prev_hash=source.prev_hash, hash=source.hash)
+
+
+def verify_projection(
+    projection: Envelope | Mapping[str, Any],
+    host_public_key: Ed25519PublicKey,
+    *,
+    expected_kid: str | None = None,
+) -> LogStub:
+    """Verify a projection against the pinned host key and return the stub it carries.
+
+    A replay holding projections checks the chain with these stubs, never with the projection's
+    own envelope hash.
+    """
+    data = envelope_dict(projection)
+    verify_envelope(data, host_public_key, expected_kid=expected_kid)
+    return projection_stub(data)
+
+
+def _is_projection(entry: Entry) -> bool:
+    return (
+        not isinstance(entry, LogStub)
+        and envelope_dict(entry).get("type") == "coalition.projection"
+    )
+
+
+def _verified(
+    entries: Sequence[Entry], host_public_key: Ed25519PublicKey, expected_kid: str | None
+) -> list[Entry]:
+    """Replace each projection by the stub of its verified source; a forged one raises."""
+    out: list[Entry] = []
+    for entry in entries:
+        if not isinstance(entry, LogStub) and _is_projection(entry):
+            entry = verify_projection(entry, host_public_key, expected_kid=expected_kid)
+        out.append(entry)
+    return out
+
+
 def genesis_hash(coalition_id: str, host_card_url: str, created_at: str) -> str:
     """The ``prev_hash`` of seq 1."""
     return sha256_hex(
@@ -70,19 +115,36 @@ def _prev(entry: Entry) -> object:
 
 
 def entry_hash(entry: Entry) -> str:
-    """The hash the next entry must carry as ``prev_hash``."""
-    return entry.hash if isinstance(entry, LogStub) else prev_hash(entry)
+    """The hash the next entry must carry as ``prev_hash``.
+
+    A ``coalition.projection`` is refused here: its own envelope hash is not the chain hash. Turn
+    it into a stub with ``verify_projection`` first.
+    """
+    if isinstance(entry, LogStub):
+        return entry.hash
+    if _is_projection(entry):
+        raise ValueError("verify the projection and use its stub")
+    return prev_hash(entry)
 
 
-def verify_chain(entries: Sequence[Entry], genesis: str, *, first_seq: int = 1) -> int:
+def verify_chain(
+    entries: Sequence[Entry],
+    genesis: str,
+    host_public_key: Ed25519PublicKey,
+    *,
+    first_seq: int = 1,
+    expected_kid: str | None = None,
+) -> int:
     """Check seq is gap-free from ``first_seq`` and each ``prev_hash`` links to the one before.
 
     ``genesis`` is the expected ``prev_hash`` of ``entries[0]`` (the genesis hash for a full
-    replay). Returns the head seq (``first_seq - 1`` for an empty log).
+    replay). Each ``coalition.projection`` entry is first verified against the pinned host key
+    (SignatureError if forged) and stands in as its source's stub. Returns the head seq
+    (``first_seq - 1`` for an empty log).
     """
     expected_prev = genesis
     expected_seq = first_seq
-    for entry in entries:
+    for entry in _verified(entries, host_public_key, expected_kid):
         if _seq(entry) != expected_seq:
             raise LogIntegrityError("gap", f"expected seq {expected_seq}, found {_seq(entry)}")
         if _prev(entry) != expected_prev:
@@ -133,12 +195,20 @@ def verify_receipt(
     return ReceiptInfo(seq=seq, head_hash=head)
 
 
-def check_receipts(entries: Sequence[Entry], receipts: Sequence[ReceiptInfo]) -> None:
+def check_receipts(
+    entries: Sequence[Entry],
+    receipts: Sequence[ReceiptInfo],
+    host_public_key: Ed25519PublicKey,
+    *,
+    expected_kid: str | None = None,
+) -> None:
     """Compare a replayed log with the receipts a member kept.
 
     ``truncated``: the log ends before a receipt's seq. ``receipt_mismatch``: the entry at a
     receipt's seq hashes to something else (an edited tail, even one with a re-linked chain).
+    Projections are verified against the pinned host key first, as in ``verify_chain``.
     """
+    entries = _verified(entries, host_public_key, expected_kid)
     if not entries:
         if receipts:
             raise LogIntegrityError("truncated", "the log is empty but receipts exist")

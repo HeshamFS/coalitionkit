@@ -42,8 +42,8 @@ INFOS = [ReceiptInfo(r["payload"]["seq"], r["payload"]["head_hash"]) for r in RE
 def failure_kind(entries: list[Any]) -> str:
     """Replay: chain first, then the receipts. Returns the kind of the first failure."""
     with pytest.raises(LogIntegrityError) as info:
-        verify_chain(entries, GENESIS)
-        check_receipts(entries, INFOS)
+        verify_chain(entries, GENESIS, HOST)
+        check_receipts(entries, INFOS, HOST)
     return info.value.kind
 
 
@@ -58,8 +58,8 @@ def test_genesis_hash_is_sha256_of_jcs() -> None:
 
 def test_the_good_log_verifies_end_to_end() -> None:
     assert ENTRIES[0]["prev_hash"] == GENESIS
-    assert verify_chain(ENTRIES, GENESIS) == 4
-    check_receipts(ENTRIES, INFOS)
+    assert verify_chain(ENTRIES, GENESIS, HOST) == 4
+    check_receipts(ENTRIES, INFOS, HOST)
     assert [entry_hash(e) for e in ENTRIES] == LOG["head_hashes"]
     for entry, receipt in zip(ENTRIES, RECEIPTS, strict=True):
         validate_envelope(entry)
@@ -71,7 +71,7 @@ def test_the_good_log_verifies_end_to_end() -> None:
 
 def test_wrong_genesis_is_detected() -> None:
     with pytest.raises(LogIntegrityError) as info:
-        verify_chain(ENTRIES, "0" * 64)
+        verify_chain(ENTRIES, "0" * 64, HOST)
     assert info.value.kind == "bad_genesis"
 
 
@@ -88,7 +88,7 @@ def test_an_edit_before_the_tail_breaks_the_chain() -> None:
 def test_a_tail_edit_is_caught_by_the_receipt_even_with_a_valid_chain() -> None:
     entries = copy.deepcopy(ENTRIES)
     entries[-1]["payload"]["reason"] = "edited tail"
-    assert verify_chain(entries, GENESIS) == 4  # the chain alone cannot see it
+    assert verify_chain(entries, GENESIS, HOST) == 4  # the chain alone cannot see it
     assert failure_kind(entries) == "receipt_mismatch"
 
 
@@ -96,19 +96,19 @@ def test_an_edit_with_a_relinked_chain_is_caught() -> None:
     entries = copy.deepcopy(ENTRIES)
     entries[2]["payload"]["reason"] = "edited"
     entries[3]["prev_hash"] = prev_hash(entries[2])
-    assert verify_chain(entries, GENESIS) == 4
+    assert verify_chain(entries, GENESIS, HOST) == 4
     assert failure_kind(entries) == "receipt_mismatch"
 
 
 @pytest.mark.parametrize("keep", [0, 1, 2, 3])
 def test_truncation_is_detected(keep: int) -> None:
     entries = ENTRIES[:keep]
-    assert verify_chain(entries, GENESIS) == keep
+    assert verify_chain(entries, GENESIS, HOST) == keep
     assert failure_kind(entries) == "truncated"
 
 
 def test_a_member_can_only_detect_what_its_receipts_cover() -> None:
-    check_receipts(ENTRIES[:2], INFOS[:2])
+    check_receipts(ENTRIES[:2], INFOS[:2], HOST)
 
 
 def test_stubs_keep_the_chain_checkable() -> None:
@@ -116,15 +116,15 @@ def test_stubs_keep_the_chain_checkable() -> None:
         LogStub(e["seq"], e["prev_hash"], prev_hash(e)) if i % 2 else e
         for i, e in enumerate(ENTRIES)
     ]
-    assert verify_chain(mixed, GENESIS) == 4
-    check_receipts(mixed, INFOS)
+    assert verify_chain(mixed, GENESIS, HOST) == 4
+    check_receipts(mixed, INFOS, HOST)
     mixed[1] = LogStub(2, ENTRIES[1]["prev_hash"], "f" * 64)
     assert failure_kind(mixed) == "broken_chain"
 
 
 def test_partial_replay_from_an_anchor() -> None:
-    assert verify_chain(ENTRIES[2:], prev_hash(ENTRIES[1]), first_seq=3) == 4
-    check_receipts(ENTRIES[2:], INFOS)
+    assert verify_chain(ENTRIES[2:], prev_hash(ENTRIES[1]), HOST, first_seq=3) == 4
+    check_receipts(ENTRIES[2:], INFOS, HOST)
 
 
 def test_receipt_signature_and_binding() -> None:
@@ -166,5 +166,5 @@ def test_receipt_needs_the_receipt_type_and_matching_coalition() -> None:
 
 def test_empty_log_with_receipts_is_truncated() -> None:
     with pytest.raises(LogIntegrityError):
-        check_receipts([], INFOS)
-    check_receipts([], [])
+        check_receipts([], INFOS, HOST)
+    check_receipts([], [], HOST)

@@ -2,8 +2,7 @@
 
 Where the spec leaves a field's inner shape open, the schemas use the smallest shape that works.
 Each choice is listed here. Every choice below is mirrored in `spec/schemas/coalition/v0/*.json`
-and in `packages/contracts`. Revision R1 applied decisions 1 to 13 of the spec review; items that
-changed are marked.
+and in `packages/contracts`. Revision R1 applied decisions 1 to 13 of the spec review; revision R2 applied the ten major findings of the second review (rows and sections marked R2).
 
 ## Choices made
 
@@ -21,20 +20,20 @@ changed are marked.
 | 10 | `observe` | `content` is a string (may be empty); `evidence_ref` is an ID. | |
 | 11 | `need` | `need_id` is a ULID; `requirements`: list of non-empty strings; `window`: `{start, end}`. | |
 | 12 | `offer` | `target`: `{kind: need or task, id (ULID)}`; `capacity` >= 1; `cost` with all three fields; `valid_until`. | |
-| 13 | `query` | **Changed:** `deadline_ms` is optional, default 10,000. | A4. |
+| 13 | `query` | `deadline_ms` is optional, default 10,000. **R2:** optional `task_id` (ULID); the first host query naming an open task starts its planning. | A4, H1. |
 | 14 | `answer` | `result` is exactly one of `"yes"`, `"no"` or a `cost` object. | |
-| 15 | `match` | **Changed:** adds required `peer`; `blob` is unpadded base64url, at most 94,000 characters (the largest response at 1,024 elements per side is 93,068). | Decision 9. |
-| 16 | `propose` | `plan_id` ULID, `revision` required; assignments use ULID `task_id`. `objective_scores` is an open map. | |
-| 17 | `tension` | **Changed:** `tension_id` ULID, `revision` required. | Decision 6. |
+| 15 | `match` | **R2:** adds required `task_id` (ULID, repeated in every round, not in the PSI context digest). Adds required `peer`; `blob` is unpadded base64url, at most 94,000 characters (the largest response at 1,024 elements per side is 93,068). | Decision 9. |
+| 16 | `propose` | **R2:** required `decision_deadline` (RFC 3339, absolute). `plan_id` ULID, `revision` required; assignments use ULID `task_id`. `objective_scores` is an open map. | |
+| 17 | `tension` | **R2:** required `task_ids` (non-empty, unique ULIDs) and `decision_deadline`. `tension_id` ULID, `revision` required. | Decision 6. |
 | 18 | `decide` | **Changed:** `subject` is the shared shape (five kinds); adds required `decided_at` and `consent_sig`. | Decisions 3, 6, 11. |
-| 19 | `commit` | **Changed:** `status` is `pending` or `withdrawn`; IDs are ULIDs; `revision` optional (omitted on create, the revision withdrawn on withdraw). | A6, decision 6. |
+| 19 | `commit` | **R2:** the member mints `commitment_id` (ULID) on create. `status` is `pending` or `withdrawn`; IDs are ULIDs; `revision` optional (omitted on create, the revision withdrawn on withdraw). | A6, decision 6. |
 | 20 | `ripple` | `invalidates`: unique list of task ULIDs. | |
 | 21 | `done` | `task_id` ULID; `evidence` entries with three required strings. | |
 | 22 | `dissolve` | `skills_written`: list of IDs. | |
 | 23 | Formats | `date-time` and `uri` are asserted by the validator; the models check the same. Date-times stay strings so signed bytes never change. | |
 | 24 | Strictness | Models are strict: no coercion, no explicit `null`. | |
 | 25 | Shared definitions | `common.json` holds `$defs`: `id`, `ulid`, `cost`, `window`, `target`, `budget`, `datetime`, `revision`, `money`, and now `subject`, `ed25519_jwk`, `detached_jws`, `sha256_hex`. | |
-| 26 | New: `projection` | `{source: {event_id, seq, type, on_behalf_of}, payload (open object), redacted?}`, host-signed, never logged. | Decision 1. I added `type` and `on_behalf_of` to `source` so a recipient can interpret `payload`. |
+| 26 | New: `projection` | `{source: {event_id, seq, type, on_behalf_of, prev_hash, hash}, payload (open object), redacted?}` (**R2:** `prev_hash` and `hash` make a projection a verifiable stub), host-signed, never logged. | Decision 1. I added `type` and `on_behalf_of` to `source` so a recipient can interpret `payload`. |
 | 27 | New: `receipt` | `{coalition_id, seq, head_hash}`, host-signed, never logged. `head_hash` is the SHA-256 of the JCS form of the accepted envelope at `seq`. | Decision 12. |
 | 28 | Host-originated envelopes | `sender` is the host card URL, `on_behalf_of` is the literal `host`, signed with the host key. | The spec did not say who signs host messages. |
 
@@ -50,6 +49,27 @@ changed are marked.
 - **A8. Stage table versus task rule.** Resolved: task status governs all task messages from Gather to Live; the stage table covers Coalition-level messages only.
 - **A9. Dissolve stage.** Resolved: `done` in Dissolve is `stage_mismatch`; tasks not done at dissolve close as `withdrawn`.
 - **A10. `type` pattern versus the types.** Resolved as a rule: the envelope pattern accepts any `coalition.*` name; an unknown type is rejected at payload validation. The spec now says eighteen types plus `coalition.error`.
+
+## Review round 2 (R2): the ten major findings
+
+| # | Finding | Decision |
+|---|---|---|
+| R2-1 | Redaction provenance loss | Accepted. A derived output from a source with `redact` is `host`-only unless built from its redacted projection (`ScopeSource.projected`); a derived scope never carries `redact`. |
+| R2-2 | Acknowledgement scope bypass | Accepted. The acknowledgement is the original, a projection, or only the receipt, by `delivery_form`; duplicates use the same form. |
+| R2-3 | Unverifiable projected replay | Accepted. `projection.source` carries `prev_hash` and `hash`; `verify_projection` returns the stub for chain and receipt checks. |
+| R2-4 | Inconsistent choice consensus | Accepted. All deciders must consent to the same option; otherwise the tension is split, treated as a refusal (replan). `tally_choice`. |
+| R2-5 | Replan retains an active commitment | Accepted. Replan supersedes the active commitment and closes consent requests in the same transaction; replacement needs a new commitment and fresh approval. |
+| R2-6 | Join rejected before registration | Accepted. `join` is exempt from `unknown_participant`; checked against invitation and connection. No rejoin after leave. |
+| R2-7 | Pending-withdrawal stage rejection | Accepted. `decided` accepts `commit(withdrawn)` for a pending commitment; the task returns to `negotiating`. |
+| R2-8 | Unbound match-to-task | Accepted, with a smaller binding than suggested: `task_id` in every match payload plus a host exchange record; the PSI context digest and vector blobs stay unchanged because the envelope signature already covers the payload. |
+| R2-9 | Commitment-ID allocation | Accepted. Members mint the ULID; the host rejects reuse. |
+| R2-10 | Decision expiry | Accepted. `decision_deadline` on `propose` and `tension`; late decisions get `deadline_exceeded`; expiry is evaluated lazily from the log and the clock. Commitment, task and charter subjects have no own deadline. |
+
+### Host ambiguities resolved (from the host builder's notes)
+
+- **H1. How planning starts.** No new message: the first host `query` (with `task_id`), `propose` or `tension` naming an open task moves it to `negotiating`.
+- **H2. Binding match and tension to tasks.** `match.task_id` and `tension.task_ids` are explicit; the host no longer infers them from `causation_id`.
+- **H3. Plan sets.** Deciding one plan supersedes the other plans of its proposal set.
 
 ## Still open or accepted with a deferral
 

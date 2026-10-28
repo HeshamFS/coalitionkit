@@ -3,7 +3,7 @@
 
 from .canonical import canonicalize, prev_hash, sha256_hex
 from .consent import consent_payload, sign_consent, verify_consent, verify_decision
-from .decisions import NotADeciderError, record_answer, tally
+from .decisions import NotADeciderError, record_answer, tally, tally_choice
 from .envelope import HOST_FIELDS, UNSIGNED_FIELDS, Envelope
 from .idempotency import (
     StoredSubmission,
@@ -12,6 +12,18 @@ from .idempotency import (
     submission_digest,
 )
 from .ids import is_ulid, new_ulid, ulid_timestamp_ms
+from .lifecycle import (
+    ACCEPTS,
+    ACTIVE_COMMITMENT_STATES,
+    DecisionExpiredError,
+    accepts,
+    after_planning_start,
+    after_replan,
+    check_decision_window,
+    decision_expired,
+    may_create_commitment,
+    supersede_active,
+)
 from .log import (
     LogIntegrityError,
     LogStub,
@@ -19,8 +31,10 @@ from .log import (
     check_receipts,
     entry_hash,
     genesis_hash,
+    projection_stub,
     receipt_payload,
     verify_chain,
+    verify_projection,
     verify_receipt,
 )
 from .owner import (
@@ -34,6 +48,7 @@ from .owner import (
     verify_owner_proof,
 )
 from .payloads import HOST_ONLY_TYPES, MEMBER_TYPES, MESSAGE_TYPES, PAYLOAD_MODELS
+from .projection import delivery_form
 from .revisions import StaleSubjectError, check_revision, is_current, is_superseded, next_revision
 from .scope import Scope
 from .scope_resolve import Membership, ScopeSource, principals, resolve_narrowest
@@ -55,12 +70,15 @@ from .validate import (
 )
 
 __all__ = [
+    "ACCEPTS",
+    "ACTIVE_COMMITMENT_STATES",
     "HOST_FIELDS",
     "HOST_ONLY_TYPES",
     "MEMBER_TYPES",
     "MESSAGE_TYPES",
     "PAYLOAD_MODELS",
     "UNSIGNED_FIELDS",
+    "DecisionExpiredError",
     "Envelope",
     "LogIntegrityError",
     "LogStub",
@@ -74,12 +92,18 @@ __all__ = [
     "SignatureError",
     "StaleSubjectError",
     "StoredSubmission",
+    "accepts",
+    "after_planning_start",
+    "after_replan",
     "canonicalize",
+    "check_decision_window",
     "check_owner_key_unique",
     "check_receipts",
     "check_revision",
     "classify_submission",
     "consent_payload",
+    "decision_expired",
+    "delivery_form",
     "entry_hash",
     "genesis_hash",
     "idempotency_key",
@@ -89,11 +113,13 @@ __all__ = [
     "is_valid_signature",
     "jwk_thumbprint",
     "jwk_to_public_key",
+    "may_create_commitment",
     "new_ulid",
     "next_revision",
     "owner_proof_payload",
     "prev_hash",
     "principals",
+    "projection_stub",
     "public_key_to_jwk",
     "receipt_payload",
     "record_answer",
@@ -106,7 +132,9 @@ __all__ = [
     "sign_owner_proof",
     "signing_payload",
     "submission_digest",
+    "supersede_active",
     "tally",
+    "tally_choice",
     "ulid_timestamp_ms",
     "validate_envelope",
     "validate_payload",
@@ -117,5 +145,6 @@ __all__ = [
     "verify_detached",
     "verify_envelope",
     "verify_owner_proof",
+    "verify_projection",
     "verify_receipt",
 ]

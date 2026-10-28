@@ -73,10 +73,12 @@ PAYLOADS: dict[str, dict[str, Any]] = {
         "kind": "availability",
         "subject": "n-1",
         "deadline_ms": 10000,
+        "task_id": TASK_ID,
     },
     "coalition.answer": {"query_id": "q-1", "result": COST},
     "coalition.match": {
         "match_id": "m-1",
+        "task_id": TASK_ID,
         "peer": "p3",
         "round": "request",
         "blob": "AAECAwQFBgc_-w",
@@ -92,16 +94,19 @@ PAYLOADS: dict[str, dict[str, Any]] = {
                 "objective_scores": {"cost": 0.25, "speed": 1.5},
             }
         ],
+        "decision_deadline": "2026-11-01T18:00:00Z",
     },
     "coalition.tension": {
         "tension_id": TENSION_ID,
         "revision": 3,
+        "task_ids": [TASK_ID, TASK_ID_2],
         "options": [
             {"option_id": "a", "summary": "Wednesday afternoon"},
             {"option_id": "b", "summary": "Thursday morning"},
         ],
         "tradeoffs": ["a is cheaper", "b is quieter"],
         "deciders": ["p1", "p2"],
+        "decision_deadline": "2026-11-01T18:00:00Z",
     },
     "coalition.decide": {
         "subject": {"kind": "plan", "id": PLAN_ID, "revision": 1},
@@ -128,6 +133,8 @@ PAYLOADS: dict[str, dict[str, Any]] = {
             "seq": 7,
             "type": "coalition.need",
             "on_behalf_of": "host",
+            "prev_hash": "cd" * 32,
+            "hash": "ef" * 32,
         },
         "payload": {"need_id": NEED_ID, "description": "A room for two hours"},
         "redacted": ["payload.window", "payload.requirements"],

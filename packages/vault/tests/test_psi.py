@@ -26,6 +26,8 @@ from coalitionkit_contracts.payloads import MatchPayload
 from coalitionkit_contracts.validate import validate_payload
 
 ROOT = Path(__file__).resolve().parents[3]
+TASK = "01M4XRC2A00000000000000002"
+OTHER_TASK = "01M4XRC2A00000000000000003"
 
 
 def parties(
@@ -39,7 +41,7 @@ def parties(
     # TEST ONLY signing seeds and scalars; production constructors randomize all scalars.
     alice = Ed25519PrivateKey.from_private_bytes(bytes([1]) * 32)
     bob = Ed25519PrivateKey.from_private_bytes(bytes([2]) * 32)
-    ctx = context or Context("coalition-1", "match-1", "alice", "bob", reveal)
+    ctx = context or Context("coalition-1", "match-1", "alice", "bob", reveal, TASK)
     return (
         Requester(
             ctx,
@@ -131,10 +133,10 @@ def test_tamper(round_index: int) -> None:
 
 def test_context_round_and_replay() -> None:
     for ctx in (
-        Context("other", "match-1", "alice", "bob", "overlap"),
-        Context("coalition-1", "other", "alice", "bob", "overlap"),
-        Context("coalition-1", "match-1", "bob", "alice", "overlap"),
-        Context("coalition-1", "match-1", "alice", "bob", "count"),
+        Context("other", "match-1", "alice", "bob", "overlap", TASK),
+        Context("coalition-1", "other", "alice", "bob", "overlap", TASK),
+        Context("coalition-1", "match-1", "bob", "alice", "overlap", TASK),
+        Context("coalition-1", "match-1", "alice", "bob", "count", TASK),
     ):
         requester, _ = parties([], [], context=ctx)
         _, responder = parties([], [])
@@ -197,12 +199,12 @@ def test_vectors() -> None:
 def test_count_requires_count_trusted() -> None:
     alice = Ed25519PrivateKey.from_private_bytes(bytes([1]) * 32)
     bob = Ed25519PrivateKey.from_private_bytes(bytes([2]) * 32)
-    count = Context("coalition-1", "match-1", "alice", "bob", "count")
+    count = Context("coalition-1", "match-1", "alice", "bob", "count", TASK)
     for trusted in ([], ["carol"]):
         with pytest.raises(CountNotAuthorized) as info:
             Responder(count, ["a"], bob, alice.public_key(), count_trusted=trusted)
         assert info.value.code == "not_authorized"
-    overlap = Context("coalition-1", "match-1", "alice", "bob", "overlap")
+    overlap = Context("coalition-1", "match-1", "alice", "bob", "overlap", TASK)
     Responder(overlap, ["a"], bob, alice.public_key())  # overlap needs no listing
     Responder(count, ["a"], bob, alice.public_key(), count_trusted=["alice"])
 
@@ -241,6 +243,7 @@ def test_signed_invalid_setup(point: bytes) -> None:
     raw += key.sign(raw)
     payload = MatchPayload(
         match_id="match-1",
+        task_id=TASK,
         peer="alice",
         round="setup",
         reveal="overlap",
@@ -248,3 +251,10 @@ def test_signed_invalid_setup(point: bytes) -> None:
     )
     with pytest.raises(PSIError):
         requester.request(payload)
+
+
+def test_a_message_for_another_task_is_refused() -> None:
+    requester, responder = parties(["a"], ["a"])
+    setup = responder.setup()
+    with pytest.raises(PSIError):
+        requester.request(setup.model_copy(update={"task_id": OTHER_TASK}))

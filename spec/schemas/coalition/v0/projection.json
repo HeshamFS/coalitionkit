@@ -17,7 +17,9 @@
         "event_id",
         "seq",
         "type",
-        "on_behalf_of"
+        "on_behalf_of",
+        "prev_hash",
+        "hash"
       ],
       "properties": {
         "event_id": {
@@ -32,6 +34,14 @@
         },
         "on_behalf_of": {
           "$ref": "common.json#/$defs/id"
+        },
+        "prev_hash": {
+          "$ref": "common.json#/$defs/sha256_hex",
+          "description": "prev_hash of the logged original entry."
+        },
+        "hash": {
+          "$ref": "common.json#/$defs/sha256_hex",
+          "description": "SHA-256 of the JCS form of the logged original entry (the value the next entry's prev_hash holds)."
         }
       }
     },

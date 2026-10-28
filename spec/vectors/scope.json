@@ -1,5 +1,5 @@
 {
-  "description": "Scope resolution for derived outputs. 'narrowest scope of its sources' is the intersection of the resolved principal sets of the sources, resolved at derivation time: coalition = every member, roles = members holding any listed role now, participants = the listed participants who are members, self = the source sender's owner (source.owner), host = nobody. An empty intersection becomes audience 'host'. Redaction lists are unioned and sorted. Result form: all sources 'coalition' gives 'coalition'; all sources 'roles' with the same role list gives 'roles'; otherwise 'participants' with the sorted intersection; empty gives 'host'. members and role_holders describe the Coalition at derivation time. Absent expected fields are absent in the result.",
+  "description": "Scope resolution for derived outputs. 'narrowest scope of its sources' is the intersection of the resolved principal sets of the sources, resolved at derivation time: coalition = every member, roles = members holding any listed role now, participants = the listed participants who are members, self = the source sender's owner (source.owner), host = nobody. An empty intersection becomes audience 'host'. Redaction provenance: a source with a non-empty redact list that is not projected makes the whole result audience 'host' with no redact (no path survives a renamed field); projected:true on a source means the output is built from that source's redacted projection only, and the source contributes no redaction paths. A derived scope never carries a redact list. Result form: all sources 'coalition' gives 'coalition'; all sources 'roles' with the same role list gives 'roles'; otherwise 'participants' with the sorted intersection; empty gives 'host'. members and role_holders describe the Coalition at derivation time. Absent expected fields are absent in the result.",
   "cases": [
     {
       "name": "single-coalition",
@@ -136,28 +136,48 @@
       "expected": {"audience": "host"}
     },
     {
-      "name": "redaction-lists-are-unioned",
+      "name": "redacted-source-makes-the-output-host-only",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [{"owner": "p1", "scope": {"audience": "coalition", "redact": ["payload.content"]}}],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "redaction-in-any-source-makes-the-output-host-only",
       "members": ["p1", "p2", "p3"],
       "role_holders": {},
       "sources": [
-        {"owner": "p1", "scope": {"audience": "coalition", "redact": ["payload.window", "payload.cost"]}},
-        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p2"], "redact": ["payload.cost", "payload.address"]}}
+        {"owner": "p1", "scope": {"audience": "coalition"}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p2"], "redact": ["payload.cost"]}}
       ],
-      "expected": {
-        "audience": "participants",
-        "participants": ["p1", "p2"],
-        "redact": ["payload.address", "payload.cost", "payload.window"]
-      }
+      "expected": {"audience": "host"}
     },
     {
-      "name": "redaction-survives-an-empty-intersection",
+      "name": "projected-source-keeps-its-audience-and-drops-redaction",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [{"owner": "p1", "projected": true, "scope": {"audience": "coalition", "redact": ["payload.content"]}}],
+      "expected": {"audience": "coalition"}
+    },
+    {
+      "name": "projected-sources-still-intersect",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "projected": true, "scope": {"audience": "coalition", "redact": ["payload.window", "payload.cost"]}},
+        {"owner": "p1", "projected": true, "scope": {"audience": "participants", "participants": ["p1", "p2"], "redact": ["payload.address"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p1", "p2"]}
+    },
+    {
+      "name": "projected-and-unprojected-redaction-mix-is-host-only",
       "members": ["p1", "p2"],
       "role_holders": {},
       "sources": [
-        {"owner": "p1", "scope": {"audience": "self", "redact": ["payload.a"]}},
-        {"owner": "p2", "scope": {"audience": "self", "redact": ["payload.b"]}}
+        {"owner": "p1", "projected": true, "scope": {"audience": "coalition", "redact": ["payload.a"]}},
+        {"owner": "p1", "scope": {"audience": "coalition", "redact": ["payload.b"]}}
       ],
-      "expected": {"audience": "host", "redact": ["payload.a", "payload.b"]}
+      "expected": {"audience": "host"}
     },
     {
       "name": "three-sources",

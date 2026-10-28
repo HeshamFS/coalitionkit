@@ -21,7 +21,10 @@ def membership(case: dict[str, Any]) -> Membership:
 
 
 def sources(case: dict[str, Any]) -> list[ScopeSource]:
-    return [ScopeSource(Scope.model_validate(s["scope"]), s["owner"]) for s in case["sources"]]
+    return [
+        ScopeSource(Scope.model_validate(s["scope"]), s["owner"], s.get("projected", False))
+        for s in case["sources"]
+    ]
 
 
 @pytest.mark.parametrize("case", VECTOR["cases"], ids=[c["name"] for c in VECTOR["cases"]])
@@ -48,3 +51,9 @@ def test_order_of_sources_does_not_matter() -> None:
     for case in VECTOR["cases"]:
         mem, srcs = membership(case), sources(case)
         assert resolve_narrowest(srcs, mem) == resolve_narrowest(srcs[::-1], mem), case["name"]
+
+
+def test_a_derived_output_never_carries_redaction_paths() -> None:
+    for case in VECTOR["cases"]:
+        result = resolve_narrowest(sources(case), membership(case))
+        assert result.redact is None, case["name"]

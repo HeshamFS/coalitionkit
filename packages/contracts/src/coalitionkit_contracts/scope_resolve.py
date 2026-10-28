@@ -11,10 +11,15 @@ from .scope import Scope
 
 @dataclass(frozen=True)
 class ScopeSource:
-    """One source event of a derived output: its scope and the owner of its sender."""
+    """One source event of a derived output: its scope and the owner of its sender.
+
+    ``projected`` says the output is built from the source's redacted projection only (its
+    ``redact`` paths are already removed from the data the host read), not from the original.
+    """
 
     scope: Scope
     owner: str
+    projected: bool = False
 
 
 @dataclass(frozen=True)
@@ -48,22 +53,24 @@ def resolve_narrowest(sources: Sequence[ScopeSource], membership: Membership) ->
     """The scope a derived output takes: the intersection of its sources' principal sets.
 
     Roles resolve to the members holding them now, ``self`` to the source sender's owner. An
-    empty intersection becomes ``host``. Redaction lists are unioned (sorted). When every source
-    is ``coalition`` the result is ``coalition``; when every source lists the same roles it stays
-    ``roles``; otherwise it is ``participants`` with the sorted intersection.
+    empty intersection becomes ``host``. A source with a non-empty ``redact`` list that is not
+    ``projected`` makes the output ``host`` (no redaction path survives a renamed field), and a
+    ``projected`` source contributes no redaction paths. When every source is ``coalition`` the
+    result is ``coalition``; when every source lists the same roles it stays ``roles``; otherwise
+    it is ``participants`` with the sorted intersection.
     """
     if not sources:
         raise ValueError("a derived output needs at least one source")
+    if any(s.scope.redact and not s.projected for s in sources):
+        return Scope(audience="host")
     common = principals(sources[0], membership)
     for source in sources[1:]:
         common &= principals(source, membership)
-    paths = sorted({path for s in sources for path in s.scope.redact or []})
-    extra: dict[str, list[str]] = {"redact": paths} if paths else {}
     audiences = {s.scope.audience for s in sources}
     if not common:
-        return Scope(audience="host", **extra)
+        return Scope(audience="host")
     if audiences == {"coalition"}:
-        return Scope(audience="coalition", **extra)
+        return Scope(audience="coalition")
     if audiences == {"roles"} and len({frozenset(s.scope.roles or []) for s in sources}) == 1:
-        return Scope(audience="roles", roles=sorted(sources[0].scope.roles or []), **extra)
-    return Scope(audience="participants", participants=sorted(common), **extra)
+        return Scope(audience="roles", roles=sorted(sources[0].scope.roles or []))
+    return Scope(audience="participants", participants=sorted(common))

@@ -127,6 +127,7 @@ class QueryPayload(WireModel):
     kind: Literal["feasible", "cost", "availability"]
     subject: Id
     deadline_ms: PositiveInt = DEFAULT_QUERY_DEADLINE_MS
+    task_id: Ulid | None = None
 
 
 class AnswerPayload(WireModel):
@@ -136,6 +137,7 @@ class AnswerPayload(WireModel):
 
 class MatchPayload(WireModel):
     match_id: Id
+    task_id: Ulid
     peer: Id
     round: Literal["setup", "request", "response"]
     blob: Annotated[
@@ -159,6 +161,7 @@ class Plan(WireModel):
 class ProposePayload(WireModel):
     proposal_set_id: Id
     plans: Annotated[list[Plan], Field(min_length=1)]
+    decision_deadline: Rfc3339
 
 
 class TensionOption(WireModel):
@@ -169,9 +172,11 @@ class TensionOption(WireModel):
 class TensionPayload(WireModel):
     tension_id: Ulid
     revision: Revision
+    task_ids: Annotated[UniqueUlids, Field(min_length=1)]
     options: Annotated[list[TensionOption], Field(min_length=2)]
     tradeoffs: list[Text]
     deciders: Annotated[UniqueIds, Field(min_length=1)]
+    decision_deadline: Rfc3339
 
 
 class Subject(WireModel):
@@ -253,6 +258,8 @@ class ProjectionSource(WireModel):
     seq: PositiveInt
     type: Annotated[str, StringConstraints(pattern=r"^coalition\.[a-z_]+$")]
     on_behalf_of: Id
+    prev_hash: Sha256Hex
+    hash: Sha256Hex
 
 
 class ProjectionPayload(WireModel):

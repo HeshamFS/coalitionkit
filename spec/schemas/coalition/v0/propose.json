@@ -7,7 +7,8 @@
   "additionalProperties": false,
   "required": [
     "proposal_set_id",
-    "plans"
+    "plans",
+    "decision_deadline"
   ],
   "properties": {
     "proposal_set_id": {
@@ -59,6 +60,10 @@
           }
         }
       }
+    },
+    "decision_deadline": {
+      "$ref": "common.json#/$defs/datetime",
+      "description": "Absolute time after which no decision on these plans is recorded."
     }
   }
 }

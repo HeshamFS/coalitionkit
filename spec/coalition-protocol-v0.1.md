@@ -61,7 +61,7 @@ The Coalition Protocol adds no transport of its own: a Coalition is a set of A2A
 | Host to member | Messages and streamed task updates on that task |
 | Member to host | Messages sent to the host's own A2A endpoint, which has its own signed card |
 | Coalition message | A Part whose `data` is the envelope, with media type `application/vnd.coalitionkit.envelope+json`; the message's `extensions` list names the extension URI |
-| Acknowledgement | Two such parts, in order: the accepted envelope, then its `coalition.receipt` |
+| Acknowledgement | Two such parts, in order: the accepted event in the form the sender may see (original or projection), then its `coalition.receipt`; only the receipt when the sender is outside the event's scope |
 | Input from a person | The member's task waits in `TASK_STATE_INPUT_REQUIRED`; the answer continues it with the same task and context IDs |
 | Coalition end | Open member tasks move to a final state when the Coalition dissolves |
 
@@ -107,7 +107,7 @@ Every Coalition message is one envelope. The sender fills and signs the envelope
 - An event is committed to the log before it is delivered, projected or answered; nobody sees a change the log cannot rebuild.
 - Signatures and hashes are computed over JCS (RFC 8785), so a number re-encoded on the way (200 as 200.0) still verifies. Every integer in a payload lies between 0 and 2^53 - 1, which is what JCS can carry exactly. Money is an integer in minor units (cents), never a float.
 - Every payload schema sets `additionalProperties: false`. A member therefore cannot attach extra fields, such as reasons, that the protocol does not define.
-- Object identifiers the host mints (needs, tasks, plans, tensions, commitments) are ULIDs. Identifiers a participant mints (`offer_id`, `query_id` answered by it, `match_id`) are strings of 1 to 128 characters.
+- Object identifiers the host mints (needs, tasks, plans, tensions) are ULIDs. A member mints the ULID of each commitment it creates, in its signed `commit`; the host rejects a `commitment_id` already used in the Coalition, in any state, with `not_authorized`. Identifiers a participant mints (`offer_id`, `query_id` answered by it, `match_id`) are strings of 1 to 128 characters.
 
 ### Idempotency is authenticated
 
@@ -116,7 +116,7 @@ The host looks up every submission by (`coalition_id`, `event_id`) before it doe
 | Lookup finds | Same authenticated sender and same digest | Result |
 |---|---|---|
 | Nothing | n/a | Process normally |
-| An accepted event | Yes | Return the original acknowledgement (the same accepted envelope and the same receipt); append nothing |
+| An accepted event | Yes | Return the acknowledgement again, in the form the sender may see (see Acknowledgements and receipts); append nothing |
 | An accepted event | No (other sender, or other bytes) | Reject with `duplicate_mismatch` |
 
 `duplicate_mismatch` discloses nothing about the original: the same answer, with an empty `detail`, whichever of the two differed and whether or not the sender could ever see the original. A sender that really wants to change a message sends it under a new `event_id`.
@@ -125,11 +125,13 @@ The host looks up every submission by (`coalition_id`, `event_id`) before it doe
 
 The host acknowledges every accepted envelope with the accepted envelope (now carrying `seq`, `ts` and `prev_hash`) and a host-signed `coalition.receipt` with payload `{coalition_id, seq, head_hash}`, where `head_hash` is the SHA-256 of the JCS form of the accepted envelope at `seq`, which is also the value the next envelope's `prev_hash` must hold. A receipt is scoped to its recipient, signed with the host key and never appended to the log. The sender SHOULD keep every receipt. A host MUST NOT acknowledge an event it has not committed.
 
+**The acknowledgement obeys scope.** The first part of an acknowledgement is the event as the sender would receive it as any recipient, by the delivery form rule under Projections: the *original* when the sender is in the event's scope and nothing is redacted or viewer-specific for it; a *projection* when the sender is in scope and a field is redacted or the event is viewer-specific; and *nothing* (the receipt alone) when the sender is outside the event's scope. A duplicate gets the same form, computed again from the stored event, and the same receipt. The receipt carries only `seq` and `head_hash`, which disclose nothing of the content.
+
 ### The authenticated log boundary
 
 The genesis: `prev_hash` of seq 1 is the SHA-256 (lowercase hex) of the JCS form of `{"coalition_id", "host_card_url", "created_at"}`, where `host_card_url` is the host's card URL and `created_at` is the RFC 3339 time the host created the Coalition. `created_at` is also carried in every `coalition.charter`, so a member can recompute the genesis hash.
 
-A reader that holds the whole log, or a replay in which events outside its scope are replaced by stubs `{seq, prev_hash, hash}` (the stub's `hash` being the SHA-256 of the JCS form of the original), checks four things: seq is gap-free from 1; seq 1 links to the genesis hash; each `prev_hash` equals the hash of the entry before it; and, for every receipt it kept, the log reaches that receipt's `seq` and the entry there hashes to the receipt's `head_hash`. The first three catch gaps and edits inside the log. Only the receipts catch an edited last entry, an edited tail whose later `prev_hash` values were recomputed, and a truncation: a host that cuts the log back, or rewrites its tail, cannot produce a log that fits a receipt it signed earlier. A member can detect only what its own receipts cover.
+A reader that holds the whole log, or a replay in which events outside its scope are replaced by stubs `{seq, prev_hash, hash}` (the stub's `hash` being the SHA-256 of the JCS form of the original), checks four things: seq is gap-free from 1; seq 1 links to the genesis hash; each `prev_hash` equals the hash of the entry before it; and, for every receipt it kept, the log reaches that receipt's `seq` and the entry there hashes to the receipt's `head_hash`. A projection stands in for its source entry through the stub it carries (see Projections): the reader MUST verify the projection's host signature against the pinned host key first, and a projection that fails is an error, not a gap; only then do the chain and receipt checks use its `source.prev_hash` and `source.hash`, never a hash of the projection's own envelope. In `coalitionkit_contracts`, `verify_chain` and `check_receipts` take the host key and verify each projection before it enters the chain. The first three catch gaps and edits inside the log. Only the receipts catch an edited last entry, an edited tail whose later `prev_hash` values were recomputed, and a truncation: a host that cuts the log back, or rewrites its tail, cannot produce a log that fits a receipt it signed earlier. A member can detect only what its own receipts cover.
 
 ### Projections
 
@@ -137,11 +139,11 @@ Anything delivered with a field redacted, or projected for a particular viewer, 
 
 | Field | Meaning |
 |---|---|
-| `source` | `event_id`, `seq`, `type` and `on_behalf_of` of the logged event it is derived from |
+| `source` | `event_id`, `seq`, `type` and `on_behalf_of` of the logged event it is derived from, plus `prev_hash` (its `prev_hash`) and `hash` (the SHA-256 of the JCS form of the original entry, the value the next entry's `prev_hash` holds). Signed with the projection, these are the stub `{seq, prev_hash, hash}` for chain checks |
 | `payload` | The source payload after redaction or per-viewer projection. It is not validated against the source type's schema, because redaction removes required fields |
 | `redacted` | Optional list of the `payload.` paths removed |
 
-Recipients verify a projection against the host key they pinned, never against the sender's key. The host delivers the *original* envelope only when no field is redacted for that recipient and the event is not viewer-specific; otherwise it delivers a projection. `scope.redact` applies to every recipient except the host and the Steward, so any event with a non-empty `redact` is delivered to everyone else as a projection. A per-member `coalition.propose` (each member sees only its own assignments) is likewise a projection. The projection's own `scope` is the recipient.
+Recipients verify a projection against the host key they pinned, never against the sender's key. The host delivers the *original* envelope only when no field is redacted for that recipient and the event is not viewer-specific; otherwise it delivers a projection. `scope.redact` applies to every recipient except the host and the Steward, so any event with a non-empty `redact` is delivered to everyone else as a projection. A per-member `coalition.propose` (each member sees only its own assignments) is likewise a projection. The projection's own `scope` is the recipient. The delivery form is one function of three facts: a recipient outside the scope gets no delivery (a sender gets only its receipt); inside the scope, a redacted or viewer-specific event is a projection; any other event is the original.
 
 ## Message types
 
@@ -155,13 +157,13 @@ Eighteen types in v0.1: ten that members, vaults and edges send and eight that o
 | `coalition.observe` | Edge to host | `source` (`voice`, `camera`, `chat`, `device`, `document`), `content`, optional `evidence_ref` | Scoped to who may see the source |
 | `coalition.need` | Host to members | `need_id`, `description`, `requirements`, `window` | Publishing a need creates a task with the same ID in status `open` |
 | `coalition.offer` | Member to host | `offer_id`, `target` (a need or task), `capacity`, `cost`, `valid_until` | `cost` has `minutes`, `money` and `effort`; no free text |
-| `coalition.query` | Host to vault | `query_id`, `kind` (`feasible`, `cost`, `availability`), `subject`; optional `deadline_ms` | `deadline_ms` defaults to 10,000 |
+| `coalition.query` | Host to vault | `query_id`, `kind` (`feasible`, `cost`, `availability`), `subject`; optional `deadline_ms`, `task_id` | `deadline_ms` defaults to 10,000. A query asked in planning a task carries its `task_id` |
 | `coalition.answer` | Vault to host | `query_id`, `result` (`yes`, `no` or a cost) | The only thing a vault ever returns |
-| `coalition.match` | Vault to vault, relayed by the host | `match_id`, `peer`, `round` (`setup`, `request`, `response`), `blob`, `reveal` (`overlap` or `count`) | The host relays opaque blobs and cannot read them (see Private set intersection) |
-| `coalition.propose` | Host to members | `proposal_set_id`, `plans` (each with `plan_id`, `revision`, assignments and objective scores) | Each member sees only its own assignments (a projection) |
-| `coalition.tension` | Host to deciders | `tension_id`, `revision`, `options`, `tradeoffs`, `deciders` |  |
+| `coalition.match` | Vault to vault, relayed by the host | `match_id`, `task_id`, `peer`, `round` (`setup`, `request`, `response`), `blob`, `reveal` (`overlap` or `count`) | The host relays opaque blobs and cannot read them (see Private set intersection). `task_id` is the task the exchange concerns |
+| `coalition.propose` | Host to members | `proposal_set_id`, `plans` (each with `plan_id`, `revision`, assignments and objective scores), `decision_deadline` | Each member sees only its own assignments (a projection). The tasks it covers are those its assignments name |
+| `coalition.tension` | Host to deciders | `tension_id`, `revision`, `task_ids` (non-empty), `options`, `tradeoffs`, `deciders`, `decision_deadline` | `task_ids` are the tasks the tension holds in `proposed` |
 | `coalition.decide` | Member to host | `subject`, `choice`, `consent` (true or false), `decided_at`, `consent_sig` | `consent_sig` is by the owner key |
-| `coalition.commit` | Member to host | `commitment_id`, `task_id`, `status` (`pending` or `withdrawn`); optional `revision` | Never `approved`: approval is an owner-signed `coalition.decide` |
+| `coalition.commit` | Member to host | `commitment_id`, `task_id`, `status` (`pending` or `withdrawn`); optional `revision` | `commitment_id` is a ULID the member mints when it creates a commitment. Never `approved`: approval is an owner-signed `coalition.decide` |
 | `coalition.ripple` | Any participant | `change`, `invalidates` (task IDs) | Scoped like the change it reports |
 | `coalition.done` | Member to host | `task_id`, `evidence` (each with `kind`, `ref`, `verified_by`) |  |
 | `coalition.dissolve` | Host to members | `reason` (`completed`, `deadline`, `cancelled`, `budget`), `skills_written` | Final message of a Coalition |
@@ -188,7 +190,7 @@ Everything a consent, a revision check or a decision is about is named with one 
 
 For every kind except `tension_option`, `choice` MUST equal the subject `id`; `consent` carries the yes or no.
 
-The host assigns revisions. An object starts at revision 1 and the revision goes up by 1 on every change to it. The producers expose the current revision: `propose` in each plan's `revision`, `tension` and `charter` in `revision`, and `commit` through the consent request and the projection delivered to its decider (a member omits `revision` when it creates a commitment, and gives the revision it is withdrawing when it withdraws one). Recording a decision compares the decision's revision with the current revision atomically, in the same transaction that records it. Any other revision, older or newer, fails with `stale_subject`. A change to the subject supersedes every pending consent request for an older revision.
+The host assigns revisions. An object starts at revision 1 and the revision goes up by 1 on every change to it. The producers expose the current revision: `propose` in each plan's `revision`, `tension` and `charter` in `revision`, and `commit` through the consent request and the projection delivered to its decider (a member omits `revision` when it creates a commitment, which starts at revision 1, and gives the revision it is withdrawing when it withdraws one). Recording a decision compares the decision's revision with the current revision atomically, in the same transaction that records it. Any other revision, older or newer, fails with `stale_subject`. A change to the subject supersedes every pending consent request for an older revision.
 
 ### Owner authority
 
@@ -204,14 +206,14 @@ A message must pass two independent tests: the scope rules (who may see what) an
 
 | Type | Who may send | About which objects |
 |---|---|---|
-| `join` | An agent with a valid signed card that is not yet a member | Itself; `on_behalf_of` is its owner |
+| `join` | An agent with a valid signed card, named by the invitation it joined by, that has never been a member | Itself; `on_behalf_of` is its owner. A participant that left does not rejoin in v0.1 |
 | `leave` | A member | Itself only |
 | `observe` | An Edge, or a member | Evidence it holds; its scope may be no wider than who may see the source |
 | `offer` | A member | A need or task that is `open` or `negotiating` and visible to the sender. The offer counts only once the sender has accepted the current charter revision |
 | `answer` | The vault of the participant the query was addressed to | Exactly one open `query_id`, once. A second answer is `not_authorized`; a late one is `deadline_exceeded` |
-| `match` | One of the two parties of the exchange | Its own `match_id`, addressed to the `peer` fixed by `setup`; `setup` only from the responder, `request` only from the requester, `response` only from the responder, each round once and in order |
-| `commit` (create, `pending`) | The agent of the assignee's owner | A task that the decided plan assigns to its owner and that is `decided`; one active commitment per task |
-| `commit` (`withdrawn`) | The agent that created it | Its own commitment |
+| `match` | One of the two parties of the exchange | Its own `match_id`, addressed to the `peer` fixed by `setup`. `setup` names a `task_id` in `negotiating`; the host records `(match_id, task_id, responder, requester)` at `setup`, and every later round must repeat that `task_id` and those parties or it is `not_authorized`. `setup` only from the responder, `request` only from the requester, `response` only from the responder, each round once and in order |
+| `commit` (create, `pending`) | The agent of the assignee's owner | A task that the decided plan assigns to its owner and that is `decided`; one active commitment per task; a `commitment_id` not used before in the Coalition |
+| `commit` (`withdrawn`) | The agent that created it | Its own commitment, `pending` (task `decided`) or `approved` (task `committed`) |
 | `decide` | A decider named for the subject: for `plan`, the charter's `deciders`; for `tension_option`, the tension's `deciders`; for `commitment` and `task`, the owner of the assignee; for `charter`, each member for itself | The named subject at its current revision; one answer per decider and revision. Approval of a commitment exists only as an owner-signed `decide` |
 | `done` | The agent of the assignee | A task assigned to its owner whose commitment is approved (task `committed`) |
 | `ripple` | A member | Tasks visible to the sender only; every ID in `invalidates` must be one |
@@ -247,6 +249,7 @@ Every envelope says who may see it, and the narrowest reading wins. A host MUST 
 
 - There is no default scope: `scope` is required, and a sender that means only its own owner says `self`.
 - Anything the host derives (a plan, a summary, a tension's text, a surface, a lesson written at dissolve) takes the narrowest scope of the events it came from, and the host refuses to widen it.
+- **Redaction does not survive derivation.** A redaction path names a field of its own event, and a derived output renames and rewrites fields. So an output derived from a source that has a non-empty `redact` list is scoped `host` and carries no `redact`, unless the host built it from that source's redacted projection only (the payload with the paths already removed). Such a source counts as *projected*: it keeps its audience and contributes no redaction paths. A derived scope never carries `redact`.
 - Scopes apply on every path out of the host: deliveries, AG-UI snapshots and deltas, MCP reads, log replays, exports and traces.
 - Business and machine participants receive only events scoped to them and the tasks assigned to them.
 - The Steward sees every event but emits only verdicts; it never forwards content.
@@ -264,7 +267,7 @@ The *narrowest scope of its sources* is the intersection of the resolved princip
 | `self` | The source sender's owner (the source's `on_behalf_of`) |
 | `host` | Nobody |
 
-An empty intersection becomes `host`. Redaction lists are unioned across the sources. The derived scope is written as `coalition` when every source is `coalition`, as `roles` when every source lists the same roles, and otherwise as `participants` with the sorted intersection (or `host` when it is empty). The reference function is `resolve_narrowest` in `coalitionkit_contracts`; the cases are in `spec/vectors/scope.json`.
+An empty intersection becomes `host`. A source with a non-empty `redact` list that is not projected makes the result `host` (see Redaction does not survive derivation). The derived scope is written as `coalition` when every source is `coalition`, as `roles` when every source lists the same roles, and otherwise as `participants` with the sorted intersection (or `host` when it is empty). The reference function is `resolve_narrowest` in `coalitionkit_contracts`; the cases are in `spec/vectors/scope.json`.
 
 ## Lifecycle rules and ordering
 
@@ -288,14 +291,16 @@ The host is the single writer of a Coalition's log, so its `seq` is the order. T
 
 | Task status | Accepted about the task | Moves to |
 |---|---|---|
-| `open` | `offer`, `ripple` | `negotiating` when the host starts planning it |
+| `open` | `offer`, `ripple` | `negotiating` when the host starts planning it (see below) |
 | `negotiating` | `answer`, `match`, `offer`, `ripple` | `proposed` when a plan or tension covering it passes the Steward |
 | `proposed` | `decide` (plan, tension option or task), ripple | `decided` when every named decider has consented |
-| `decided` | `commit` (`pending`), `decide` (commitment or task), `ripple` | `committed` when the assignee's owner approves the commitment |
+| `decided` | `commit` (`pending`, or `withdrawn` for a pending commitment), `decide` (commitment or task), `ripple` | `committed` when the assignee's owner approves the commitment; `negotiating` when the pending commitment is withdrawn |
 | `committed` | `done`, `commit` (`withdrawn`), `ripple` | `done` |
 | `done`, `withdrawn` | Nothing | Terminal |
 
-The host also sends `query`, `propose` and `tension` about a task in the statuses where they apply (`negotiating` for queries and proposals; `negotiating` or `proposed` for tensions). Any refusal in `proposed` or `decided`, a withdrawn commitment, or a ripple that invalidates the task sends it back to `negotiating`. A task not `done` when the Coalition dissolves is closed as `withdrawn`; a `done` sent in Dissolve is `stage_mismatch`.
+**Planning starts without a message of its own.** A task moves from `open` to `negotiating` at the first host-originated `query` carrying its `task_id`, or `propose` or `tension` naming it, whichever the log holds first; replaying the log gives the same status. A `propose` or `tension` in `open` passes through `negotiating` in the same transaction.
+
+The host also sends `query`, `propose` and `tension` about a task in the statuses where they apply (`negotiating` for queries and proposals; `negotiating` or `proposed` for tensions). Any refusal in `proposed` or `decided`, a withdrawn commitment, a ripple that invalidates the task, or an expired decision sends it back to `negotiating`. In that same transaction the host marks the task's active commitment (`pending` or `approved`) `superseded` and closes every consent request about the task, its plans and its commitments. A superseded commitment is not active, so the replan can create a new commitment (a new `commitment_id`, revision 1) that needs a fresh owner-signed approval; a decision on a superseded commitment is `stale_subject`. A task not `done` when the Coalition dissolves is closed as `withdrawn`; a `done` sent in Dissolve is `stage_mismatch`.
 
 **Rules**
 
@@ -303,10 +308,11 @@ The host also sends `query`, `propose` and `tension` about a task in the statuse
 2. A refused consent, a withdrawn commitment or a ripple sets the affected tasks back to `negotiating`; the Coalition keeps its stage. Only when every open task is back to `negotiating` does the Coalition itself return to Negotiate.
 3. The host MAY send `coalition.dissolve` from any stage on cancellation, deadline or budget exhaustion.
 4. Only a decider named for the subject may send `coalition.decide` for it (see Target authorization).
-5. **Decisions are per decider.** The first answer wins per (Coalition, `subject.kind`, `subject.id`, `subject.revision`, decider). A later answer from the same decider for the same key is not recorded and gets `not_authorized`. A subject is *decided* when every named decider has consented. Any refusal sends the subject's tasks back to `negotiating`. Answers from different deciders arrive in `seq` order, are all recorded, and the last consent decides the subject.
+5. **Decisions are per decider.** The first answer wins per (Coalition, `subject.kind`, `subject.id`, `subject.revision`, decider). A later answer from the same decider for the same key is not recorded and gets `not_authorized`. A subject is *decided* when every named decider has consented. For a `tension_option` every decider must consent to the same `choice`: consents naming different options leave no option decided (the tension is *split*) and count as a refusal. Any refusal sends the subject's tasks back to `negotiating`. Answers from different deciders arrive in `seq` order, are all recorded, and the last consent decides the subject. When one plan of a proposal set is decided, the other plans of that set are superseded.
 6. A decision names the revision of the subject it answers and the host compares it atomically as described under Subjects and revisions; a decision on any other revision is refused with `stale_subject`.
 7. A commitment made by an agent for an absent owner stays `pending` until that owner's own `coalition.decide`, with the owner's `consent_sig`, approves it. The member's `commit` carries `pending` or `withdrawn`; `approved` is a host-side state reached only through that decision.
 8. Delivery is at least once; receivers deduplicate by `event_id`.
+9. **Decisions expire.** `propose` and `tension` carry `decision_deadline`, an absolute RFC 3339 time that applies to every plan or option in them. A `commitment`, `task` or `charter` subject has no deadline of its own; it ends with the Coalition's `deadline`. A decision the host accepts after the deadline (its `ts` is later than `decision_deadline`) is not recorded and gets `deadline_exceeded`. A subject that is undecided when its deadline passes is *expired*: its consent requests close, its tasks go back to `negotiating` and no commitment is created. Expiry is a pure function of the log and the clock: before applying any event, and before answering any read, the host applies the expiry of every subject whose deadline is earlier than that event's `ts` (or the read's time), in the same transaction. A new revision of a subject carries its own `decision_deadline`.
 
 ### Charter acceptance
 
@@ -321,7 +327,7 @@ Errors are messages, never silence. Every rejected envelope gets a `coalition.er
 | `schema_invalid` | The envelope or payload fails its JSON Schema | Fix and resend with a new `event_id` |
 | `bad_signature` | The envelope signature does not verify against the sender's pinned card key, or a `consent_sig` or `owner_proof` does not verify against the owner key | Re-sign; check key rotation |
 | `sender_mismatch` | `sender` or `on_behalf_of` differs from the authenticated connection | Drop the message |
-| `unknown_participant` | The sender has not joined, or has left | Join first |
+| `unknown_participant` | The sender has not joined, or has left (any type but `join`) | Join first |
 | `extension_not_activated` | Coalition data arrived on a call without the `A2A-Extensions` header | Resend with the header |
 | `stage_mismatch` | The type is not accepted in the current stage, or the task is not in the right status | Wait for the stage, or drop the message |
 | `scope_violation` | The scope names someone the sender may not address, or is wider than its sources | Narrow the scope |
@@ -330,14 +336,14 @@ Errors are messages, never silence. Every rejected envelope gets a `coalition.er
 | `stale_subject` | The decision answers a revision other than the subject's current one | Read the current revision and decide again |
 | `duplicate_mismatch` | The `event_id` is already taken in this Coalition by another sender or by different bytes; `detail` is empty | Send under a new `event_id` |
 | `steward_blocked` | The Steward refused it; `detail` gives the policy ID | Revise, or ask a human |
-| `deadline_exceeded` | The answer arrived after its query's deadline | Nothing; the sender was counted as abstaining |
+| `deadline_exceeded` | The answer arrived after its query's deadline, or a decision after its `decision_deadline` | Nothing; the sender was counted as abstaining, or the subject expired |
 | `rate_limited` | The sender exceeded its rate | Back off as told in `detail.retry_after_ms` |
 | `budget_exhausted` | The Coalition's model budget is spent | Nothing; the Coalition continues without model calls |
 | `pack_violation` | A pack policy forbids the action | Revise |
 
-**Check order.** The host checks in this order and stops at the first failure: (1) `extension_not_activated`; (2) `sender_mismatch`, from `sender`, `on_behalf_of` and `event_id`, which it reads before schema validation; (3) the idempotency lookup, answering a replay or `duplicate_mismatch`; (4) `rate_limited`; (5) `schema_invalid`; (6) `unknown_participant`; (7) `bad_signature`, including `consent_sig`; (8) `stage_mismatch`, stage then task status; (9) `not_authorized` or `not_a_decider`; (10) `scope_violation`; (11) `stale_subject`, at recording time inside the transaction; (12) `pack_violation`, then `steward_blocked`. `deadline_exceeded` and `budget_exhausted` apply where their conditions arise.
+**Check order.** The host checks in this order and stops at the first failure: (1) `extension_not_activated`; (2) `sender_mismatch`, from `sender`, `on_behalf_of` and `event_id`, which it reads before schema validation; (3) the idempotency lookup, answering a replay or `duplicate_mismatch`; (4) `rate_limited`; (5) `schema_invalid`; (6) `unknown_participant`, except for `join`, which is checked instead against the invitation and the authenticated connection (`not_authorized` if either fails, or if the sender is or was a member) and registers the participant atomically with its acceptance; (7) `bad_signature`, including `consent_sig`, and for `join` the card signature and `owner_proof`; (8) `stage_mismatch`, stage then task status; (9) `not_authorized` or `not_a_decider`; (10) `scope_violation`; (11) `deadline_exceeded` for a decision past its `decision_deadline`, then `stale_subject`, both at recording time inside the transaction; (12) `pack_violation`, then `steward_blocked`. `deadline_exceeded` and `budget_exhausted` apply where their conditions arise.
 
-**Timeouts**: each `coalition.query` MAY carry `deadline_ms`; when it is missing the deadline is 10,000 ms (a pack may change the default), and silence counts as abstaining. Decisions carry a deadline in their tension or proposal.
+**Timeouts**: each `coalition.query` MAY carry `deadline_ms`; when it is missing the deadline is 10,000 ms (a pack may change the default), and silence counts as abstaining. Decisions carry `decision_deadline` in their tension or proposal (see Lifecycle rules, rule 9).
 
 **Retries**: senders retry transport failures with exponential backoff and jitter, reusing the same `event_id` and the same bytes. The host retries delivery to a member up to a configured limit, then marks it unreachable and notifies its owner through another surface.
 
@@ -345,7 +351,7 @@ Errors are messages, never silence. Every rejected envelope gets a `coalition.er
 
 `coalition.match` carries a two-party PSI between two vaults. The host relays; it cannot read a blob. This section describes the reference implementation (`packages/vault`, `psi.py`) byte for byte.
 
-**Scheme.** ECDH-PSI over the ristretto255 group (RFC 9496), with a fresh secret scalar per party and exchange. Group operations are libsodium's. The two parties are the *requester*, who learns the result, and the *responder*. Both pin the other's Ed25519 signing key through the authenticated identity layer before the exchange; a key taken from the relay is never trusted. Every `coalition.match` message carries `peer`, the participant ID of the party the message is addressed to; a receiver refuses a message whose `peer` is not its own participant ID.
+**Scheme.** ECDH-PSI over the ristretto255 group (RFC 9496), with a fresh secret scalar per party and exchange. Group operations are libsodium's. The two parties are the *requester*, who learns the result, and the *responder*. Both pin the other's Ed25519 signing key through the authenticated identity layer before the exchange; a key taken from the relay is never trusted. Every `coalition.match` message carries `peer`, the participant ID of the party the message is addressed to, and `task_id`, the task the exchange concerns; a receiver refuses a message whose `peer` is not its own participant ID or whose `task_id` differs from the one in `setup`. `task_id` is bound by the sender's envelope signature and by the host's exchange record (see Target authorization), not by the context digest, so the digest and the vectors' blobs are unchanged.
 
 **Context digest.** *C* = SHA-256 of the JCS form of the JSON array `["coalition-psi-v1", coalition_id, match_id, requester, responder, reveal]`, where `requester` and `responder` are participant IDs. The order of the pair is part of the binding; swapping the roles, or changing `reveal`, gives a different *C*.
 
@@ -409,7 +415,7 @@ Any MCP host (Claude, ChatGPT, Cursor, Muse Code) joins a Coalition through this
 | `report_done` | `coalition_id`, `task_id`, `evidence` | Accepted or an error | `coalition.done` |
 | `leave_coalition` | `coalition_id` | Confirmation | `coalition.leave` |
 
-**Resources**: `coalition://{id}/charter`, `coalition://{id}/my-tasks` and `coalition://{id}/log?since={seq}`, each filtered to the caller's scopes. The 2026-07-28 spec is stateless, so every read is authorized on its own; nothing carries over from an earlier call. Tool results are rebuilt from an allowlist of fields, because hosts copy structured content into the text the model reads. A log read returns originals only where nothing is redacted for the caller, projections elsewhere, and stubs for events outside the caller's scope.
+**Resources**: `coalition://{id}/charter`, `coalition://{id}/my-tasks` and `coalition://{id}/log?since={seq}`, each filtered to the caller's scopes. The 2026-07-28 spec is stateless, so every read is authorized on its own; nothing carries over from an earlier call. Tool results are rebuilt from an allowlist of fields, because hosts copy structured content into the text the model reads. A log read returns originals only where nothing is redacted for the caller, projections elsewhere (each carrying its source's `prev_hash` and `hash`), and stubs for events outside the caller's scope.
 
 **MCP Apps**: one versioned view, `ui://coalitionkit/surface-v1.html`, renders the participant's live surface inside the host, so a Claude or ChatGPT user sees the same screen as a web user. The Coalition ID travels as tool data, never in the URI, because hosts cache views by URI; a breaking change to the view ships under a new URI. The view is one bundled HTML file under the default closed CSP, every tool it calls is authorized again on the server, and every tool also returns readable text for hosts that render no views.
 
@@ -519,17 +525,17 @@ An implementation claims conformance at one of four levels by passing every test
 | C-07 | Completes a PSI exchange that reveals only the overlap, reproducing `spec/vectors/psi.json`, and refuses `count` from a requester the charter does not name | Vault |
 | C-08 | Leaks none of 20 planted canaries under scripted extraction attempts | Vault |
 | C-09 | Assigns gap-free `seq` and a valid hash chain from the genesis hash under concurrent senders; every acknowledgement carries a verifying receipt; an edited tail entry and a truncated tail are each caught by the receipts a member kept | Host |
-| C-10 | Rejects out-of-stage messages with `stage_mismatch`. Two-task scenario: while task A is back in `negotiating` (a refusal or ripple), `answer`, `match` and `offer` about A are accepted and `done` about A is `stage_mismatch`; at the same time task B is `committed`, so `done` about B is accepted and `answer` about B is `stage_mismatch` | Host |
-| C-11 | Delivers nothing outside its scope, checked by an observing member; delivers a host-signed projection, never the sender's JWS, whenever a field is redacted for the recipient, and the original otherwise | Host |
+| C-10 | Rejects out-of-stage messages with `stage_mismatch`. Planning starts at the first host `query`, `propose` or `tension` naming an open task. A pending commitment can be withdrawn while its task is `decided`, which sends the task to `negotiating` and closes its consent request. Two-task scenario: while task A is back in `negotiating` (a refusal or ripple), `answer`, `match` and `offer` about A are accepted and `done` about A is `stage_mismatch`; at the same time task B is `committed`, so `done` about B is accepted and `answer` about B is `stage_mismatch` | Host |
+| C-11 | Delivers nothing outside its scope, checked by an observing member; delivers a host-signed projection, never the sender's JWS, whenever a field is redacted for the recipient, and the original otherwise; a replay mixing originals and projections verifies the chain and the kept receipts through the projections' `prev_hash` and `hash`; an acknowledgement and its duplicate leak no redacted field and give a sender outside the scope only the receipt | Host |
 | C-12 | Calls the Steward before delivering proposals and honors a block | Host |
-| C-13 | Returns the original acknowledgement for a duplicate `event_id` from the same sender with the same digest, and `duplicate_mismatch` (with an empty `detail`) for another sender or other bytes | Host |
+| C-13 | Returns the original acknowledgement for a duplicate `event_id` from the same sender with the same digest, and `duplicate_mismatch` (with an empty `detail`) for another sender or other bytes; the duplicate acknowledgement has the same scope-filtered form as the first | Host |
 | C-14 | Refuses an envelope whose `sender` differs from the authenticated connection | Host |
-| C-15 | Records the first answer per (subject kind, id, revision, decider) and refuses a stale revision with `stale_subject`; with two deciders answering concurrently it records both and decides only after the second consent; a refusal sends the tasks to `negotiating`; a second answer from the same decider is not recorded (`not_authorized`); keeps a consent open across a disconnect; refuses a decision whose `consent_sig` the pinned owner key does not verify | Host |
-| C-16 | Gives every derived output the narrowest scope of its sources: the intersection of the resolved principal sets at derivation time, roles resolved to the members holding them then, `self` resolved to the source sender's owner, an empty intersection becoming `host`, redaction lists unioned; reproduces `spec/vectors/scope.json` | Host |
+| C-15 | Records the first answer per (subject kind, id, revision, decider) and refuses a stale revision with `stale_subject`; with two deciders answering concurrently it records both and decides only after the second consent; a refusal sends the tasks to `negotiating`; two deciders consenting to different tension options decide nothing and send the tasks to `negotiating`; a decision after `decision_deadline` is `deadline_exceeded`, and an undecided subject at its deadline returns its tasks to `negotiating` with no commitment; a replan supersedes the task's active commitment and needs a new commitment and a fresh owner approval; a second answer from the same decider is not recorded (`not_authorized`); keeps a consent open across a disconnect; refuses a decision whose `consent_sig` the pinned owner key does not verify | Host |
+| C-16 | Gives every derived output the narrowest scope of its sources: the intersection of the resolved principal sets at derivation time, roles resolved to the members holding them then, `self` resolved to the source sender's owner, an empty intersection becoming `host`, any unprojected source with a redaction list making the output `host`, projected sources contributing none; reproduces `spec/vectors/scope.json` | Host |
 | C-17 | Renders every catalog component from AG-UI snapshots and deltas | Surface |
 | C-18 | Shows a consent request and records only the person's own answer | Surface |
 | C-19 | Shows nothing outside the viewer's scope, from the first snapshot on | Surface |
-| C-20 | Applies the authorization matrix: each row of Target authorization is rejected with `not_authorized` (or `not_a_decider`) when the sender is the wrong party or the object is not its own, even where the scope allows it; host-only types are rejected from members | Host |
+| C-20 | Applies the authorization matrix: each row of Target authorization is rejected with `not_authorized` (or `not_a_decider`) when the sender is the wrong party or the object is not its own, even where the scope allows it; host-only types are rejected from members; a first-time `join` from an invited participant is accepted (not `unknown_participant`); a `match` round for another `task_id`, or for a task not `negotiating`, is rejected; a `commit` reusing a `commitment_id` is `not_authorized` | Host |
 | C-21 | Counts a member's offers and commitments only after it accepted the current charter revision and suspends its open commitments on a new revision | Host |
 
 The runner prints a signed report that implementers may publish with their release.
