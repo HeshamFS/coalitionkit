@@ -5,6 +5,7 @@ requires-python = ">=3.15"
 [manifest]
 members = [
     "coalitionkit-contracts",
+    "coalitionkit-vault",
     "coalitionkit-workspace",
 ]
 
@@ -94,6 +95,23 @@ requires-dist = [
 ]
 
 [[package]]
+name = "coalitionkit-vault"
+version = "0.1.0.dev0"
+source = { editable = "packages/vault" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "cryptography" },
+    { name = "pysodium" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "pysodium", specifier = "==0.7.19" },
+]
+
+[[package]]
 name = "coalitionkit-workspace"
 version = "0.0.0"
 source = { virtual = "." }
@@ -101,6 +119,7 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-vault" },
     { name = "import-linter" },
     { name = "jsonschema" },
     { name = "pyright" },
@@ -114,6 +133,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-vault", editable = "packages/vault" },
     { name = "import-linter", specifier = "==2.15" },
     { name = "jsonschema", specifier = "==4.26.0" },
     { name = "pyright", specifier = "==1.1.414" },
@@ -390,6 +410,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/e1/1b/244c7b710031ada80
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/ba/18b6e682ead424ad24bcc134339ae5d1b931cd9ae260540592a058a91279/pyright-1.1.414-py3-none-any.whl", hash = "sha256:2a6b4b3298c9eec174c5ed83bd338de6eee82df2992f3e1930e6199d381be36f", size = 6225049, upload-time = "2026-09-10T12:26:51.427Z" },
 ]
+
+[[package]]
+name = "pysodium"
+version = "0.7.19"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/aa/55a7bf692197e76293e56ba4504fab025896ffeed844a45e3bec42cf70ae/pysodium-0.7.19.tar.gz", hash = "sha256:520ae4a16786a8d2262d97fdd1399facc94f10f2f67cb73e6fa474a0e25bed03", size = 27314, upload-time = "2026-10-17T22:07:07.72Z" }
 
 [[package]]
 name = "pytest"
