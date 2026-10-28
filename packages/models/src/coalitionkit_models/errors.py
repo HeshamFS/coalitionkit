@@ -35,3 +35,29 @@ class ProviderError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.attempts = attempts
+
+
+class TruncatedReply(ProviderError):
+    """The reply was cut off by the completion budget before any answer text came out.
+
+    Raised after one retry with a doubled budget also came back empty with
+    ``finish_reason == "length"`` (reasoning tokens used the whole budget).
+    """
+
+    def __init__(self, budget: int, *, attempts: int = 2) -> None:
+        super().__init__(
+            f"reply truncated with no content at a budget of {budget} tokens", attempts=attempts
+        )
+        self.budget = budget
+
+
+class SchemaValidationError(ProviderError):
+    """The reply did not match the response schema the caller asked for."""
+
+    def __init__(self, detail: str, text: str) -> None:
+        super().__init__(f"reply does not match the response schema: {detail}")
+        self.text = text
+
+
+class MediaInputError(ValueError):
+    """A media input is unusable (for example a WAV that is not mono 16-bit PCM)."""

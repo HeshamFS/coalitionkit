@@ -29,22 +29,29 @@ COALITION = "01M4XRC000000G40R40M30E209"
 
 
 def _env(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
-    for name in ("META_API_KEY", "BASETEN_API_KEY", "ENV", "META_BASE_URL"):
+    for name in ("META_API_KEY", "BASETEN_API_KEY", "ENV", "META_BASE_URL", "STEWARD_PROVIDER"):
         monkeypatch.delenv(f"COALITIONKIT_{name}", raising=False)
     for name, value in values.items():
         monkeypatch.setenv(f"COALITIONKIT_{name}", value)
 
 
 def test_production_refuses_to_start_without_keys(monkeypatch: pytest.MonkeyPatch) -> None:
-    _env(monkeypatch, ENV="production")
+    _env(monkeypatch, ENV="production", STEWARD_PROVIDER="baseten")
     with pytest.raises(MissingKeyError) as info:
         load_settings()
     assert "COALITIONKIT_META_API_KEY" in str(info.value)
     assert "COALITIONKIT_BASETEN_API_KEY" in str(info.value)
 
 
-def test_production_with_one_key_still_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_on_the_meta_steward_route_needs_only_the_meta_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY)
+    assert load_settings().route("steward").key_name == "meta"
+
+
+def test_production_with_one_key_still_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY, STEWARD_PROVIDER="baseten")
     with pytest.raises(MissingKeyError) as info:
         load_settings()
     assert FAKE_KEY not in str(info.value)
@@ -64,7 +71,13 @@ def test_production_requires_https(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_secrets_are_never_printed(monkeypatch: pytest.MonkeyPatch) -> None:
-    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY, BASETEN_API_KEY=FAKE_KEY)
+    _env(
+        monkeypatch,
+        ENV="production",
+        META_API_KEY=FAKE_KEY,
+        BASETEN_API_KEY=FAKE_KEY,
+        STEWARD_PROVIDER="baseten",
+    )
     settings = load_settings()
     assert FAKE_KEY not in repr(settings)
     assert FAKE_KEY not in str(settings)
@@ -87,8 +100,8 @@ def test_routing_per_role() -> None:
     assert settings.route("gardener").model == "muse-wonder-1.0"
     assert settings.route("composer").model == "muse-spark-1.3"
     assert settings.route("hosted_agent").model == "muse-spark-1.3"
-    assert settings.route("steward").model == "meta-models/muse-spark-open-1026"
-    assert settings.route("steward").base_url != settings.route("composer").base_url
+    assert settings.route("steward").model == "muse-spark-1.3"
+    assert settings.route("steward").base_url == settings.route("composer").base_url
     assert settings.route("vault").model == "muse-glimmer"
     assert "11434" in settings.route("vault").base_url
 

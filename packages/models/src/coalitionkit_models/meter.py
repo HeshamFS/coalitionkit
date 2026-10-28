@@ -39,6 +39,9 @@ class CostRecord:
     completion_tokens: int
     cached_tokens: int
     cost_micro_usd: int
+    reasoning_tokens: int = 0
+    images: int = 0
+    audio_ms: int = 0
 
 
 class CostMeter:
@@ -90,8 +93,13 @@ class CostMeter:
         prompt_tokens: int,
         completion_tokens: int,
         cached_tokens: int = 0,
+        reasoning_tokens: int = 0,
     ) -> CostRecord:
-        """Price one response from its usage fields and add it to the totals."""
+        """Price one response from its usage fields and add it to the totals.
+
+        ``reasoning_tokens`` are already inside ``completion_tokens`` (they bill at the output
+        rate); they are kept on the record so reasoning cost can be reported.
+        """
         cost = self.prices.cost_micro_usd(
             model,
             prompt_tokens=prompt_tokens,
@@ -99,7 +107,41 @@ class CostMeter:
             cached_tokens=cached_tokens,
         )
         entry = CostRecord(
-            coalition_id, participant, model, prompt_tokens, completion_tokens, cached_tokens, cost
+            coalition_id,
+            participant,
+            model,
+            prompt_tokens,
+            completion_tokens,
+            cached_tokens,
+            cost,
+            reasoning_tokens=reasoning_tokens,
+        )
+        return self._add(entry)
+
+    def record_media(
+        self,
+        coalition_id: str,
+        participant: str,
+        model: str,
+        *,
+        images: int = 0,
+        audio_ms: int = 0,
+    ) -> CostRecord:
+        """Price one media call (images generated or segmented, audio transcribed)."""
+        cost = self.prices.media_cost_micro_usd(model, images=images, audio_ms=audio_ms)
+        entry = CostRecord(
+            coalition_id, participant, model, 0, 0, 0, cost, images=images, audio_ms=audio_ms
+        )
+        return self._add(entry)
+
+    def reasoning_tokens(self, coalition_id: str) -> int:
+        return sum(r.reasoning_tokens for r in self.records if r.coalition_id == coalition_id)
+
+    def _add(self, entry: CostRecord) -> CostRecord:
+        coalition_id, participant, cost = (
+            entry.coalition_id,
+            entry.participant,
+            entry.cost_micro_usd,
         )
         with self._lock:
             self._by_coalition[coalition_id] += cost

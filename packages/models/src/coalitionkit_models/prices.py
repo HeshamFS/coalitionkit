@@ -18,9 +18,11 @@ MicroUsd = Annotated[int, Field(ge=0)]
 class ModelPrice(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    input: MicroUsd
-    output: MicroUsd
-    cached_input: MicroUsd
+    input: MicroUsd = 0
+    output: MicroUsd = 0
+    cached_input: MicroUsd = 0
+    per_image: MicroUsd = 0
+    per_audio_hour: MicroUsd = 0
     source: str
     verified: bool
 
@@ -58,6 +60,19 @@ class PriceTable(BaseModel):
             + completion_tokens * price.output
         )
         return -(-scaled // MTOK)
+
+    def media_cost_micro_usd(self, model: str, *, images: int = 0, audio_ms: int = 0) -> int:
+        """Cost of a media call in micro-USD: per image, or per audio hour rounded up."""
+        return _media_cost(self.price(model), images, audio_ms)
+
+
+MS_PER_HOUR = 3_600_000
+
+
+def _media_cost(price: ModelPrice, images: int, audio_ms: int) -> int:
+    if min(images, audio_ms) < 0:
+        raise ValueError("media units cannot be negative")
+    return images * price.per_image + -(-(audio_ms * price.per_audio_hour) // MS_PER_HOUR)
 
 
 def load_price_table(version: str | None = None) -> PriceTable:

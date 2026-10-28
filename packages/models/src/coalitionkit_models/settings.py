@@ -17,6 +17,8 @@ from .errors import MissingKeyError, SettingsError
 Role = Literal["gardener", "composer", "hosted_agent", "steward", "vault"]
 ROLES: tuple[Role, ...] = ("gardener", "composer", "hosted_agent", "steward", "vault")
 KeyName = Literal["meta", "baseten", "ollama"]
+Effort = Literal["minimal", "low", "medium", "high"]
+StewardProvider = Literal["meta", "baseten"]
 
 #: Local Ollama accepts any key; the SDK just needs a non-empty one.
 LOCAL_PLACEHOLDER_KEY = "ollama"
@@ -24,6 +26,20 @@ LOCAL_PLACEHOLDER_KEY = "ollama"
 
 def _default_limits() -> dict[Role, int]:
     return {"gardener": 30, "composer": 60, "hosted_agent": 120, "steward": 120, "vault": 600}
+
+
+def _default_efforts() -> dict[Role, Effort]:
+    return {"hosted_agent": "minimal", "composer": "low", "gardener": "low", "steward": "low"}
+
+
+def _default_budgets() -> dict[Role, int]:
+    return {
+        "gardener": 4000,
+        "composer": 4000,
+        "hosted_agent": 4000,
+        "steward": 4000,
+        "vault": 4000,
+    }
 
 
 class Route:
@@ -53,15 +69,27 @@ class Settings(BaseSettings):
     meta_api_key: SecretStr | None = None
     baseten_api_key: SecretStr | None = None
 
-    # The default endpoints are unverified: confirm them before relying on them.
-    meta_base_url: str = "https://api.llama.com/compat/v1/"
+    meta_base_url: str = "https://api.meta.ai/v1"
     baseten_base_url: str = "https://inference.baseten.co/v1"
     ollama_base_url: str = "http://localhost:11434/v1"
 
     gardener_model: str = "muse-wonder-1.0"
     composer_model: str = "muse-spark-1.3"
     hosted_agent_model: str = "muse-spark-1.3"
-    steward_model: str = "meta-models/muse-spark-open-1026"
+    steward_model: str = "muse-spark-1.3"
+    # Where the Steward runs: the Meta key, or a Baseten host for Muse Spark Open.
+    steward_provider: StewardProvider = "meta"
+    steward_baseten_model: str = "meta-models/muse-spark-open-1026"
+
+    image_model: str = "muse-image-1.0"
+    segment_model: str = "sam-3.1"
+    transcribe_model: str = "muse-voice-transcribe-1.0"
+    media_rate_limit_per_minute: int = 120
+
+    # Reasoning models spend completion tokens on thinking: the budget covers thinking
+    # plus the answer. Roles on Ollama (vault) send no effort.
+    reasoning_effort: dict[Role, Effort] = _default_efforts()
+    completion_budget: dict[Role, int] = _default_budgets()
     vault_model: str = "muse-glimmer"
 
     request_timeout_s: float = 60.0
@@ -76,12 +104,15 @@ class Settings(BaseSettings):
     def _fail_closed_in_production(self) -> Self:
         if self.max_attempts < 1:
             raise SettingsError("COALITIONKIT_MAX_ATTEMPTS must be at least 1")
+        if min(self.completion_budget.values(), default=1) < 1:
+            raise SettingsError("COALITIONKIT_COMPLETION_BUDGET must be positive")
         if not self.production:
             return self
+        needed = ["meta_api_key"]
+        if self.steward_provider == "baseten":
+            needed.append("baseten_api_key")
         missing = [
-            f"COALITIONKIT_{name.upper()}"
-            for name in ("meta_api_key", "baseten_api_key")
-            if not _present(getattr(self, name))
+            f"COALITIONKIT_{name.upper()}" for name in needed if not _present(getattr(self, name))
         ]
         if missing:
             raise MissingKeyError("production needs " + ", ".join(missing))
@@ -104,9 +135,15 @@ class Settings(BaseSettings):
             case "hosted_agent":
                 return Route(role, self.hosted_agent_model, self.meta_base_url, "meta")
             case "steward":
-                return Route(role, self.steward_model, self.baseten_base_url, "baseten")
+                if self.steward_provider == "baseten":
+                    return Route(role, self.steward_baseten_model, self.baseten_base_url, "baseten")
+                return Route(role, self.steward_model, self.meta_base_url, "meta")
             case "vault":
                 return Route(role, self.vault_model, self.ollama_base_url, "ollama")
+
+    def media_route(self, model: str) -> Route:
+        """Media calls (images, SAM, transcription) always use the Meta endpoint and key."""
+        return Route("composer", model, self.meta_base_url, "meta")
 
     def api_key(self, route: Route) -> str:
         """The key for a route. Raises MissingKeyError (naming the variable) when unset."""

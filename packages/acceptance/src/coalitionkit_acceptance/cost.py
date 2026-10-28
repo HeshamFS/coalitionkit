@@ -75,7 +75,11 @@ def run_cost(path: Path | None = None) -> tuple[Recorder, dict[str, dict[str, An
     table = load_price_table()
     meter = CostMeter(table)
     limits = dict.fromkeys(ROLES, 10_000_000)
-    settings = Settings(_env_file=None, rate_limit_per_minute=limits)  # pyright: ignore[reportCallIssue]
+    settings = Settings(  # the recorded usage ran the Steward on its Baseten host
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        rate_limit_per_minute=limits,
+        steward_provider="baseten",
+    )
     transport = ReplayTransport(calls)
     gateway = ModelGateway(settings, transport=transport, meter=meter)
 
