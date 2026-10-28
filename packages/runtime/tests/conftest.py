@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass
+from typing import cast
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -21,9 +22,10 @@ NOW = "2026-10-28T12:00:00+00:00"
 PUBLIC: Document = {"audience": "coalition"}
 
 
-def accepted(result: Acknowledgement | Document) -> Acknowledgement:
+def accepted(result: Acknowledgement | Document) -> Acknowledgement[Document]:
     assert isinstance(result, Acknowledgement), result
-    return result
+    assert result.accepted is not None
+    return cast(Acknowledgement[Document], result)
 
 
 def error(result: Acknowledgement | Document, code: str) -> Document:
@@ -90,7 +92,7 @@ class Member:
             "decided_at": NOW,
         }
         body["consent_sig"] = sign_consent(
-            self.host.coalition_id, body, self.owner, self.name + "-owner"
+            self.host.coalition_id, body, self.owner, self.name + "-owner", participant=self.name
         )
         return body
 
@@ -103,6 +105,7 @@ class Member:
 def join(host: CoalitionHost, name: str, accept_charter: bool = True) -> Member:
     member = Member(host, name, Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate())
     host.pin_card(member.auth, member.agent.public_key(), name)
+    host.invite(member.auth)
     jwk = public_key_to_jwk(member.owner.public_key(), name + "-owner")
     body = {
         "card_url": member.auth.card_url,
@@ -128,7 +131,7 @@ class World:
     bob: Member
     observer: Member
 
-    def need(self, scope: Document | None = None) -> Acknowledgement:
+    def need(self, scope: Document | None = None) -> Acknowledgement[Document]:
         return accepted(
             self.host.host_emit(
                 "need",
@@ -141,21 +144,22 @@ class World:
             )
         )
 
-    def query(self, task: str, owner: str = "alice") -> Acknowledgement:
+    def query(self, task: str, owner: str = "alice") -> Acknowledgement[Document]:
         return accepted(
             self.host.host_emit(
                 "query",
-                {"query_id": new_ulid(), "kind": "feasible", "subject": task},
+                {"query_id": new_ulid(), "kind": "feasible", "subject": task, "task_id": task},
                 {"audience": "participants", "participants": [owner]},
             )
         )
 
-    def propose(self, task: str, owner: str = "alice") -> Acknowledgement:
+    def propose(self, task: str, owner: str = "alice") -> Acknowledgement[Document]:
         return accepted(
             self.host.host_emit(
                 "propose",
                 {
                     "proposal_set_id": new_ulid(),
+                    "decision_deadline": "2026-10-29T12:00:00Z",
                     "plans": [
                         {
                             "assignments": [{"task_id": task, "assignee": owner}],

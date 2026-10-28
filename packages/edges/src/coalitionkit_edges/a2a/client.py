@@ -20,8 +20,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from coalitionkit_contracts import (
     LogIntegrityError,
     SignatureError,
+    check_receipts,
     validate_envelope,
     verify_envelope,
+    verify_projection,
     verify_receipt,
 )
 
@@ -50,9 +52,9 @@ class ReceivedError(EdgeCallError):
 
 @dataclass(frozen=True)
 class Ack:
-    """The accepted envelope (with seq, ts, prev_hash) and its verified receipt."""
+    """The scope-filtered event (possibly absent) and its verified receipt."""
 
-    accepted: dict[str, Any]
+    accepted: dict[str, Any] | None
     receipt: dict[str, Any]
     task_id: str
     context_id: str
@@ -147,11 +149,27 @@ class MemberClient:
             if state == TaskState.TASK_STATE_REJECTED and len(found) == 1:
                 verify_envelope(found[0], self._host_key, expected_kid=self._host_kid)
                 raise ReceivedError(found[0])
-            if state == TaskState.TASK_STATE_COMPLETED and len(found) == 2:
-                accepted, receipt = found
-                verify_receipt(
-                    receipt, self._host_key, accepted=accepted, expected_kid=self._host_kid
-                )
+            if state == TaskState.TASK_STATE_COMPLETED and len(found) in {1, 2}:
+                accepted = found[0] if len(found) == 2 else None
+                receipt = found[-1]
+                info = verify_receipt(receipt, self._host_key, expected_kid=self._host_kid)
+                if accepted is not None:
+                    if accepted.get("type") == "coalition.projection":
+                        stub = verify_projection(
+                            accepted, self._host_key, expected_kid=self._host_kid
+                        )
+                        if (
+                            accepted.get("coalition_id") != receipt.get("coalition_id")
+                            or stub.seq != info.seq
+                        ):
+                            raise LogIntegrityError(
+                                "receipt_mismatch", "projection names another event"
+                            )
+                        check_receipts([stub], [info], self._host_key)
+                    else:
+                        verify_receipt(
+                            receipt, self._host_key, accepted=accepted, expected_kid=self._host_kid
+                        )
                 return Ack(accepted, receipt, task.id, task.context_id)
         except (SignatureError, LogIntegrityError) as exc:
             raise EdgeCallError(f"the host's answer does not verify: {exc}") from exc

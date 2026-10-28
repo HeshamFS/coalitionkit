@@ -7,7 +7,7 @@ from collections.abc import Callable
 from copy import deepcopy
 from typing import Any, cast
 
-from coalitionkit_contracts import Scope, ScopeSource, resolve_narrowest
+from coalitionkit_contracts import Scope, ScopeSource, delivery_form, prev_hash, resolve_narrowest
 
 from .lifecycle import State
 from .store import Document
@@ -17,7 +17,14 @@ Signer = Callable[[str, Document, Document], Document]
 
 def derive_scope(state: State, sources: list[Document]) -> Document:
     return resolve_narrowest(
-        [ScopeSource(Scope.model_validate(e["scope"]), e["on_behalf_of"]) for e in sources],
+        [
+            ScopeSource(
+                Scope.model_validate(e["scope"]),
+                e["on_behalf_of"],
+                projected=e.get("projected", False),
+            )
+            for e in sources
+        ],
         state.membership(),
     ).to_wire()
 
@@ -40,22 +47,34 @@ def remove_path(value: Any, parts: list[str]) -> None:
 def delivery(
     state: State, event: Document, viewer: str, sign: Signer, extra_redact: tuple[str, ...] = ()
 ) -> Document | None:
-    if viewer not in {"host", "steward"} and not state.visible(event, viewer):
+    privileged = viewer in {"host", "steward"}
+    paths = [] if privileged else sorted(set(event["scope"].get("redact", [])) | set(extra_redact))
+    own_plan = not privileged and event["type"] == "coalition.propose"
+    own_commit = (
+        not privileged and event["type"] == "coalition.commit" and viewer == event["on_behalf_of"]
+    )
+    form = delivery_form(
+        in_scope=privileged or state.visible(event, viewer),
+        redacted=bool(paths),
+        viewer_specific=own_plan or own_commit,
+    )
+    if form == "receipt_only":
         return None
-    if viewer in {"host", "steward"}:
-        return deepcopy(event)
-    paths = sorted(set(event["scope"].get("redact", [])) | set(extra_redact))
-    own_plan = event["type"] == "coalition.propose"
-    if not paths and not own_plan:
+    if form == "original":
         return deepcopy(event)
     body = deepcopy(event["payload"])
+    if own_commit:
+        body["revision"] = 1 if body["status"] == "pending" else body["revision"] + 1
     if own_plan:
         for plan in body["plans"]:
             plan["assignments"] = [a for a in plan["assignments"] if a["assignee"] == viewer]
     for path in paths:
         remove_path(body, path.split(".")[1:])
     projected = {
-        "source": {k: event[k] for k in ("event_id", "seq", "type", "on_behalf_of")},
+        "source": {
+            **{k: event[k] for k in ("event_id", "seq", "type", "on_behalf_of", "prev_hash")},
+            "hash": prev_hash(event),
+        },
         "payload": body,
     }
     if paths:

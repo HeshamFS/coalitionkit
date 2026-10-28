@@ -13,14 +13,19 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey,
 
 from coalitionkit_contracts import (
     HOST_FIELDS,
+    DecisionExpiredError,
+    OwnerKeyConflictError,
     SchemaValidationError,
     SignatureError,
     StaleSubjectError,
     StoredSubmission,
+    check_decision_window,
+    check_owner_key_unique,
     check_revision,
     classify_submission,
     genesis_hash,
     is_ulid,
+    jwk_thumbprint,
     jwk_to_public_key,
     new_ulid,
     next_revision,
@@ -50,8 +55,8 @@ class AuthenticatedSender:
 
 
 @dataclass(frozen=True)
-class Acknowledgement:
-    accepted: Document
+class Acknowledgement[T = Document | None]:
+    accepted: T
     receipt: Document
 
 
@@ -84,6 +89,7 @@ class CoalitionHost:
         self.steward = steward or FakeSteward()
         self.bus = bus or Bus()
         self.cards: dict[str, PinnedCard] = {}
+        self.invitations: dict[str, str] = {}
         self.policy: Callable[[Document], str | None] = lambda _: None
         self.rate_limit: Callable[[AuthenticatedSender], int | None] = lambda _: None
 
@@ -101,9 +107,22 @@ class CoalitionHost:
             raise ValueError("pinned card cannot be replaced")
         self.cards[sender.card_url] = PinnedCard(key, kid, sender.participant)
 
+    def invite(self, sender: AuthenticatedSender) -> None:
+        """Record the organizer's invitation binding a participant to its authenticated card."""
+        self.invitations[sender.participant] = sender.card_url
+
     @property
     def state(self) -> State:
-        return rebuild(self.coalition_id, self.store.read(self.coalition_id))
+        return self._snapshot()[1]
+
+    def _snapshot(self) -> tuple[list[Document], State]:
+        with self.store.transaction(self.coalition_id) as tx:
+            events = read_events(tx, self.coalition_id)
+            state = rebuild(self.coalition_id, events, self.clock())
+            ledger = ConsentLedger(tx, self.coalition_id)
+            for subject in state.subjects.values():
+                ledger.request(subject, subject["deciders"])
+        return events, state
 
     def state_document(self) -> Document:
         """Host-only JSON state; viewer surfaces use view() instead."""
@@ -151,9 +170,11 @@ class CoalitionHost:
                 result = self._transaction(tx, event, sender, host, sources or [])
         except Refusal as exc:
             return self._error(event, sender, exc.code, exc.detail)
+        except DecisionExpiredError:
+            return self._error(event, sender, "deadline_exceeded", {})
         except StaleSubjectError:
             return self._error(event, sender, "stale_subject", {})
-        self.bus.publish(self.coalition_id, result.accepted["seq"])
+        self.bus.publish(self.coalition_id, result.receipt["payload"]["seq"])
         return result
 
     def _transaction(
@@ -164,6 +185,7 @@ class CoalitionHost:
         host: bool,
         source_ids: list[str],
     ) -> Acknowledgement:
+        now = self.clock()
         row = tx.execute(
             "SELECT sender, digest, body FROM events WHERE coalition_id = ? AND event_id = ?",
             (
@@ -183,7 +205,8 @@ class CoalitionHost:
                 "SELECT body FROM receipts WHERE coalition_id = ? AND event_id = ?",
                 (self.coalition_id, event["event_id"]),
             ).fetchone()
-            return Acknowledgement(json.loads(row[2]), json.loads(receipt[0]))
+            state = rebuild(self.coalition_id, read_events(tx, self.coalition_id), now)
+            return self._ack(state, json.loads(row[2]), json.loads(receipt[0]), sender.participant)
         retry = self.rate_limit(sender)
         if retry is not None:
             raise Refusal("rate_limited", {"retry_after_ms": retry})
@@ -192,17 +215,20 @@ class CoalitionHost:
             require(event["coalition_id"] == self.coalition_id, "schema_invalid")
         except SchemaValidationError, ValueError, TypeError:
             raise Refusal("schema_invalid") from None
-        state = rebuild(self.coalition_id, read_events(tx, self.coalition_id))
+        state = rebuild(self.coalition_id, read_events(tx, self.coalition_id), now)
         self._identity(state, event, sender, host)
         stage_check(state, event, host)
-        authorize(state, event, host, self.clock())
+        authorize(state, event, host, now)
         sources = self._sources(state, event, source_ids)
         scope_check(state, event, sources)
         ledger = ConsentLedger(tx, self.coalition_id)
         if event["type"] == "coalition.decide":
             body = event["payload"]
             subject = state.subject(body["subject"]["kind"], body["subject"]["id"])
+            if "decision_deadline" in subject:
+                check_decision_window(subject["decision_deadline"], now)
             check_revision(body["subject"]["revision"], subject["revision"])
+            require(subject.get("status") != "superseded", "stale_subject")
             require(
                 ledger.answer(
                     body["subject"], subject["revision"], sender.participant, body["consent"]
@@ -214,11 +240,17 @@ class CoalitionHost:
         verdict = self.steward.review(deepcopy(event))
         if verdict.action not in {"allow", "redact"}:
             raise Refusal("steward_blocked", {"policy_id": verdict.policy_id})
-        result = self._append(tx, event, sender, verdict)
+        result = self._append(tx, event, sender, verdict, now)
         state.apply(result.accepted)
         for subject in state.subjects.values():
             ledger.request(subject, subject["deciders"])
-        return result
+        return self._ack(state, result.accepted, result.receipt, sender.participant)
+
+    def _ack(
+        self, state: State, event: Document, receipt: Document, viewer: str
+    ) -> Acknowledgement:
+        redactions = self.store.redactions(self.coalition_id).get(event["event_id"], ())
+        return Acknowledgement(delivery(state, event, viewer, self.sign, redactions), receipt)
 
     def _identity(
         self, state: State, event: Document, sender: AuthenticatedSender, host: bool
@@ -227,6 +259,17 @@ class CoalitionHost:
             return
         joining = event["type"] == "coalition.join"
         require(joining or sender.participant in state.members, "unknown_participant")
+        if joining:
+            require(
+                self.invitations.get(sender.participant) == sender.card_url
+                and sender.participant not in state.members
+                and sender.participant not in state.former
+                and event["payload"]["card_url"] == sender.card_url
+            )
+        else:
+            require(
+                state.members[sender.participant]["sender"] == sender.card_url, "sender_mismatch"
+            )
         card = self.cards.get(sender.card_url)
         require(card is not None, "bad_signature")
         assert card is not None
@@ -235,6 +278,14 @@ class CoalitionHost:
             verify_envelope(event, card.key, expected_kid=card.kid)
             if joining:
                 verify_owner_proof(event, agent_public_key=card.key)
+                check_owner_key_unique(
+                    {
+                        name: jwk_thumbprint(member["owner_key"])
+                        for name, member in (state.members | state.former).items()
+                    },
+                    sender.participant,
+                    jwk_thumbprint(event["payload"]["owner_key"]),
+                )
             elif event["type"] == "coalition.decide":
                 jwk = state.members[sender.participant]["owner_key"]
                 verify_consent(
@@ -242,7 +293,10 @@ class CoalitionHost:
                     event["payload"],
                     jwk_to_public_key(jwk),
                     expected_kid=jwk["kid"],
+                    participant=sender.participant,
                 )
+        except OwnerKeyConflictError:
+            raise Refusal("not_authorized") from None
         except SignatureError:
             raise Refusal("bad_signature") from None
 
@@ -270,8 +324,13 @@ class CoalitionHost:
         return protected
 
     def _append(
-        self, tx: Transaction, event: Document, sender: AuthenticatedSender, verdict: Verdict
-    ) -> Acknowledgement:
+        self,
+        tx: Transaction,
+        event: Document,
+        sender: AuthenticatedSender,
+        verdict: Verdict,
+        now: str,
+    ) -> Acknowledgement[Document]:
         row = tx.execute(
             "SELECT seq, host, created_at FROM coalitions WHERE id = ?", (self.coalition_id,)
         ).fetchone()
@@ -287,7 +346,7 @@ class CoalitionHost:
             else genesis_hash(self.coalition_id, row[1], row[2])
         )
         accepted = {k: v for k, v in event.items() if k not in HOST_FIELDS}
-        accepted.update(seq=sequence, ts=self.clock(), prev_hash=head)
+        accepted.update(seq=sequence, ts=now, prev_hash=head)
         receipt = self.sign(
             "receipt",
             receipt_payload(self.coalition_id, accepted),
@@ -336,7 +395,7 @@ class CoalitionHost:
         sender = AuthenticatedSender(self.card_url, "host")
         try:
             with self.store.transaction(self.coalition_id) as tx:
-                state = rebuild(self.coalition_id, read_events(tx, self.coalition_id))
+                state = rebuild(self.coalition_id, read_events(tx, self.coalition_id), self.clock())
                 if causation_id:
                     event["causation_id"] = causation_id
                 self._revisions(tx, state, event)
@@ -349,7 +408,7 @@ class CoalitionHost:
             return self._error(event, sender, exc.code, exc.detail)
         except KeyError, TypeError, ValueError:
             return self._error(event, sender, "schema_invalid", {})
-        self.bus.publish(self.coalition_id, result.accepted["seq"])
+        self.bus.publish(self.coalition_id, result.receipt["payload"]["seq"])
         return result
 
     def _revisions(self, tx: Transaction, state: State, event: Document) -> None:
@@ -375,9 +434,9 @@ class CoalitionHost:
             item["revision"] = next_revision(old["revision"]) if old else 1
 
     def view(self, viewer: str) -> Document:
-        events = self.store.read(self.coalition_id)
+        events, state = self._snapshot()
         return projection(
-            rebuild(self.coalition_id, events),
+            state,
             events,
             viewer,
             self.sign,
@@ -385,8 +444,7 @@ class CoalitionHost:
         )
 
     def replay(self, viewer: str, since: int = 0) -> list[Document]:
-        events = self.store.read(self.coalition_id)
-        state = rebuild(self.coalition_id, events)
+        events, state = self._snapshot()
         result: list[Document] = []
         redactions = self.store.redactions(self.coalition_id)
         for event in events:

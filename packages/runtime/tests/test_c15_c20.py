@@ -14,7 +14,9 @@ def test_c15_two_deciders_first_answer_and_owner_signature(world: World) -> None
     world.query(task)
     plan = world.propose(task).accepted["payload"]["plans"][0]["plan_id"]
     wrong = world.alice.decision("plan", plan)
-    wrong["consent_sig"] = sign_consent(world.host.coalition_id, wrong, world.alice.agent, "alice")
+    wrong["consent_sig"] = sign_consent(
+        world.host.coalition_id, wrong, world.alice.agent, "alice", participant="alice"
+    )
     error(world.alice.send("decide", wrong), "bad_signature")
     error(world.observer.decide("plan", plan), "not_a_decider")
     error(world.alice.decide("plan", plan, 2), "stale_subject")
@@ -95,6 +97,7 @@ def test_c20_match_parties_and_rounds(world: World) -> None:
     world.query(task)
     body = {
         "match_id": "rounds",
+        "task_id": task,
         "peer": "bob",
         "round": "setup",
         "blob": "AAAAAA",

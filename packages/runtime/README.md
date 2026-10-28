@@ -5,15 +5,22 @@ optional file path) or `PostgresStore(url)`, the host card URL and signing key. 
 `create()` once, then `host_emit("charter", payload, scope)`.
 
 Adapters verify cards, key expiry and revocation, then call `pin_card()` with the
-verified key, key ID and authenticated participant/card binding. Reinstall these
-trusted pins after process restart. `accept(envelope, AuthenticatedSender(...))`
-returns an `Acknowledgement` or a signed error envelope. Transport activation is
+verified key, key ID and authenticated participant/card binding. The organizer
+must also call `invite(AuthenticatedSender(...))` before a first join. Reinstall
+trusted pins and outstanding invitations after process restart. A participant
+that left cannot rejoin; owner keys cannot be shared between participants. `accept(envelope, AuthenticatedSender(...))`
+returns an `Acknowledgement` or a signed error envelope. Its `accepted` field is
+the original, a host-signed projection, or `None` for receipt-only delivery;
+`receipt` is always present. Duplicate acknowledgements obey the same rule. Transport activation is
 represented by `extension_activated`; no transport code lives in this package.
 
 `host_emit()` assigns revisions and can mint need, plan and tension IDs. Pass all
 source event IDs through `sources`; omitted scopes are derived with the contracts
-scope resolver. A `query` starts planning an open task. Match setup and tensions
-use `causation_id` to bind their otherwise unspecified task references.
+scope resolver. A `query` with `task_id`, `propose`, or `tension` starts planning
+an open task. Match rounds carry `task_id`; tensions carry `task_ids`. Proposals
+and tensions require `decision_deadline`. Expiry is applied from the log and
+clock on writes and reads. Replans supersede active commitments and close their
+consent requests; replacements need a new member-minted ID and fresh approval.
 
 `state_document()` is the host's complete JSON state. `view(participant)` folds
 visible deliveries into an event-indexed JSON document; `patch(old, new)` produces

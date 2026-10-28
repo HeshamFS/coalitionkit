@@ -39,6 +39,7 @@ def test_c10_two_task_statuses_are_independent(world: World) -> None:
             "match",
             {
                 "match_id": "one",
+                "task_id": task_a,
                 "peer": "bob",
                 "round": "setup",
                 "blob": "AAAAAA",

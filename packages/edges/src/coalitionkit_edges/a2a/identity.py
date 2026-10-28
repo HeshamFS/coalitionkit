@@ -45,6 +45,7 @@ from coalitionkit_contracts import (
     SignatureError,
     jwk_to_public_key,
     public_key_to_jwk,
+    verify_envelope,
     verify_owner_proof,
 )
 
@@ -270,6 +271,7 @@ class CardRegistry:
         self._lock = threading.Lock()
         self._pins: dict[str, PinnedCard] = {}
         self._owners: dict[str, Ed25519PublicKey] = {}
+        self._participants: dict[str, str] = {}
         self._revoked: set[str] = set()
 
     def revoke(self, kid: str) -> None:
@@ -322,9 +324,11 @@ class CardRegistry:
     def bind_owner(self, join: Mapping[str, Any]) -> Ed25519PublicKey:
         """Bind the owner key of a ``coalition.join`` envelope to its participant.
 
-        The sender's card must already be pinned. The proof is checked with the contracts'
-        ``verify_owner_proof`` (it must verify under the key it carries, name this Coalition,
-        participant and card, and the key must differ from the agent key).
+        The sender's card must already be pinned and the envelope must verify under the pinned
+        agent key. The proof is checked with the contracts' ``verify_owner_proof`` (it must
+        verify under the key it carries, name this Coalition, participant and card, and the key
+        must differ from the agent key). A card speaks for one participant, and an owner key
+        belongs to one participant.
         """
         sender, participant = join.get("sender"), join.get("on_behalf_of")
         payload: Any = join.get("payload")
@@ -338,13 +342,26 @@ class CardRegistry:
         if pin is None:
             raise OwnerBindingError("unknown_card", f"{sender} has no verified card")
         try:
+            verify_envelope(dict(join), pin.public_key, expected_kid=pin.kid)
             owner_key = verify_owner_proof(join, agent_public_key=pin.public_key)
         except SignatureError as exc:
             raise OwnerBindingError("bad_join", str(exc)) from exc
+        raw = owner_key.public_bytes_raw()
         with self._lock:
+            speaker = self._participants.get(sender, participant)
+            if speaker != participant:
+                raise OwnerBindingError("bad_join", f"{sender} already speaks for {speaker!r}")
+            for other, key in self._owners.items():
+                if other != participant and key.public_bytes_raw() == raw:
+                    raise OwnerBindingError(
+                        "bad_join", "the owner key belongs to another participant"
+                    )
             bound = self._owners.setdefault(participant, owner_key)
-        if bound.public_bytes_raw() != owner_key.public_bytes_raw():
-            raise OwnerBindingError("bad_join", f"{participant!r} already has another owner key")
+            if bound.public_bytes_raw() != raw:
+                raise OwnerBindingError(
+                    "bad_join", f"{participant!r} already has another owner key"
+                )
+            self._participants[sender] = participant
         return bound
 
     def owner_key(self, participant: str) -> Ed25519PublicKey | None:

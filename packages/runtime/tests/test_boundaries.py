@@ -33,7 +33,12 @@ def test_c16_published_scope_vectors() -> None:
                 ]
             }
         events: list[Document] = [
-            {"scope": s["scope"], "on_behalf_of": s["owner"]} for s in case["sources"]
+            {
+                "scope": s["scope"],
+                "on_behalf_of": s["owner"],
+                "projected": s.get("projected", False),
+            }
+            for s in case["sources"]
         ]
         assert derive_scope(state, events) == case["expected"], case["name"]
 
@@ -41,15 +46,17 @@ def test_c16_published_scope_vectors() -> None:
 def test_c12_steward_redaction_is_durable_and_original_signature_survives(world: World) -> None:
     world.host.steward = FakeSteward(Verdict("redact", "remove-content", ("payload.content",)))
     result = accepted(world.alice.send("observe", {"source": "chat", "content": "protected"}))
-    assert result.accepted["payload"]["content"] == "protected"
+    assert result.accepted["type"] == "coalition.projection"
+    original = world.store.read(world.host.coalition_id)[-1]
+    assert original["payload"]["content"] == "protected"
     world.host.steward = FakeSteward()
     assert "protected" not in json.dumps(world.host.view("bob"))
-    replay = world.host.replay("bob", result.accepted["seq"] - 1)[0]
+    replay = world.host.replay("bob", result.receipt["payload"]["seq"] - 1)[0]
     assert replay["payload"]["redacted"] == ["payload.content"]
     from coalitionkit_contracts import verify_envelope
 
     verify_envelope(replay, world.host.private_key.public_key())
-    verify_envelope(result.accepted, world.alice.agent.public_key())
+    verify_envelope(original, world.alice.agent.public_key())
 
 
 @pytest.mark.parametrize("action", ["quarantine", "escalate"])
@@ -130,8 +137,8 @@ def test_c12_redaction_propagates_to_derived_sources(world: World) -> None:
                 "requirements": [],
                 "window": {"start": "2026-10-28T12:00:00Z", "end": "2026-10-29T12:00:00Z"},
             },
-            sources=[source.accepted["event_id"]],
+            sources=[source.accepted["payload"]["source"]["event_id"]],
         )
     )
-    assert need.accepted["scope"]["redact"] == ["payload.description"]
+    assert need.accepted["scope"] == {"audience": "host"}
     assert "derived" not in json.dumps(world.host.view("observer"))

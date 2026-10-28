@@ -4,16 +4,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import cast
 
 from coalitionkit_contracts import (
     HOST_ONLY_TYPES,
     Scope,
     ScopeSource,
+    accepts,
+    may_create_commitment,
     principals,
     resolve_narrowest,
 )
+from coalitionkit_contracts.lifecycle import Action
 
-from .lifecycle import TASK_MESSAGES, State
+from .lifecycle import State
 from .store import Document
 
 
@@ -51,20 +55,20 @@ def stage_check(state: State, event: Document, host: bool) -> None:
         task = state.tasks.get(identifier)
         if task is None:
             continue
-        # A query is the durable host action that starts planning an open task.
-        allowed = host and kind == "query" and task["status"] == "open"
-        require(allowed or kind in TASK_MESSAGES[task["status"]], "stage_mismatch")
-        if kind == "commit":
-            expected = "decided" if body["status"] == "pending" else "committed"
-            require(task["status"] == expected, "stage_mismatch")
+        if host and kind in {"query", "propose", "tension"}:
+            allowed = {"open", "negotiating"} | ({"proposed"} if kind == "tension" else set[str]())
+            require(task["status"] in allowed, "stage_mismatch")
+            continue
         if kind == "decide":
-            subject_kind = body["subject"]["kind"]
-            allowed_kinds = (
-                {"plan", "tension_option", "task"}
-                if task["status"] == "proposed"
-                else {"commitment", "task"}
-            )
-            require(subject_kind in allowed_kinds, "stage_mismatch")
+            subject = state.subject(body["subject"]["kind"], body["subject"]["id"])
+            if subject.get("status") in {"expired", "superseded"}:
+                continue  # The transactional deadline/revision checks own this refusal.
+            action = "decide." + body["subject"]["kind"]
+        elif kind == "commit":
+            action = "commit." + body["status"]
+        else:
+            action = kind
+        require(accepts(task["status"], cast(Action, action)), "stage_mismatch")
 
 
 def authorize(state: State, event: Document, host: bool, now: str) -> None:
@@ -73,7 +77,7 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
     if host:
         require(kind in {"charter", "need", "query", "propose", "tension", "dissolve"})
         if kind in {"query", "propose", "tension"}:
-            require(bool(ids) and all(i in state.tasks for i in ids))
+            require((bool(ids) or kind == "query") and all(i in state.tasks for i in ids))
         if kind == "query":
             require(body["query_id"] not in state.queries)
             recipients = principals(
@@ -83,7 +87,11 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
         return
     require(event["type"] not in HOST_ONLY_TYPES | {"coalition.error"})
     if kind == "join":
-        require(owner not in state.members and body["card_url"] == event["sender"])
+        require(
+            owner not in state.members
+            and owner not in state.former
+            and body["card_url"] == event["sender"]
+        )
         declared = {r["id"] for r in state.charter.get("roles", [])}
         require(set(body["roles_requested"]) <= declared)
     elif kind in {"offer", "ripple"}:
@@ -113,7 +121,10 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
         else:
             require(body["choice"] == reference["id"])
         # Stale answers must reach the atomic revision check, even if an older answer exists.
-        if reference["revision"] == subject["revision"]:
+        if reference["revision"] == subject["revision"] and subject.get("status") not in {
+            "superseded",
+            "expired",
+        }:
             require(owner not in subject["answers"])
     elif kind in {"commit", "done"}:
         task = state.tasks.get(body["task_id"], {})
@@ -133,17 +144,19 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
             require("revision" not in body)
             require(not state.subject("commitment", body["commitment_id"]))
             require(
-                not any(
-                    s["kind"] == "commitment"
-                    and s["tasks"] == ids
-                    and s.get("status") != "withdrawn"
-                    for s in state.subjects.values()
+                may_create_commitment(
+                    [
+                        s["status"]
+                        for s in state.subjects.values()
+                        if s["kind"] == "commitment" and s["tasks"] == ids
+                    ]
                 )
             )
         else:
             subject = state.subject("commitment", body["commitment_id"])
             require(subject.get("sender") == event["sender"] and subject.get("tasks") == ids)
             require(body.get("revision") == subject.get("revision"), "stale_subject")
+            require(subject.get("status") in {"pending", "approved"}, "stale_subject")
 
 
 def _match(state: State, event: Document) -> None:
@@ -164,12 +177,15 @@ def _match(state: State, event: Document) -> None:
         require(owner == requester and body["peer"] == responder and exchange["round"] == "setup")
     else:
         require(owner == responder and body["peer"] == requester and exchange["round"] == "request")
-    require(body["reveal"] == exchange["reveal"])
+    require(body["reveal"] == exchange["reveal"] and [body["task_id"]] == exchange["tasks"])
 
 
 def scope_check(state: State, event: Document, sources: list[Document]) -> None:
     scope = Scope.model_validate(event["scope"])
-    require(set(scope.participants or []) <= state.members.keys(), "scope_violation")
+    addressable = set(state.members)
+    if event["type"] == "coalition.join":
+        addressable.add(event["on_behalf_of"])
+    require(set(scope.participants or []) <= addressable, "scope_violation")
     require(set(scope.roles or []) <= state.membership().role_holders.keys(), "scope_violation")
     if not sources:
         return
