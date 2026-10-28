@@ -1,0 +1,126 @@
+{
+  "description": "Ed25519 / EdDSA compact JWS vector. TEST KEY ONLY: the private seed below is public, was generated once for this file and protects nothing. The JWS has a detached payload: '<protected>..<signature>'. Signing input = protected + '.' + base64url(signing_payload_utf8). signing_payload = JCS of the envelope without sig, seq, ts and prev_hash. Ed25519 is deterministic, so every conforming implementation produces exactly this jws.",
+  "test_key": {
+    "kid": "test-key-1",
+    "alg": "EdDSA",
+    "private_seed_hex": "c25f9a89feed702c8fabb78bef6b052ccf62e6923c694fbda04d40db70cb5b13",
+    "public_key_hex": "6e206c4c9e3d21cf886eef5571a06af35503c7f29844acb5e0fbb6743bf5caad",
+    "public_jwk": {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "test-key-1",
+      "x": "biBsTJ49Ic-Ibu9VcaBq81UDx_KYRKy14Pu2dDv1yq0"
+    }
+  },
+  "protected_header_json": "{\"alg\":\"EdDSA\",\"kid\":\"test-key-1\",\"typ\":\"JOSE\"}",
+  "protected_header_b64": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0",
+  "envelope_without_sig": {
+    "ext_version": "0.1",
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "event_id": "01M4XRC0Z8185GR38E1W8124GK",
+    "type": "coalition.offer",
+    "sender": "https://agents.example.org/p2/card.json",
+    "on_behalf_of": "p2",
+    "scope": {
+      "audience": "participants",
+      "participants": [
+        "p2",
+        "p5"
+      ],
+      "redact": [
+        "payload.valid_until"
+      ]
+    },
+    "correlation_id": "01M4XRC0FM2GAHC5RR34D1P70X",
+    "payload": {
+      "offer_id": "o-1",
+      "target": {
+        "kind": "need",
+        "id": "n-1"
+      },
+      "capacity": 2,
+      "cost": {
+        "minutes": 90,
+        "money": 2500,
+        "effort": "medium"
+      },
+      "valid_until": "2026-11-02T18:00:00Z"
+    }
+  },
+  "signing_payload_utf8": "{\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"correlation_id\":\"01M4XRC0FM2GAHC5RR34D1P70X\",\"event_id\":\"01M4XRC0Z8185GR38E1W8124GK\",\"ext_version\":\"0.1\",\"on_behalf_of\":\"p2\",\"payload\":{\"capacity\":2,\"cost\":{\"effort\":\"medium\",\"minutes\":90,\"money\":2500},\"offer_id\":\"o-1\",\"target\":{\"id\":\"n-1\",\"kind\":\"need\"},\"valid_until\":\"2026-11-02T18:00:00Z\"},\"scope\":{\"audience\":\"participants\",\"participants\":[\"p2\",\"p5\"],\"redact\":[\"payload.valid_until\"]},\"sender\":\"https://agents.example.org/p2/card.json\",\"type\":\"coalition.offer\"}",
+  "signing_payload_sha256": "e7c6772bf68270ba406a628a2ef503dc3d52484075b3ee1b5aa91597c80911cd",
+  "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ",
+  "envelope_signed": {
+    "ext_version": "0.1",
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "event_id": "01M4XRC0Z8185GR38E1W8124GK",
+    "type": "coalition.offer",
+    "sender": "https://agents.example.org/p2/card.json",
+    "on_behalf_of": "p2",
+    "scope": {
+      "audience": "participants",
+      "participants": [
+        "p2",
+        "p5"
+      ],
+      "redact": [
+        "payload.valid_until"
+      ]
+    },
+    "correlation_id": "01M4XRC0FM2GAHC5RR34D1P70X",
+    "payload": {
+      "offer_id": "o-1",
+      "target": {
+        "kind": "need",
+        "id": "n-1"
+      },
+      "capacity": 2,
+      "cost": {
+        "minutes": 90,
+        "money": 2500,
+        "effort": "medium"
+      },
+      "valid_until": "2026-11-02T18:00:00Z"
+    },
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ"
+  },
+  "envelope_accepted_by_host": {
+    "ext_version": "0.1",
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "event_id": "01M4XRC0Z8185GR38E1W8124GK",
+    "type": "coalition.offer",
+    "sender": "https://agents.example.org/p2/card.json",
+    "on_behalf_of": "p2",
+    "scope": {
+      "audience": "participants",
+      "participants": [
+        "p2",
+        "p5"
+      ],
+      "redact": [
+        "payload.valid_until"
+      ]
+    },
+    "correlation_id": "01M4XRC0FM2GAHC5RR34D1P70X",
+    "payload": {
+      "offer_id": "o-1",
+      "target": {
+        "kind": "need",
+        "id": "n-1"
+      },
+      "capacity": 2,
+      "cost": {
+        "minutes": 90,
+        "money": 2500,
+        "effort": "medium"
+      },
+      "valid_until": "2026-11-02T18:00:00Z"
+    },
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ",
+    "seq": 7,
+    "ts": "2026-10-29T09:30:00.250Z",
+    "prev_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "accepted_still_verifies": true,
+  "prev_hash_of_accepted": "6f6328580af72d4d86955842575fcef8be0659dcba24c3e0b08cab4a1966e90c"
+}

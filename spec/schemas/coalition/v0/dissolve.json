@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/dissolve.json",
+  "title": "coalition.dissolve",
+  "description": "Host to members: the final message of a Coalition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reason",
+    "skills_written"
+  ],
+  "properties": {
+    "reason": {
+      "enum": [
+        "completed",
+        "deadline",
+        "cancelled",
+        "budget"
+      ]
+    },
+    "skills_written": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/id"
+      }
+    }
+  }
+}

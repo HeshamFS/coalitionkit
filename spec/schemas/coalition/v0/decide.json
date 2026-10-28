@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/decide.json",
+  "title": "coalition.decide",
+  "description": "Member to host: a decision on one revision of a plan, tension option or commitment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject",
+    "choice",
+    "consent"
+  ],
+  "properties": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "plan",
+            "tension_option",
+            "commitment"
+          ]
+        },
+        "id": {
+          "$ref": "common.json#/$defs/id"
+        },
+        "revision": {
+          "$ref": "common.json#/$defs/revision"
+        }
+      }
+    },
+    "choice": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "consent": {
+      "type": "boolean"
+    }
+  }
+}

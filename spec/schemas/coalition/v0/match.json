@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/match.json",
+  "title": "coalition.match",
+  "description": "Vault to vault, relayed by the host: an opaque PSI blob.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "match_id",
+    "round",
+    "blob",
+    "reveal"
+  ],
+  "properties": {
+    "match_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "round": {
+      "enum": [
+        "setup",
+        "request",
+        "response"
+      ]
+    },
+    "blob": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]*$"
+    },
+    "reveal": {
+      "enum": [
+        "overlap",
+        "count"
+      ]
+    }
+  }
+}

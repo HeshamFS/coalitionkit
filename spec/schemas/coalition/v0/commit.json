@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/commit.json",
+  "title": "coalition.commit",
+  "description": "Member to host: a commitment to a task.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commitment_id",
+    "task_id",
+    "status"
+  ],
+  "properties": {
+    "commitment_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "task_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "approved",
+        "withdrawn"
+      ]
+    },
+    "revision": {
+      "$ref": "common.json#/$defs/revision"
+    }
+  }
+}

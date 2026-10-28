@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/envelope.json",
+  "title": "Coalition envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ext_version",
+    "coalition_id",
+    "event_id",
+    "type",
+    "sender",
+    "on_behalf_of",
+    "scope",
+    "payload",
+    "sig"
+  ],
+  "properties": {
+    "ext_version": {
+      "const": "0.1"
+    },
+    "coalition_id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^coalition\\.[a-z_]+$"
+    },
+    "sender": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL of the sender's signed Agent Card"
+    },
+    "on_behalf_of": {
+      "type": "string",
+      "description": "Participant ID of the owner the sender speaks for"
+    },
+    "scope": {
+      "$ref": "scope.json"
+    },
+    "causation_id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "correlation_id": {
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Validated against the schema for this type"
+    },
+    "sig": {
+      "type": "string",
+      "description": "Compact JWS over the JCS-canonical envelope without sig, seq, ts and prev_hash"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Set by the host",
+      "maximum": 9007199254740991
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Set by the host: when it accepted the envelope"
+    },
+    "prev_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Set by the host"
+    }
+  }
+}

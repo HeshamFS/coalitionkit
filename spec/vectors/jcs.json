@@ -1,0 +1,288 @@
+{
+  "description": "JCS (RFC 8785) canonicalisation vectors. input_json is raw JSON text: parse it with your own JSON parser (so 200.0 and 200 reach you as a float and an integer), canonicalise, and compare to canonical_utf8 / canonical_hex and sha256 (hex SHA-256 of the canonical bytes). Every error case MUST be refused.",
+  "cases": [
+    {
+      "name": "empty object",
+      "input_json": "{}",
+      "canonical_utf8": "{}",
+      "canonical_hex": "7b7d",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "empty array",
+      "input_json": "[]",
+      "canonical_utf8": "[]",
+      "canonical_hex": "5b5d",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "name": "literals",
+      "input_json": "[null,true,false]",
+      "canonical_utf8": "[null,true,false]",
+      "canonical_hex": "5b6e756c6c2c747275652c66616c73655d",
+      "sha256": "37257214f22b92121c5ff4d7e29ed2d31b3f1129ee698e96e581ec05cb2e3cf7"
+    },
+    {
+      "name": "key ordering",
+      "input_json": "{\"b\":1,\"a\":2,\"B\":3,\"A\":4,\"aa\":5,\"\":6}",
+      "canonical_utf8": "{\"\":6,\"A\":4,\"B\":3,\"a\":2,\"aa\":5,\"b\":1}",
+      "canonical_hex": "7b22223a362c2241223a342c2242223a332c2261223a322c226161223a352c2262223a317d",
+      "sha256": "bfc65124ecac090ddbbf776181b0bc5f10267dfba052cf009a517a29392d3ba3"
+    },
+    {
+      "name": "nested objects",
+      "input_json": "{\"z\":{\"y\":{\"x\":[{\"b\":1,\"a\":2}]},\"a\":null},\"a\":[3,2,1]}",
+      "canonical_utf8": "{\"a\":[3,2,1],\"z\":{\"a\":null,\"y\":{\"x\":[{\"a\":2,\"b\":1}]}}}",
+      "canonical_hex": "7b2261223a5b332c322c315d2c227a223a7b2261223a6e756c6c2c2279223a7b2278223a5b7b2261223a322c2262223a317d5d7d7d7d",
+      "sha256": "c1805516d8db408a80e935dfe6dec5fa62931066b5da748076b15747baa1bf6d"
+    },
+    {
+      "name": "whitespace is dropped",
+      "input_json": "{ \"a\" : [ 1 , 2 ] ,\n \"b\" : \"x y\" }",
+      "canonical_utf8": "{\"a\":[1,2],\"b\":\"x y\"}",
+      "canonical_hex": "7b2261223a5b312c325d2c2262223a22782079227d",
+      "sha256": "7cbf9a1925627414ac77c5981864910898c7d4e7bfcb7a1f141c20abf7bd66df"
+    },
+    {
+      "name": "integer",
+      "input_json": "200",
+      "canonical_utf8": "200",
+      "canonical_hex": "323030",
+      "sha256": "27badc983df1780b60c2b3fa9d3a19a00e46aac798451f0febdca52920faaddf"
+    },
+    {
+      "name": "float with zero fraction equals the integer",
+      "input_json": "200.0",
+      "canonical_utf8": "200",
+      "canonical_hex": "323030",
+      "sha256": "27badc983df1780b60c2b3fa9d3a19a00e46aac798451f0febdca52920faaddf"
+    },
+    {
+      "name": "float exponent form of an integer",
+      "input_json": "2e2",
+      "canonical_utf8": "200",
+      "canonical_hex": "323030",
+      "sha256": "27badc983df1780b60c2b3fa9d3a19a00e46aac798451f0febdca52920faaddf"
+    },
+    {
+      "name": "zero",
+      "input_json": "0",
+      "canonical_utf8": "0",
+      "canonical_hex": "30",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "negative zero (integer form)",
+      "input_json": "-0",
+      "canonical_utf8": "0",
+      "canonical_hex": "30",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "negative zero (float form)",
+      "input_json": "-0.0",
+      "canonical_utf8": "0",
+      "canonical_hex": "30",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "negative integer",
+      "input_json": "-17",
+      "canonical_utf8": "-17",
+      "canonical_hex": "2d3137",
+      "sha256": "d3471dcc109cd382f5e09a64253c2219958b5f8f07371fba48ac81fed97bb18a"
+    },
+    {
+      "name": "largest safe integer",
+      "input_json": "9007199254740991",
+      "canonical_utf8": "9007199254740991",
+      "canonical_hex": "39303037313939323534373430393931",
+      "sha256": "f40b423c2dd95ff2b2f027e22208f438cf7242862e5e746860e697308c9add26"
+    },
+    {
+      "name": "smallest safe integer",
+      "input_json": "-9007199254740991",
+      "canonical_utf8": "-9007199254740991",
+      "canonical_hex": "2d39303037313939323534373430393931",
+      "sha256": "4c933a456bb8f2e9894b2d0b26480439cd72d52fb8a27cbf8fd7f323f22c7815"
+    },
+    {
+      "name": "money in minor units",
+      "input_json": "{\"money\":123456,\"currency\":\"EUR\"}",
+      "canonical_utf8": "{\"currency\":\"EUR\",\"money\":123456}",
+      "canonical_hex": "7b2263757272656e6379223a22455552222c226d6f6e6579223a3132333435367d",
+      "sha256": "2a5153b717fd0b8239f2b72a24a1583749095fdaede29d1edacbd6408a74b275"
+    },
+    {
+      "name": "fraction",
+      "input_json": "0.5",
+      "canonical_utf8": "0.5",
+      "canonical_hex": "302e35",
+      "sha256": "d2cbad71ff333de67d07ec676e352ab7f38248eb69c942950157220607c55e84"
+    },
+    {
+      "name": "trailing zeros dropped",
+      "input_json": "4.50",
+      "canonical_utf8": "4.5",
+      "canonical_hex": "342e35",
+      "sha256": "32209ccbf8a8e509b9027698cc173343a2695e8ecdbe899bf5335a3100c956fc"
+    },
+    {
+      "name": "small exponent",
+      "input_json": "2e-3",
+      "canonical_utf8": "0.002",
+      "canonical_hex": "302e303032",
+      "sha256": "8d938122d3904436fd32a463678148c7b7595bf667f263a65ab79059e5833a21"
+    },
+    {
+      "name": "RFC 8785 Appendix B long fraction",
+      "input_json": "333333333.33333329",
+      "canonical_utf8": "333333333.3333333",
+      "canonical_hex": "3333333333333333332e33333333333333",
+      "sha256": "6bd9be1c141028789cc35db62f1b43e80d5d4ee24d6d542e775deb16799ff4c7"
+    },
+    {
+      "name": "RFC 8785 Appendix B 1E30",
+      "input_json": "1E30",
+      "canonical_utf8": "1e+30",
+      "canonical_hex": "31652b3330",
+      "sha256": "7412d94bdf30adfa71080e057185e1a8de86e2e99a8350b011df8ac41ed5a6e3"
+    },
+    {
+      "name": "RFC 8785 Appendix B tiny",
+      "input_json": "0.000000000000000000000000001",
+      "canonical_utf8": "1e-27",
+      "canonical_hex": "31652d3237",
+      "sha256": "26baf4828d488c0744642cf36f23d01ce4b66afd61a9a689d96e1c3f9015a3d9"
+    },
+    {
+      "name": "exponent threshold 1e21",
+      "input_json": "1e21",
+      "canonical_utf8": "1e+21",
+      "canonical_hex": "31652b3231",
+      "sha256": "241c4643fa70b1dcde1205b71be4e3bebb17e9f880c8e1a33d0ead6c27271d3c"
+    },
+    {
+      "name": "below exponent threshold",
+      "input_json": "100000000000000000000.0",
+      "canonical_utf8": "100000000000000000000",
+      "canonical_hex": "313030303030303030303030303030303030303030",
+      "sha256": "c344e9487bfbd5c4e03c9fb90d62a5dde5e00b54d55c46e9f4a803aea162b80c"
+    },
+    {
+      "name": "small float threshold 1e-6",
+      "input_json": "0.000001",
+      "canonical_utf8": "0.000001",
+      "canonical_hex": "302e303030303031",
+      "sha256": "159fb29a827ad04b260aa6c8ab6d8637f8f2b38af5c4f3cb49d6a21205e040f8"
+    },
+    {
+      "name": "below small float threshold 1e-7",
+      "input_json": "0.0000001",
+      "canonical_utf8": "1e-7",
+      "canonical_hex": "31652d37",
+      "sha256": "5b33e02f2c5103a05d32f6ba9cb058294452bfbf393967f68bb30c1bdcbbab22"
+    },
+    {
+      "name": "array of numbers (RFC 8785 sample)",
+      "input_json": "[56,{\"d\":true,\"10\":null,\"1\":[]}]",
+      "canonical_utf8": "[56,{\"1\":[],\"10\":null,\"d\":true}]",
+      "canonical_hex": "5b35362c7b2231223a5b5d2c223130223a6e756c6c2c2264223a747275657d5d",
+      "sha256": "099601b171cafed97c333f8878d68e7f8c8f795412adb34b2fdcf0e7c7beac42"
+    },
+    {
+      "name": "unicode two-byte",
+      "input_json": "\"café\"",
+      "canonical_utf8": "\"café\"",
+      "canonical_hex": "22636166c3a922",
+      "sha256": "28380feb8724d669bc8d4cf5b5a5bb1adbdc61b81ebd06f3fabc567b4f3b0fc5"
+    },
+    {
+      "name": "unicode three-byte (euro sign)",
+      "input_json": "\"€\"",
+      "canonical_utf8": "\"€\"",
+      "canonical_hex": "22e282ac22",
+      "sha256": "33ab3f1aaa9b5b06e754decf4e24302477eac3714490bbb587a4b56903c0090c"
+    },
+    {
+      "name": "astral character as surrogate pair escape",
+      "input_json": "\"😀\"",
+      "canonical_utf8": "\"😀\"",
+      "canonical_hex": "22f09f988022",
+      "sha256": "7a0c50b92434b015545fe93ab723db2d4b2cdd14a441405624a9ce8be29f1d5a"
+    },
+    {
+      "name": "astral character literal",
+      "input_json": "\"😀\"",
+      "canonical_utf8": "\"😀\"",
+      "canonical_hex": "22f09f988022",
+      "sha256": "7a0c50b92434b015545fe93ab723db2d4b2cdd14a441405624a9ce8be29f1d5a"
+    },
+    {
+      "name": "control characters escaped",
+      "input_json": "\"\\b\\t\\n\\f\\r\\u0000\\u001f\"",
+      "canonical_utf8": "\"\\b\\t\\n\\f\\r\\u0000\\u001f\"",
+      "canonical_hex": "225c625c745c6e5c665c725c75303030305c753030316622",
+      "sha256": "20ad135dc8714fa12811b0718eb7a198ac26e62e993028e733e2852e3fccf776"
+    },
+    {
+      "name": "quote and backslash",
+      "input_json": "\"\\\"\\\\/\"",
+      "canonical_utf8": "\"\\\"\\\\/\"",
+      "canonical_hex": "225c225c5c2f22",
+      "sha256": "106814b96b4576ad5efb709458f6a5e1d0b0653cf234738e0ccc6c435bdef084"
+    },
+    {
+      "name": "DEL and line separator not escaped",
+      "input_json": "\"\\u007f \"",
+      "canonical_utf8": "\" \"",
+      "canonical_hex": "227fe280a822",
+      "sha256": "4f1d8efe6f6d24e372f25234017a5502c0fcc0f739ba754697212eecebf3c542"
+    },
+    {
+      "name": "keys sorted by UTF-16 code units, astral before U+E000",
+      "input_json": "{\"\":1,\"😀\":2,\"a\":3}",
+      "canonical_utf8": "{\"a\":3,\"😀\":2,\"\":1}",
+      "canonical_hex": "7b2261223a332c22f09f9880223a322c22ee8080223a317d",
+      "sha256": "84495633024b0992798250783e7ccb01ab2875649ab22f353f14c0d6a8389fc2"
+    },
+    {
+      "name": "keys sorted: German umlaut after ASCII",
+      "input_json": "{\"ä\":1,\"z\":2,\"a\":3}",
+      "canonical_utf8": "{\"a\":3,\"z\":2,\"ä\":1}",
+      "canonical_hex": "7b2261223a332c227a223a322c22c3a4223a317d",
+      "sha256": "9aabdc44156f32357daefadaa7dcee25eb3b1c98f9a1aeaf560b345590e18e95"
+    },
+    {
+      "name": "keys with escapes",
+      "input_json": "{\"\\n\":1,\"\\u0001\":2,\"a\\\"b\":3}",
+      "canonical_utf8": "{\"\\u0001\":2,\"\\n\":1,\"a\\\"b\":3}",
+      "canonical_hex": "7b225c7530303031223a322c225c6e223a312c22615c2262223a337d",
+      "sha256": "7828a4d1eadfab69567a7681ddad45fe132748e31ab9ad5c8fa35e05970d38b6"
+    },
+    {
+      "name": "envelope fragment",
+      "input_json": "{\"type\":\"coalition.offer\",\"payload\":{\"cost\":{\"minutes\":30,\"money\":0,\"effort\":\"low\"}}}",
+      "canonical_utf8": "{\"payload\":{\"cost\":{\"effort\":\"low\",\"minutes\":30,\"money\":0}},\"type\":\"coalition.offer\"}",
+      "canonical_hex": "7b227061796c6f6164223a7b22636f7374223a7b226566666f7274223a226c6f77222c226d696e75746573223a33302c226d6f6e6579223a307d7d2c2274797065223a22636f616c6974696f6e2e6f66666572227d",
+      "sha256": "eb264af616887d07baa4f6850fa4ece607555a6f99c748f85c1a48ce8a51da06"
+    }
+  ],
+  "error_cases": [
+    {
+      "name": "integer above 2**53-1",
+      "input_json": "9007199254740992",
+      "error": "integer outside the safe range"
+    },
+    {
+      "name": "integer below -(2**53-1)",
+      "input_json": "-9007199254740992",
+      "error": "integer outside the safe range"
+    },
+    {
+      "name": "float overflow",
+      "input_json": "1e400",
+      "error": "not representable (infinity)"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/leave.json",
+  "title": "coalition.leave",
+  "description": "Member to host: withdraws the member. A reason is optional.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "reason": {
+      "type": "string"
+    }
+  }
+}

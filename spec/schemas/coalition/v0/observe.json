@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/observe.json",
+  "title": "coalition.observe",
+  "description": "Edge to host: an observation with its source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "content"
+  ],
+  "properties": {
+    "source": {
+      "enum": [
+        "voice",
+        "camera",
+        "chat",
+        "device",
+        "document"
+      ]
+    },
+    "content": {
+      "type": "string"
+    },
+    "evidence_ref": {
+      "$ref": "common.json#/$defs/id"
+    }
+  }
+}

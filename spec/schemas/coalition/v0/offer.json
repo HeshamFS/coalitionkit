@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/offer.json",
+  "title": "coalition.offer",
+  "description": "Member to host: what the member can give toward a need or task. No free text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "offer_id",
+    "target",
+    "capacity",
+    "cost",
+    "valid_until"
+  ],
+  "properties": {
+    "offer_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "target": {
+      "$ref": "common.json#/$defs/target"
+    },
+    "capacity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "cost": {
+      "$ref": "common.json#/$defs/cost"
+    },
+    "valid_until": {
+      "$ref": "common.json#/$defs/datetime"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/answer.json",
+  "title": "coalition.answer",
+  "description": "Vault to host: yes, no or a cost. The only thing a vault returns.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "query_id",
+    "result"
+  ],
+  "properties": {
+    "query_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "result": {
+      "oneOf": [
+        {
+          "enum": [
+            "yes",
+            "no"
+          ]
+        },
+        {
+          "$ref": "common.json#/$defs/cost"
+        }
+      ]
+    }
+  }
+}

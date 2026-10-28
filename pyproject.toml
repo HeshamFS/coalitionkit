@@ -1,0 +1,75 @@
+[project]
+name = "coalitionkit-workspace"
+version = "0.0.0"
+description = "CoalitionKit Core workspace root (not published)"
+requires-python = ">=3.15"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "coalitionkit-contracts",
+    "jsonschema==4.26.0",
+    "pyright==1.1.414",
+    "pytest==9.2.0",
+    "pytest-asyncio==1.4.1",
+    "import-linter==2.15",
+    "ruff==0.17.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+coalitionkit-contracts = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py315"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["coalitionkit_contracts"]
+
+[tool.pyright]
+include = ["packages/contracts", "tools"]
+exclude = ["**/.venv", "**/__pycache__"]
+pythonVersion = "3.15"
+typeCheckingMode = "strict"
+
+[tool.importlinter]
+root_package = "coalitionkit_contracts"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "contracts imports no other coalitionkit package"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts"]
+# import-linter has no partial wildcards: add each new coalitionkit_* package here.
+forbidden_modules = [
+    "coalitionkit",
+    "coalitionkit_conformance",
+    "coalitionkit_edge",
+    "coalitionkit_gardener",
+    "coalitionkit_host",
+    "coalitionkit_mcp",
+    "coalitionkit_packs",
+    "coalitionkit_psi",
+    "coalitionkit_runtime",
+    "coalitionkit_steward",
+    "coalitionkit_surfaces",
+    "coalitionkit_vault",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+addopts = "--import-mode=importlib"
+pythonpath = ["packages/contracts/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error"]

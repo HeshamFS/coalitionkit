@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/done.json",
+  "title": "coalition.done",
+  "description": "Member to host: a task is done, with evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "evidence"
+  ],
+  "properties": {
+    "task_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "ref",
+          "verified_by"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "common.json#/$defs/id"
+          },
+          "ref": {
+            "$ref": "common.json#/$defs/id"
+          },
+          "verified_by": {
+            "$ref": "common.json#/$defs/id"
+          }
+        }
+      }
+    }
+  }
+}

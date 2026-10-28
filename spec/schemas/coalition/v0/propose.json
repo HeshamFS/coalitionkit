@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/propose.json",
+  "title": "coalition.propose",
+  "description": "Host to members: plan universes, each member sees only its own assignments.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "proposal_set_id",
+    "plans"
+  ],
+  "properties": {
+    "proposal_set_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "plans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "plan_id",
+          "revision",
+          "assignments",
+          "objective_scores"
+        ],
+        "properties": {
+          "plan_id": {
+            "$ref": "common.json#/$defs/id"
+          },
+          "revision": {
+            "$ref": "common.json#/$defs/revision"
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "task_id",
+                "assignee"
+              ],
+              "properties": {
+                "task_id": {
+                  "$ref": "common.json#/$defs/id"
+                },
+                "assignee": {
+                  "$ref": "common.json#/$defs/id"
+                }
+              }
+            }
+          },
+          "objective_scores": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

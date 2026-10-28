@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/query.json",
+  "title": "coalition.query",
+  "description": "Host to vault: a typed question.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "query_id",
+    "kind",
+    "subject",
+    "deadline_ms"
+  ],
+  "properties": {
+    "query_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "kind": {
+      "enum": [
+        "feasible",
+        "cost",
+        "availability"
+      ]
+    },
+    "subject": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "deadline_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}

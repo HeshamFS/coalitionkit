@@ -1,0 +1,12 @@
+# Words that mark a domain. The core is domain-agnostic: no file under packages/ may contain
+# any of them as a whole word (case-insensitive). Domain words belong in discipline packs.
+patient
+medical
+dosage
+diagnosis
+pharmacy
+physiotherapy
+furnace
+invoice
+prescription
+clinic

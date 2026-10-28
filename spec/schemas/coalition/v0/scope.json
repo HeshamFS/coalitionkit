@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/scope.json",
+  "title": "Scope",
+  "description": "Who may see an envelope. There is no default.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "audience"
+  ],
+  "properties": {
+    "audience": {
+      "enum": [
+        "coalition",
+        "roles",
+        "participants",
+        "self",
+        "host"
+      ]
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/id"
+      },
+      "uniqueItems": true
+    },
+    "redact": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^payload\\."
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "audience": {
+            "const": "participants"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "participants"
+        ],
+        "properties": {
+          "participants": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "audience": {
+            "const": "roles"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "roles"
+        ],
+        "properties": {
+          "roles": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

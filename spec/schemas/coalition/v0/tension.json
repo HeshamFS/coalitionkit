@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/tension.json",
+  "title": "coalition.tension",
+  "description": "Host to deciders: a conflict and its trade-offs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tension_id",
+    "options",
+    "tradeoffs",
+    "deciders"
+  ],
+  "properties": {
+    "tension_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "revision": {
+      "$ref": "common.json#/$defs/revision"
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "option_id",
+          "summary"
+        ],
+        "properties": {
+          "option_id": {
+            "$ref": "common.json#/$defs/id"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tradeoffs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "deciders": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.json#/$defs/id"
+      },
+      "uniqueItems": true
+    }
+  }
+}

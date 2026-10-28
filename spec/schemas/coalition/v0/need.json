@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/need.json",
+  "title": "coalition.need",
+  "description": "Host to members: something the Coalition needs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "need_id",
+    "description",
+    "requirements",
+    "window"
+  ],
+  "properties": {
+    "need_id": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "window": {
+      "$ref": "common.json#/$defs/window"
+    }
+  }
+}
