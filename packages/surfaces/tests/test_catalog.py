@@ -134,13 +134,13 @@ def test_depth_over_24_rejected(catalog: Catalog) -> None:
     ],
 )
 def test_html_in_string_props_rejected(catalog: Catalog, text: str) -> None:
-    assert any("html" in e for e in errors(catalog, [card("root", status=text)]))
+    assert any("html" in e for e in errors(catalog, [card("root", title=text)]))
     nested = card("root", fields=[{"label": text}])
     assert any("html" in e for e in errors(catalog, [nested]))
 
 
 def test_plain_text_with_a_comparison_is_allowed(catalog: Catalog) -> None:
-    assert errors(catalog, [card("root", status="3 < 4 and fine")]) == []
+    assert errors(catalog, [card("root", title="3 < 4 and fine")]) == []
 
 
 def test_unbound_numbers_rejected_everywhere(catalog: Catalog) -> None:
@@ -178,12 +178,66 @@ def test_invalid_surface_is_replaced_by_the_fixed_fallback(catalog: Catalog) -> 
 
 def test_loader_reads_any_path_and_rejects_bad_files(tmp_path: Path) -> None:
     path = tmp_path / "c.json"
-    path.write_text(json.dumps({"catalog_id": "x/v1", "components": {"A": {"props": ["p"]}}}))
+    path.write_text(
+        json.dumps({"catalogId": "x/v1", "components": {"A": {"props": {"p": {"type": "string"}}}}})
+    )
     loaded = load_catalog(path)
     assert loaded.catalog_id == "x/v1" and "A" in loaded.components
-    path.write_text(json.dumps({"components": {"A": {"props": [], "required": ["q"]}}}))
-    with pytest.raises(ValueError, match="requires props"):
+    path.write_text(json.dumps({"components": {"A": {"props": {"q": {"type": "colour"}}}}}))
+    with pytest.raises(ValueError, match="unknown type"):
+        load_catalog(path)
+    path.write_text(json.dumps({"components": {"A": {"props": {"q": {"type": "enum"}}}}}))
+    with pytest.raises(ValueError, match="enum needs values"):
         load_catalog(path)
     path.write_text("{}")
     with pytest.raises(ValueError, match="components"):
         load_catalog(path)
+
+
+def test_props_are_checked_against_their_types(catalog: Catalog) -> None:
+    subject = {"kind": "plan", "id": "p1", "revision": 2}
+    ok = [
+        {
+            "id": "root",
+            "component": "ApprovalButton",
+            "subject": subject,
+            "label": "Accept",
+            "consequence": "binding",
+            "decision_deadline": "2026-10-29T14:00:00Z",
+        }
+    ]
+    assert errors(catalog, ok) == []
+    for bad_subject in (
+        {"kind": "plan", "id": "p1"},
+        {**subject, "revision": 0},
+        {**subject, "revision": True},
+        "p1",
+    ):
+        assert any(
+            "expected subject" in e for e in errors(catalog, [{**ok[0], "subject": bad_subject}])
+        )
+    assert any(
+        "expected datetime" in e for e in errors(catalog, [{**ok[0], "decision_deadline": "soon"}])
+    )
+    assert any("expected enum" in e for e in errors(catalog, [card("root", status="maybe")]))
+    assert any("expected string" in e for e in errors(catalog, [card("root", title=["x"])]))
+    assert errors(catalog, [card("root", fields={"path": "/fields"})]) == []
+    assert any("expected array" in e for e in errors(catalog, [card("root", fields="all")]))
+
+
+def test_the_repository_catalog_loads_and_accepts_the_fallback() -> None:
+    real = load_catalog(
+        Path(__file__).resolve().parents[3] / "spec" / "catalog" / "coalitionkit-v0_9.json"
+    )
+    assert real.catalog_id == CATALOG_ID
+    assert len(real.components) > 150
+    assert validate_components(real, fallback_components()) == []
+    consent = {
+        "id": "root",
+        "component": "ConsentCard",
+        "subject": {"kind": "plan", "id": "p1", "revision": 2},
+        "consequence": "binding",
+        "decision_deadline": "2026-10-29T14:00:00Z",
+    }
+    assert validate_components(real, [consent]) == []
+    assert validate_components(real, [{**consent, "subject": "p1"}])

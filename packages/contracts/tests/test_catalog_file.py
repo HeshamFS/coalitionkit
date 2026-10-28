@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The core A2UI catalog file: well-formed, unique, generic."""
+"""The core A2UI catalog file: well-formed, typed, unique, generic."""
 
 from __future__ import annotations
 
@@ -12,6 +12,31 @@ ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / "spec" / "catalog" / "coalitionkit-v0_9.json"
 DENYLIST = ROOT / "tools" / "discipline-denylist.txt"
 DOORS = {"wide", "compact", "message", "voice", "lens", "mcp-app", "push"}
+TYPES = {
+    "string",
+    "number",
+    "integer",
+    "boolean",
+    "datetime",
+    "id",
+    "enum",
+    "binding",
+    "subject",
+    "scope",
+    "child",
+    "children",
+    "array",
+    "object",
+    "any",
+}
+CONSENT = {
+    "ConsentCard",
+    "ApprovalButton",
+    "OwnerSign",
+    "ConsentSeal",
+    "TensionCard",
+    "CommitmentCard",
+}
 
 
 def load() -> dict[str, Any]:
@@ -26,17 +51,31 @@ def test_catalog_is_the_closed_v0_9_catalog() -> None:
     assert doc["rules"]["maxDepth"] == 24
 
 
-def test_components_are_unique_and_complete() -> None:
+def test_every_component_is_complete_and_typed() -> None:
+    doc = load()
+    for name, component in doc["components"].items():
+        assert re.fullmatch(r"[A-Z][A-Za-z0-9]+", name), name
+        assert component["doors"] and set(component["doors"]) <= DOORS, name
+        assert component["states"], name
+        assert component["family"] in doc["families"], name
+        for prop, spec in component["props"].items():
+            assert spec["type"] in TYPES, (name, prop)
+            if spec["type"] == "enum":
+                assert spec["values"], (name, prop)
+
+
+def test_consent_components_bind_a_revisioned_subject() -> None:
     components = load()["components"]
-    names = [c["name"] for c in components]
-    assert len(names) == len(set(names))
-    for component in components:
-        assert re.fullmatch(r"[A-Z][A-Za-z0-9]+", component["name"]), component["name"]
-        assert component["doors"], component["name"]
-        assert set(component["doors"]) <= DOORS, component["name"]
-        assert isinstance(component["props"], dict), component["name"]
-        assert component["states"], component["name"]
-        assert component["family"] in load()["families"], component["name"]
+    for name in CONSENT:
+        props = components[name]["props"]
+        assert props["subject"] == props["subject"] | {"type": "subject", "required": True}, name
+        assert props["decision_deadline"]["type"] == "datetime", name
+
+
+def test_no_vault_value_travels_in_a_tree() -> None:
+    components = load()["components"]
+    assert "value" not in components["PrivateField"]["props"]
+    assert "value" not in components["AvailabilityGrid"]["props"]
 
 
 def test_core_catalog_carries_no_discipline_words() -> None:

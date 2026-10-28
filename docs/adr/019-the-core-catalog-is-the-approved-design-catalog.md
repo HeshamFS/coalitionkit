@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Decision
 
-`coalitionkit/v0_9` is defined by `spec/catalog/coalitionkit-v0_9.json`: the 202 generic components of the approved design catalog (11 families), each with its props, events, states and doors. Components that only make sense for one discipline (for example a scientific field map or a departure board) are not part of the core catalog; a Discipline Pack ships them as a pack catalog extension, accepted only while the pack is active, and never replacing or renaming a core component.
+`coalitionkit/v0_9` is defined by `spec/catalog/coalitionkit-v0_9.json`: the 201 generic components of the approved design catalog (11 families), each with typed props (type, required, enum values), events, states and doors, in the format the host validator enforces. Consent components bind a revisioned subject and a decision deadline; vault values never travel in a tree. Components that only make sense for one discipline (for example a scientific field map or a departure board) are not part of the core catalog; a Discipline Pack ships them as a pack catalog extension, accepted only while the pack is active, and never replacing or renaming a core component.
 
 Doors are now six: wide, compact, message, voice, lens and mcp-app.
 
