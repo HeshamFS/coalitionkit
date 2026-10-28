@@ -1,0 +1,14 @@
+name: pack-alpha
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  coordinator: { may: [charter, offer, decide], label: Coordinator }
+  helper: { may: [offer, commit] }
+vocabulary: vocabulary.yaml
+schemas: { need: schemas/need-ext.json }
+policies: [policies/flag-keyword.yaml, policies/mask-code.yaml]
+skills: [skills/SKILL.md]
+views: views.yaml
+task_templates: templates.yaml
+strategy: { allocation: round-robin, fairness: { share_cap: 0.5 } }
+evals: [evals/two-parties.yaml]

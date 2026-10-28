@@ -10,6 +10,7 @@ members = [
     "coalitionkit-gardener",
     "coalitionkit-mcp",
     "coalitionkit-models",
+    "coalitionkit-packs",
     "coalitionkit-runtime",
     "coalitionkit-steward",
     "coalitionkit-surfaces",
@@ -324,6 +325,31 @@ requires-dist = [
 ]
 
 [[package]]
+name = "coalitionkit-packs"
+version = "0.1.0.dev0"
+source = { editable = "packages/packs" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-steward" },
+    { name = "coalitionkit-surfaces" },
+    { name = "cryptography" },
+    { name = "jsonschema" },
+    { name = "pydantic" },
+    { name = "ruamel-yaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-steward", editable = "packages/steward" },
+    { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "jsonschema", specifier = "==4.26.0" },
+    { name = "pydantic", specifier = "==2.14.1" },
+    { name = "ruamel-yaml", specifier = "==0.19.1" },
+]
+
+[[package]]
 name = "coalitionkit-runtime"
 version = "0.1.0.dev0"
 source = { editable = "packages/runtime" }
@@ -412,6 +438,7 @@ dev = [
     { name = "coalitionkit-gardener" },
     { name = "coalitionkit-mcp" },
     { name = "coalitionkit-models" },
+    { name = "coalitionkit-packs" },
     { name = "coalitionkit-runtime" },
     { name = "coalitionkit-steward" },
     { name = "coalitionkit-surfaces" },
@@ -435,6 +462,7 @@ dev = [
     { name = "coalitionkit-gardener", editable = "packages/gardener" },
     { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
     { name = "coalitionkit-models", editable = "packages/models" },
+    { name = "coalitionkit-packs", editable = "packages/packs" },
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
     { name = "coalitionkit-surfaces", editable = "packages/surfaces" },

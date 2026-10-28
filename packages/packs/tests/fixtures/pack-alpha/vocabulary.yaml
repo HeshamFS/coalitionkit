@@ -1,0 +1,4 @@
+task: step
+need: item
+resource: supply
+offer: { one: offer, other: offers }
