@@ -2,44 +2,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coalitionkit.dev/schemas/coalition/v0/decide.json",
   "title": "coalition.decide",
-  "description": "Member to host: a decision on one revision of a plan, tension option or commitment.",
+  "description": "Member to host: one decider's answer on one revision of a plan, tension option, commitment, charter or task, signed by the decider's OWNER key in consent_sig.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "subject",
     "choice",
-    "consent"
+    "consent",
+    "decided_at",
+    "consent_sig"
   ],
   "properties": {
     "subject": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind",
-        "id",
-        "revision"
-      ],
-      "properties": {
-        "kind": {
-          "enum": [
-            "plan",
-            "tension_option",
-            "commitment"
-          ]
-        },
-        "id": {
-          "$ref": "common.json#/$defs/id"
-        },
-        "revision": {
-          "$ref": "common.json#/$defs/revision"
-        }
-      }
+      "$ref": "common.json#/$defs/subject"
     },
     "choice": {
       "$ref": "common.json#/$defs/id"
     },
     "consent": {
       "type": "boolean"
+    },
+    "decided_at": {
+      "$ref": "common.json#/$defs/datetime"
+    },
+    "consent_sig": {
+      "$ref": "common.json#/$defs/detached_jws"
     }
   }
 }

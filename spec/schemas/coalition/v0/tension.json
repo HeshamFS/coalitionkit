@@ -7,13 +7,14 @@
   "additionalProperties": false,
   "required": [
     "tension_id",
+    "revision",
     "options",
     "tradeoffs",
     "deciders"
   ],
   "properties": {
     "tension_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "revision": {
       "$ref": "common.json#/$defs/revision"

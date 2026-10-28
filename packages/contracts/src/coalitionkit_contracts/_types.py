@@ -47,7 +47,7 @@ def _check_uri(value: str) -> str:
     return value
 
 
-def _check_unique(value: list[str]) -> list[str]:
+def check_unique(value: list[str]) -> list[str]:
     if len(set(value)) != len(value):
         raise ValueError("items must be unique")
     return value
@@ -62,7 +62,12 @@ SafeInt = Annotated[int, Field(ge=0, le=MAX_SAFE_INT)]
 PositiveInt = Annotated[int, Field(ge=1, le=MAX_SAFE_INT)]
 Revision = PositiveInt
 Money = SafeInt
-UniqueIds = Annotated[list[Id], AfterValidator(_check_unique)]
+UniqueIds = Annotated[list[Id], AfterValidator(check_unique)]
+UniqueUlids = Annotated[list[Ulid], AfterValidator(check_unique)]
+PayloadPath = Annotated[str, StringConstraints(pattern=r"^payload\.")]
+Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
+#: Compact JWS with a detached payload: ``<protected>..<signature>``.
+DetachedJws = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]+$")]
 
 
 class WireModel(BaseModel):

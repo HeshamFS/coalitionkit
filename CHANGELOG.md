@@ -11,3 +11,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Coalition Protocol v0.1 draft text, JSON Schemas (2020-12), and shared test vectors.
 - `coalitionkit-contracts`: Pydantic models, JCS canonicalisation, EdDSA JWS signing, ULIDs and schema validation.
 - `tools/check.py`: the one checks command.
+- Spec revision R1: authenticated projections and receipts (ADR 017), owner-signed consent (ADR 018), authenticated idempotency (`duplicate_mismatch`), a target authorization matrix (`not_authorized`), per-decider decisions, one subject shape with host-assigned revisions, per-task flow, scope intersection with `spec/vectors/scope.json`, the PSI wire format and threat model, MCP `commit`, `report_ripple` and `accept_charter`, charter acceptance, the authenticated log boundary with `spec/vectors/log.json`, and fixed identifiers.
+- `coalitionkit-contracts`: `consent`, `owner`, `idempotency`, `revisions`, `decisions`, `log` and `scope_resolve` modules; `coalition.projection` and `coalition.receipt` (eighteen message types).

@@ -1,0 +1,174 @@
+{
+  "description": "Scope resolution for derived outputs. 'narrowest scope of its sources' is the intersection of the resolved principal sets of the sources, resolved at derivation time: coalition = every member, roles = members holding any listed role now, participants = the listed participants who are members, self = the source sender's owner (source.owner), host = nobody. An empty intersection becomes audience 'host'. Redaction lists are unioned and sorted. Result form: all sources 'coalition' gives 'coalition'; all sources 'roles' with the same role list gives 'roles'; otherwise 'participants' with the sorted intersection; empty gives 'host'. members and role_holders describe the Coalition at derivation time. Absent expected fields are absent in the result.",
+  "cases": [
+    {
+      "name": "single-coalition",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [{"owner": "p1", "scope": {"audience": "coalition"}}],
+      "expected": {"audience": "coalition"}
+    },
+    {
+      "name": "coalition-and-participants",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "coalition"}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p2", "p1"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p1", "p2"]}
+    },
+    {
+      "name": "roles-meet-participants",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {"organizer": ["p1", "p2"]},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["organizer"]}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p2", "p3"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p2"]}
+    },
+    {
+      "name": "same-roles-stay-roles",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {"organizer": ["p1"], "reviewer": ["p2"]},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["reviewer", "organizer"]}},
+        {"owner": "p3", "scope": {"audience": "roles", "roles": ["organizer", "reviewer"]}}
+      ],
+      "expected": {"audience": "roles", "roles": ["organizer", "reviewer"]}
+    },
+    {
+      "name": "different-roles-resolve-to-members",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {"organizer": ["p1", "p2"], "reviewer": ["p2", "p3"]},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["organizer"]}},
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["reviewer"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p2"]}
+    },
+    {
+      "name": "roles-resolved-at-derivation-time-before",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {"reviewer": ["p2"]},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["reviewer"]}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p2"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p2"]}
+    },
+    {
+      "name": "roles-resolved-at-derivation-time-after-role-moved",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {"reviewer": ["p3"]},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["reviewer"]}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p2"]}}
+      ],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "self-resolves-to-the-source-owner",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "self"}},
+        {"owner": "p2", "scope": {"audience": "coalition"}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p1"]}
+    },
+    {
+      "name": "two-selfs-of-different-owners-become-host",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "self"}},
+        {"owner": "p2", "scope": {"audience": "self"}}
+      ],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "two-selfs-of-the-same-owner",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "self"}},
+        {"owner": "p1", "scope": {"audience": "self"}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p1"]}
+    },
+    {
+      "name": "host-source-forces-host",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "coalition"}},
+        {"owner": "p1", "scope": {"audience": "host"}}
+      ],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "disjoint-participants-become-host",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1"]}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p2", "p3"]}}
+      ],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "a-participant-who-left-is-dropped",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "coalition"}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p9"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p1"]}
+    },
+    {
+      "name": "role-with-no-holders-becomes-host",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [{"owner": "p1", "scope": {"audience": "roles", "roles": ["reviewer"]}}],
+      "expected": {"audience": "host"}
+    },
+    {
+      "name": "redaction-lists-are-unioned",
+      "members": ["p1", "p2", "p3"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "coalition", "redact": ["payload.window", "payload.cost"]}},
+        {"owner": "p1", "scope": {"audience": "participants", "participants": ["p1", "p2"], "redact": ["payload.cost", "payload.address"]}}
+      ],
+      "expected": {
+        "audience": "participants",
+        "participants": ["p1", "p2"],
+        "redact": ["payload.address", "payload.cost", "payload.window"]
+      }
+    },
+    {
+      "name": "redaction-survives-an-empty-intersection",
+      "members": ["p1", "p2"],
+      "role_holders": {},
+      "sources": [
+        {"owner": "p1", "scope": {"audience": "self", "redact": ["payload.a"]}},
+        {"owner": "p2", "scope": {"audience": "self", "redact": ["payload.b"]}}
+      ],
+      "expected": {"audience": "host", "redact": ["payload.a", "payload.b"]}
+    },
+    {
+      "name": "three-sources",
+      "members": ["p1", "p2", "p3", "p4"],
+      "role_holders": {"organizer": ["p1", "p2", "p3"]},
+      "sources": [
+        {"owner": "p4", "scope": {"audience": "coalition"}},
+        {"owner": "p1", "scope": {"audience": "roles", "roles": ["organizer"]}},
+        {"owner": "p2", "scope": {"audience": "participants", "participants": ["p2", "p3", "p4"]}}
+      ],
+      "expected": {"audience": "participants", "participants": ["p2", "p3"]}
+    }
+  ]
+}

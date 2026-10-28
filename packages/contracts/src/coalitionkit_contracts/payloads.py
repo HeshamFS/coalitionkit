@@ -4,25 +4,37 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field, StringConstraints
+from pydantic import AfterValidator, Field, StringConstraints
 
 from ._types import (
+    DetachedJws,
     Id,
     Money,
+    PayloadPath,
     PositiveInt,
     Revision,
     Rfc3339,
     SafeInt,
+    Sha256Hex,
     Text,
     Ulid,
     UniqueIds,
+    UniqueUlids,
     Uri,
     WireModel,
+    check_unique,
 )
 
 Effort = Literal["low", "medium", "high"]
+
+#: ``coalition.query`` deadline when ``deadline_ms`` is omitted.
+DEFAULT_QUERY_DEADLINE_MS = 10_000
+#: Most elements either side may put into a PSI exchange.
+PSI_MAX_ELEMENTS = 1024
+#: Longest ``coalition.match`` blob: a response holds two framed lists of 32-byte elements.
+PSI_MAX_BLOB_CHARS = 87_392
 
 
 class Budget(WireModel):
@@ -43,7 +55,7 @@ class Window(WireModel):
 
 class Target(WireModel):
     kind: Literal["need", "task"]
-    id: Id
+    id: Ulid
 
 
 class CharterRole(WireModel):
@@ -61,15 +73,25 @@ class CharterPayload(WireModel):
     roles: Annotated[list[CharterRole], Field(min_length=1)]
     rules: list[Text]
     deadline: Rfc3339
+    deciders: Annotated[UniqueIds, Field(min_length=1)]
+    revision: Revision
+    created_at: Rfc3339
     pack: PackRef | None = None
     budget: Budget | None = None
-    deciders: UniqueIds | None = None
-    version: PositiveInt | None = None
+    count_trusted: UniqueIds | None = None
+
+
+class Ed25519Jwk(WireModel):
+    kty: Literal["OKP"]
+    crv: Literal["Ed25519"]
+    x: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{43}$")]
+    kid: Id
 
 
 class JoinPayload(WireModel):
     card_url: Uri
-    owner_proof: Text
+    owner_key: Ed25519Jwk
+    owner_proof: DetachedJws
     roles_requested: UniqueIds
     surfaces: UniqueIds
     vault: Literal["local", "hosted"]
@@ -86,7 +108,7 @@ class ObservePayload(WireModel):
 
 
 class NeedPayload(WireModel):
-    need_id: Id
+    need_id: Ulid
     description: Text
     requirements: list[Text]
     window: Window
@@ -104,7 +126,7 @@ class QueryPayload(WireModel):
     query_id: Id
     kind: Literal["feasible", "cost", "availability"]
     subject: Id
-    deadline_ms: PositiveInt
+    deadline_ms: PositiveInt = DEFAULT_QUERY_DEADLINE_MS
 
 
 class AnswerPayload(WireModel):
@@ -114,18 +136,21 @@ class AnswerPayload(WireModel):
 
 class MatchPayload(WireModel):
     match_id: Id
+    peer: Id
     round: Literal["setup", "request", "response"]
-    blob: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]*$")]
+    blob: Annotated[
+        str, StringConstraints(pattern=r"^[A-Za-z0-9_-]*$", max_length=PSI_MAX_BLOB_CHARS)
+    ]
     reveal: Literal["overlap", "count"]
 
 
 class Assignment(WireModel):
-    task_id: Id
+    task_id: Ulid
     assignee: Id
 
 
 class Plan(WireModel):
-    plan_id: Id
+    plan_id: Ulid
     revision: Revision
     assignments: list[Assignment]
     objective_scores: dict[str, float]
@@ -142,35 +167,37 @@ class TensionOption(WireModel):
 
 
 class TensionPayload(WireModel):
-    tension_id: Id
-    revision: Revision | None = None
+    tension_id: Ulid
+    revision: Revision
     options: Annotated[list[TensionOption], Field(min_length=2)]
     tradeoffs: list[Text]
     deciders: Annotated[UniqueIds, Field(min_length=1)]
 
 
-class DecisionSubject(WireModel):
-    kind: Literal["plan", "tension_option", "commitment"]
-    id: Id
+class Subject(WireModel):
+    kind: Literal["plan", "tension_option", "commitment", "charter", "task"]
+    id: Ulid
     revision: Revision
 
 
 class DecidePayload(WireModel):
-    subject: DecisionSubject
+    subject: Subject
     choice: Id
     consent: bool
+    decided_at: Rfc3339
+    consent_sig: DetachedJws
 
 
 class CommitPayload(WireModel):
-    commitment_id: Id
-    task_id: Id
-    status: Literal["pending", "approved", "withdrawn"]
+    commitment_id: Ulid
+    task_id: Ulid
+    status: Literal["pending", "withdrawn"]
     revision: Revision | None = None
 
 
 class RipplePayload(WireModel):
     change: Text
-    invalidates: UniqueIds
+    invalidates: UniqueUlids
 
 
 class Evidence(WireModel):
@@ -180,7 +207,7 @@ class Evidence(WireModel):
 
 
 class DonePayload(WireModel):
-    task_id: Id
+    task_id: Ulid
     evidence: list[Evidence]
 
 
@@ -204,6 +231,8 @@ ErrorCode = Literal[
     "rate_limited",
     "budget_exhausted",
     "pack_violation",
+    "duplicate_mismatch",
+    "not_authorized",
 ]
 
 
@@ -217,6 +246,25 @@ class ErrorPayload(WireModel):
     code: ErrorCode
     detail: ErrorDetail
     ref: Ulid
+
+
+class ProjectionSource(WireModel):
+    event_id: Ulid
+    seq: PositiveInt
+    type: Annotated[str, StringConstraints(pattern=r"^coalition\.[a-z_]+$")]
+    on_behalf_of: Id
+
+
+class ProjectionPayload(WireModel):
+    source: ProjectionSource
+    payload: dict[str, Any]
+    redacted: Annotated[list[PayloadPath], AfterValidator(check_unique)] | None = None
+
+
+class ReceiptPayload(WireModel):
+    coalition_id: Ulid
+    seq: PositiveInt
+    head_hash: Sha256Hex
 
 
 PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
@@ -236,8 +284,27 @@ PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
     "coalition.ripple": RipplePayload,
     "coalition.done": DonePayload,
     "coalition.dissolve": DissolvePayload,
+    "coalition.projection": ProjectionPayload,
+    "coalition.receipt": ReceiptPayload,
     "coalition.error": ErrorPayload,
 }
 
-#: The sixteen message types of v0.1 (coalition.error is a payload, not one of the sixteen).
+#: The eighteen message types of v0.1 (coalition.error is a payload, not one of the eighteen).
 MESSAGE_TYPES: tuple[str, ...] = tuple(t for t in PAYLOAD_MODELS if t != "coalition.error")
+
+#: Types only the host sends; a member that sends one gets ``not_authorized``.
+HOST_ONLY_TYPES: frozenset[str] = frozenset(
+    f"coalition.{name}"
+    for name in (
+        "charter",
+        "need",
+        "query",
+        "propose",
+        "tension",
+        "dissolve",
+        "projection",
+        "receipt",
+    )
+)
+#: Types a member (or its vault or edge) may send, before the per-type authorization checks.
+MEMBER_TYPES: frozenset[str] = frozenset(MESSAGE_TYPES) - HOST_ONLY_TYPES

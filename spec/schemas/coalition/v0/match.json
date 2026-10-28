@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "required": [
     "match_id",
+    "peer",
     "round",
     "blob",
     "reveal"
@@ -24,13 +25,18 @@
     },
     "blob": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9_-]*$"
+      "pattern": "^[A-Za-z0-9_-]*$",
+      "maxLength": 87392,
+      "description": "base64url, no padding. At most 2 x (4 + 1024 x 32) bytes."
     },
     "reveal": {
       "enum": [
         "overlap",
         "count"
       ]
+    },
+    "peer": {
+      "$ref": "common.json#/$defs/id"
     }
   }
 }

@@ -101,9 +101,71 @@
           ]
         },
         "id": {
+          "$ref": "#/$defs/ulid"
+        }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "description": "The one reference shape for what a decision, consent request or revision check is about. The host assigns revisions: 1 at creation, +1 on every change.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "plan",
+            "tension_option",
+            "commitment",
+            "charter",
+            "task"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/ulid"
+        },
+        "revision": {
+          "$ref": "#/$defs/revision"
+        }
+      }
+    },
+    "ed25519_jwk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kty",
+        "crv",
+        "x",
+        "kid"
+      ],
+      "description": "An Ed25519 public key as a JWK (RFC 8037).",
+      "properties": {
+        "kty": {
+          "const": "OKP"
+        },
+        "crv": {
+          "const": "Ed25519"
+        },
+        "x": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "kid": {
           "$ref": "#/$defs/id"
         }
       }
+    },
+    "detached_jws": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+\\.\\.[A-Za-z0-9_-]+$",
+      "description": "Compact JWS with a detached payload: <protected>..<signature>"
+    },
+    "sha256_hex": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }

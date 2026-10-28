@@ -8,8 +8,7 @@
   "required": [
     "query_id",
     "kind",
-    "subject",
-    "deadline_ms"
+    "subject"
   ],
   "properties": {
     "query_id": {
@@ -28,7 +27,9 @@
     "deadline_ms": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 9007199254740991
+      "maximum": 9007199254740991,
+      "default": 10000,
+      "description": "Optional; a missing value means 10,000 (a pack may change the default)."
     }
   }
 }
