@@ -4,6 +4,7 @@ requires-python = ">=3.15"
 
 [manifest]
 members = [
+    "coalitionkit-acceptance",
     "coalitionkit-contracts",
     "coalitionkit-edges",
     "coalitionkit-gardener",
@@ -192,6 +193,29 @@ wheels = [
 ]
 
 [[package]]
+name = "coalitionkit-acceptance"
+version = "0.1.0.dev0"
+source = { editable = "packages/acceptance" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-edges" },
+    { name = "coalitionkit-gardener" },
+    { name = "coalitionkit-models" },
+    { name = "coalitionkit-runtime" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-edges", editable = "packages/edges" },
+    { name = "coalitionkit-gardener", editable = "packages/gardener" },
+    { name = "coalitionkit-models", editable = "packages/models" },
+    { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "httpx" },
+]
+
+[[package]]
 name = "coalitionkit-contracts"
 version = "0.1.0.dev0"
 source = { editable = "packages/contracts" }
@@ -346,6 +370,7 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "coalitionkit-acceptance" },
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-gardener" },
@@ -367,6 +392,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "coalitionkit-acceptance", editable = "packages/acceptance" },
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-gardener", editable = "packages/gardener" },

@@ -1,0 +1,837 @@
+{
+ "source": "recorded-format fixture: provider usage lines and per-Coalition charges in whole cents, computed with exact decimal arithmetic from the rates below; replace with a live export through COALITIONKIT_ACCEPTANCE_USAGE_FILE",
+ "rates_usd_per_mtok": {
+  "muse-wonder-1.0": {
+   "input": "4.00",
+   "output": "20.00",
+   "cached_input": "0.20"
+  },
+  "muse-spark-1.3": {
+   "input": "1.25",
+   "output": "4.25",
+   "cached_input": "0.15"
+  },
+  "meta-models/muse-spark-open-1026": {
+   "input": "1.25",
+   "output": "4.25",
+   "cached_input": "0.15"
+  }
+ },
+ "calls": [
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 5534,
+   "completion_tokens": 1069,
+   "cached_tokens": 4192
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 3958,
+   "completion_tokens": 1270,
+   "cached_tokens": 2545
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 8342,
+   "completion_tokens": 1578,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 1622,
+   "completion_tokens": 266,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 488,
+   "completion_tokens": 1708,
+   "cached_tokens": 456
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 5448,
+   "completion_tokens": 470,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6143,
+   "completion_tokens": 1688,
+   "cached_tokens": 3083
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 5877,
+   "completion_tokens": 223,
+   "cached_tokens": 4566
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 5012,
+   "completion_tokens": 976,
+   "cached_tokens": 1154
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 705,
+   "completion_tokens": 1776,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7217,
+   "completion_tokens": 225,
+   "cached_tokens": 3266
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 2207,
+   "completion_tokens": 911,
+   "cached_tokens": 2074
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 6823,
+   "completion_tokens": 1114,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 8704,
+   "completion_tokens": 1100,
+   "cached_tokens": 415
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2413,
+   "completion_tokens": 1715,
+   "cached_tokens": 200
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 7335,
+   "completion_tokens": 1002,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2299,
+   "completion_tokens": 1323,
+   "cached_tokens": 1871
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 4412,
+   "completion_tokens": 1186,
+   "cached_tokens": 3293
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8523,
+   "completion_tokens": 1470,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 3618,
+   "completion_tokens": 642,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 842,
+   "completion_tokens": 346,
+   "cached_tokens": 671
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 8867,
+   "completion_tokens": 1042,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8255,
+   "completion_tokens": 995,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 5052,
+   "completion_tokens": 688,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 8740,
+   "completion_tokens": 570,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 8150,
+   "completion_tokens": 171,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 6364,
+   "completion_tokens": 237,
+   "cached_tokens": 1594
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 2697,
+   "completion_tokens": 960,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 7692,
+   "completion_tokens": 1229,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 4360,
+   "completion_tokens": 287,
+   "cached_tokens": 365
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6153,
+   "completion_tokens": 356,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 2509,
+   "completion_tokens": 1157,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8569,
+   "completion_tokens": 635,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2517,
+   "completion_tokens": 1644,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 6696,
+   "completion_tokens": 1694,
+   "cached_tokens": 1216
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6460,
+   "completion_tokens": 68,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 1141,
+   "completion_tokens": 1747,
+   "cached_tokens": 710
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 722,
+   "completion_tokens": 92,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 5275,
+   "completion_tokens": 961,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7944,
+   "completion_tokens": 1210,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8813,
+   "completion_tokens": 463,
+   "cached_tokens": 7104
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 7817,
+   "completion_tokens": 1265,
+   "cached_tokens": 1911
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 6839,
+   "completion_tokens": 109,
+   "cached_tokens": 1601
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 1041,
+   "completion_tokens": 1367,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8227,
+   "completion_tokens": 1496,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8768,
+   "completion_tokens": 322,
+   "cached_tokens": 2627
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6689,
+   "completion_tokens": 598,
+   "cached_tokens": 3484
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 1588,
+   "completion_tokens": 824,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 3162,
+   "completion_tokens": 579,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 5013,
+   "completion_tokens": 997,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7584,
+   "completion_tokens": 285,
+   "cached_tokens": 4319
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 1849,
+   "completion_tokens": 1776,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 1825,
+   "completion_tokens": 970,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 3289,
+   "completion_tokens": 95,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 3847,
+   "completion_tokens": 264,
+   "cached_tokens": 2542
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 3813,
+   "completion_tokens": 1207,
+   "cached_tokens": 1207
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2472,
+   "completion_tokens": 247,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 3106,
+   "completion_tokens": 257,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 3339,
+   "completion_tokens": 1362,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 4834,
+   "completion_tokens": 1244,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2944,
+   "completion_tokens": 574,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 7044,
+   "completion_tokens": 1630,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 1238,
+   "completion_tokens": 237,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 2315,
+   "completion_tokens": 232,
+   "cached_tokens": 2298
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 5460,
+   "completion_tokens": 1636,
+   "cached_tokens": 3735
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 6922,
+   "completion_tokens": 687,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7281,
+   "completion_tokens": 1424,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8512,
+   "completion_tokens": 1435,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6137,
+   "completion_tokens": 158,
+   "cached_tokens": 6024
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 687,
+   "completion_tokens": 616,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 5165,
+   "completion_tokens": 1612,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 5911,
+   "completion_tokens": 444,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 2956,
+   "completion_tokens": 1307,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 2359,
+   "completion_tokens": 1110,
+   "cached_tokens": 1450
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 771,
+   "completion_tokens": 909,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p0",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 7104,
+   "completion_tokens": 826,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 3897,
+   "completion_tokens": 1627,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p2",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 6802,
+   "completion_tokens": 562,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p3",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 682,
+   "completion_tokens": 73,
+   "cached_tokens": 283
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7146,
+   "completion_tokens": 580,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p0",
+   "role": "gardener",
+   "model": "muse-wonder-1.0",
+   "prompt_tokens": 3237,
+   "completion_tokens": 1172,
+   "cached_tokens": 155
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p1",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 5882,
+   "completion_tokens": 1336,
+   "cached_tokens": 4263
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p2",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 1221,
+   "completion_tokens": 1387,
+   "cached_tokens": 23
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p3",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8009,
+   "completion_tokens": 159,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p4",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 6838,
+   "completion_tokens": 1488,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p0",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 5930,
+   "completion_tokens": 451,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p1",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 7796,
+   "completion_tokens": 1163,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH01",
+   "participant": "p2",
+   "role": "hosted_agent",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 3378,
+   "completion_tokens": 364,
+   "cached_tokens": 0
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH02",
+   "participant": "p3",
+   "role": "composer",
+   "model": "muse-spark-1.3",
+   "prompt_tokens": 8243,
+   "completion_tokens": 50,
+   "cached_tokens": 5807
+  },
+  {
+   "coalition": "01M626PKF7EYEKVSRAW46RBH03",
+   "participant": "p4",
+   "role": "steward",
+   "model": "meta-models/muse-spark-open-1026",
+   "prompt_tokens": 914,
+   "completion_tokens": 1348,
+   "cached_tokens": 0
+  }
+ ],
+ "billed_cents": {
+  "01M626PKF7EYEKVSRAW46RBH01": "0.41",
+  "01M626PKF7EYEKVSRAW46RBH02": "0.47",
+  "01M626PKF7EYEKVSRAW46RBH03": "0.40"
+ }
+}
