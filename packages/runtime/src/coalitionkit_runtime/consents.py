@@ -62,3 +62,15 @@ class ConsentLedger:
             (self.coalition_id, subject["kind"], subject["id"], subject["revision"]),
         ).fetchall()
         return tally(deciders, {row[0]: json.loads(row[1]) for row in rows})
+
+    def pending_for(self, decider: str) -> list[Document]:
+        """List pending subject references for one decider in this Coalition."""
+        rows = self.tx.execute(
+            "SELECT kind, subject_id, revision FROM consents WHERE coalition_id = ? "
+            "AND decider = ? AND status = 'pending' ORDER BY kind, subject_id, revision",
+            (self.coalition_id, decider),
+        ).fetchall()
+        return [
+            {"kind": kind, "id": identifier, "revision": int(revision)}
+            for kind, identifier, revision in rows
+        ]

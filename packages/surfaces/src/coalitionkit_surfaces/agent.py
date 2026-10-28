@@ -6,7 +6,6 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from ag_ui.core import (
     Interrupt,
@@ -68,19 +67,10 @@ class ConsentRequest:
 
 def open_requests(host: CoalitionHost, viewer: str) -> list[ConsentRequest]:
     """Pending consent rows of this decider on the host ledger, for the current revision only."""
-    state = host.state  # rebuilding state also files any request the ledger does not hold yet
-    with host.store.transaction(host.coalition_id) as tx:
-        rows: list[Any] = tx.execute(
-            "SELECT kind, subject_id, revision FROM consents WHERE coalition_id = ? "
-            "AND decider = ? AND status = 'pending' ORDER BY kind, subject_id, revision",
-            (host.coalition_id, viewer),
-        ).fetchall()
-    found: list[ConsentRequest] = []
-    for kind, subject_id, revision in rows:
-        subject = state.subject(kind, subject_id)
-        if subject.get("revision") == revision and viewer in subject.get("deciders", []):
-            found.append(ConsentRequest(kind, subject_id, int(revision), viewer))
-    return found
+    return [
+        ConsentRequest(row["kind"], row["id"], row["revision"], viewer)
+        for row in host.open_consents(viewer)
+    ]
 
 
 class AgentSession:
