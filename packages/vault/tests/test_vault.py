@@ -2,12 +2,12 @@
 """Typed answers and private-note non-disclosure."""
 
 import pytest
-from coalitionkit_vault.answer import DeadlineExceeded
-from coalitionkit_vault.canary import Canaries
-from coalitionkit_vault.store import Capacity, Facts, Interval, Vault
 
 from coalitionkit_contracts.payloads import Cost, QueryPayload
 from coalitionkit_contracts.validate import validate_payload
+from coalitionkit_vault.answer import DeadlineExceeded
+from coalitionkit_vault.canary import Canaries
+from coalitionkit_vault.store import Capacity, Facts, Interval, Vault
 
 
 @pytest.mark.parametrize("kind", ["feasible", "availability", "cost"])

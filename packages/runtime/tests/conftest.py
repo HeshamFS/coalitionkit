@@ -5,8 +5,6 @@ from collections.abc import Generator
 from dataclasses import dataclass
 
 import pytest
-from coalitionkit_runtime import Acknowledgement, AuthenticatedSender, CoalitionHost, SQLiteStore
-from coalitionkit_runtime.store import Document
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from coalitionkit_contracts import (
@@ -16,6 +14,8 @@ from coalitionkit_contracts import (
     sign_envelope,
     sign_owner_proof,
 )
+from coalitionkit_runtime import Acknowledgement, AuthenticatedSender, CoalitionHost, SQLiteStore
+from coalitionkit_runtime.store import Document
 
 NOW = "2026-10-28T12:00:00+00:00"
 PUBLIC: Document = {"audience": "coalition"}

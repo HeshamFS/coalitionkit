@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from coalitionkit_runtime.consents import ConsentLedger
-
 from coalitionkit_contracts import new_ulid, sign_consent
+from coalitionkit_runtime.consents import ConsentLedger
 
 from .conftest import World, accepted, error
 

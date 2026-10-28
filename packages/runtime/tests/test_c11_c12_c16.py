@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import json
 
+from coalitionkit_contracts import verify_envelope
 from coalitionkit_runtime.projector import derive_scope, patch
 from coalitionkit_runtime.steward import FakeSteward, Verdict
 from coalitionkit_vault.canary import Canaries
-
-from coalitionkit_contracts import verify_envelope
 
 from .conftest import World, accepted, error
 

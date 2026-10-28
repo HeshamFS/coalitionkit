@@ -5,10 +5,10 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-from coalitionkit_runtime import Bus, CoalitionHost, PostgresStore, SubscriberDropped
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from coalitionkit_contracts import genesis_hash, new_ulid, verify_chain
+from coalitionkit_runtime import Bus, CoalitionHost, PostgresStore, SubscriberDropped
 
 from .conftest import NOW, PUBLIC, World, accepted, join
 

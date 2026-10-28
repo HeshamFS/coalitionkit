@@ -7,15 +7,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
+from coalitionkit_contracts import new_ulid, sign_envelope
+from coalitionkit_contracts.payloads import QueryPayload
 from coalitionkit_runtime.lifecycle import State
 from coalitionkit_runtime.projector import derive_scope
 from coalitionkit_runtime.steward import FakeSteward, Verdict
 from coalitionkit_runtime.store import Document
 from coalitionkit_vault.canary import Canaries
 from coalitionkit_vault.store import Capacity, Facts, Vault
-
-from coalitionkit_contracts import new_ulid, sign_envelope
-from coalitionkit_contracts.payloads import QueryPayload
 
 from .conftest import World, accepted, error
 from .test_c10_c21 import offer

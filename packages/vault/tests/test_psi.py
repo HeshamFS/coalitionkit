@@ -7,6 +7,10 @@ import random
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from coalitionkit_contracts.payloads import MatchPayload
+from coalitionkit_contracts.validate import validate_payload
 from coalitionkit_vault._group import hash_point
 from coalitionkit_vault.canary import Canaries
 from coalitionkit_vault.psi import (
@@ -20,10 +24,6 @@ from coalitionkit_vault.psi import (
     Reveal,
 )
 from coalitionkit_vault.store import Vault
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
-from coalitionkit_contracts.payloads import MatchPayload
-from coalitionkit_contracts.validate import validate_payload
 
 ROOT = Path(__file__).resolve().parents[3]
 TASK = "01M4XRC2A00000000000000002"

@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-from coalitionkit_runtime.store import Document
-
 from coalitionkit_contracts import new_ulid
+from coalitionkit_runtime.store import Document
 
 from .conftest import NOW, World, accepted, error
 

@@ -5,7 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 
 import pytest
-from coalitionkit_runtime import CoalitionHost
 
 from coalitionkit_contracts import (
     LogIntegrityError,
@@ -14,6 +13,7 @@ from coalitionkit_contracts import (
     verify_chain,
     verify_receipt,
 )
+from coalitionkit_runtime import CoalitionHost
 
 from .conftest import NOW, World, accepted, error
 
