@@ -219,17 +219,12 @@ class Arena:
         self.host.invite(person.auth)
 
     def restarted(self, store: EventStore, host_key: Ed25519PrivateKey) -> Arena:
-        """A new host over the same Coalition in ``store``, with every member re-attached.
-
-        Pinned cards and invitations live in host memory, so a restarted host gets them again
-        from the scripted adapter (the A2A edge does this from card verification in real use).
-        """
+        """A new host over the stored Coalition, without re-pinning or re-inviting."""
         host = make_host(store, self.host.coalition_id, host_key, self.host.card_url)
         arena = Arena(host, self.deciders)
         for name, person in self.members.items():
             moved = Participant(host, name, person.agent, person.owner, self.timer)
             arena.members[name] = moved
-            arena.attach(moved)
         return arena
 
     def need(self, task: str | None = None) -> str:

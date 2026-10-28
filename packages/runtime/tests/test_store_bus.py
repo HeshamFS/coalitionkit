@@ -121,8 +121,6 @@ def test_c09_sqlite_file_reopen_and_independent_connections(world: World) -> Non
                 "host",
                 clock=lambda: NOW,
             )
-            for host in (restored, concurrent):
-                host.pin_card(alice.auth, alice.agent.public_key(), "alice")
             assert restored.state_document() == snapshot
             with ThreadPoolExecutor(max_workers=4) as pool:
                 futures = [

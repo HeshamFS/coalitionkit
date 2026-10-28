@@ -27,6 +27,12 @@ class EventStore(Protocol):
 
 
 DDL = (
+    "CREATE TABLE IF NOT EXISTS pinned_cards (coalition_id TEXT NOT NULL, card_url TEXT NOT NULL, "
+    "public_key TEXT NOT NULL, kid TEXT NOT NULL, participant TEXT NOT NULL, "
+    "PRIMARY KEY (coalition_id, card_url))",
+    "CREATE TABLE IF NOT EXISTS invitations (coalition_id TEXT NOT NULL, "
+    "participant TEXT NOT NULL, "
+    "card_url TEXT NOT NULL, PRIMARY KEY (coalition_id, participant))",
     "CREATE TABLE IF NOT EXISTS coalitions (id TEXT PRIMARY KEY, host TEXT NOT NULL, "
     "created_at TEXT NOT NULL, seq BIGINT NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS events (coalition_id TEXT NOT NULL, seq BIGINT NOT NULL, "
