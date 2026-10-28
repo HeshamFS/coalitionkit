@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -18,31 +17,16 @@ from coalitionkit_edges.a2a import (
     ReceivedError,
     create_host_app,
 )
+from coalitionkit_edges.a2a.server import build_host_card
 from coalitionkit_edges.a2a.testing import RunningServer, free_port
-from coalitionkit_runtime import Acknowledgement, AuthenticatedSender, CoalitionHost, SQLiteStore
+from coalitionkit_runtime import SQLiteStore
+from coalitionkit_server import HostPort
 
 from .arena import Arena, Participant
 from .metrics import Recorder
 from .watch import check_log
 
 NAMES = ("ana", "ben", "cho")
-
-
-class CoalitionPort:
-    """The edge's ``HostPort`` over an in-process ``CoalitionHost``."""
-
-    def __init__(self, host: CoalitionHost) -> None:
-        self.host = host
-        self.senders: dict[str, AuthenticatedSender] = {}
-
-    async def accept(
-        self, envelope_json: dict[str, Any], authenticated_sender: str
-    ) -> dict[str, Any]:
-        sender = self.senders[authenticated_sender]
-        reply = await asyncio.to_thread(self.host.accept, envelope_json, sender)
-        if isinstance(reply, Acknowledgement):
-            return {"accepted": reply.accepted, "receipt": reply.receipt}
-        return {"error": reply["payload"]}
 
 
 @dataclass(frozen=True)
@@ -66,15 +50,15 @@ async def run_wire() -> WireResult:
     )
     host = arena.host
     signer = HostSigner(host.card_url, host_key, host.kid)
-    port = CoalitionPort(host)
+    port = HostPort(host)
     credentials = CredentialRegistry()
     people: dict[str, Participant] = {}
     for name in NAMES:
         person = Participant(host, name)
         people[name] = person
         arena.members[name] = person
-        arena.attach(person)
-        port.senders[person.auth.card_url] = person.auth
+        card = build_host_card(HostSigner(person.auth.card_url, person.agent, person.name), base)
+        port.invite(name, person.auth.card_url, card)
         credentials.add(f"token-{name}", person.auth.card_url)
     app = create_host_app(port, signer, credentials, base)
     refused: list[str] = []

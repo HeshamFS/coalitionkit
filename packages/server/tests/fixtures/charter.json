@@ -1,0 +1,7 @@
+{
+  "goal": "Coordinate shared tasks",
+  "roles": [{"id": "member"}],
+  "rules": [],
+  "deadline": "2099-01-01T00:00:00Z",
+  "deciders": ["p1"]
+}

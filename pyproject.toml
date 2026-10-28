@@ -18,6 +18,7 @@ dev = [
     "coalitionkit-mcp",
     "coalitionkit-acceptance",
     "coalitionkit-surfaces",
+    "coalitionkit-server",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -43,6 +44,7 @@ coalitionkit-steward = { workspace = true }
 coalitionkit-mcp = { workspace = true }
 coalitionkit-acceptance = { workspace = true }
 coalitionkit-surfaces = { workspace = true }
+coalitionkit-server = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -53,17 +55,17 @@ extend-exclude = [".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -180,3 +182,15 @@ forbidden_modules = [
     "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_steward", "coalitionkit_vault",
     "coalitionkit_acceptance",
 ]
+
+[[tool.importlinter.contracts]]
+name = "server never imports acceptance"
+type = "forbidden"
+source_modules = ["coalitionkit_server"]
+forbidden_modules = ["coalitionkit_acceptance"]
+
+[[tool.importlinter.contracts]]
+name = "library packages never import the composition server"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_mcp", "coalitionkit_surfaces", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_vault"]
+forbidden_modules = ["coalitionkit_server"]
