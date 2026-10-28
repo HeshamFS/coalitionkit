@@ -1,0 +1,18 @@
+[project]
+name = "coalitionkit-surfaces"
+version = "0.1.0.dev0"
+description = "CoalitionKit surfaces: AG-UI feed and agent sessions and validated A2UI trees"
+license = "Apache-2.0"
+requires-python = ">=3.15"
+dependencies = [
+    "coalitionkit-contracts",
+    "coalitionkit-runtime",
+    "ag-ui-protocol==1.0.0",
+    "fastapi==0.162.0",
+    "jsonpatch==1.38",
+    "uvicorn==0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
