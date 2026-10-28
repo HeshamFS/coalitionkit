@@ -7,25 +7,29 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
-from coalitionkit_contracts import Membership, Scope, ScopeSource, next_revision, principals, tally
+from coalitionkit_contracts import (
+    Membership,
+    Scope,
+    ScopeSource,
+    after_planning_start,
+    after_replan,
+    decision_expired,
+    next_revision,
+    principals,
+    record_answer,
+    supersede_active,
+    tally,
+    tally_choice,
+)
 
 from .store import Document
-
-TASK_MESSAGES: dict[str, set[str]] = {
-    "open": {"offer", "ripple"},
-    "negotiating": {"answer", "match", "offer", "ripple", "query", "propose", "tension"},
-    "proposed": {"decide", "ripple", "tension"},
-    "decided": {"commit", "decide", "ripple"},
-    "committed": {"done", "commit", "ripple"},
-    "done": set(),
-    "withdrawn": set(),
-}
 
 
 @dataclass
 class State:
     coalition_id: str
     stage: str = "Germinate"
+    former: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
     charter: Document = field(default_factory=lambda: dict[str, Any]())
     members: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
     tasks: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
@@ -60,15 +64,15 @@ class State:
         body, kind = event["payload"], event["type"].split(".")[-1]
         if kind == "need":
             return [body["need_id"]]
-        if kind in {"commit", "done"}:
+        if kind in {"commit", "done", "match"}:
             return [body["task_id"]]
         if kind == "offer":
             return [body["target"]["id"]]
         if kind == "query":
-            return [body["subject"]]
+            return [body["task_id"]] if "task_id" in body else []
         if kind == "answer":
             query = self.queries.get(body["query_id"], {})
-            return [query["subject"]] if query else []
+            return [query["task_id"]] if "task_id" in query else []
         if kind == "propose":
             return sorted({a["task_id"] for p in body["plans"] for a in p["assignments"]})
         if kind == "ripple":
@@ -76,10 +80,9 @@ class State:
         if kind == "decide":
             subject = body["subject"]
             return self.subject(subject["kind"], subject["id"]).get("tasks", [])
-        if kind == "match" and body["match_id"] in self.matches:
-            return self.matches[body["match_id"]]["tasks"]
-        source = self.events.get(event.get("causation_id", ""))
-        return self.task_ids(source) if source else []
+        if kind == "tension":
+            return body["task_ids"]
+        return []
 
     def set_status(self, ids: list[str], status: str) -> None:
         for identifier in ids:
@@ -88,7 +91,11 @@ class State:
                 task["status"] = status
                 task["revision"] = next_revision(task["revision"])
                 subject = self.subject("task", identifier)
-                subject.update(revision=task["revision"], answers={})
+                subject.update(
+                    revision=task["revision"],
+                    answers={},
+                    status="pending" if status in {"proposed", "decided"} else "superseded",
+                )
         active = [t for t in self.tasks.values() if t["status"] not in {"done", "withdrawn"}]
         if active and all(t["status"] == "negotiating" for t in active):
             self.stage = "Negotiate"
@@ -117,6 +124,12 @@ class State:
         body, owner = event["payload"], event["on_behalf_of"]
         kind = event["type"].split(".")[-1]
         ids = self.task_ids(event)
+        self.expire(event["ts"])
+        if kind in {"query", "propose", "tension"}:
+            for identifier in ids:
+                self.set_status(
+                    [identifier], after_planning_start(self.tasks[identifier]["status"])
+                )
         if kind == "charter":
             self.charter = body
             for offer in self.offers.values():
@@ -134,7 +147,7 @@ class State:
             if self.charter and required <= self.membership().role_holders.keys():
                 self.stage = "Gather"
         elif kind == "leave":
-            self.members.pop(owner, None)
+            self.former[owner] = self.members.pop(owner)
             self.offers = {k: v for k, v in self.offers.items() if v["owner"] != owner}
         elif kind == "need":
             identifier = body["need_id"]
@@ -149,7 +162,6 @@ class State:
             }
             self.put_subject("task", identifier, revision, [identifier], [])
         elif kind == "query":
-            self.set_status(ids, "negotiating")
             self.queries[body["query_id"]] = {**body, "event": event, "answered": False}
         elif kind == "answer":
             self.queries[body["query_id"]]["answered"] = True
@@ -191,9 +203,9 @@ class State:
             else:
                 subject = self.subject("commitment", identifier)
                 subject.update(status="withdrawn", revision=next_revision(subject["revision"]))
-                self.set_status(ids, "negotiating")
+                self.replan(ids)
         elif kind == "ripple":
-            self.set_status(ids, "negotiating")
+            self.replan(ids)
         elif kind == "done":
             self.set_status(ids, "done")
         elif kind == "dissolve":
@@ -214,6 +226,9 @@ class State:
                     [a["task_id"] for a in plan["assignments"]],
                     self.charter["deciders"],
                     assignments=plan["assignments"],
+                    proposal_set_id=body["proposal_set_id"],
+                    decision_deadline=body["decision_deadline"],
+                    status="pending",
                 )
         else:
             self.put_subject(
@@ -223,6 +238,8 @@ class State:
                 ids,
                 body["deciders"],
                 options=body["options"],
+                decision_deadline=body["decision_deadline"],
+                status="pending",
             )
         self.set_status(ids, "proposed")
         self.stage = "Decide"
@@ -231,7 +248,9 @@ class State:
         reference = body["subject"]
         kind = reference["kind"]
         subject = self.subject(kind, reference["id"])
-        subject["answers"][owner] = body["consent"]
+        subject["answers"], _ = record_answer(
+            subject["answers"], subject["deciders"], owner, body["consent"]
+        )
         if kind == "charter":
             if body["consent"]:
                 self.members[owner]["accepted_revision"] = reference["revision"]
@@ -245,9 +264,24 @@ class State:
                             self.set_status(item["tasks"], "committed")
             return
         outcome = tally(subject["deciders"], subject["answers"])
-        if outcome == "refused":
-            self.set_status(subject["tasks"], "negotiating")
+        if kind == "tension_option":
+            choices = subject.setdefault("choices", {})
+            choices[owner] = (body["consent"], body["choice"])
+            outcome, _ = tally_choice(subject["deciders"], choices)
+        if outcome in {"refused", "split"}:
+            if kind != "commitment":
+                subject["status"] = "refused"
+            self.replan(subject["tasks"])
         elif outcome == "decided":
+            subject["status"] = "decided"
+            if kind == "plan":
+                for other in self.subjects.values():
+                    if (
+                        other is not subject
+                        and other["kind"] == "plan"
+                        and other.get("proposal_set_id") == subject["proposal_set_id"]
+                    ):
+                        other["status"] = "superseded"
             if kind == "commitment":
                 subject["status"] = "approved"
                 if not subject["suspended"]:
@@ -261,9 +295,39 @@ class State:
                     self.subject("task", assignment["task_id"])["deciders"] = [task["assignee"]]
                 self.stage = "Act"
 
+    def replan(self, ids: list[str]) -> None:
+        for identifier in ids:
+            self.set_status([identifier], after_replan(self.tasks[identifier]["status"]))
+        affected = {
+            key: subject["status"]
+            for key, subject in self.subjects.items()
+            if subject["kind"] == "commitment" and set(subject["tasks"]) & set(ids)
+        }
+        for key, status in supersede_active(affected).items():
+            self.subjects[key]["status"] = status
+        for subject in self.subjects.values():
+            if (
+                subject["kind"] in {"plan", "tension_option"}
+                and subject.get("status") == "pending"
+                and set(subject["tasks"]) & set(ids)
+            ):
+                subject["status"] = "superseded"
 
-def rebuild(coalition_id: str, events: list[Document]) -> State:
+    def expire(self, at: str) -> None:
+        for subject in self.subjects.values():
+            if (
+                subject.get("status") == "pending"
+                and "decision_deadline" in subject
+                and decision_expired(subject["decision_deadline"], at)
+            ):
+                subject["status"] = "expired"
+                self.replan(subject["tasks"])
+
+
+def rebuild(coalition_id: str, events: list[Document], at: str | None = None) -> State:
     state = State(coalition_id)
     for event in events:
         state.apply(event)
+    if at is not None:
+        state.expire(at)
     return state

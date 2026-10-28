@@ -71,9 +71,11 @@ def test_c09_postgres_concurrent_writers_and_rollback() -> None:
             for future in futures:
                 accepted(future.result())
         entries = store.read(host.coalition_id)
-        assert verify_chain(entries, genesis_hash(host.coalition_id, host.card_url, NOW)) == len(
-            entries
-        )
+        assert verify_chain(
+            entries,
+            genesis_hash(host.coalition_id, host.card_url, NOW),
+            host.private_key.public_key(),
+        ) == len(entries)
     finally:
         store.close()
 
@@ -135,7 +137,12 @@ def test_c09_sqlite_file_reopen_and_independent_connections(world: World) -> Non
                     accepted(future.result())
             entries = reopened.read(first.coalition_id)
             assert (
-                verify_chain(entries, genesis_hash(first.coalition_id, first.card_url, NOW)) == 23
+                verify_chain(
+                    entries,
+                    genesis_hash(first.coalition_id, first.card_url, NOW),
+                    first.private_key.public_key(),
+                )
+                == 23
             )
             assert restored.state_document() == concurrent.state_document()
         finally:

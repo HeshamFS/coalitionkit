@@ -204,11 +204,9 @@ class HostExecutor(AgentExecutor):
             )
         reply = await self._host.accept(envelope, sender)
         accepted, receipt, error = reply.get("accepted"), reply.get("receipt"), reply.get("error")
-        if isinstance(accepted, dict) and isinstance(receipt, dict):
-            return TaskState.TASK_STATE_COMPLETED, [
-                cast("dict[str, Any]", accepted),
-                cast("dict[str, Any]", receipt),
-            ]
+        if isinstance(receipt, dict) and (accepted is None or isinstance(accepted, dict)):
+            parts = [cast("dict[str, Any]", accepted)] if accepted is not None else []
+            return TaskState.TASK_STATE_COMPLETED, [*parts, cast("dict[str, Any]", receipt)]
         if isinstance(error, dict):
             payload = cast("dict[str, Any]", error)
             return TaskState.TASK_STATE_REJECTED, [

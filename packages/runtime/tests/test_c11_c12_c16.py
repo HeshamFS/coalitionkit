@@ -60,6 +60,7 @@ def test_c12_steward_before_commit_and_delivery(world: World) -> None:
             "propose",
             {
                 "proposal_set_id": "blocked",
+                "decision_deadline": "2026-10-29T12:00:00Z",
                 "plans": [
                     {
                         "assignments": [{"task_id": task, "assignee": "alice"}],
@@ -83,11 +84,9 @@ def test_c16_derived_scope_intersection_and_widening(world: World) -> None:
             {"audience": "self", "redact": ["payload.content"]},
         )
     )
-    second = accepted(
-        world.bob.send("observe", {"source": "chat", "content": "two"}, {"audience": "self"})
-    )
-    scope = derive_scope(world.host.state, [first.accepted, second.accepted])
-    assert scope == {"audience": "host", "redact": ["payload.content"]}
+    accepted(world.bob.send("observe", {"source": "chat", "content": "two"}, {"audience": "self"}))
+    scope = derive_scope(world.host.state, world.store.read(world.host.coalition_id)[-2:])
+    assert scope == {"audience": "host"}
     error(
         world.host.host_emit(
             "need",
@@ -97,7 +96,7 @@ def test_c16_derived_scope_intersection_and_widening(world: World) -> None:
                 "window": {"start": "2026-10-28T12:00:00Z", "end": "2026-10-29T12:00:00Z"},
             },
             {"audience": "coalition"},
-            sources=[first.accepted["event_id"]],
+            sources=[first.accepted["payload"]["source"]["event_id"]],
         ),
         "scope_violation",
     )

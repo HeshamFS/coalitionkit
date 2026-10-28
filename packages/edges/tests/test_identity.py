@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from examples import COALITION_ID, make_envelope
 from google.protobuf.json_format import MessageToDict, ParseDict
 
-from coalitionkit_contracts import new_ulid, sign_envelope, sign_owner_proof
+from coalitionkit_contracts import new_ulid, public_key_to_jwk, sign_envelope, sign_owner_proof
 from coalitionkit_edges.a2a import CardError, CardRegistry, OwnerBindingError
 
 if TYPE_CHECKING:
@@ -159,6 +159,34 @@ def test_a_participant_keeps_its_first_owner_key(member: Member, make_card: Make
     member.owner_key = Ed25519PrivateKey.generate()
     with pytest.raises(OwnerBindingError):
         registry.bind_owner(join_envelope(member, event_id=new_ulid()))
+
+
+def test_join_not_signed_by_the_pinned_agent_key_is_refused(
+    member: Member, make_card: MakeCard
+) -> None:
+    registry = CardRegistry(COALITION_ID)
+    registry.admit(URL, make_card())
+    join = join_envelope(member)
+    join["sig"] = sign_envelope(join, Ed25519PrivateKey.generate(), member.kid)
+    with pytest.raises(OwnerBindingError) as exc:
+        registry.bind_owner(join)
+    assert exc.value.reason == "bad_join"
+    assert registry.owner_key("p2") is None
+
+
+def test_a_card_speaks_for_one_participant(member: Member, make_card: MakeCard) -> None:
+    registry = CardRegistry(COALITION_ID)
+    registry.admit(URL, make_card())
+    registry.bind_owner(join_envelope(member))
+    other = Ed25519PrivateKey.generate()
+    jwk = public_key_to_jwk(other.public_key(), "owner-p3")
+    join = join_envelope(member, on_behalf_of="p3", event_id=new_ulid())
+    join["payload"]["owner_key"] = jwk
+    join["payload"]["owner_proof"] = sign_owner_proof(COALITION_ID, "p3", URL, jwk, other)
+    join["sig"] = sign_envelope(join, member.key, member.kid)
+    with pytest.raises(OwnerBindingError):
+        registry.bind_owner(join)
+    assert registry.owner_key("p3") is None
 
 
 def test_card_still_verifies_after_a_json_round_trip(make_card: MakeCard) -> None:

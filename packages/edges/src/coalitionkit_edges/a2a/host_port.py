@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """The port the edge calls into the host, a signer for host-originated envelopes, and a fake host.
 
-``HostPort.accept`` returns one of two shapes:
+``HostPort.accept`` returns an acknowledgement or an error:
 
-* ``{"accepted": <envelope with seq, ts, prev_hash>, "receipt": <host-signed coalition.receipt>}``
+* ``{"accepted": <original, projection, or None>, "receipt": <host-signed coalition.receipt>}``
 * ``{"error": <coalition.error payload {code, detail, ref}>}``, which the edge wraps in a
   host-signed ``coalition.error`` envelope addressed to the sender.
 """

@@ -29,21 +29,23 @@ def test_c09_concurrent_chain_receipts_and_crash_rebuild(world: World) -> None:
     with ThreadPoolExecutor(max_workers=8) as pool:
         results = list(pool.map(submit, range(40)))
     entries = world.store.read(host.coalition_id)
-    assert verify_chain(entries, genesis_hash(host.coalition_id, host.card_url, NOW)) == len(
-        entries
-    )
+    assert verify_chain(
+        entries, genesis_hash(host.coalition_id, host.card_url, NOW), host.private_key.public_key()
+    ) == len(entries)
     receipts = [
         verify_receipt(r.receipt, host.private_key.public_key(), accepted=r.accepted)
         for r in results
     ]
-    check_receipts(entries, receipts)
+    check_receipts(entries, receipts, host.private_key.public_key())
     with pytest.raises(LogIntegrityError, match="truncated"):
-        check_receipts(entries[:-1], receipts)
+        check_receipts(entries[:-1], receipts, host.private_key.public_key())
     altered = deepcopy(entries)
     altered[-1]["payload"]["content"] = "edited"
-    verify_chain(altered, genesis_hash(host.coalition_id, host.card_url, NOW))
+    verify_chain(
+        altered, genesis_hash(host.coalition_id, host.card_url, NOW), host.private_key.public_key()
+    )
     with pytest.raises(LogIntegrityError, match="receipt_mismatch"):
-        check_receipts(altered, receipts)
+        check_receipts(altered, receipts, host.private_key.public_key())
     restored = CoalitionHost(
         world.store, host.coalition_id, host.card_url, host.private_key, host.kid
     )

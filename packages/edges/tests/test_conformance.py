@@ -96,6 +96,7 @@ async def test_c02_join_with_owner_key_and_proof_is_acknowledged(rig: Rig, signe
         },
     )
     ack = await rig.client.send(join)
+    assert ack.accepted is not None
     assert ack.accepted["seq"] == 1 and ack.accepted["type"] == "coalition.join"
     assert ack.receipt["type"] == "coalition.receipt"
     assert ack.receipt["sender"] == rig.signer.card_url
@@ -107,9 +108,10 @@ async def test_c02_join_with_owner_key_and_proof_is_acknowledged(rig: Rig, signe
         "decided_at": "2026-10-29T10:15:00Z",
     }
     decision["consent_sig"] = sign_consent(
-        COALITION_ID, decision, member.owner_key, member.owner_kid
+        COALITION_ID, decision, member.owner_key, member.owner_kid, participant="p2"
     )
     second = await rig.client.send(signed("coalition.decide", payload=decision))
+    assert second.accepted is not None
     assert second.accepted["seq"] == 2
     assert second.accepted["prev_hash"] != ack.accepted["prev_hash"]
 
@@ -125,7 +127,7 @@ async def test_c03_sent_envelopes_validate_and_consent_checks_the_owner_key(
         "decided_at": "2026-10-29T10:15:00Z",
     }
     decision["consent_sig"] = sign_consent(
-        COALITION_ID, decision, member.owner_key, member.owner_kid
+        COALITION_ID, decision, member.owner_key, member.owner_kid, participant="p2"
     )
     await rig.client.send(signed("coalition.decide", payload=decision))
     await rig.client.send(signed("coalition.offer"))
@@ -134,9 +136,15 @@ async def test_c03_sent_envelopes_validate_and_consent_checks_the_owner_key(
         validate_envelope(received)
         verify_envelope(received, member.key.public_key(), expected_kid=member.kid)
     body = rig.host.calls[0][0]["payload"]
-    verify_consent(COALITION_ID, body, member.owner_key.public_key(), expected_kid=member.owner_kid)
+    verify_consent(
+        COALITION_ID,
+        body,
+        member.owner_key.public_key(),
+        expected_kid=member.owner_kid,
+        participant="p2",
+    )
     with pytest.raises(SignatureError):
-        verify_consent(COALITION_ID, body, member.key.public_key())
+        verify_consent(COALITION_ID, body, member.key.public_key(), participant="p2")
 
 
 async def test_c04_never_addresses_anyone_outside_the_scope_it_was_given(
@@ -148,6 +156,7 @@ async def test_c04_never_addresses_anyone_outside_the_scope_it_was_given(
         await rig.client.send(envelope, addressable=frozenset({"p2", "p3"}))
     assert rig.host.calls == []
     ack = await rig.client.send(envelope, addressable=frozenset({"p2", "p9"}))
+    assert ack.accepted is not None
     assert ack.accepted["scope"] == scope
 
 
@@ -284,6 +293,7 @@ async def test_fetch_card_runs_the_verifier(rig: Rig) -> None:
 
 async def test_receipt_tampering_is_caught_by_the_client(rig: Rig, signed: Signed) -> None:
     ack = await rig.client.send(signed())
+    assert ack.accepted is not None
     forged = {**ack.accepted, "seq": ack.accepted["seq"] + 5}
     from coalitionkit_contracts import LogIntegrityError, verify_receipt
 

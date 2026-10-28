@@ -24,6 +24,13 @@ class ConsentLedger:
             "AND kind = ? AND subject_id = ? AND revision < ? AND status = 'pending'",
             (*key, subject["revision"]),
         )
+        if subject.get("status") in {"withdrawn", "superseded", "expired", "refused", "decided"}:
+            self.tx.execute(
+                "UPDATE consents SET status = 'superseded' WHERE coalition_id = ? "
+                "AND kind = ? AND subject_id = ? AND status = 'pending'",
+                key,
+            )
+            return
         for decider in deciders:
             self.tx.execute(
                 "INSERT INTO consents VALUES (?, ?, ?, ?, ?, 'pending', NULL) "
