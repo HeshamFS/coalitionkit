@@ -11,6 +11,7 @@ members = [
     "coalitionkit-mcp",
     "coalitionkit-models",
     "coalitionkit-runtime",
+    "coalitionkit-server",
     "coalitionkit-steward",
     "coalitionkit-surfaces",
     "coalitionkit-vault",
@@ -339,6 +340,41 @@ requires-dist = [
 ]
 
 [[package]]
+name = "coalitionkit-server"
+version = "0.1.0.dev0"
+source = { editable = "packages/server" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-edges" },
+    { name = "coalitionkit-mcp" },
+    { name = "coalitionkit-models" },
+    { name = "coalitionkit-runtime" },
+    { name = "coalitionkit-steward" },
+    { name = "coalitionkit-surfaces" },
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pydantic-settings" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-edges", editable = "packages/edges" },
+    { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
+    { name = "coalitionkit-models", editable = "packages/models" },
+    { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "coalitionkit-steward", editable = "packages/steward" },
+    { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
+    { name = "cryptography", specifier = "==50.0.2" },
+    { name = "fastapi", specifier = "==0.162.0" },
+    { name = "httpx" },
+    { name = "pydantic-settings", specifier = "==2.16.2" },
+    { name = "uvicorn", specifier = "==0.54.0" },
+]
+
+[[package]]
 name = "coalitionkit-steward"
 version = "0.1.0.dev0"
 source = { editable = "packages/steward" }
@@ -413,6 +449,7 @@ dev = [
     { name = "coalitionkit-mcp" },
     { name = "coalitionkit-models" },
     { name = "coalitionkit-runtime" },
+    { name = "coalitionkit-server" },
     { name = "coalitionkit-steward" },
     { name = "coalitionkit-surfaces" },
     { name = "coalitionkit-vault" },
@@ -436,6 +473,7 @@ dev = [
     { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
     { name = "coalitionkit-models", editable = "packages/models" },
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "coalitionkit-server", editable = "packages/server" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
     { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
     { name = "coalitionkit-vault", editable = "packages/vault" },
