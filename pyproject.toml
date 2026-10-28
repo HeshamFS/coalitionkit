@@ -9,6 +9,7 @@ dependencies = []
 dev = [
     "coalitionkit-contracts",
     "coalitionkit-vault",
+    "coalitionkit-runtime",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -26,6 +27,7 @@ members = ["packages/*"]
 [tool.uv.sources]
 coalitionkit-contracts = { workspace = true }
 coalitionkit-vault = { workspace = true }
+coalitionkit-runtime = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -39,13 +41,13 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 known-first-party = ["coalitionkit_contracts"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -86,3 +88,9 @@ pythonpath = ["packages/contracts/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
+
+[[tool.importlinter.contracts]]
+name = "runtime uses contracts only"
+type = "forbidden"
+source_modules = ["coalitionkit_runtime"]
+forbidden_modules = ["coalitionkit_vault", "coalitionkit_gardener", "coalitionkit_surfaces", "coalitionkit_mcp", "coalitionkit_edge"]
