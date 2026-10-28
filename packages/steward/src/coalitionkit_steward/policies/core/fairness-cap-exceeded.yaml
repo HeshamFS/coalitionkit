@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+id: fairness-cap-exceeded
+applies_to: [coalition.propose]
+when:
+  plan_share_above: 0.6
+then: escalate
+explain: "One person would carry more than 60 percent of the work in a plan."
