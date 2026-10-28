@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false, reportOptionalMemberAccess=false, reportOptionalIterable=false
+"""The ``rig`` fixture: a served MCP app on a real localhost port with a FakeHost."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from coalitionkit_edges.a2a.host_port import FakeHost, HostSigner
+from coalitionkit_edges.a2a.testing import free_port
+from coalitionkit_mcp import Deps, create_app
+from coalitionkit_mcp.testing import FakeCoalition, FakeTokenPort, FakeViewPort, ServedApp
+from coalitionkit_mcp.testing_rig import C1, C2, CHARTER, COMMITMENT, PLAN, TASK, Rig, hosted
+
+
+@pytest.fixture
+def rig() -> Any:
+    port = free_port()
+    people = {"p1": hosted("p1"), "p2": hosted("p2")}
+    tokens = FakeTokenPort()
+    for name, person in people.items():
+        tokens.add(f"tok-{name}", person)
+    view = FakeViewPort()
+    view.add(
+        C1,
+        FakeCoalition(
+            goal=CHARTER["goal"],
+            charter=dict(CHARTER),
+            members={"p1": ["member", "organizer"], "p2": ["member"]},
+            revisions={("charter", C1): 2, ("commitment", COMMITMENT): 3, ("plan", PLAN): 1},
+            tasks={
+                "p2": [
+                    {
+                        "task_id": TASK,
+                        "title": "Book room",
+                        "status": "decided",
+                        "secret_note": "never shown",
+                    }
+                ]
+            },
+            questions={
+                "p2": [
+                    {
+                        "query_id": "q-1",
+                        "kind": "feasible",
+                        "subject": "room",
+                        "secret_note": "never shown",
+                    }
+                ]
+            },
+        ),
+    )
+    view.add(
+        C2,
+        FakeCoalition(
+            goal="Another one",
+            charter={**CHARTER, "goal": "Another one"},
+            members={"p1": ["member"]},
+        ),
+    )
+    host_key = Ed25519PrivateKey.generate()
+    host = FakeHost(HostSigner("https://host.example.org/card.json", host_key, "host-1"))
+    app = create_app(
+        Deps(host=host, view=view, tokens=tokens),
+        public_url=f"http://127.0.0.1:{port}/mcp",
+        issuer_url="http://127.0.0.1:1",
+        allowed_hosts=["127.0.0.1:*"],
+        allowed_origins=["http://127.0.0.1:*"],
+    )
+    with ServedApp(app, port) as served:
+        yield Rig(served.url, host, view, people)

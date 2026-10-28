@@ -15,6 +15,7 @@ dev = [
     "hypothesis==6.170.13",
     "coalitionkit-models",
     "coalitionkit-steward",
+    "coalitionkit-mcp",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -37,6 +38,7 @@ coalitionkit-edges = { workspace = true }
 coalitionkit-gardener = { workspace = true }
 coalitionkit-models = { workspace = true }
 coalitionkit-steward = { workspace = true }
+coalitionkit-mcp = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -47,17 +49,17 @@ extend-exclude = [".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -148,4 +150,17 @@ forbidden_modules = [
     "coalitionkit", "coalitionkit_conformance", "coalitionkit_edge", "coalitionkit_edges",
     "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp", "coalitionkit_packs",
     "coalitionkit_psi", "coalitionkit_runtime", "coalitionkit_surfaces", "coalitionkit_vault",
+]
+
+[[tool.importlinter.contracts]]
+name = "mcp imports contracts and the edge host port only (never the runtime)"
+type = "forbidden"
+source_modules = ["coalitionkit_mcp"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_packs",
+    "coalitionkit_psi", "coalitionkit_runtime", "coalitionkit_steward",
+    "coalitionkit_surfaces", "coalitionkit_vault",
+    "coalitionkit_edges.a2a.client", "coalitionkit_edges.a2a.identity",
+    "coalitionkit_edges.a2a.server", "coalitionkit_edges.a2a.wire",
 ]
