@@ -233,3 +233,23 @@ def test_consent_vector() -> None:
     assert pinned.public_bytes_raw() == owner.public_bytes_raw()
     validate_envelope(env)
     validate_envelope(CONSENT["join_envelope"])
+
+
+def _variant(x: str, kind: str) -> str:
+    if kind == "padded":
+        return x + "="
+    if kind == "standard-alphabet":
+        return x.replace("-", "+").replace("_", "/")
+    # flip the unused low bit of the final character: same 32 bytes, non-canonical text
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    return x[:-1] + alphabet[alphabet.index(x[-1]) ^ 1]
+
+
+@pytest.mark.parametrize("kind", ["padded", "standard-alphabet", "trailing-bits"])
+def test_non_canonical_owner_key_encodings_are_rejected(kind: str) -> None:
+    jwk = dict(OWNER_JWK)
+    jwk["x"] = _variant(OWNER_JWK["x"], kind)
+    if jwk["x"] == OWNER_JWK["x"]:
+        pytest.skip("variant is identical for this key")
+    with pytest.raises(SignatureError):
+        jwk_to_public_key(jwk)

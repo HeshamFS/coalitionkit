@@ -22,6 +22,8 @@ from .canonical import canonicalize, envelope_dict
 from .envelope import Envelope
 from .signing import SignatureError, sign_detached, verify_detached
 
+_B64URL_ALPHABET = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+
 
 def public_key_to_jwk(key: Ed25519PublicKey, kid: str) -> dict[str, str]:
     """An Ed25519 public key as the JWK shape of ``common.json#/$defs/ed25519_jwk``."""
@@ -40,11 +42,22 @@ def jwk_to_public_key(jwk: Mapping[str, Any]) -> Ed25519PublicKey:
     x = jwk.get("x")
     if not isinstance(x, str):
         raise SignatureError("owner_key has no x")
+    if len(x) != 43 or not all(ch in _B64URL_ALPHABET for ch in x):
+        raise SignatureError("owner_key x is not unpadded base64url of 32 bytes")
     try:
         raw = base64.b64decode(x + "=" * (-len(x) % 4), altchars=b"-_", validate=True)
-        return Ed25519PublicKey.from_public_bytes(raw)
+        key = Ed25519PublicKey.from_public_bytes(raw)
     except (binascii.Error, ValueError) as exc:
         raise SignatureError("owner_key x is not a valid Ed25519 key") from exc
+    # Only the canonical encoding is accepted (unpadded base64url of the 32 raw bytes), so one
+    # key has exactly one textual form and uniqueness checks cannot be bypassed.
+    if _b64url(key.public_bytes_raw()) != x:
+        raise SignatureError("owner_key x is not canonical unpadded base64url")
+    return key
+
+
+def _b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
 
 
 class OwnerKeyConflictError(ValueError):
@@ -53,8 +66,8 @@ class OwnerKeyConflictError(ValueError):
 
 def jwk_thumbprint(jwk: Mapping[str, Any]) -> str:
     """RFC 7638 SHA-256 thumbprint (base64url, no padding) of an Ed25519 (OKP) JWK."""
-    jwk_to_public_key(jwk)
-    members = {"crv": jwk["crv"], "kty": jwk["kty"], "x": jwk["x"]}
+    x = _b64url(jwk_to_public_key(jwk).public_bytes_raw())
+    members = {"crv": "Ed25519", "kty": "OKP", "x": x}
     digest = hashlib.sha256(canonicalize(members)).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
