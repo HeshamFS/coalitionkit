@@ -1,0 +1,269 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Deterministic lifecycle fold, shared by live reads and crash recovery."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import Any
+
+from coalitionkit_contracts import Membership, Scope, ScopeSource, next_revision, principals, tally
+
+from .store import Document
+
+TASK_MESSAGES: dict[str, set[str]] = {
+    "open": {"offer", "ripple"},
+    "negotiating": {"answer", "match", "offer", "ripple", "query", "propose", "tension"},
+    "proposed": {"decide", "ripple", "tension"},
+    "decided": {"commit", "decide", "ripple"},
+    "committed": {"done", "commit", "ripple"},
+    "done": set(),
+    "withdrawn": set(),
+}
+
+
+@dataclass
+class State:
+    coalition_id: str
+    stage: str = "Germinate"
+    charter: Document = field(default_factory=lambda: dict[str, Any]())
+    members: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    tasks: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    subjects: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    queries: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    matches: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    offers: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+    events: dict[str, Document] = field(default_factory=lambda: dict[str, Document]())
+
+    def membership(self) -> Membership:
+        roles: dict[str, frozenset[str]] = {}
+        for owner, member in self.members.items():
+            for role in member["roles_requested"]:
+                roles[role] = roles.get(role, frozenset()) | {owner}
+        return Membership(frozenset(self.members), roles)
+
+    def visible(self, event: Document, viewer: str) -> bool:
+        return viewer in principals(
+            ScopeSource(Scope.model_validate(event["scope"]), event["on_behalf_of"]),
+            self.membership(),
+        )
+
+    def subject(self, kind: str, identifier: str) -> Document:
+        return self.subjects.get(f"{kind}:{identifier}", {})
+
+    def accepted_charter(self, owner: str) -> bool:
+        return self.members.get(owner, {}).get("accepted_revision") == self.charter.get(
+            "revision", 0
+        )
+
+    def task_ids(self, event: Document) -> list[str]:
+        body, kind = event["payload"], event["type"].split(".")[-1]
+        if kind == "need":
+            return [body["need_id"]]
+        if kind in {"commit", "done"}:
+            return [body["task_id"]]
+        if kind == "offer":
+            return [body["target"]["id"]]
+        if kind == "query":
+            return [body["subject"]]
+        if kind == "answer":
+            query = self.queries.get(body["query_id"], {})
+            return [query["subject"]] if query else []
+        if kind == "propose":
+            return sorted({a["task_id"] for p in body["plans"] for a in p["assignments"]})
+        if kind == "ripple":
+            return body["invalidates"]
+        if kind == "decide":
+            subject = body["subject"]
+            return self.subject(subject["kind"], subject["id"]).get("tasks", [])
+        if kind == "match" and body["match_id"] in self.matches:
+            return self.matches[body["match_id"]]["tasks"]
+        source = self.events.get(event.get("causation_id", ""))
+        return self.task_ids(source) if source else []
+
+    def set_status(self, ids: list[str], status: str) -> None:
+        for identifier in ids:
+            task = self.tasks[identifier]
+            if task["status"] != status:
+                task["status"] = status
+                task["revision"] = next_revision(task["revision"])
+                subject = self.subject("task", identifier)
+                subject.update(revision=task["revision"], answers={})
+        active = [t for t in self.tasks.values() if t["status"] not in {"done", "withdrawn"}]
+        if active and all(t["status"] == "negotiating" for t in active):
+            self.stage = "Negotiate"
+
+    def put_subject(
+        self,
+        kind: str,
+        identifier: str,
+        revision: int,
+        tasks: list[str],
+        deciders: list[str],
+        **extra: object,
+    ) -> None:
+        self.subjects[f"{kind}:{identifier}"] = {
+            "kind": kind,
+            "id": identifier,
+            "revision": revision,
+            "tasks": tasks,
+            "deciders": deciders,
+            "answers": {},
+            **extra,
+        }
+
+    def apply(self, event: Document) -> None:
+        event = deepcopy(event)
+        body, owner = event["payload"], event["on_behalf_of"]
+        kind = event["type"].split(".")[-1]
+        ids = self.task_ids(event)
+        if kind == "charter":
+            self.charter = body
+            for offer in self.offers.values():
+                offer["counted"] = False
+            self.put_subject("charter", self.coalition_id, body["revision"], [], list(self.members))
+            for subject in self.subjects.values():
+                if subject["kind"] == "commitment" and subject.get("status") != "withdrawn":
+                    subject["suspended"] = True
+        elif kind == "join":
+            self.members[owner] = {**body, "sender": event["sender"], "accepted_revision": 0}
+            charter = self.subject("charter", self.coalition_id)
+            if charter:
+                charter["deciders"] = list(self.members)
+            required = {r["id"] for r in self.charter.get("roles", []) if r.get("required")}
+            if self.charter and required <= self.membership().role_holders.keys():
+                self.stage = "Gather"
+        elif kind == "leave":
+            self.members.pop(owner, None)
+            self.offers = {k: v for k, v in self.offers.items() if v["owner"] != owner}
+        elif kind == "need":
+            identifier = body["need_id"]
+            old = self.tasks.get(identifier)
+            revision = next_revision(old["revision"]) if old else 1
+            self.tasks[identifier] = {
+                **body,
+                "status": "open",
+                "revision": revision,
+                "source": event,
+                "assignee": None,
+            }
+            self.put_subject("task", identifier, revision, [identifier], [])
+        elif kind == "query":
+            self.set_status(ids, "negotiating")
+            self.queries[body["query_id"]] = {**body, "event": event, "answered": False}
+        elif kind == "answer":
+            self.queries[body["query_id"]]["answered"] = True
+        elif kind == "match":
+            if body["round"] == "setup":
+                self.matches[body["match_id"]] = {
+                    "requester": owner,
+                    "responder": body["peer"],
+                    "tasks": ids,
+                    "round": "setup",
+                    "reveal": body["reveal"],
+                }
+            else:
+                self.matches[body["match_id"]]["round"] = body["round"]
+        elif kind == "offer":
+            self.offers[body["offer_id"]] = {
+                **body,
+                "owner": owner,
+                "counted": self.accepted_charter(owner),
+            }
+        elif kind in {"propose", "tension"}:
+            self._proposal(event, ids)
+        elif kind == "decide":
+            self._decision(body, owner)
+        elif kind == "commit":
+            identifier = body["commitment_id"]
+            if body["status"] == "pending":
+                self.put_subject(
+                    "commitment",
+                    identifier,
+                    1,
+                    ids,
+                    [owner],
+                    status="pending",
+                    owner=owner,
+                    sender=event["sender"],
+                    suspended=not self.accepted_charter(owner),
+                )
+            else:
+                subject = self.subject("commitment", identifier)
+                subject.update(status="withdrawn", revision=next_revision(subject["revision"]))
+                self.set_status(ids, "negotiating")
+        elif kind == "ripple":
+            self.set_status(ids, "negotiating")
+        elif kind == "done":
+            self.set_status(ids, "done")
+        elif kind == "dissolve":
+            self.set_status(
+                [k for k, t in self.tasks.items() if t["status"] != "done"], "withdrawn"
+            )
+            self.stage = "Dissolve"
+        self.events[event["event_id"]] = event
+
+    def _proposal(self, event: Document, ids: list[str]) -> None:
+        body = event["payload"]
+        if event["type"] == "coalition.propose":
+            for plan in body["plans"]:
+                self.put_subject(
+                    "plan",
+                    plan["plan_id"],
+                    plan["revision"],
+                    [a["task_id"] for a in plan["assignments"]],
+                    self.charter["deciders"],
+                    assignments=plan["assignments"],
+                )
+        else:
+            self.put_subject(
+                "tension_option",
+                body["tension_id"],
+                body["revision"],
+                ids,
+                body["deciders"],
+                options=body["options"],
+            )
+        self.set_status(ids, "proposed")
+        self.stage = "Decide"
+
+    def _decision(self, body: Document, owner: str) -> None:
+        reference = body["subject"]
+        kind = reference["kind"]
+        subject = self.subject(kind, reference["id"])
+        subject["answers"][owner] = body["consent"]
+        if kind == "charter":
+            if body["consent"]:
+                self.members[owner]["accepted_revision"] = reference["revision"]
+                for offer in self.offers.values():
+                    if offer["owner"] == owner:
+                        offer["counted"] = True
+                for item in self.subjects.values():
+                    if item["kind"] == "commitment" and item.get("owner") == owner:
+                        item["suspended"] = False
+                        if item.get("status") == "approved":
+                            self.set_status(item["tasks"], "committed")
+            return
+        outcome = tally(subject["deciders"], subject["answers"])
+        if outcome == "refused":
+            self.set_status(subject["tasks"], "negotiating")
+        elif outcome == "decided":
+            if kind == "commitment":
+                subject["status"] = "approved"
+                if not subject["suspended"]:
+                    self.set_status(subject["tasks"], "committed")
+                    self.stage = "Live"
+            else:
+                self.set_status(subject["tasks"], "decided")
+                for assignment in subject.get("assignments", []):
+                    task = self.tasks[assignment["task_id"]]
+                    task["assignee"] = assignment["assignee"]
+                    self.subject("task", assignment["task_id"])["deciders"] = [task["assignee"]]
+                self.stage = "Act"
+
+
+def rebuild(coalition_id: str, events: list[Document]) -> State:
+    state = State(coalition_id)
+    for event in events:
+        state.apply(event)
+    return state
