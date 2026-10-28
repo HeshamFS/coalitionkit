@@ -4,13 +4,13 @@ from __future__ import annotations
 from fractions import Fraction
 from itertools import product
 
-from coalitionkit_gardener import Offer, Problem, Task, generate_plans
-from coalitionkit_gardener._ids import derive_ulid
-from coalitionkit_gardener.model import max_share_ratio
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from coalitionkit_contracts.payloads import Cost
+from coalitionkit_gardener import Offer, Problem, Task, generate_plans
+from coalitionkit_gardener._ids import derive_ulid
+from coalitionkit_gardener.model import max_share_ratio
 
 PEOPLE = ("p0", "p1", "p2")
 

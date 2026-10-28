@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+id: no-private-field-in-outbound
+applies_to: [coalition.observe, coalition.offer, coalition.commit, coalition.ripple, coalition.done]
+when:
+  private_field_in_outbound: true
+then: redact
+explain: "Private fields are removed before a message reaches anyone else."

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fractions import Fraction
 
+from coalitionkit_contracts.payloads import Cost, ProposePayload
 from coalitionkit_gardener import (
     AuctionStrategy,
     Change,
@@ -24,8 +25,6 @@ from coalitionkit_gardener import (
 from coalitionkit_gardener._ids import derive_ulid
 from coalitionkit_gardener.model import loads
 from coalitionkit_gardener.plans import PlanSet
-
-from coalitionkit_contracts.payloads import Cost, ProposePayload
 
 DEADLINE = "2030-01-01T00:00:00Z"
 
