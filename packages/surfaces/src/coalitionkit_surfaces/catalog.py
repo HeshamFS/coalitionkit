@@ -50,6 +50,7 @@ class PropSpec:
     type: str
     required: bool = False
     values: frozenset[str] = frozenset()
+    items: dict[str, PropSpec] | None = None  # for arrays of records: the fields each may carry
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,10 @@ def _component(name: str, spec: Any) -> ComponentSpec:
     props = _as_doc(body.get("props", {})) if body is not None else None
     if body is None or props is None:
         raise ValueError(f"component {name} needs a props object")
+    return ComponentSpec(_props(name, props))
+
+
+def _props(name: str, props: Document) -> dict[str, PropSpec]:
     types: dict[str, PropSpec] = {}
     for prop, raw in props.items():
         item = _as_doc(raw)
@@ -106,8 +111,13 @@ def _component(name: str, spec: Any) -> ComponentSpec:
         values = frozenset(str(v) for v in cast(list[Any], item.get("values", [])))
         if kind == "enum" and not values:
             raise ValueError(f"component {name} prop {prop}: enum needs values")
-        types[str(prop)] = PropSpec(str(kind), bool(item.get("required", False)), values)
-    return ComponentSpec(types)
+        record = _as_doc(item.get("items"))
+        fields = _as_doc(record.get("props")) if record is not None else None
+        if record is not None and (kind != "array" or fields is None):
+            raise ValueError(f"component {name} prop {prop}: items need an array of props")
+        nested = _props(f"{name}.{prop}", fields) if fields is not None else None
+        types[str(prop)] = PropSpec(str(kind), bool(item.get("required", False)), values, nested)
+    return types
 
 
 def _as_doc(value: Any) -> Document | None:
@@ -139,6 +149,9 @@ def _walk(value: Any, where: str, known: Collection[str] | None, errors: list[st
             errors.append(f"{where}: number bound to unknown event {ref}")
     elif _is_number(value):
         errors.append(f"{where}: number not bound to a source event")
+    elif _is_subject(value):
+        # A revisioned subject anywhere in a tree or data model: the revision is protocol data.
+        _walk({"kind": value["kind"], "id": value["id"]}, where, known, errors)
     elif (mapping := _as_doc(value)) is not None:
         if frozenset(mapping) == _BOUND_KEYS:
             errors.append(f"{where}: malformed bound number")
@@ -267,8 +280,10 @@ def _shape_ok(spec: PropSpec, value: Any) -> bool:
             return isinstance(value, list)
         case "object":
             return isinstance(value, dict)
+        case "binding":
+            return False  # a binding prop takes only {path}, which returns before this check
         case _:
-            return True  # binding and any
+            return True  # any
 
 
 def _check_prop(
@@ -288,7 +303,31 @@ def _check_prop(
         # The revision is protocol data, not a displayed number; only its strings are walked.
         _walk({"kind": value["kind"], "id": value["id"]}, where, known, errors)
         return
+    if spec.items is not None:
+        _check_records(spec.items, cast(list[Any], value), where, known, errors)
+        return
     _walk(value, where, known, errors)
+
+
+def _check_records(
+    fields: dict[str, PropSpec],
+    records: list[Any],
+    where: str,
+    known: Collection[str] | None,
+    errors: list[str],
+) -> None:
+    for index, record in enumerate(records):
+        body = _as_doc(record)
+        if body is None:
+            errors.append(f"{where}[{index}]: expected a record")
+            continue
+        for key in sorted(set(body) - set(fields)):
+            errors.append(f"{where}[{index}]: field {key} not allowed")
+        for key in sorted(name for name, f in fields.items() if f.required and name not in body):
+            errors.append(f"{where}[{index}]: missing required field {key}")
+        for key, item in body.items():
+            if key in fields:
+                _check_prop(fields[key], item, f"{where}[{index}].{key}", known, errors)
 
 
 def _graph_errors(edges: dict[str, list[str]]) -> list[str]:
@@ -371,4 +410,46 @@ def validate_surface(
         errors.append(f"unknown catalog {catalog_id!r}")
     errors.extend(validate_components(catalog, components, known_events))
     errors.extend(validate_data_model(data_model, known_events))
+    if not errors and data_model is not None:
+        errors.extend(_bound_type_errors(catalog, components, data_model, known_events))
+    return errors
+
+
+_MISSING = object()
+
+
+def _resolve(data: Any, path: str) -> Any:
+    current: Any = data
+    for raw in path.split("/")[1:]:
+        key = raw.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, list):
+            items = cast(list[Any], current)
+            if not (key.isdigit() and int(key) < len(items)):
+                return _MISSING
+            current = items[int(key)]
+        elif (mapping := _as_doc(current)) is not None and key in mapping:
+            current = mapping[key]
+        elif key != "":
+            return _MISSING
+    return current
+
+
+def _bound_type_errors(
+    catalog: Catalog, components: list[Any], data: Any, known: Collection[str] | None
+) -> list[str]:
+    """A prop bound to the data model must find a value of its declared type there."""
+    errors: list[str] = []
+    for node in components:
+        item = cast(Document, node)
+        spec = catalog.components[str(item["component"])]
+        for prop, value in item.items():
+            prop_spec = spec.types.get(prop)
+            if prop_spec is None or prop in spec.links or not _is_binding(value):
+                continue
+            if prop_spec.type in {"binding", "any"}:
+                continue
+            resolved = _resolve(data, value["path"])
+            if resolved is not _MISSING:
+                where = f"component {item['id']}.{prop} -> {value['path']}"
+                _check_prop(prop_spec, resolved, where, known, errors)
     return errors

@@ -178,7 +178,7 @@
      "doc": "?"
     },
     "body": {
-     "type": "children",
+     "type": "string",
      "doc": "string"
     },
     "title": {
@@ -642,7 +642,7 @@
      "doc": "?"
     },
     "body": {
-     "type": "children",
+     "type": "string",
      "doc": "who fills it"
     },
     "glyph": {
@@ -830,7 +830,7 @@
    "events": [],
    "props": {
     "text": {
-     "type": "binding",
+     "type": "string",
      "required": true,
      "doc": "path | literal"
     },
@@ -992,7 +992,7 @@
    ],
    "props": {
     "href": {
-     "type": "binding",
+     "type": "string",
      "doc": "path | https literal"
     },
     "text": {
@@ -1037,7 +1037,7 @@
      "doc": "boolean?"
     },
     "template": {
-     "type": "child",
+     "type": "string",
      "doc": "id"
     }
    }
@@ -1383,7 +1383,7 @@
      "doc": "bold | italic | list | link"
     },
     "markdown": {
-     "type": "binding",
+     "type": "string",
      "doc": "path | literal"
     }
    }
@@ -1834,7 +1834,7 @@
      ]
     },
     "text": {
-     "type": "binding",
+     "type": "string",
      "required": true,
      "doc": "path | literal"
     },
@@ -1983,7 +1983,7 @@
      "doc": "?"
     },
     "text": {
-     "type": "number",
+     "type": "string",
      "required": true,
      "doc": "≤60"
     },
@@ -2283,6 +2283,11 @@
     "inviter": {
      "type": "id",
      "doc": "participant"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind: charter, id, revision}: the charter revision being accepted"
     }
    }
   },
@@ -2300,7 +2305,7 @@
    ],
    "props": {
     "body": {
-     "type": "children",
+     "type": "string",
      "doc": "≤1 line"
     },
     "eyebrow": {
@@ -3367,7 +3372,27 @@
    "props": {
     "limits": {
      "type": "array",
-     "doc": "[{id, label, disclose: answer-only | shared}]; values are read from the local vault, never sent in the tree"
+     "doc": "values are read from the local vault, never sent in the tree",
+     "items": {
+      "props": {
+       "id": {
+        "type": "id",
+        "required": true
+       },
+       "label": {
+        "type": "string",
+        "required": true
+       },
+       "disclose": {
+        "type": "enum",
+        "values": [
+         "answer-only",
+         "shared"
+        ],
+        "required": true
+       }
+      }
+     }
     },
     "queries": {
      "type": "array",
@@ -4803,7 +4828,7 @@
    "props": {
     "distance": {
      "type": "number",
-     "doc": "km"
+     "doc": "metres, bound to its source"
     },
     "eta": {
      "type": "datetime",
@@ -5542,7 +5567,7 @@
      "required": true
     },
     "detail": {
-     "type": "children",
+     "type": "object",
      "doc": "{}"
     },
     "ref": {
@@ -6353,13 +6378,13 @@
    ],
    "events": [],
    "props": {
-    "component": {
-     "type": "string",
-     "doc": "name"
-    },
     "doors": {
      "type": "array",
      "doc": "[wide|compact|message|voice|lens|mcp-app]"
+    },
+    "target": {
+     "type": "string",
+     "doc": "the catalog component whose doors are shown"
     }
    }
   },
@@ -6427,7 +6452,7 @@
      "doc": "≤3"
     },
     "template": {
-     "type": "child",
+     "type": "string",
      "doc": "id + version"
     }
    }
@@ -6481,7 +6506,7 @@
    ],
    "props": {
     "body": {
-     "type": "children",
+     "type": "string",
      "doc": "≤90 chars, no private values"
     },
     "link": {

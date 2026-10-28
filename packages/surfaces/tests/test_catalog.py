@@ -19,7 +19,7 @@ from coalitionkit_surfaces import (
     validate_components,
     validate_surface,
 )
-from coalitionkit_surfaces.catalog import MAX_COMPONENTS, MAX_DEPTH, Catalog
+from coalitionkit_surfaces.catalog import MAX_COMPONENTS, MAX_DEPTH, Catalog, validate_data_model
 
 Tree = list[dict[str, Any]]
 
@@ -241,3 +241,42 @@ def test_the_repository_catalog_loads_and_accepts_the_fallback() -> None:
     }
     assert validate_components(real, [consent]) == []
     assert validate_components(real, [{**consent, "subject": "p1"}])
+
+
+def test_round_two_rules_on_the_repository_catalog() -> None:
+    real = load_catalog(
+        Path(__file__).resolve().parents[3] / "spec" / "catalog" / "coalitionkit-v0_9.json"
+    )
+    subject = {"kind": "plan", "id": "p1", "revision": 3}
+    plans = {
+        "id": "root",
+        "component": "PlanCompare",
+        "plans": [{"id": "p1", "label": "A", "subject": subject}],
+        "decision_deadline": "2026-10-29T14:00:00Z",
+    }
+    assert validate_components(real, [plans]) == []
+    assert validate_data_model({"plans": [{"subject": subject}]}) == []
+    limits = {
+        "id": "root",
+        "component": "LimitField",
+        "limits": [{"id": "l1", "label": "Limit", "disclose": "answer-only"}],
+    }
+    assert validate_components(real, [limits]) == []
+    leaked = {
+        **limits,
+        "limits": [{"id": "l1", "label": "Limit", "disclose": "shared", "value": 140}],
+    }
+    assert any("field value not allowed" in e for e in validate_components(real, [leaked]))
+    bound = {
+        "id": "root",
+        "component": "ConsentCard",
+        "subject": {"path": "/s"},
+        "consequence": "binding",
+        "decision_deadline": "2026-10-29T14:00:00Z",
+    }
+    assert validate_surface(real, CATALOG_ID, [bound], {"s": subject}) == []
+    assert any(
+        "expected subject" in e for e in validate_surface(real, CATALOG_ID, [bound], {"s": "p1"})
+    )
+    door = {"id": "root", "component": "DoorMatrix", "target": "ConsentCard"}
+    assert validate_components(real, [door]) == []
