@@ -11,6 +11,7 @@ from coalitionkit_vault._group import hash_point
 from coalitionkit_vault.canary import Canaries
 from coalitionkit_vault.psi import (
     Context,
+    CountNotAuthorized,
     DuplicateElement,
     LimitExceeded,
     PSIError,
@@ -54,6 +55,7 @@ def parties(
             right,
             bob,
             alice.public_key(),
+            count_trusted=["alice"],
             test_scalar=(7).to_bytes(32, "little") if fixed else None,
             test_channel_scalar=(11).to_bytes(32, "little") if fixed else None,
             test_order=fixed,
@@ -192,6 +194,28 @@ def test_vectors() -> None:
         assert requester.finish(response) == vector[reveal]["result"]
 
 
+def test_count_requires_count_trusted() -> None:
+    alice = Ed25519PrivateKey.from_private_bytes(bytes([1]) * 32)
+    bob = Ed25519PrivateKey.from_private_bytes(bytes([2]) * 32)
+    count = Context("coalition-1", "match-1", "alice", "bob", "count")
+    for trusted in ([], ["carol"]):
+        with pytest.raises(CountNotAuthorized) as info:
+            Responder(count, ["a"], bob, alice.public_key(), count_trusted=trusted)
+        assert info.value.code == "not_authorized"
+    overlap = Context("coalition-1", "match-1", "alice", "bob", "overlap")
+    Responder(overlap, ["a"], bob, alice.public_key())  # overlap needs no listing
+    Responder(count, ["a"], bob, alice.public_key(), count_trusted=["alice"])
+
+
+def test_peer_binding() -> None:
+    requester, responder = parties(["a"], ["a"])
+    setup = responder.setup()
+    assert setup.peer == "alice"
+    with pytest.raises(PSIError):
+        requester.request(setup.model_copy(update={"peer": "mallory"}))
+    assert requester.request(setup).peer == "bob"
+
+
 def test_reordered_blob() -> None:
     requester, responder = parties(["a", "b", "c"], ["b"])
     setup = responder.setup()
@@ -217,6 +241,7 @@ def test_signed_invalid_setup(point: bytes) -> None:
     raw += key.sign(raw)
     payload = MatchPayload(
         match_id="match-1",
+        peer="alice",
         round="setup",
         reveal="overlap",
         blob=base64.urlsafe_b64encode(raw).rstrip(b"=").decode(),

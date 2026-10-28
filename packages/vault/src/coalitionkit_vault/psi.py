@@ -38,6 +38,12 @@ class DuplicateElement(PSIError):
     """Input contains duplicate elements."""
 
 
+class CountNotAuthorized(PSIError):
+    """The requester is not in the charter's count_trusted list (spec code not_authorized)."""
+
+    code = "not_authorized"
+
+
 class LimitExceeded(PSIError):
     """Input or encoded blob exceeds the protocol limit."""
 
@@ -118,6 +124,9 @@ def _valid(point: bytes) -> None:
 
 
 class _Party:
+    _own_id = ""
+    _peer_id = ""
+
     def __init__(
         self,
         context: Context,
@@ -172,6 +181,7 @@ class _Party:
         return MatchPayload.model_validate(
             {
                 "match_id": self.context.match_id,
+                "peer": self._peer_id,
                 "round": round,
                 "reveal": self.context.reveal,
                 "blob": base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii"),
@@ -181,8 +191,9 @@ class _Party:
     def _open(self, payload: MatchPayload, round: str) -> bytes:
         if len(payload.blob) > MAX_BLOB:
             raise LimitExceeded("oversize blob")
-        if (payload.match_id, payload.reveal, payload.round) != (
+        if (payload.match_id, payload.peer, payload.reveal, payload.round) != (
             self.context.match_id,
+            self._own_id,
             self.context.reveal,
             round,
         ):
@@ -220,6 +231,33 @@ class _Party:
 
 
 class Responder(_Party):
+    def __init__(
+        self,
+        context: Context,
+        values: Iterable[str],
+        signing_key: Ed25519PrivateKey,
+        peer_key: Ed25519PublicKey,
+        *,
+        count_trusted: Iterable[str] = (),
+        test_scalar: bytes | None = None,
+        test_channel_scalar: bytes | None = None,
+        test_order: bool = False,
+    ) -> None:
+        """count_trusted is the charter's list for this Coalition; count needs membership."""
+        if context.reveal == "count" and context.requester not in set(count_trusted):
+            raise CountNotAuthorized("requester is not in count_trusted")
+        super().__init__(
+            context,
+            values,
+            signing_key,
+            peer_key,
+            test_scalar=test_scalar,
+            test_channel_scalar=test_channel_scalar,
+            test_order=test_order,
+        )
+        self._own_id = context.responder
+        self._peer_id = context.requester
+
     def setup(self) -> MatchPayload:
         self._require("new")
         message = self._seal("setup", self._public)
@@ -253,6 +291,18 @@ class Responder(_Party):
 
 
 class Requester(_Party):
+    def __init__(
+        self,
+        context: Context,
+        values: Iterable[str],
+        signing_key: Ed25519PrivateKey,
+        peer_key: Ed25519PublicKey,
+        **test_only: bytes | bool | None,
+    ) -> None:
+        super().__init__(context, values, signing_key, peer_key, **test_only)  # type: ignore[arg-type]
+        self._own_id = context.requester
+        self._peer_id = context.responder
+
     def request(self, setup: MatchPayload) -> MatchPayload:
         self._require("new")
         peer = self._open(setup, "setup")

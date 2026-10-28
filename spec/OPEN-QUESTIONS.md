@@ -23,7 +23,7 @@ changed are marked.
 | 12 | `offer` | `target`: `{kind: need or task, id (ULID)}`; `capacity` >= 1; `cost` with all three fields; `valid_until`. | |
 | 13 | `query` | **Changed:** `deadline_ms` is optional, default 10,000. | A4. |
 | 14 | `answer` | `result` is exactly one of `"yes"`, `"no"` or a `cost` object. | |
-| 15 | `match` | **Changed:** adds required `peer`; `blob` is unpadded base64url, at most 87,392 characters. | Decision 9. |
+| 15 | `match` | **Changed:** adds required `peer`; `blob` is unpadded base64url, at most 94,000 characters (the largest response at 1,024 elements per side is 93,068). | Decision 9. |
 | 16 | `propose` | `plan_id` ULID, `revision` required; assignments use ULID `task_id`. `objective_scores` is an open map. | |
 | 17 | `tension` | **Changed:** `tension_id` ULID, `revision` required. | Decision 6. |
 | 18 | `decide` | **Changed:** `subject` is the shared shape (five kinds); adds required `decided_at` and `consent_sig`. | Decisions 3, 6, 11. |
@@ -55,7 +55,7 @@ changed are marked.
 
 - **N1. Owner identity binding (open).** `owner_proof` proves possession of the owner key and binds it to the participant, but nothing yet proves that the key belongs to the named person or organization. v0.1 relies on the invitation and the organizer's admission. A verifiable credential or an identity-provider assertion could be added in a minor version.
 - **N2. PSI count mode (accepted, deferred to v0.2).** v0.1 PSI is secure against semi-honest participants only. A malicious requester could blind each element with a different scalar in `count` mode and learn which elements matched. v0.1 therefore allows `count` only from a requester named in the charter's `count_trusted`, and `overlap` is the default. A zero-knowledge proof that one scalar blinds all request points is deferred to v0.2.
-- **N3. PSI blob framing (open, to reconcile).** The spec fixes a 32-bit big-endian count in front of each frame, a count-only frame for `setup`, and two frames in `response` (echo, then own). `spec/vectors/psi.json` is written by another builder and must be checked against this wording before either is frozen.
+- **N3. PSI blob framing (resolved).** The spec's PSI section now describes the vault implementation byte for byte (signed `CKP1` headers, 16-bit counts and length prefixes, ECDH-encrypted request and response lists), because the encrypted channel stops the relaying host comparing tokens; `spec/vectors/psi.json` follows the implementation.
 - **N4. Host key rotation (open).** Members pin the host key from the invitation. Rotation and revocation of the host key, and how old receipts stay verifiable afterwards, are not specified.
 - **N5. Replay stubs (open).** Log replays substitute `{seq, prev_hash, hash}` for events outside the reader's scope so the chain still verifies. A stub reveals that an event exists and when; whether that is acceptable for `self` and `host` scoped events needs a privacy review.
 - **N6. Charter refusal (open).** A member that refuses a charter revision keeps its offers and commitments uncounted. Whether the host must then remove it, and who may waive acceptance, is not defined.

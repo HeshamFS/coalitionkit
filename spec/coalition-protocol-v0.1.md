@@ -194,8 +194,8 @@ The host assigns revisions. An object starts at revision 1 and the revision goes
 
 Agent authority and owner authority are separate.
 
-- **At join**, the member sends `owner_key`, an Ed25519 JWK `{kty: "OKP", crv: "Ed25519", x, kid}`, and `owner_proof`: a compact JWS (detached payload) made with the owner key over the JCS form of `{"coalition_id", "participant", "card_url", "owner_key"}`, where `participant` is the envelope's `on_behalf_of`. The host verifies the proof under the key it carries, checks that the key differs from the agent key, and pins it for that participant. Join is refused with `schema_invalid` or `bad_signature` otherwise.
-- **Every `coalition.decide`** carries `decided_at` and `consent_sig`: a compact JWS (detached payload) by the OWNER key over the JCS form of `{"coalition_id", "subject", "choice", "consent", "decided_at"}`. The host verifies it against the pinned owner key of the participant in `on_behalf_of`; a failure is `bad_signature`. The agent's envelope signature alone never makes a decision count, and a `consent_sig` made with the agent key fails.
+- **At join**, the member sends `owner_key`, an Ed25519 JWK `{kty: "OKP", crv: "Ed25519", x, kid}`, and `owner_proof`: a compact JWS (detached payload) made with the owner key over the JCS form of `{"coalition_id", "participant", "card_url", "owner_key"}`, where `participant` is the envelope's `on_behalf_of`. The host verifies the proof under the key it carries, checks that the key differs from the agent key, and pins it for that participant. Join is refused with `schema_invalid` or `bad_signature` otherwise. The host MUST reject a join whose owner key (compared by RFC 7638 JWK thumbprint) is already pinned to another participant in the same Coalition, with error `not_authorized`.
+- **Every `coalition.decide`** carries `decided_at` and `consent_sig`: a compact JWS (detached payload) by the OWNER key over the JCS form of `{"coalition_id", "participant", "subject", "choice", "consent", "decided_at"}`, where `participant` is the envelope's `on_behalf_of`. The host verifies it against the pinned owner key of that participant, and a consent signed for another participant fails; a failure is `bad_signature`. The agent's envelope signature alone never makes a decision count, and a `consent_sig` made with the agent key fails.
 - **Through MCP**, the server's hosted owner key signs a decision only after the person answers an MCP elicitation for that exact subject and revision (see The CoalitionKit MCP server).
 
 ## Target authorization
@@ -209,7 +209,7 @@ A message must pass two independent tests: the scope rules (who may see what) an
 | `observe` | An Edge, or a member | Evidence it holds; its scope may be no wider than who may see the source |
 | `offer` | A member | A need or task that is `open` or `negotiating` and visible to the sender. The offer counts only once the sender has accepted the current charter revision |
 | `answer` | The vault of the participant the query was addressed to | Exactly one open `query_id`, once. A second answer is `not_authorized`; a late one is `deadline_exceeded` |
-| `match` | One of the two parties of the exchange | Its own `match_id`, addressed to the `peer` fixed by `setup`; `setup` and `request` only from the requester, `response` only from the responder, each round once and in order |
+| `match` | One of the two parties of the exchange | Its own `match_id`, addressed to the `peer` fixed by `setup`; `setup` only from the responder, `request` only from the requester, `response` only from the responder, each round once and in order |
 | `commit` (create, `pending`) | The agent of the assignee's owner | A task that the decided plan assigns to its owner and that is `decided`; one active commitment per task |
 | `commit` (`withdrawn`) | The agent that created it | Its own commitment |
 | `decide` | A decider named for the subject: for `plan`, the charter's `deciders`; for `tension_option`, the tension's `deciders`; for `commitment` and `task`, the owner of the assignee; for `charter`, each member for itself | The named subject at its current revision; one answer per decider and revision. Approval of a commitment exists only as an owner-signed `decide` |
@@ -343,23 +343,49 @@ Errors are messages, never silence. Every rejected envelope gets a `coalition.er
 
 ## Private set intersection (PSI)
 
-`coalition.match` carries a two-party PSI between two vaults. The host relays; it cannot read a blob.
+`coalition.match` carries a two-party PSI between two vaults. The host relays; it cannot read a blob. This section describes the reference implementation (`packages/vault`, `psi.py`) byte for byte.
 
-**Scheme.** ECDH-PSI over the ristretto255 group (RFC 9496), with the group order *L* and a fresh secret scalar per exchange. `H(x)` maps an element to the group with `hash_to_group` of the RFC 9380 suite `ristretto255_XMD:SHA-512_R255MAP_RO_` (`expand_message_xmd` with SHA-512 to 64 bytes, then the RFC 9496 one-way map) over the element's bytes `x` (the vault's canonical encoding of the item, up to 4,096 bytes). The domain separation tag binds the exchange: `DST = "CoalitionKit-PSI-v0:" || hex(SHA-256(JCS({"coalition_id", "match_id", "requester", "responder"})))`, where `requester` is the `on_behalf_of` of the sender of `setup` and `responder` is its `peer`. The order of the pair is part of the binding; swapping the roles gives different points.
+**Scheme.** ECDH-PSI over the ristretto255 group (RFC 9496), with a fresh secret scalar per party and exchange. Group operations are libsodium's. The two parties are the *requester*, who learns the result, and the *responder*. Both pin the other's Ed25519 signing key through the authenticated identity layer before the exchange; a key taken from the relay is never trusted. Every `coalition.match` message carries `peer`, the participant ID of the party the message is addressed to; a receiver refuses a message whose `peer` is not its own participant ID.
 
-**Rounds**
+**Context digest.** *C* = SHA-256 of the JCS form of the JSON array `["coalition-psi-v1", coalition_id, match_id, requester, responder, reveal]`, where `requester` and `responder` are participant IDs. The order of the pair is part of the binding; swapping the roles, or changing `reveal`, gives a different *C*.
 
-| Round | Sent by | `blob` |
+**Element mapping.** An element is an exact Unicode string, not normalized, of at most 4,096 UTF-8 bytes. `H(x)` is `hash_to_group` of the RFC 9380 suite `ristretto255_XMD:SHA-512_R255MAP_RO_` with the domain separation tag `DST = "CoalitionKit-v0.1-PSI-ristretto255_XMD:SHA-512_R255MAP_RO_"` (ASCII), applied to the message `C || JCS(x)` (JCS of a JSON string). Concretely, `expand_message_xmd` with SHA-512 and 64 output bytes (`b0 = SHA-512(0x00 x 128 || msg || 0x00 0x40 0x00 || DST || len(DST))`, `b1 = SHA-512(b0 || 0x01 || DST || len(DST))`, `len(DST)` as one byte), then libsodium's `crypto_core_ristretto255_from_hash` on `b1`. Because *C* is part of the message, points from different exchanges never coincide.
+
+**Rounds.** The responder sends `setup`, the requester sends `request`, the responder sends `response`; each once and in this order. A party that receives a message in any other state refuses it.
+
+| Round | Sent by | Body (before framing) |
 |---|---|---|
-| `setup` | Requester, with `peer` = responder and the chosen `reveal` | A frame header only: the requester's element count *n* |
-| `request` | Requester | A frame of *n* points `H(x_i)^a`, in a uniformly shuffled order (*a* is a random scalar in 1..*L*-1) |
-| `response` | Responder | Two frames in order: *echo*, the request points raised to *b* (random in 1..*L*-1), then *own*, the responder's points `H(y_j)^b` in a uniformly shuffled order |
+| `setup` | Responder | `Pr`, the responder's 32-byte channel public point (a fresh random channel scalar times the base point) |
+| `request` | Requester | `Pq` (32 bytes, the requester's channel public point), then `AEAD(list of H(x_i)^a)` |
+| `response` | Responder | `AEAD(list of request points ^b, then list of H(y_j)^b)` |
 
-**Frame.** A frame is a 32-bit big-endian element count followed by that many 32-byte canonical ristretto255 encodings. A blob is the unpadded base64url (RFC 4648 section 5) encoding of the concatenated frames: one header for `setup`, one frame for `request`, two frames for `response`. A receiver rejects a blob with a wrong length, a count above 1,024, a non-canonical or identity element, a duplicate element in a list, or a count that differs from the `setup` count. The schema limits the encoded length to 87,392 characters.
+*a* and *b* are fresh random scalars. Each party shuffles its own input uniformly before use.
 
-**Limits and reveal.** Each side contributes at most 1,024 elements. For `reveal: overlap` the responder returns *echo* in the order it received; the requester raises each *own* point to *a*, finds which echo points match, and learns exactly those elements of its own set. For `reveal: count` the responder shuffles *echo* independently, so the requester learns only the size of the intersection. In both cases the requester also learns the responder's set size, the responder learns the requester's set size, and the host learns both sizes. The result reaches the requester only; a responder that wants the overlap runs a second exchange with the roles swapped. A responder that declines sends nothing and the requester treats silence as abstaining after the deadline.
+**Blob.** The `blob` of every message is the unpadded base64url (RFC 4648 section 5) encoding of:
 
-**Threat model.** v0.1 PSI is secure against semi-honest (honest-but-curious) participants only. If both vaults follow the protocol, neither vault nor the relaying host learns any element outside the intersection; the host learns the set sizes. A malicious requester in `count` mode could blind each element with a different scalar and so learn which elements matched, not only how many. Therefore a vault MUST accept `reveal: count` only from a requester that the charter names in `count_trusted`, and otherwise refuse with `not_authorized`; `overlap` is the default and is always available to a requester the vault's own policy accepts. A zero-knowledge proof that one blinding scalar was used for all request points is deferred to v0.2. Low-entropy elements can be guessed by the peer by hashing candidates, so a vault decides which of its sets it will put into an exchange at all.
+| Field | Bytes |
+|---|---:|
+| ASCII `CKP1` | 4 |
+| Round: `setup` = 0, `request` = 1, `response` = 2 | 1 |
+| *C* | 32 |
+| Round body | variable |
+| Ed25519 signature by the sender's signing key over all preceding bytes | 64 |
+
+A receiver rejects a `blob` longer than 94,000 characters; a `match_id`, `peer`, `reveal` or `round` that differs from the exchange it holds; base64url that is not canonical (re-encoding must give the same `blob`); a signature that does not verify under the pinned key; and a magic, round or *C* that differs from the expected one.
+
+**List.** A list is an unsigned 16-bit big-endian count *n*, then *n* entries, each an unsigned 16-bit big-endian length (always 32) followed by a 32-byte canonical ristretto255 encoding. A receiver rejects a count above 1,024, a length other than 32, a truncated list, a non-canonical or invalid encoding, the identity element, a duplicate point and trailing bytes after the last list. The decrypted request body is one list; the decrypted response body is two lists, the first with as many points as the requester sent.
+
+**Channel.** The relaying host sees every blob, so the request and response lists are encrypted and the host cannot compare matching tokens. Let *S* be the ristretto255 scalar multiplication of one party's channel scalar by the other's channel public point (both sides compute the same *S*; a public point that is invalid or the identity is refused).
+
+- Request key `K1` = SHA-256(ASCII `coalition-psi-channel-v1` || *C* || *S*).
+- Response key `K2` = SHA-256(ASCII `response` || `K1`).
+- Encryption is ChaCha20-Poly1305 (RFC 8439) with a 12-byte all-zero nonce and the 16-byte tag appended to the ciphertext. Each key encrypts exactly one message, so the fixed nonce is never reused.
+- The associated data is *C* || ASCII(round) || SHA-256(transcript). For `request` the transcript is the ASCII `blob` of the `setup` message; for `response` it is the ASCII `blob` of `setup` followed by the ASCII `blob` of `request`. The signature binds each body to its context and round; the associated data binds the encrypted lists to the whole earlier exchange.
+- The requester derives `K1` from the `setup` body; the responder derives it from the first 32 bytes of the `request` body, and the rest of that body is the ciphertext.
+
+**Limits and reveal.** Each side contributes at most 1,024 elements, and a party refuses duplicate elements in its own input. The longest blob is a `response` with 1,024 elements on each side: 93,068 characters. For `reveal: overlap` the responder returns the request points raised to *b* in the order it received them; the requester raises the responder's points to *a*, finds which of its own points match, and learns exactly those elements of its own set. For `reveal: count` the responder shuffles that first list independently before returning it, so the requester learns only the size of the intersection. In both cases the requester also learns the responder's set size, the responder learns the requester's set size, and the host learns both sizes from the blob lengths. The result reaches the requester only; a responder that wants the overlap runs a second exchange with the roles swapped. A responder that declines sends nothing and the requester treats silence as abstaining after the deadline.
+
+**Threat model.** v0.1 PSI is secure against semi-honest (honest-but-curious) participants only. If both vaults follow the protocol, neither vault nor the relaying host learns any element outside the intersection; the host learns the set sizes. A malicious requester in `count` mode could blind each element with a different scalar and so learn which elements matched, not only how many. Therefore a vault MUST accept `reveal: count` only from a requester that the charter names in `count_trusted`, and otherwise refuse with `not_authorized`; `overlap` is the default and is always available to a requester the vault's own policy accepts. A zero-knowledge proof that one blinding scalar was used for all request points is deferred to v0.2. Low-entropy elements can be guessed by the peer by hashing candidates, so a vault decides which of its sets it will put into an exchange at all. The encrypted channel keeps the relaying host from comparing tokens or testing guesses against them, and the signatures keep it from altering a message undetected.
 
 **Known-answer vectors** are in `spec/vectors/psi.json`. An implementation MUST reproduce them.
 

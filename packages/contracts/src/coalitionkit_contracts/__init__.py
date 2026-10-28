@@ -24,6 +24,9 @@ from .log import (
     verify_receipt,
 )
 from .owner import (
+    OwnerKeyConflictError,
+    check_owner_key_unique,
+    jwk_thumbprint,
     jwk_to_public_key,
     owner_proof_payload,
     public_key_to_jwk,
@@ -63,6 +66,7 @@ __all__ = [
     "LogStub",
     "Membership",
     "NotADeciderError",
+    "OwnerKeyConflictError",
     "ReceiptInfo",
     "SchemaValidationError",
     "Scope",
@@ -71,6 +75,7 @@ __all__ = [
     "StaleSubjectError",
     "StoredSubmission",
     "canonicalize",
+    "check_owner_key_unique",
     "check_receipts",
     "check_revision",
     "classify_submission",
@@ -82,6 +87,7 @@ __all__ = [
     "is_superseded",
     "is_ulid",
     "is_valid_signature",
+    "jwk_thumbprint",
     "jwk_to_public_key",
     "new_ulid",
     "next_revision",

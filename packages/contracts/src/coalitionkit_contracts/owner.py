@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 from collections.abc import Mapping
 from typing import Any
 
@@ -44,6 +45,30 @@ def jwk_to_public_key(jwk: Mapping[str, Any]) -> Ed25519PublicKey:
         return Ed25519PublicKey.from_public_bytes(raw)
     except (binascii.Error, ValueError) as exc:
         raise SignatureError("owner_key x is not a valid Ed25519 key") from exc
+
+
+class OwnerKeyConflictError(ValueError):
+    """The owner key is already pinned to another participant (wire error ``not_authorized``)."""
+
+
+def jwk_thumbprint(jwk: Mapping[str, Any]) -> str:
+    """RFC 7638 SHA-256 thumbprint (base64url, no padding) of an Ed25519 (OKP) JWK."""
+    jwk_to_public_key(jwk)
+    members = {"crv": jwk["crv"], "kty": jwk["kty"], "x": jwk["x"]}
+    digest = hashlib.sha256(canonicalize(members)).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def check_owner_key_unique(
+    pinned: Mapping[str, str], participant: str, owner_key_thumbprint: str
+) -> None:
+    """Raise when this owner key is already pinned to a different participant.
+
+    ``pinned`` maps participant ID to the thumbprint of its pinned owner key, for one Coalition.
+    """
+    for other, thumbprint in pinned.items():
+        if other != participant and thumbprint == owner_key_thumbprint:
+            raise OwnerKeyConflictError(f"owner key is already pinned to participant {other}")
 
 
 def owner_proof_payload(

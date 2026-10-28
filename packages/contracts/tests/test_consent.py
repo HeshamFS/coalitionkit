@@ -14,8 +14,11 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 from examples import COALITION_ID, PAYLOADS, PLAN_ID, load_vector, make_envelope
 
 from coalitionkit_contracts import (
+    OwnerKeyConflictError,
     SignatureError,
+    check_owner_key_unique,
     consent_payload,
+    jwk_thumbprint,
     jwk_to_public_key,
     public_key_to_jwk,
     sha256_hex,
@@ -31,13 +34,14 @@ from coalitionkit_contracts import (
 
 AGENT = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
 OWNER = Ed25519PrivateKey.from_private_bytes(bytes(range(1, 33)))
+PART = "p2"
 OWNER_JWK = public_key_to_jwk(OWNER.public_key(), "owner-1")
 
 
 def decision(**changes: Any) -> dict[str, Any]:
     payload = {k: v for k, v in PAYLOADS["coalition.decide"].items() if k != "consent_sig"}
     payload.update(changes)
-    payload["consent_sig"] = sign_consent(COALITION_ID, payload, OWNER, "owner-1")
+    payload["consent_sig"] = sign_consent(COALITION_ID, payload, OWNER, "owner-1", participant=PART)
     return payload
 
 
@@ -49,7 +53,7 @@ def decide_envelope(payload: dict[str, Any]) -> dict[str, Any]:
 
 def consent_ok(coalition_id: str, payload: dict[str, Any]) -> bool:
     try:
-        verify_consent(coalition_id, payload, OWNER.public_key())
+        verify_consent(coalition_id, payload, OWNER.public_key(), participant=PART)
     except SignatureError:
         return False
     return True
@@ -57,16 +61,18 @@ def consent_ok(coalition_id: str, payload: dict[str, Any]) -> bool:
 
 def test_owner_key_verifies_and_agent_key_does_not() -> None:
     payload = decision()
-    assert verify_consent(COALITION_ID, payload, OWNER.public_key(), expected_kid="owner-1")
+    assert verify_consent(
+        COALITION_ID, payload, OWNER.public_key(), participant=PART, expected_kid="owner-1"
+    )
     with pytest.raises(SignatureError):
-        verify_consent(COALITION_ID, payload, AGENT.public_key())
+        verify_consent(COALITION_ID, payload, AGENT.public_key(), participant=PART)
 
 
 def test_agent_signed_consent_sig_is_rejected_as_owner_consent() -> None:
     payload = decision()
-    payload["consent_sig"] = sign_consent(COALITION_ID, payload, AGENT, "agent-1")
+    payload["consent_sig"] = sign_consent(COALITION_ID, payload, AGENT, "agent-1", participant=PART)
     with pytest.raises(SignatureError):
-        verify_consent(COALITION_ID, payload, OWNER.public_key())
+        verify_consent(COALITION_ID, payload, OWNER.public_key(), participant=PART)
 
 
 @pytest.mark.parametrize(
@@ -87,6 +93,39 @@ def test_consent_binds_the_coalition() -> None:
     assert not consent_ok("01M4XRC000000G40R40M30E20A", decision())
 
 
+def test_consent_binds_the_participant() -> None:
+    payload = decision()  # signed for p2
+    assert consent_ok(COALITION_ID, payload)
+    with pytest.raises(SignatureError):
+        verify_consent(COALITION_ID, payload, OWNER.public_key(), participant="p5")
+    # replayed inside an envelope that speaks for p5 (even correctly agent-signed)
+    env = make_envelope("coalition.decide", payload=payload)
+    env["on_behalf_of"] = "p5"
+    env["sig"] = sign_envelope(env, AGENT, "agent-1")
+    with pytest.raises(SignatureError):
+        verify_decision(env, AGENT.public_key(), OWNER.public_key())
+    # an envelope with no on_behalf_of fails closed
+    env2 = decide_envelope(payload)
+    env2["on_behalf_of"] = ""
+    with pytest.raises(SignatureError):
+        verify_decision(env2, AGENT.public_key(), OWNER.public_key())
+
+
+def test_jwk_thumbprint_rfc7638() -> None:
+    jwk = {"kty": "OKP", "crv": "Ed25519", "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"}
+    assert jwk_thumbprint({**jwk, "kid": "x"}) == "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"
+    assert jwk_thumbprint(OWNER_JWK) == jwk_thumbprint({**OWNER_JWK, "kid": "renamed"})
+
+
+def test_owner_key_unique_per_coalition() -> None:
+    t = jwk_thumbprint(OWNER_JWK)
+    check_owner_key_unique({}, "p2", t)
+    check_owner_key_unique({"p2": t}, "p2", t)  # same participant re-joining
+    check_owner_key_unique({"p5": "other"}, "p2", t)
+    with pytest.raises(OwnerKeyConflictError):
+        check_owner_key_unique({"p5": t}, "p2", t)
+
+
 def test_missing_or_malformed_consent_sig_fails() -> None:
     payload = decision()
     assert not consent_ok(COALITION_ID, {k: v for k, v in payload.items() if k != "consent_sig"})
@@ -100,13 +139,13 @@ def test_a_decision_counts_only_with_both_signatures() -> None:
     verify_decision(env, AGENT.public_key(), OWNER.public_key())
     # the agent signed both the envelope and the consent: the agent alone does not count
     forged = decision()
-    forged["consent_sig"] = sign_consent(COALITION_ID, forged, AGENT, "agent-1")
+    forged["consent_sig"] = sign_consent(COALITION_ID, forged, AGENT, "agent-1", participant=PART)
     with pytest.raises(SignatureError):
         verify_decision(decide_envelope(forged), AGENT.public_key(), OWNER.public_key())
     # a consent signed by some other key
     other = Ed25519PrivateKey.from_private_bytes(bytes(range(7, 39)))
     wrong = decision()
-    wrong["consent_sig"] = sign_consent(COALITION_ID, wrong, other, "owner-1")
+    wrong["consent_sig"] = sign_consent(COALITION_ID, wrong, other, "owner-1", participant=PART)
     with pytest.raises(SignatureError):
         verify_decision(decide_envelope(wrong), AGENT.public_key(), OWNER.public_key())
     # a valid consent under an envelope the agent did not sign
@@ -181,13 +220,13 @@ def vector_key(name: str) -> Ed25519PublicKey:
 def test_consent_vector() -> None:
     agent, owner = vector_key("agent_key"), vector_key("owner_key")
     env = CONSENT["decide_envelope"]
-    payload = consent_payload(env["coalition_id"], env["payload"])
+    payload = consent_payload(env["coalition_id"], env["payload"], participant=env["on_behalf_of"])
     assert payload.decode() == CONSENT["consent_payload_utf8"]
     assert sha256_hex(payload) == CONSENT["consent_payload_sha256"]
     verify_decision(env, agent, owner)
     assert verify_envelope(env, agent) == CONSENT["agent_key"]["kid"]
     with pytest.raises(SignatureError):
-        verify_consent(env["coalition_id"], env["payload"], agent)
+        verify_consent(env["coalition_id"], env["payload"], agent, participant=env["on_behalf_of"])
     with pytest.raises(SignatureError):
         verify_envelope(env, owner)
     pinned = verify_owner_proof(CONSENT["join_envelope"], agent_public_key=agent)

@@ -26,7 +26,7 @@
     "blob": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]*$",
-      "maxLength": 87392,
+      "maxLength": 94000,
       "description": "base64url, no padding. At most 2 x (4 + 1024 x 32) bytes."
     },
     "reveal": {

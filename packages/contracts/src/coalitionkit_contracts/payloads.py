@@ -34,7 +34,7 @@ DEFAULT_QUERY_DEADLINE_MS = 10_000
 #: Most elements either side may put into a PSI exchange.
 PSI_MAX_ELEMENTS = 1024
 #: Longest ``coalition.match`` blob: a response holds two framed lists of 32-byte elements.
-PSI_MAX_BLOB_CHARS = 87_392
+PSI_MAX_BLOB_CHARS = 94_000
 
 
 class Budget(WireModel):

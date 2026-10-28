@@ -24,6 +24,7 @@ from coalitionkit_contracts import (
     validate_payload,
     validate_scope,
 )
+from coalitionkit_contracts.payloads import PSI_MAX_BLOB_CHARS
 from coalitionkit_contracts.validate import SCHEMA_FILES, load_schemas
 
 TYPES = sorted(PAYLOADS)
@@ -166,7 +167,7 @@ BAD_VALUES: list[tuple[str, dict[str, Any]]] = [
     ("coalition.join", {"owner_key": {"kty": "RSA", "crv": "Ed25519", "x": "A" * 43, "kid": "k"}}),
     ("coalition.join", {"owner_key": {"kty": "OKP", "crv": "Ed25519", "x": "short", "kid": "k"}}),
     ("coalition.join", {"owner_key": {"kty": "OKP", "crv": "Ed25519", "x": "A" * 43}}),
-    ("coalition.match", {"blob": "A" * 87_393}),
+    ("coalition.match", {"blob": "A" * (PSI_MAX_BLOB_CHARS + 1)}),
     ("coalition.match", {"peer": ""}),
     ("coalition.charter", {"deciders": []}),
     ("coalition.charter", {"revision": 0}),
