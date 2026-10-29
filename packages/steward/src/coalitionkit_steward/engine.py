@@ -27,8 +27,8 @@ from .selftest import run_selftest
 from .verdict import SignedVerdict, VerdictBody, sign_verdict
 
 MODEL_POLICY_ID = "steward-model-audit"
-MODEL_MALFORMED_ID = "steward-model-malformed"
-MODEL_UNAVAILABLE_ID = "steward-model-unavailable"
+MODEL_MALFORMED_ID = MODEL_POLICY_ID
+MODEL_UNAVAILABLE_ID = MODEL_POLICY_ID
 MAX_AUDIT_CHARS = 8_000
 
 AUDIT_SYSTEM_PROMPT = (
@@ -140,6 +140,11 @@ class Steward:
         self._key = signing_key
         self._kid = kid
         self._now = now
+        self._audit_reasons: dict[tuple[str, str, int], str] = {}
+
+    def audit_reason(self, coalition_id: str, event_id: str, revision: int = 1) -> str | None:
+        """Host-only review detail; never include this value in a delivery or error."""
+        return self._audit_reasons.get((coalition_id, event_id, revision))
 
     async def review(
         self,
@@ -194,11 +199,11 @@ class Steward:
                 temperature=0,
                 max_tokens=400,
             )
-        except Exception as exc:  # fail closed: any gateway failure means a human looks
+        except Exception:  # fail closed: any gateway failure means a human looks
             return _Outcome(
                 "escalate",
                 MODEL_UNAVAILABLE_ID,
-                f"The model audit could not run ({type(exc).__name__}).",
+                "The model audit could not run.",
                 model_audited=True,
             )
         verdict = parse_model_verdict(result.text)
@@ -209,10 +214,14 @@ class Steward:
                 "The model audit gave an answer outside the verdict schema.",
                 model_audited=True,
             )
+        self._audit_reasons[(subject.coalition_id, subject.event_id, subject.revision)] = (
+            verdict.reason
+        )
+        policy = self.policies.get(verdict.policy_id or "")
         return _Outcome(
             verdict.action,
-            verdict.policy_id or MODEL_POLICY_ID,
-            verdict.reason,
+            policy.id if policy else MODEL_POLICY_ID,
+            policy.explain if policy else "The model audit identified a finding for review.",
             tuple(verdict.redact),
             model_audited=True,
         )

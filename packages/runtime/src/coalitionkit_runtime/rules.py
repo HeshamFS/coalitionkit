@@ -168,7 +168,7 @@ def _match(state: State, event: Document) -> None:
         require(bool(ids) and all(i in state.tasks for i in ids))
         require(all(state.visible(state.tasks[i]["source"], owner) for i in ids))
         if body["reveal"] == "count":
-            require(owner in state.charter.get("count_trusted", []))
+            require(body["peer"] in state.charter.get("count_trusted", []))
         return
     require(exchange is not None)
     assert exchange is not None

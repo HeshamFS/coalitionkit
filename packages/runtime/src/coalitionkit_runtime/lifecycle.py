@@ -168,8 +168,8 @@ class State:
         elif kind == "match":
             if body["round"] == "setup":
                 self.matches[body["match_id"]] = {
-                    "requester": owner,
-                    "responder": body["peer"],
+                    "requester": body["peer"],
+                    "responder": owner,
                     "tasks": ids,
                     "round": "setup",
                     "reveal": body["reveal"],
