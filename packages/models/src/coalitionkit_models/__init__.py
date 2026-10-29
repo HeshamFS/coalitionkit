@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The model provider gateway, settings, price table and cost meter."""
+"""The model provider gateway, media client, settings, price table and cost meter."""
 
 from .errors import (
     BudgetExhaustedError,
+    MediaInputError,
     MissingKeyError,
     ProviderError,
+    SchemaValidationError,
     SettingsError,
+    TruncatedReply,
     UnpricedModelError,
 )
 from .gateway import (
@@ -21,13 +24,18 @@ from .gateway import (
     connection_error,
     status_error,
 )
+from .media import MediaClient, Transcript, Turn
 from .meter import SYSTEM_PARTICIPANT, BudgetEvent, CostMeter, CostRecord
 from .prices import ModelPrice, PriceTable, load_price_table
+from .sam import Box, Mask, SamParseError, Segment, parse_sam_output
 from .settings import ROLES, Role, Route, Settings, load_settings
+from .structured import ToolCall
+from .wav import WavInfo, validate_wav
 
 __all__ = [
     "ROLES",
     "SYSTEM_PARTICIPANT",
+    "Box",
     "BudgetEvent",
     "BudgetExhaustedError",
     "ChatMessage",
@@ -36,6 +44,9 @@ __all__ = [
     "CostMeter",
     "CostRecord",
     "FakeModel",
+    "Mask",
+    "MediaClient",
+    "MediaInputError",
     "MissingKeyError",
     "ModelGateway",
     "ModelPrice",
@@ -44,14 +55,24 @@ __all__ = [
     "ProviderError",
     "Role",
     "Route",
+    "SamParseError",
+    "SchemaValidationError",
     "ScriptedResponse",
+    "Segment",
     "Settings",
     "SettingsError",
+    "ToolCall",
+    "Transcript",
     "Transport",
+    "TruncatedReply",
+    "Turn",
     "UnpricedModelError",
     "Usage",
+    "WavInfo",
     "connection_error",
     "load_price_table",
     "load_settings",
+    "parse_sam_output",
     "status_error",
+    "validate_wav",
 ]
