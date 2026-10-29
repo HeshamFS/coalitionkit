@@ -98,6 +98,25 @@ describe("the /confirm/<code> route", () => {
     });
   });
 
+  it("after an ended session, signing in again retries the same link", async () => {
+    saveToken("tok-old");
+    let status = 401;
+    const calls = host(() => (status === 401 ? json({ detail: "x" }, 401) : json(granted)));
+    const first = render(<App />);
+    expect(await screen.findByRole("form", { name: "Sign in" })).toBeInTheDocument();
+    // The host never checked the code, so it stays in the address for the next session.
+    expect(location.pathname).toBe(`/confirm/${code}`);
+    first.unmount();
+
+    status = 200;
+    saveToken("tok-new");
+    render(<App />);
+    expect(await screen.findByText("Your decision is needed on a plan")).toBeInTheDocument();
+    const redeem = calls.filter((c) => c.url.endsWith("/v1/confirm/redeem"));
+    expect(redeem).toHaveLength(2);
+    expect(new Headers(redeem[1]?.init.headers).get("Authorization")).toBe("Bearer tok-new");
+  });
+
   it.each([
     [404, "unknown"],
     [409, "used"],

@@ -29,8 +29,13 @@ export const FAILURE_TEXT: Record<RedeemFailure, string> = {
 };
 
 // A code works once, so a re-render (React strict mode runs effects twice) must reuse the first
-// attempt instead of spending the code a second time.
+// attempt instead of spending the code a second time. Attempts are kept per host, session and
+// code: an attempt refused for an ended session is dropped, so signing in again can retry.
 const attempts = new Map<string, ReturnType<typeof redeemConfirm>>();
+
+function attemptKey(config: HostConfig, code: string): string {
+  return `${config.baseUrl}\n${config.token}\n${code}`;
+}
 
 type View =
   | { step: "checking" }
@@ -53,20 +58,26 @@ export function ConfirmRoute({
 
   useEffect(() => {
     let live = true;
-    let attempt = attempts.get(code);
+    const key = attemptKey(config, code);
+    let attempt = attempts.get(key);
     if (!attempt) {
       attempt = redeemConfirm(config, code, fetchFn).catch(() => ({
         ok: false as const,
         reason: "failed" as const,
       }));
-      attempts.set(code, attempt);
+      attempts.set(key, attempt);
     }
     void attempt.then((result) => {
       if (!live) return;
-      // The code is spent either way: take it out of the address.
+      if (!result.ok && result.reason === "unauthorized") {
+        // The host never checked the code: keep it in the address and let a new session retry.
+        attempts.delete(key);
+        signOut();
+        return;
+      }
+      // The host decided on the code: take it out of the address.
       globalThis.history?.replaceState(null, "", CONFIRM_PREFIX);
       if (result.ok) setView({ step: "ask", request: result.request });
-      else if (result.reason === "unauthorized") signOut();
       else setView({ step: "failed", reason: result.reason });
     });
     return () => {
