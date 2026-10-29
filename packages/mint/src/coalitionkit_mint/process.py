@@ -2,9 +2,10 @@
 """Loopback process ownership and MCP client connections."""
 
 import asyncio
+import atexit
 import os
 import secrets
-import socket
+import signal
 import subprocess
 import sys
 from collections.abc import AsyncGenerator
@@ -26,11 +27,10 @@ class Sandbox:
     def __init__(self, folder: Path) -> None:
         self.folder = folder.resolve()
         self.token = secrets.token_urlsafe(32)
-        with socket.socket() as sock:
-            sock.bind(("127.0.0.1", 0))
-            self.port = int(sock.getsockname()[1])
-        self.url = f"http://127.0.0.1:{self.port}/mcp"
+        self.port = 0
+        self.url = ""
         self.process: subprocess.Popen[str] | None = None
+        atexit.register(self.stop)
         self.log = (self.folder / "worker.log").open("w", encoding="utf-8")
 
     async def start(self) -> None:
@@ -39,14 +39,23 @@ class Sandbox:
             cwd=self.folder,
             env=scrub_environment(),
             stdin=subprocess.PIPE,
-            stdout=self.log,
+            stdout=subprocess.PIPE,
             stderr=self.log,
             text=True,
+            start_new_session=os.name != "nt",
             creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
         assert self.process.stdin is not None
         self.process.stdin.write(self.token + "\n")
         self.process.stdin.flush()
+        assert self.process.stdout is not None
+        try:
+            line = await asyncio.wait_for(asyncio.to_thread(self.process.stdout.readline), 30)
+            self.port = int(line.strip())
+            self.url = f"http://127.0.0.1:{self.port}/mcp"
+        except BaseException:
+            self.stop()
+            raise
         async with httpx2.AsyncClient(trust_env=False, timeout=1) as http:
             for _ in range(150):
                 if self.process.poll() is not None:
@@ -74,8 +83,22 @@ class Sandbox:
             if self.process is not None:
                 if self.process.stdin is not None and not self.process.stdin.closed:
                     self.process.stdin.close()
-                # EOF asks the actual worker to stop, including behind Windows' venv
-                # launcher. No process enumeration or platform-specific kill utility.
-                self.process.wait(timeout=20)
+                try:
+                    self.process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    if os.name == "nt":
+                        subprocess.run(
+                            ["taskkill", "/PID", str(self.process.pid), "/T", "/F"],
+                            capture_output=True,
+                            check=False,
+                            creationflags=subprocess.CREATE_NO_WINDOW,
+                        )
+                    else:
+                        os.killpg(self.process.pid, signal.SIGKILL)
+                    self.process.kill()
+                    self.process.wait(timeout=5)
+                if self.process.stdout is not None:
+                    self.process.stdout.close()
         finally:
             self.log.close()
+            atexit.unregister(self.stop)

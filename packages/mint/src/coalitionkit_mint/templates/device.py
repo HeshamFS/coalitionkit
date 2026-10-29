@@ -5,6 +5,7 @@ import sqlite3
 import time
 from typing import Any
 
+from coalitionkit_mint.refusal import Refusal
 from coalitionkit_mint.schema import DeviceConfig
 
 
@@ -12,7 +13,7 @@ def act(
     db: sqlite3.Connection, config: DeviceConfig, tool: str, args: dict[str, Any]
 ) -> dict[str, Any]:
     if args:
-        raise ValueError("read-only device accepts no arguments")
+        raise Refusal("read-only device accepts no arguments")
     rows = {
         f.id: db.execute(
             "SELECT value, observed FROM readings WHERE field=? ORDER BY rowid DESC LIMIT 1",
@@ -33,4 +34,4 @@ def act(
         if tool == "read_" + field.id:
             row = rows[field.id]
             return {"value": row[0] if row else None, "observed": row[1] if row else None}
-    raise ValueError("read-only device")
+    raise Refusal("read-only device")

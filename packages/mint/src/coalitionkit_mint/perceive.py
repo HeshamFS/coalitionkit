@@ -16,13 +16,15 @@ from PIL import Image
 
 from coalitionkit_models.gateway import ModelGateway
 from coalitionkit_models.media import Transcript
-from coalitionkit_models.sam import Segment
+from coalitionkit_models.sam import Box, Segment
 
 from .schema import Observations, Record
 
 FPS = 1
 MAX_SECONDS = 8
 MAX_FRAMES = 8
+FORMATS = {"mov,mp4,m4a,3gp,3g2,mj2", "matroska,webm"}
+FORMAT_OPTIONS = ["-format_whitelist", ",".join(sorted(FORMATS)), "-protocol_whitelist", "file"]
 MAX_BYTES = 32 * 1024 * 1024
 
 
@@ -49,10 +51,9 @@ def extract(video: Path, destination: Path) -> list[Path]:
             ffprobe,
             "-v",
             "error",
-            "-protocol_whitelist",
-            "file",
+            *FORMAT_OPTIONS,
             "-show_entries",
-            "format=duration:stream=codec_type,width,height",
+            "format=format_name,duration:stream=codec_type,width,height",
             "-of",
             "json",
             str(video.resolve()),
@@ -62,6 +63,8 @@ def extract(video: Path, destination: Path) -> list[Path]:
         timeout=10,
     )
     metadata = json.loads(probe.stdout)
+    if metadata["format"]["format_name"] not in FORMATS:
+        raise ValueError("unsupported video format")
     duration = float(metadata["format"]["duration"])
     if not math.isfinite(duration) or not 0 < duration <= MAX_SECONDS:
         raise ValueError("video duration exceeds cap")
@@ -75,8 +78,7 @@ def extract(video: Path, destination: Path) -> list[Path]:
             "-nostdin",
             "-v",
             "error",
-            "-protocol_whitelist",
-            "file",
+            *FORMAT_OPTIONS,
             "-i",
             str(video.resolve()),
             "-t",
@@ -100,12 +102,29 @@ def extract(video: Path, destination: Path) -> list[Path]:
     return frames
 
 
-async def read_frame(frame: Path, media: Media, gateway: ModelGateway, run_id: str) -> list[Record]:
-    segments = await media.segment(
-        frame.read_bytes(), "display or schedule grid", coalition_id=run_id
-    )
-    if not segments or len(segments) > 16:
-        raise ValueError("no bounded regions found")
+async def read_frame(
+    frame: Path,
+    media: Media,
+    gateway: ModelGateway,
+    run_id: str,
+    template: str = "device",
+    selections: list[str] | None = None,
+) -> list[Record]:
+    phrases = ("rectangle", "row") if template == "resource" else ("display", "screen", "rectangle")
+    segments: Sequence[Segment] = ()
+    selected = "whole_frame"
+    for phrase in phrases:
+        candidate = await media.segment(frame.read_bytes(), phrase, coalition_id=run_id)
+        if 1 <= len(candidate) <= 16:
+            segments, selected = candidate, phrase
+            break
+    if not segments:
+        with Image.open(frame) as image:
+            segments = [
+                Segment(Box(0, 0, image.width, image.height, image.width, image.height), "", 0)
+            ]
+    if selections is not None:
+        selections.append(selected)
     records: list[Record] = []
     with Image.open(frame) as image:
         for segment in segments:
@@ -141,14 +160,21 @@ async def read_frame(frame: Path, media: Media, gateway: ModelGateway, run_id: s
 
 
 async def perceive(
-    video: Path, voice: Path, work: Path, media: Media, gateway: ModelGateway, run_id: str
+    video: Path,
+    voice: Path,
+    work: Path,
+    media: Media,
+    gateway: ModelGateway,
+    run_id: str,
+    template: str = "device",
+    selections: list[str] | None = None,
 ) -> tuple[list[Record], str]:
     if not voice.is_file() or voice.stat().st_size > 4 * 1024 * 1024:
         raise ValueError("voice note missing or too large")
     frames = await asyncio.to_thread(extract, video, work / "frames")
     records: list[Record] = []
     for frame in frames:
-        records.extend(await read_frame(frame, media, gateway, run_id))
+        records.extend(await read_frame(frame, media, gateway, run_id, template, selections))
     transcript = await media.transcribe(voice.read_bytes(), coalition_id=run_id)
     if not transcript.text or len(transcript.text) > 8000:
         raise ValueError("voice rules missing or oversized")

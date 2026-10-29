@@ -37,7 +37,9 @@ async def model_config(
     gateway: ModelGateway, template: Literal["resource", "device"], evidence: str, run_id: str
 ) -> Config:
     schema = ResourceConfig if template == "resource" else DeviceConfig
+    repair = ""
     for attempt in range(2):
+        reply = None
         try:
             reply = await gateway.complete(
                 "gardener",
@@ -54,13 +56,19 @@ async def model_config(
                             else ""
                         ),
                     },
-                    {"role": "user", "content": evidence},
+                    {"role": "user", "content": evidence + repair},
                 ],
                 response_schema=schema,
                 coalition_id=run_id,
             )
             return schema.model_validate_json(reply.text)
-        except SchemaValidationError, ValidationError:
+        except (SchemaValidationError, ValidationError) as exc:
+            invalid = (
+                exc.text
+                if isinstance(exc, SchemaValidationError)
+                else (reply.text if reply else "")
+            )
+            repair = "\nInvalid reply: " + invalid + "\nValidation error: " + str(exc)
             if attempt:
                 raise MintFailure("model config invalid after one repair") from None
     raise AssertionError("unreachable")
@@ -81,6 +89,7 @@ async def mint(
     run_id = "mint-" + uuid.uuid4().hex
     sandbox: Sandbox | None = None
     attacks: list[AttackResult] = []
+    selections: list[str] = []
     folder = folder.resolve()
     folder.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -88,7 +97,7 @@ async def mint(
             scan_templates(Path(__file__).parent / "templates")
             with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:
                 records, rules = await perceive(
-                    video, voice, Path(temporary), media, gateway, run_id
+                    video, voice, Path(temporary), media, gateway, run_id, template, selections
                 )
             evidence = json.dumps({"records": [r.model_dump() for r in records], "rules": rules})
             config = await model_config(gateway, template, evidence, run_id)
@@ -129,7 +138,14 @@ async def mint(
                 else 0
             )
             return Minted(
-                folder, sandbox, manifest_hash, attacks, time.monotonic() - started, cost, tokens
+                folder,
+                sandbox,
+                manifest_hash,
+                attacks,
+                time.monotonic() - started,
+                cost,
+                tokens,
+                selections,
             )
     except BaseException as exc:
         if sandbox:
@@ -139,6 +155,7 @@ async def mint(
             meter = gateway.meter
             failure.scorecard = {
                 "passed": False,
+                "regions": selections,
                 "failure": str(failure),
                 "elapsed_seconds": time.monotonic() - started,
                 "cost_micro_usd": meter.total(run_id) if meter else 0,
@@ -167,8 +184,7 @@ async def remint(
     gateway: ModelGateway,
     media: Media,
 ) -> Minted:
-    previous.pause()
-    return await mint(
+    replacement = await mint(
         video,
         voice,
         folder,
@@ -178,3 +194,6 @@ async def remint(
         gateway=gateway,
         media=media,
     )
+
+    previous.pause()
+    return replacement

@@ -27,7 +27,7 @@ def test_bounds_and_prerequisites(tmp_path: Path, config: dict[str, Any]) -> Non
         folder, ResourceConfig.model_validate(config), owner.public_key(), "p1"
     )
     ops = Operations(folder)
-    args: dict[str, Any] = {"id": "h1", "start": 540, "end": 570, "prerequisites": ["ready"]}
+    args: dict[str, Any] = {"start": 540, "end": 570, "prerequisites": ["ready"]}
     with pytest.raises(SignatureError):
         ops.invoke("hold_slot", args)
 
@@ -44,7 +44,7 @@ def test_bounds_and_prerequisites(tmp_path: Path, config: dict[str, Any]) -> Non
         with pytest.raises(ValueError):
             ops.invoke("hold_slot", bad, signed(bad))
     assert ops.invoke("hold_slot", args, signed(args))["state"] == "held"
-    next_args = {**args, "id": "h2", "start": 570, "end": 600}
+    next_args = {**args, "start": 570, "end": 600}
     with pytest.raises(ValueError, match="limit"):
         ops.invoke("hold_slot", next_args, signed(next_args))
     altered = {**config, "limit": 2}
@@ -64,9 +64,7 @@ def test_atomic_holds_and_distinct_manifests(tmp_path: Path, config: dict[str, A
 
     def hold(index: int) -> bool:
         try:
-            ops.invoke(
-                "hold_slot", {"id": f"h{index}", "start": 540, "end": 570, "prerequisites": []}
-            )
+            ops.invoke("hold_slot", {"start": 540, "end": 570, "prerequisites": []})
             return True
         except ValueError:
             return False

@@ -27,16 +27,23 @@ async def append_frame(folder: Path, frame: Path, media: Media, gateway: ModelGa
         record.label: re.sub(r"[^a-z0-9]+", "_", record.label.lower()).strip("_")
         for record in records
     }
-    accepted = [
-        (labels[record.label], float(record.value), time.time(), record.confidence)
-        for record in records
-        if labels[record.label] in fields and record.confidence >= 0.8
-    ]
-    if any(not math.isfinite(row[1]) for row in accepted):
-        raise ValueError("nonfinite reading")
+    accepted: list[tuple[str, float, float, float]] = []
+    errors: list[tuple[str, str, float]] = []
+    for record in records:
+        if labels[record.label] not in fields or record.confidence < 0.8:
+            continue
+        try:
+            value = float(record.value)
+            if not math.isfinite(value):
+                raise ValueError("nonfinite reading")
+        except ValueError as exc:
+            errors.append((labels[record.label], str(exc), time.time()))
+            continue
+        accepted.append((labels[record.label], value, time.time(), record.confidence))
     with connect(folder) as db:
         if db.execute("SELECT state FROM lifecycle").fetchone()[0] != "approved":
             raise ValueError("reader requires owner approval")
+        db.executemany("INSERT INTO reader_errors VALUES (?, ?, ?)", errors)
         db.executemany("INSERT INTO readings VALUES (?, ?, ?, ?)", accepted)
     return len(accepted)
 

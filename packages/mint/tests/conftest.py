@@ -72,6 +72,7 @@ def media_files(tmp_path: Path, config: dict[str, Any]) -> tuple[Path, Path, Pat
     image = Image.new("RGB", (640, 360), "white")
     draw = ImageDraw.Draw(image)
     if config["template"] == "device":
+        draw.rectangle((20, 20, 620, 200), outline="black", width=5)
         draw.text((40, 60), "Field 1: 42", fill="black", font_size=48)
     else:
         for row, text in enumerate(
@@ -139,7 +140,8 @@ def synthesize(voice: Path, template: str) -> None:
     )
     script = voice.parent / "voice.ps1"
     script.write_text(
-        "# SPDX-License-Identifier: Apache-2.0\nAdd-Type -AssemblyName System.Speech\n"
+        "# SPDX-License-Identifier: Apache-2.0\n"
+        "$ErrorActionPreference = 'Stop'\nAdd-Type -AssemblyName System.Speech\n"
         "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
         "$format = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(16000, "
         "[System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, "
@@ -148,17 +150,20 @@ def synthesize(voice: Path, template: str) -> None:
         "$speaker.Speak($args[1])\n$speaker.Dispose()\n",
         encoding="utf-8",
     )
-    subprocess.run(
-        [
-            "powershell.exe",
-            "-NoProfile",
-            "-NonInteractive",
-            "-File",
-            str(script),
-            str(voice),
-            sentence,
-        ],
-        check=True,
-        timeout=20,
-        creationflags=subprocess.CREATE_NO_WINDOW,
-    )
+    try:
+        subprocess.run(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(script),
+                str(voice),
+                sentence,
+            ],
+            check=True,
+            timeout=20,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        pytest.skip("System.Speech unavailable: " + type(exc).__name__)

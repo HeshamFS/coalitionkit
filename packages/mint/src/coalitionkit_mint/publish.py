@@ -2,7 +2,7 @@
 """Signed discovery metadata and explicit local lifecycle operations."""
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +18,7 @@ from coalitionkit_edges.a2a.identity import (
     sign_card,
 )
 
-from .artifact import VERSION, connect, load, verify_consent
+from .artifact import VERSION, connect, digest, load, verify_consent
 from .catalog import twin_data
 from .process import Sandbox
 from .prove import AttackResult
@@ -31,9 +31,14 @@ def tool_names(config: Config) -> list[str]:
     return ["list_free_slots", "hold_slot", "confirm", "cancel"]
 
 
-def publish(folder: Path, sandbox: Sandbox, config: Config) -> None:
+def publish(
+    folder: Path,
+    sandbox: Sandbox,
+    config: Config,
+    key: Ed25519PrivateKey | None = None,
+    proof: str = "",
+) -> None:
     _, manifest, manifest_hash = load(folder)
-    key = Ed25519PrivateKey.generate()
     tools = tool_names(config)
     card = AgentCard(
         name=config.name,
@@ -47,7 +52,9 @@ def publish(folder: Path, sandbox: Sandbox, config: Config) -> None:
                 coalition_extension(
                     {
                         "roles": [],
-                        "keys": [card_key_entry(key.public_key(), "agent")],
+                        "keys": [card_key_entry(key.public_key(), "owner")] if key else [],
+                        "state": "approved" if key else "pending",
+                        "approval_proof_hash": digest(proof) if key else "",
                         "owner": manifest["owner"],
                         "owner_id": manifest["owner_id"],
                         "manifest_hash": manifest_hash,
@@ -63,8 +70,9 @@ def publish(folder: Path, sandbox: Sandbox, config: Config) -> None:
             for name in tools
         ],
     )
-    signed = sign_card(card, key, "agent")
-    CardRegistry("mint").admit(sandbox.url, signed)
+    signed = sign_card(card, key, "owner") if key else card
+    if key:
+        CardRegistry("mint").admit(sandbox.url, signed)
     (folder / "agent-card.json").write_text(
         json.dumps(MessageToDict(signed)), encoding="utf-8", newline="\n"
     )
@@ -88,16 +96,20 @@ class Minted:
     elapsed_seconds: float
     cost_micro_usd: int
     tokens: int
+    regions: list[str] = field(default_factory=list[str])
 
-    def approve(self, signature: str) -> None:
-        _, manifest, current = load(self.folder)
+    def approve(self, signature: str, owner: Ed25519PrivateKey) -> None:
+        config, manifest, current = load(self.folder)
         if current != self.manifest_hash or not all(a.passed for a in self.attacks):
             raise ValueError("approval does not match proven manifest")
         verify_consent(jwk_to_public_key(manifest["owner"]), current, "approve", {}, signature)
+        if owner.public_key() != jwk_to_public_key(manifest["owner"]):
+            raise ValueError("card signer must be owner")
         with connect(self.folder) as db:
             state = db.execute("SELECT state FROM lifecycle").fetchone()[0]
             if state != "pending":
                 raise ValueError("only pending artifacts may be approved")
+            publish(self.folder, self.sandbox, config, owner, signature)
             db.execute("UPDATE lifecycle SET state='approved', proof=?", (signature,))
 
     def pause(self) -> None:
@@ -135,6 +147,7 @@ class Minted:
             "elapsed_seconds": self.elapsed_seconds,
             "cost_micro_usd": self.cost_micro_usd,
             "tokens": self.tokens,
+            "regions": self.regions,
             "attacks": [asdict(a) for a in self.attacks],
             "passed": self.elapsed_seconds < 90 and all(a.passed for a in self.attacks),
         }
@@ -148,9 +161,22 @@ class Minted:
             "MintPipeline": {
                 "cost": str(self.cost_micro_usd),
                 "elapsed": self.elapsed_seconds,
-                "stages": [{"name": "publish", "state": state}],
+                "stages": [
+                    {"name": name, "state": "done", "took": None, "detail": "", "artifacts": []}
+                    for name in ("capture", "read", "design", "code", "attack", "publish")
+                ],
             },
-            "AttackTests": {"tests": [asdict(a) for a in self.attacks]},
+            "AttackTests": {
+                "tests": [
+                    {
+                        "name": a.name,
+                        "kind": "injection" if "injection" in a.name else "bounds",
+                        "state": "passed" if a.passed else "failed",
+                        "log": a.log,
+                    }
+                    for a in self.attacks
+                ]
+            },
             "PublishApproval": {
                 "coalitions": [],
                 "tests": self.scorecard(),

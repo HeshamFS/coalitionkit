@@ -52,7 +52,9 @@ def generate(folder: Path, config: Config, owner: Ed25519PublicKey, owner_id: st
         db.executescript("""
             CREATE TABLE lifecycle (state TEXT NOT NULL, proof TEXT);
             INSERT INTO lifecycle VALUES ('pending', NULL);
-            CREATE TABLE bookings (id TEXT PRIMARY KEY, start INTEGER, end INTEGER, state TEXT);
+            CREATE TABLE bookings (id TEXT PRIMARY KEY, start INTEGER, end INTEGER, state TEXT,
+                                   nonce TEXT, revision INTEGER);
+            CREATE TABLE reader_errors (field TEXT, error TEXT, observed REAL);
             CREATE TABLE readings (field TEXT, value REAL, observed REAL, confidence REAL);
             CREATE TABLE consumed_proofs (signature TEXT PRIMARY KEY);
         """)

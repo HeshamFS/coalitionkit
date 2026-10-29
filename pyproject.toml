@@ -225,9 +225,5 @@ type = "forbidden"
 source_modules = ["coalitionkit_contracts", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_edges", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_gardener", "coalitionkit_surfaces", "coalitionkit_mcp", "coalitionkit_packs"]
 forbidden_modules = ["coalitionkit_mint"]
 
-[[tool.importlinter.contracts]]
-name = "fixed mint templates have no network or process imports"
-type = "forbidden"
-source_modules = ["coalitionkit_mint.templates"]
-forbidden_modules = ["socket", "subprocess", "httpx", "httpx2", "requests", "urllib", "coalitionkit_models", "coalitionkit_mint.process", "coalitionkit_mint.worker"]
-allow_indirect_imports = true
+# Template imports use the fail-closed AST allowlist in coalitionkit_mint.scan.
+# test_template_scan enforces it; a forbidden-import list cannot cover new network clients.

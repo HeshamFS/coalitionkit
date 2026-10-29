@@ -32,6 +32,8 @@ async def run_one(
     media: Media,
     owner: Ed25519PrivateKey,
 ) -> Minted:
+    scorecard = scorecard.resolve()
+    scorecard.parent.mkdir(parents=True, exist_ok=True)
     try:
         result = await mint(
             video,
@@ -80,17 +82,24 @@ async def main() -> None:
                     getattr(args, template + "_video"),
                     getattr(args, template + "_voice"),
                     args.output / template,
-                    Path("packages/mint") / f"scorecard-{template}.json",
+                    args.output.resolve() / f"scorecard-{template}.json",
                     template=template,
                     gateway=gateway,
                     media=media,
                     owner=Ed25519PrivateKey.generate(),
                 )
-            except MintFailure as exc:
-                reports.append(exc.scorecard)
+                try:
+                    report = result.scorecard()
+                finally:
+                    result.close()
+            except Exception as exc:
+                reports.append(
+                    exc.scorecard
+                    if isinstance(exc, MintFailure)
+                    else {"passed": False, "failure": str(exc), "template": template}
+                )
                 continue
-            reports.append(result.scorecard())
-            result.close()
+            reports.append(report)
         print(json.dumps(reports, indent=2))
         if not all(report["passed"] for report in reports):
             raise SystemExit(1)

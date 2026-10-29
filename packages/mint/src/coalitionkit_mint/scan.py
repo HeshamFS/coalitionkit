@@ -4,7 +4,14 @@
 import ast
 from pathlib import Path
 
-ALLOWED = {"sqlite3", "time", "typing", "coalitionkit_mint.schema"}
+ALLOWED = {
+    "uuid",
+    "sqlite3",
+    "time",
+    "typing",
+    "coalitionkit_mint.schema",
+    "coalitionkit_mint.refusal",
+}
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "getattr", "globals", "locals"}
 
 

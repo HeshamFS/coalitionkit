@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from mcp.shared.exceptions import MCPError
 
 from coalitionkit_contracts import SignatureError
 from coalitionkit_contracts.signing import sign_detached
@@ -53,36 +54,44 @@ async def test_end_to_end(
         assert (result.folder / "SKILL.md").exists()
         assert result.catalog_data()["MintedAgentCard"]["health"] == "pending"
         tool = "status" if config["template"] == "device" else "list_free_slots"
-        async with result.sandbox.client() as client:
-            assert await rejected(client, tool, {})
+        with pytest.RaisesGroup(
+            pytest.RaisesExc(MCPError, match="Server returned an error response"),
+            flatten_subgroups=True,
+        ):
+            async with result.sandbox.client():
+                pytest.fail("pending connection accepted")
         payload = consent_payload(result.manifest_hash, "approve", {})
         with pytest.raises(SignatureError):
-            result.approve(sign_detached(payload, Ed25519PrivateKey.generate(), "owner"))
+            result.approve(sign_detached(payload, Ed25519PrivateKey.generate(), "owner"), owner)
         stale = consent_payload("0" * 64, "approve", {})
         with pytest.raises(SignatureError):
-            result.approve(sign_detached(stale, owner, "owner"))
-        result.approve(sign_detached(payload, owner, "owner"))
+            result.approve(sign_detached(stale, owner, "owner"), owner)
+        result.approve(sign_detached(payload, owner, "owner"), owner)
         async with result.sandbox.client() as client:
             assert not (await client.call_tool(tool, {})).is_error
             if config["template"] == "resource":
                 args: dict[str, Any] = {
-                    "id": "hold_1",
                     "start": 540,
                     "end": 570,
                     "prerequisites": [],
                 }
-                assert not (await client.call_tool("hold_slot", args)).is_error
-                assert await rejected(client, "hold_slot", {**args, "id": "hold_2"})
-                assert await rejected(client, "confirm", {"id": "hold_1", "signature": ""})
+                held = await client.call_tool("hold_slot", args)
+                assert not held.is_error
+                assert await rejected(client, "hold_slot", args, "occupied")
+                operation_args = dict(held.structured_content or {})
+                operation_args.pop("state")
                 for operation in ("confirm", "cancel"):
                     proof = sign_detached(
-                        consent_payload(result.manifest_hash, operation, {"id": "hold_1"}),
+                        consent_payload(result.manifest_hash, operation, operation_args),
                         owner,
                         "owner",
                     )
-                    assert not (
-                        await client.call_tool(operation, {"id": "hold_1", "signature": proof})
-                    ).is_error
+                    updated = await client.call_tool(
+                        operation, {**operation_args, "signature": proof}
+                    )
+                    assert not updated.is_error
+                    operation_args = dict(updated.structured_content or {})
+                    operation_args.pop("state")
             else:
                 fake.script.append(
                     ScriptedResponse(
@@ -96,10 +105,14 @@ async def test_end_to_end(
                     "observed": reading.structured_content["observed"],
                 }
                 assert not (await client.call_tool("alarm", {})).is_error
-                assert await rejected(client, "write", {"value": 0})
+                assert await rejected(client, "write", {}, "Unknown tool")
         result.pause()
-        async with result.sandbox.client() as client:
-            assert await rejected(client, tool, {})
+        with pytest.RaisesGroup(
+            pytest.RaisesExc(MCPError, match="Server returned an error response"),
+            flatten_subgroups=True,
+        ):
+            async with result.sandbox.client():
+                pytest.fail("pending connection accepted")
         result.delete()
         assert result.sandbox.process is not None and result.sandbox.process.poll() is not None
         assert not result.folder.exists()
