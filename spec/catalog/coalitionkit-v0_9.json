@@ -1,0 +1,6577 @@
+{
+ "$comment": "Core A2UI catalog for CoalitionKit v0.1. Generic only: discipline views live in pack catalogs (ADR 019). Prop types: string, number (bound {value, event_ref}), integer, boolean, datetime, id, enum (values), binding, subject {kind, id, revision}, scope, child, children, array, object, any. Any prop may instead be a data binding {path}.",
+ "catalogId": "coalitionkit/v0_9",
+ "a2ui": "v0.9",
+ "families": {
+  "01": "Foundations",
+  "02": "Shell, doors and templates",
+  "03": "Conversation and calls",
+  "04": "Forms and flows",
+  "05": "Coalition and people",
+  "06": "Needs, offers, tasks and plans",
+  "07": "Places and time",
+  "08": "Privacy and consent",
+  "09": "Live and proof",
+  "10": "Mint and machines",
+  "11": "Channels, ending and memory"
+ },
+ "rules": {
+  "maxComponents": 500,
+  "maxDepth": 24,
+  "root": "root",
+  "html": "forbidden",
+  "numbers": "bound {value, event_ref}"
+ },
+ "components": {
+  "AudioPlayer": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "paused",
+    "playing"
+   ],
+   "events": [
+    "media.play",
+    "media.pause",
+    "media.seek(t)"
+   ],
+   "props": {
+    "src": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "title": {
+     "type": "string",
+     "doc": "string?"
+    }
+   }
+  },
+  "Avatar": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message"
+   ],
+   "states": [
+    "default",
+    "speaking"
+   ],
+   "events": [],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "presence": {
+     "type": "enum",
+     "values": [
+      "live",
+      "away",
+      "off"
+     ],
+     "doc": "live|away|off"
+    },
+    "ring": {
+     "type": "boolean",
+     "doc": "bool"
+    },
+    "seat": {
+     "type": "enum",
+     "values": [
+      "1-5",
+      "host",
+      "steward"
+     ],
+     "doc": "1-5|host|steward"
+    },
+    "size": {
+     "type": "enum",
+     "values": [
+      "xs",
+      "sm",
+      "lg",
+      "xl"
+     ],
+     "doc": "xs|sm|lg|xl"
+    }
+   }
+  },
+  "AvatarStack": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "max": {
+     "type": "number",
+     "doc": "int"
+    },
+    "people": {
+     "type": "array",
+     "doc": "[participant]"
+    }
+   }
+  },
+  "Badge": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "kind": {
+     "type": "enum",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate",
+      "example"
+     ],
+     "doc": "measured | vault | signed | model | estimate | example"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "Banner": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "shown"
+   ],
+   "events": [
+    "banner.action",
+    "banner.dismiss"
+   ],
+   "props": {
+    "action": {
+     "type": "object",
+     "doc": "?"
+    },
+    "body": {
+     "type": "string",
+     "doc": "string"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "info",
+      "ask",
+      "blocked",
+      "agreed"
+     ],
+     "doc": "info|ask|blocked|agreed"
+    }
+   }
+  },
+  "Button": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default",
+    "hover",
+    "focus",
+    "disabled",
+    "busy"
+   ],
+   "events": [
+    "action.name(context)"
+   ],
+   "props": {
+    "action": {
+     "type": "object",
+     "doc": "{name,context}"
+    },
+    "busy": {
+     "type": "boolean",
+     "doc": "boolean?"
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "boolean?"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "size": {
+     "type": "enum",
+     "values": [
+      "sm",
+      "md",
+      "lg"
+     ],
+     "doc": "sm | md | lg"
+    },
+    "variant": {
+     "type": "enum",
+     "values": [
+      "primary",
+      "secondary",
+      "ink",
+      "ghost"
+     ],
+     "doc": "primary | secondary | ink | ghost"
+    }
+   }
+  },
+  "ButtonGroup": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "action.name(context)"
+   ],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "Button[]"
+    }
+   }
+  },
+  "Card": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default",
+    "live",
+    "ask"
+   ],
+   "events": [
+    "open(subject)"
+   ],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "fields": {
+     "type": "array",
+     "doc": "[{label, value, provenance}]"
+    },
+    "provenance": {
+     "type": "enum",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ],
+     "doc": ""
+    },
+    "scope": {
+     "type": "scope",
+     "doc": "Scope?"
+    },
+    "status": {
+     "type": "enum",
+     "values": [
+      "agreed",
+      "needs-you",
+      "changed",
+      "private",
+      "blocked"
+     ],
+     "doc": ""
+    },
+    "title": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "default",
+      "live",
+      "ask",
+      "dashed"
+     ],
+     "doc": "default | live | ask | dashed"
+    }
+   }
+  },
+  "CheckBox": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "off",
+    "on",
+    "disabled"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Chip": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default",
+    "selected"
+   ],
+   "events": [
+    "select(id)"
+   ],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "seat": {
+     "type": "string",
+     "doc": "1..5?"
+    },
+    "selected": {
+     "type": "boolean",
+     "doc": "boolean?"
+    }
+   }
+  },
+  "ChoicePicker": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "none",
+    "one",
+    "many"
+   ],
+   "events": [
+    "select(value)"
+   ],
+   "props": {
+    "display": {
+     "type": "enum",
+     "values": [
+      "chips",
+      "menu"
+     ],
+     "doc": "chips | menu"
+    },
+    "multiple": {
+     "type": "boolean",
+     "doc": "boolean?"
+    },
+    "options": {
+     "type": "array",
+     "doc": "{id,label}[]"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Column": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "gap": {
+     "type": "enum",
+     "values": [
+      "4",
+      "8",
+      "12",
+      "16"
+     ],
+     "doc": "4 | 8 | 12 | 16"
+    }
+   }
+  },
+  "CommandPalette": {
+   "family": "01",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "open",
+    "results",
+    "empty"
+   ],
+   "events": [
+    "command.run(id)",
+    "command.ask(text)"
+   ],
+   "props": {
+    "groups": {
+     "type": "enum",
+     "values": [
+      "actions",
+      "objects",
+      "log",
+      "ask"
+     ],
+     "doc": "actions|objects|log|ask"
+    },
+    "query": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "DateTimeInput": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled",
+    "error"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "mode": {
+     "type": "enum",
+     "values": [
+      "date",
+      "time",
+      "datetime"
+     ],
+     "doc": "date | time | datetime"
+    },
+    "tz": {
+     "type": "string",
+     "doc": "host-supplied"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Deadline": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "calm",
+    "ask",
+    "passed"
+   ],
+   "events": [],
+   "props": {
+    "consequence": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "deadline": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "Divider": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {}
+  },
+  "Drawer": {
+   "family": "01",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "open"
+   ],
+   "events": [
+    "drawer.close"
+   ],
+   "props": {
+    "body": {
+     "type": "children",
+     "doc": "components"
+    },
+    "footer": {
+     "type": "children",
+     "doc": "actions"
+    },
+    "side": {
+     "type": "enum",
+     "values": [
+      "right",
+      "left"
+     ],
+     "doc": "right|left"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "width": {
+     "type": "number",
+     "doc": "360-480"
+    }
+   }
+  },
+  "EmptyState": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "action.invoke"
+   ],
+   "props": {
+    "action": {
+     "type": "object",
+     "doc": "?"
+    },
+    "body": {
+     "type": "string",
+     "doc": "who fills it"
+    },
+    "glyph": {
+     "type": "string",
+     "doc": "icon"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "ErrorState": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "error",
+    "reconnecting"
+   ],
+   "events": [
+    "error.retry"
+   ],
+   "props": {
+    "cause": {
+     "type": "string",
+     "doc": "plain words"
+    },
+    "details": {
+     "type": "object",
+     "doc": "{code, ref}"
+    },
+    "lastSeen": {
+     "type": "datetime",
+     "doc": "ISO?"
+    },
+    "retry": {
+     "type": "boolean",
+     "doc": "bool"
+    }
+   }
+  },
+  "FileDrop": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "idle",
+    "dragover",
+    "uploading",
+    "error"
+   ],
+   "events": [
+    "file.add(file)"
+   ],
+   "props": {
+    "accept": {
+     "type": "array",
+     "doc": "mime[]"
+    },
+    "maxBytes": {
+     "type": "number",
+     "doc": "number"
+    },
+    "target": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "FilterBar": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "filtered"
+   ],
+   "events": [
+    "filter.change",
+    "sort.change"
+   ],
+   "props": {
+    "filters": {
+     "type": "array",
+     "doc": "[{field, op, value}]"
+    },
+    "groupBy": {
+     "type": "string",
+     "doc": "field?"
+    },
+    "query": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "resultCount": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "sort": {
+     "type": "object",
+     "doc": "{field, dir}"
+    }
+   }
+  },
+  "Grid": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "columns": {
+     "type": "number",
+     "doc": "1..4"
+    },
+    "fields": {
+     "type": "array",
+     "doc": "[{label, value, provenance}]"
+    },
+    "gap": {
+     "type": "enum",
+     "values": [
+      "4",
+      "8",
+      "12",
+      "16"
+     ],
+     "doc": "4 | 8 | 12 | 16"
+    },
+    "provenance": {
+     "type": "enum",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ],
+     "doc": ""
+    },
+    "status": {
+     "type": "enum",
+     "values": [
+      "agreed",
+      "needs-you",
+      "changed",
+      "private",
+      "blocked"
+     ],
+     "doc": ""
+    }
+   }
+  },
+  "Heading": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "path | literal"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "default",
+      "blue"
+     ],
+     "doc": "default | blue"
+    },
+    "variant": {
+     "type": "enum",
+     "values": [
+      "h1",
+      "h2",
+      "h3"
+     ],
+     "doc": "h1 | h2 | h3"
+    }
+   }
+  },
+  "Icon": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "label": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "name": {
+     "type": "string",
+     "required": true,
+     "doc": "closed icon set"
+    },
+    "size": {
+     "type": "enum",
+     "values": [
+      "16",
+      "20",
+      "24"
+     ],
+     "doc": "16 | 20 | 24"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "ink",
+      "blue"
+     ],
+     "doc": "ink | blue"
+    }
+   }
+  },
+  "IconButton": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default",
+    "hover",
+    "focus",
+    "disabled"
+   ],
+   "events": [
+    "action.name(context)"
+   ],
+   "props": {
+    "action": {
+     "type": "object",
+     "doc": "{name,context}"
+    },
+    "ariaLabel": {
+     "type": "string",
+     "required": true,
+     "doc": "string (required)"
+    },
+    "icon": {
+     "type": "string",
+     "doc": "name"
+    }
+   }
+  },
+  "Image": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "loading",
+    "loaded",
+    "failed"
+   ],
+   "events": [],
+   "props": {
+    "alt": {
+     "type": "string",
+     "required": true,
+     "doc": "string (required)"
+    },
+    "evidence": {
+     "type": "id",
+     "doc": "id?"
+    },
+    "src": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "KeyValue": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "pairs": {
+     "type": "array",
+     "doc": "{label,value:path,provenance?:id,scope?:Scope}[]"
+    }
+   }
+  },
+  "Link": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "default",
+    "hover",
+    "focus",
+    "visited"
+   ],
+   "events": [
+    "link.open(href)"
+   ],
+   "props": {
+    "href": {
+     "type": "string",
+     "doc": "path | https literal"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "List": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled"
+   ],
+   "events": [
+    "open(item)",
+    "select(item)"
+   ],
+   "props": {
+    "empty": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "items": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "max": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "selectable": {
+     "type": "boolean",
+     "doc": "boolean?"
+    },
+    "template": {
+     "type": "string",
+     "doc": "id"
+    }
+   }
+  },
+  "Menu": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "open",
+    "item-hover",
+    "submenu"
+   ],
+   "events": [
+    "menu.pick(id)"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{label, icon?, shortcut?, submenu?, tone, disabled?}]"
+    }
+   }
+  },
+  "Meter": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "voice"
+   ],
+   "states": [
+    "ok",
+    "warn",
+    "bad"
+   ],
+   "events": [],
+   "props": {
+    "bands": {
+     "type": "array",
+     "doc": "{upTo,tone}[]"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "max": {
+     "type": "number",
+     "doc": ""
+    },
+    "min": {
+     "type": "number",
+     "doc": ""
+    },
+    "provenance": {
+     "type": "enum",
+     "doc": "id",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ]
+    },
+    "unit": {
+     "type": "string",
+     "doc": ""
+    },
+    "value": {
+     "type": "number",
+     "required": true,
+     "doc": "path"
+    }
+   }
+  },
+  "Modal": {
+   "family": "01",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "closed",
+    "open"
+   ],
+   "events": [
+    "dismiss"
+   ],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "dismissible": {
+     "type": "boolean",
+     "doc": "boolean"
+    },
+    "open": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "NumberField": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled",
+    "focus",
+    "error"
+   ],
+   "events": [
+    "change(value, unit)"
+   ],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "max": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "min": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "step": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "unit": {
+     "type": "string",
+     "doc": "string"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Panel": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "fields": {
+     "type": "array",
+     "doc": "[{label, value, provenance}]"
+    },
+    "provenance": {
+     "type": "enum",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ],
+     "doc": ""
+    },
+    "scope": {
+     "type": "scope",
+     "doc": "Scope?"
+    },
+    "status": {
+     "type": "enum",
+     "values": [
+      "agreed",
+      "needs-you",
+      "changed",
+      "private",
+      "blocked"
+     ],
+     "doc": ""
+    },
+    "title": {
+     "type": "string",
+     "doc": "string?"
+    }
+   }
+  },
+  "Popover": {
+   "family": "01",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "open"
+   ],
+   "events": [
+    "popover.close"
+   ],
+   "props": {
+    "actions": {
+     "type": "number",
+     "doc": "≤2"
+    },
+    "anchor": {
+     "type": "id",
+     "doc": "id"
+    },
+    "body": {
+     "type": "children",
+     "doc": "components"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "Progress": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "voice"
+   ],
+   "states": [
+    "determinate",
+    "stepped",
+    "indeterminate"
+   ],
+   "events": [],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "max": {
+     "type": "number",
+     "doc": ""
+    },
+    "min": {
+     "type": "number",
+     "doc": ""
+    },
+    "provenance": {
+     "type": "enum",
+     "doc": "id",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ]
+    },
+    "steps": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "unit": {
+     "type": "string",
+     "doc": ""
+    },
+    "value": {
+     "type": "number",
+     "required": true,
+     "doc": "path (0..1)"
+    }
+   }
+  },
+  "RadioGroup": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "none",
+    "selected"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "options": {
+     "type": "array",
+     "doc": "{id,label}[]"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "RichText": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "link.open(href)"
+   ],
+   "props": {
+    "allow": {
+     "type": "enum",
+     "values": [
+      "bold",
+      "italic",
+      "list",
+      "link"
+     ],
+     "doc": "bold | italic | list | link"
+    },
+    "markdown": {
+     "type": "string",
+     "doc": "path | literal"
+    }
+   }
+  },
+  "Row": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "align": {
+     "type": "enum",
+     "values": [
+      "start",
+      "center",
+      "end"
+     ],
+     "doc": "start | center | end"
+    },
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "gap": {
+     "type": "enum",
+     "values": [
+      "4",
+      "8",
+      "12",
+      "16"
+     ],
+     "doc": "4 | 8 | 12 | 16"
+    }
+   }
+  },
+  "SearchField": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "typing",
+    "results",
+    "no-results"
+   ],
+   "events": [
+    "search.change(q)",
+    "search.pick(id)"
+   ],
+   "props": {
+    "groups": {
+     "type": "array",
+     "doc": "[{label, items[]}]"
+    },
+    "query": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "SegmentedControl": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "pressed",
+    "unpressed"
+   ],
+   "events": [
+    "select(value)"
+   ],
+   "props": {
+    "options": {
+     "type": "array",
+     "doc": "{id,label}[]"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Sheet": {
+   "family": "01",
+   "doors": [
+    "compact"
+   ],
+   "states": [
+    "closed",
+    "open"
+   ],
+   "events": [
+    "dismiss"
+   ],
+   "props": {
+    "children": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "dismissible": {
+     "type": "boolean",
+     "doc": "boolean"
+    },
+    "open": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "Skeleton": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "skeleton",
+    "filled",
+    "live",
+    "rest",
+    "changed"
+   ],
+   "events": [],
+   "props": {
+    "lines": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "previous": {
+     "type": "binding",
+     "doc": "path?"
+    },
+    "provenance": {
+     "type": "enum",
+     "doc": "id?",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ]
+    },
+    "reserves": {
+     "type": "number",
+     "doc": "px"
+    },
+    "shape": {
+     "type": "enum",
+     "values": [
+      "line",
+      "block",
+      "avatar",
+      "card"
+     ],
+     "doc": "line | block | avatar | card"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "skeleton",
+      "filled",
+      "live",
+      "rest",
+      "changed"
+     ],
+     "doc": "skeleton | filled | live | rest | changed"
+    }
+   }
+  },
+  "Slider": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "focus",
+    "disabled"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "max": {
+     "type": "number",
+     "doc": "number"
+    },
+    "min": {
+     "type": "number",
+     "doc": "number"
+    },
+    "step": {
+     "type": "number",
+     "doc": "number"
+    },
+    "unit": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "SlotPicker": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "loading",
+    "ready",
+    "held",
+    "none-shared"
+   ],
+   "events": [
+    "slot.hold(start)",
+    "slot.release(start)"
+   ],
+   "props": {
+    "days": {
+     "type": "array",
+     "doc": "[{date, slots[{start, state: free|mine|shared|off}]}]"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "minutes"
+    },
+    "selected": {
+     "type": "datetime",
+     "doc": "start?"
+    },
+    "source": {
+     "type": "string",
+     "doc": "psi_match"
+    }
+   }
+  },
+  "Spinner": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "spinning"
+   ],
+   "events": [],
+   "props": {
+    "label": {
+     "type": "string",
+     "doc": "string?"
+    }
+   }
+  },
+  "SplitButton": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "closed",
+    "open"
+   ],
+   "events": [
+    "action.invoke(value)"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{label, value, hint?, disabled?}]"
+    },
+    "primary": {
+     "type": "string",
+     "doc": "value"
+    }
+   }
+  },
+  "Switch": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "off",
+    "on",
+    "disabled"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Table": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled"
+   ],
+   "events": [
+    "sort(key)",
+    "open(row)"
+   ],
+   "props": {
+    "columns": {
+     "type": "array",
+     "doc": "{key,label,align?,unit?}[]"
+    },
+    "rows": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "sortable": {
+     "type": "boolean",
+     "doc": "boolean?"
+    }
+   }
+  },
+  "Tabs": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "selected",
+    "unselected"
+   ],
+   "events": [
+    "select(value)"
+   ],
+   "props": {
+    "options": {
+     "type": "array",
+     "doc": "{id,label}[]"
+    },
+    "panels": {
+     "type": "children",
+     "doc": "id[]"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "Tag": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "agreed",
+    "needs",
+    "changed",
+    "private",
+    "blocked"
+   ],
+   "events": [],
+   "props": {
+    "kind": {
+     "type": "enum",
+     "values": [
+      "agreed",
+      "needs",
+      "changed",
+      "private",
+      "blocked"
+     ],
+     "doc": "agreed | needs | changed | private | blocked"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "Text": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "provenance": {
+     "type": "enum",
+     "doc": "id?",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ]
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "path | literal"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "default",
+      "muted",
+      "blue"
+     ],
+     "doc": "default | muted | blue"
+    },
+    "variant": {
+     "type": "enum",
+     "values": [
+      "body",
+      "caption"
+     ],
+     "doc": "body | caption"
+    }
+   }
+  },
+  "TextArea": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled",
+    "focus",
+    "error",
+    "disabled"
+   ],
+   "events": [
+    "change(value)"
+   ],
+   "props": {
+    "error": {
+     "type": "binding",
+     "doc": "path?"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "maxLength": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "TextField": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "empty",
+    "filled",
+    "focus",
+    "error",
+    "disabled"
+   ],
+   "events": [
+    "change(value)",
+    "submit(value)"
+   ],
+   "props": {
+    "error": {
+     "type": "binding",
+     "doc": "path?"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "maxLength": {
+     "type": "number",
+     "doc": "number?"
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "value": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "TimeZone": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "tz.change"
+   ],
+   "props": {
+    "others": {
+     "type": "array",
+     "doc": "[{participant, tz}]"
+    },
+    "value": {
+     "type": "string",
+     "doc": "IANA tz"
+    }
+   }
+  },
+  "Toast": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "shown",
+    "stacked",
+    "dismissed"
+   ],
+   "events": [
+    "toast.action",
+    "toast.undo"
+   ],
+   "props": {
+    "action": {
+     "type": "object",
+     "doc": "?"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "≤60"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "done",
+      "change",
+      "error"
+     ],
+     "doc": "done|change|error"
+    },
+    "undoWindow": {
+     "type": "number",
+     "doc": "s"
+    }
+   }
+  },
+  "Tooltip": {
+   "family": "01",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "hidden",
+    "shown"
+   ],
+   "events": [],
+   "props": {
+    "target": {
+     "type": "id",
+     "doc": "id"
+    },
+    "tip": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "Video": {
+   "family": "01",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "paused",
+    "playing"
+   ],
+   "events": [
+    "media.play",
+    "media.pause",
+    "media.seek(t)"
+   ],
+   "props": {
+    "captions": {
+     "type": "binding",
+     "doc": "path?"
+    },
+    "poster": {
+     "type": "binding",
+     "doc": "path?"
+    },
+    "src": {
+     "type": "binding",
+     "doc": "path"
+    }
+   }
+  },
+  "AccountMenu": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "open"
+   ],
+   "events": [
+    "account.pick(id)"
+   ],
+   "props": {
+    "agents": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "appearance": {
+     "type": "enum",
+     "values": [
+      "light",
+      "dark",
+      "system"
+     ],
+     "doc": "light|dark|system"
+    },
+    "channels": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "identity": {
+     "type": "object",
+     "doc": "participant + owner key"
+    }
+   }
+  },
+  "AgentDock": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "idle",
+    "streaming",
+    "tool-call",
+    "offline"
+   ],
+   "events": [
+    "agent.say(text)"
+   ],
+   "props": {
+    "agent": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "composer": {
+     "type": "enum",
+     "values": [
+      "text",
+      "voice"
+     ],
+     "doc": "text|voice"
+    },
+    "messages": {
+     "type": "array",
+     "doc": "agent session"
+    }
+   }
+  },
+  "BoardTemplate": {
+   "family": "02",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "card.open(id)"
+   ],
+   "props": {
+    "cards": {
+     "type": "array",
+     "doc": "TaskCard[]"
+    },
+    "columns": {
+     "type": "array",
+     "doc": "task status"
+    }
+   }
+  },
+  "ConsentTray": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "pending",
+    "urgent"
+   ],
+   "events": [
+    "consent.open(subject)"
+   ],
+   "props": {
+    "requests": {
+     "type": "array",
+     "doc": "[{kind: plan|tension|commitment|charter, subject, revision, deadline}]"
+    }
+   }
+  },
+  "Deck": {
+   "family": "02",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default",
+    "collapsed"
+   ],
+   "events": [
+    "deck.select(id)"
+   ],
+   "props": {
+    "sections": {
+     "type": "array",
+     "doc": "[{id,label,icon,count,tone}]"
+    },
+    "selected": {
+     "type": "id",
+     "doc": "id"
+    }
+   }
+  },
+  "EntryComposer": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "typing",
+    "attached",
+    "submitting"
+   ],
+   "events": [
+    "coalition.create(goal, pack?)"
+   ],
+   "props": {
+    "attachments": {
+     "type": "array",
+     "doc": "[ref] → vault"
+    },
+    "goal": {
+     "type": "enum",
+     "values": [
+      "text",
+      "voice"
+     ],
+     "doc": "text|voice"
+    },
+    "packs": {
+     "type": "array",
+     "doc": "[pack id]"
+    }
+   }
+  },
+  "InviteCard": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "active",
+    "used",
+    "expired",
+    "revoked"
+   ],
+   "events": [
+    "invite.copy",
+    "invite.revoke"
+   ],
+   "props": {
+    "channels": {
+     "type": "string",
+     "doc": "link|QR|WhatsApp|card URL"
+    },
+    "expires": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "invitation": {
+     "type": "object",
+     "doc": "single-use, bound to participant + card"
+    },
+    "role": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "JoinScreen": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "invited",
+    "accepting",
+    "joined",
+    "refused"
+   ],
+   "events": [
+    "charter.accept → owner-signed decide",
+    "observe"
+   ],
+   "props": {
+    "charter": {
+     "type": "object",
+     "doc": "{summary, rules[], revision}"
+    },
+    "inviter": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind: charter, id, revision}: the charter revision being accepted"
+    }
+   }
+  },
+  "LensCard": {
+   "family": "02",
+   "doors": [
+    "lens"
+   ],
+   "states": [
+    "shown",
+    "acknowledged"
+   ],
+   "events": [
+    "gesture(name)"
+   ],
+   "props": {
+    "body": {
+     "type": "string",
+     "doc": "≤1 line"
+    },
+    "eyebrow": {
+     "type": "string",
+     "doc": "string"
+    },
+    "gestures": {
+     "type": "number",
+     "doc": "≤2"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "≥22 px"
+    }
+   }
+  },
+  "MessageDoor": {
+   "family": "02",
+   "doors": [
+    "message"
+   ],
+   "states": [
+    "sent",
+    "answered",
+    "expired"
+   ],
+   "events": [
+    "reply(n)",
+    "reply(?)"
+   ],
+   "props": {
+    "choices": {
+     "type": "array",
+     "doc": "[{n, label, value}]"
+    },
+    "receipt": {
+     "type": "string",
+     "doc": "url"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "≤1024 chars"
+    }
+   }
+  },
+  "NotificationCenter": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "unread"
+   ],
+   "events": [
+    "notification.open(ref)",
+    "notifications.read"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{kind, text, time, ref, read}]"
+    }
+   }
+  },
+  "PageHeader": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "sticky"
+   ],
+   "events": [],
+   "props": {
+    "actions": {
+     "type": "number",
+     "doc": "≤2"
+    },
+    "crumbs": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "eyebrow": {
+     "type": "string",
+     "doc": "string"
+    },
+    "tabs": {
+     "type": "array",
+     "doc": "?"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "PhoneShell": {
+   "family": "02",
+   "doors": [
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "tab.select"
+   ],
+   "props": {
+    "header": {
+     "type": "child",
+     "doc": "TopBar"
+    },
+    "stack": {
+     "type": "children",
+     "doc": "cards"
+    },
+    "tabs": {
+     "type": "string",
+     "doc": "Now|Plans|People|Agent"
+    }
+   }
+  },
+  "RoomShell": {
+   "family": "02",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "live",
+    "reconnecting",
+    "read-only (watcher)"
+   ],
+   "events": [
+    "deck.select(id)",
+    "invite.open",
+    "search.open"
+   ],
+   "props": {
+    "canvas": {
+     "type": "child",
+     "doc": "A2UI root"
+    },
+    "coalition": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "deck": {
+     "type": "array",
+     "doc": "[{id,label,count}]"
+    },
+    "dock": {
+     "type": "child",
+     "doc": "AgentDock"
+    },
+    "presence": {
+     "type": "array",
+     "doc": "[participant]"
+    },
+    "stage": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "tray": {
+     "type": "child",
+     "doc": "ConsentTray"
+    }
+   }
+  },
+  "SplitView": {
+   "family": "02",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default",
+    "compact-push"
+   ],
+   "events": [
+    "split.select(id)"
+   ],
+   "props": {
+    "detail": {
+     "type": "children",
+     "doc": "components"
+    },
+    "items": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "selected": {
+     "type": "id",
+     "doc": "id"
+    }
+   }
+  },
+  "StageBar": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "done",
+    "now",
+    "next"
+   ],
+   "events": [],
+   "props": {
+    "current": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "stages": {
+     "type": "string",
+     "doc": "Germinate|Gather|Negotiate|Decide|Act|Live|Dissolve"
+    }
+   }
+  },
+  "TopBar": {
+   "family": "02",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "actions": {
+     "type": "number",
+     "doc": "≤3"
+    },
+    "presence": {
+     "type": "array",
+     "doc": "[participant]"
+    },
+    "stage": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "VoiceTurn": {
+   "family": "02",
+   "doors": [
+    "voice"
+   ],
+   "states": [
+    "speaking",
+    "listening",
+    "confirming",
+    "timeout"
+   ],
+   "events": [
+    "voice.choice(value)",
+    "voice.more"
+   ],
+   "props": {
+    "choices": {
+     "type": "array",
+     "doc": "[{words[], value}]"
+    },
+    "confirm": {
+     "type": "boolean",
+     "doc": "required for consent"
+    },
+    "earcon": {
+     "type": "string",
+     "doc": "name"
+    },
+    "script": {
+     "type": "string",
+     "doc": "≤3 sentences"
+    }
+   }
+  },
+  "WiringDrawer": {
+   "family": "02",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "closed",
+    "inspecting",
+    "verified",
+    "broken"
+   ],
+   "events": [
+    "wiring.verify",
+    "wiring.copy"
+   ],
+   "props": {
+    "event_ref": {
+     "type": "id",
+     "doc": "id"
+    },
+    "projection": {
+     "type": "object",
+     "doc": "viewer's own"
+    }
+   }
+  },
+  "AgentHandoff": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "open",
+    "answered"
+   ],
+   "events": [
+    "handoff.answer(value)"
+   ],
+   "props": {
+    "choices": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "question": {
+     "type": "string",
+     "doc": "string"
+    },
+    "reason": {
+     "type": "string",
+     "doc": "string"
+    },
+    "rule": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "AgentStatus": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "listening",
+    "answering",
+    "needs-you",
+    "paused",
+    "offline"
+   ],
+   "events": [
+    "agent.pause",
+    "agent.resume"
+   ],
+   "props": {
+    "budget": {
+     "type": "object",
+     "doc": "{used, cap}"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "listening",
+      "answering",
+      "needs-you",
+      "paused",
+      "offline"
+     ],
+     "doc": "listening|answering|needs-you|paused|offline"
+    },
+    "task": {
+     "type": "id",
+     "doc": "ref?"
+    }
+   }
+  },
+  "AskAgent": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "draft",
+    "asked",
+    "answered"
+   ],
+   "events": [
+    "coalition.query"
+   ],
+   "props": {
+    "kind": {
+     "type": "enum",
+     "values": [
+      "bool",
+      "number-range",
+      "choice"
+     ],
+     "doc": "bool|number-range|choice"
+    },
+    "task_id": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "to": {
+     "type": "id",
+     "doc": "participant"
+    }
+   }
+  },
+  "CallInvite": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "ringing",
+    "missed"
+   ],
+   "events": [
+    "call.join",
+    "call.join_muted",
+    "call.decline"
+   ],
+   "props": {
+    "caller": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "consents": {
+     "type": "array",
+     "doc": "[{kind, default off}]"
+    },
+    "listeners": {
+     "type": "array",
+     "doc": "[agent]"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "CallSummary": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "draft",
+    "posted"
+   ],
+   "events": [
+    "summary.post(item)"
+   ],
+   "props": {
+    "decided": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "s"
+    },
+    "needs": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "offers": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "questions": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "ChannelDigest": {
+   "family": "03",
+   "doors": [
+    "message"
+   ],
+   "states": [
+    "sent"
+   ],
+   "events": [],
+   "props": {
+    "channel": {
+     "type": "enum",
+     "values": [
+      "email",
+      "sms"
+     ],
+     "doc": "email|sms"
+    },
+    "items": {
+     "type": "array",
+     "doc": "[{tone, text, ref}]"
+    },
+    "period": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "CoalitionThread": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "streaming",
+    "typing",
+    "system-row"
+   ],
+   "events": [
+    "message.open(id)"
+   ],
+   "props": {
+    "messages": {
+     "type": "array",
+     "doc": "[{author: person|agent|host|steward, text, attachments[], card?, scope, time}]"
+    },
+    "typing": {
+     "type": "array",
+     "doc": "[participant]"
+    }
+   }
+  },
+  "Composer": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "typing",
+    "mention-menu",
+    "command-menu",
+    "recording"
+   ],
+   "events": [
+    "message.send(text, scope)",
+    "need.publish",
+    "offer.publish",
+    "voice.record"
+   ],
+   "props": {
+    "attachments": {
+     "type": "array",
+     "doc": "→ vault"
+    },
+    "audience": {
+     "type": "scope",
+     "doc": "scope (narrowest default)"
+    },
+    "commands": {
+     "type": "array",
+     "doc": "/need|/offer|/ask|/private"
+    },
+    "mentions": {
+     "type": "array",
+     "doc": "[participant]"
+    }
+   }
+  },
+  "DiarizedTranscript": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "live",
+    "final"
+   ],
+   "events": [
+    "extract.review",
+    "extract.post(id) → speaker-signed"
+   ],
+   "props": {
+    "extracted": {
+     "type": "array",
+     "doc": "[{kind: need|offer|decision, text, segment}]"
+    },
+    "segments": {
+     "type": "array",
+     "doc": "[{speaker, start, text, confidence}]"
+    }
+   }
+  },
+  "ElicitationForm": {
+   "family": "03",
+   "doors": [
+    "mcp-app"
+   ],
+   "states": [
+    "asked",
+    "re-asked on change",
+    "answered"
+   ],
+   "events": [
+    "elicitation.accept",
+    "elicitation.decline",
+    "elicitation.cancel"
+   ],
+   "props": {
+    "binding": {
+     "type": "object",
+     "doc": "bearer + subject revision"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "message": {
+     "type": "string",
+     "doc": "stable text",
+     "required": true
+    },
+    "schema": {
+     "type": "object",
+     "doc": "ConsentAnswer {yes}"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "McpAppView": {
+   "family": "03",
+   "doors": [
+    "mcp-app"
+   ],
+   "states": [
+    "loading",
+    "ready"
+   ],
+   "events": [
+    "tool: my_view, decide, ..."
+   ],
+   "props": {
+    "resourceUri": {
+     "type": "string",
+     "doc": "ui://coalitionkit/surface-v1.html"
+    },
+    "tree": {
+     "type": "children",
+     "doc": "A2UI (viewer)"
+    }
+   }
+  },
+  "Message": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "sending",
+    "delivered",
+    "seen",
+    "failed",
+    "redacted",
+    "blocked"
+   ],
+   "events": [
+    "message.retry"
+   ],
+   "props": {
+    "policy": {
+     "type": "id",
+     "doc": "id?"
+    },
+    "redactions": {
+     "type": "array",
+     "doc": "[path]"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "sending",
+      "delivered",
+      "seen",
+      "failed",
+      "redacted",
+      "blocked"
+     ],
+     "doc": "sending|delivered|seen|failed|redacted|blocked"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "NegotiationTheatre": {
+   "family": "03",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "live",
+    "replay"
+   ],
+   "events": [
+    "turn.inspect(event_ref)"
+   ],
+   "props": {
+    "events": {
+     "type": "array",
+     "doc": "viewer projection []"
+    },
+    "speakers": {
+     "type": "array",
+     "doc": "seats"
+    }
+   }
+  },
+  "ToolCall": {
+   "family": "03",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "running",
+    "done",
+    "failed"
+   ],
+   "events": [
+    "toolcall.expand"
+   ],
+   "props": {
+    "args": {
+     "type": "object",
+     "doc": "viewer projection"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "running",
+      "done",
+      "failed"
+     ],
+     "doc": "running|done|failed"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "string"
+    },
+    "tool": {
+     "type": "string",
+     "doc": "name"
+    }
+   }
+  },
+  "VideoCall": {
+   "family": "03",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "connecting",
+    "live",
+    "reconnecting",
+    "ended"
+   ],
+   "events": [
+    "call.mute",
+    "call.camera",
+    "call.share",
+    "call.end"
+   ],
+   "props": {
+    "captions": {
+     "type": "boolean",
+     "doc": "bool"
+    },
+    "recording": {
+     "type": "enum",
+     "values": [
+      "transcript",
+      "off"
+     ],
+     "doc": "transcript|off"
+    },
+    "tiles": {
+     "type": "array",
+     "doc": "[{participant, kind: person|agent|screen, speaking, muted}]"
+    }
+   }
+  },
+  "VoiceCall": {
+   "family": "03",
+   "doors": [
+    "compact"
+   ],
+   "states": [
+    "ringing",
+    "live",
+    "ended"
+   ],
+   "events": [
+    "call.mute",
+    "call.speaker",
+    "call.end"
+   ],
+   "props": {
+    "caption": {
+     "type": "string",
+     "doc": "string"
+    },
+    "participants": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "speaking": {
+     "type": "id",
+     "doc": "participant"
+    }
+   }
+  },
+  "AcceptanceForm": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "pending",
+    "acknowledged",
+    "accepted"
+   ],
+   "events": [
+    "decide(charter) owner-signed",
+    "leave"
+   ],
+   "props": {
+    "charter": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "consequence": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "diff": {
+     "type": "array",
+     "doc": "[{rule, before, after}]"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "AvailabilityGrid": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "empty",
+    "painted",
+    "imported"
+   ],
+   "events": [
+    "availability.paint",
+    "availability.import"
+   ],
+   "props": {
+    "days": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "slots": {
+     "type": "array",
+     "doc": "per day"
+    },
+    "source": {
+     "type": "enum",
+     "values": [
+      "manual",
+      "calendar"
+     ],
+     "doc": "manual|calendar"
+    }
+   }
+  },
+  "ConsentSeal": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "idle",
+    "holding",
+    "sealed",
+    "cancelled"
+   ],
+   "events": [
+    "decide | commit (owner-signed)"
+   ],
+   "props": {
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "holdMs": {
+     "type": "number",
+     "doc": "1200"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "DocumentShare": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "masked",
+    "editing",
+    "shared"
+   ],
+   "events": [
+    "evidence.share(masks)"
+   ],
+   "props": {
+    "document": {
+     "type": "id",
+     "doc": "vault ref"
+    },
+    "masks": {
+     "type": "array",
+     "doc": "[{region|field, by}]"
+    },
+    "purpose": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "FeedbackForm": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "draft",
+    "saved"
+   ],
+   "events": [
+    "feedback.save"
+   ],
+   "props": {
+    "audience": {
+     "type": "scope",
+     "doc": "me|coalition|pack authors"
+    },
+    "questions": {
+     "type": "array",
+     "doc": "[{kind: choice|scale|text}]"
+    }
+   }
+  },
+  "Form": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact",
+    "voice",
+    "message"
+   ],
+   "states": [
+    "empty",
+    "filling",
+    "invalid",
+    "submitting",
+    "sent"
+   ],
+   "events": [
+    "form.submit(values)"
+   ],
+   "props": {
+    "fields": {
+     "type": "array",
+     "doc": "[{id, kind: text|number|money|datetime|choice|multi|bool|place|file, label, required, private: no|answer-only|vault, help}]"
+    },
+    "submit_event": {
+     "type": "string",
+     "doc": "message type"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "LimitField": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "set",
+    "asked"
+   ],
+   "events": [
+    "limit.change"
+   ],
+   "props": {
+    "limits": {
+     "type": "array",
+     "doc": "values are read from the local vault, never sent in the tree",
+     "items": {
+      "props": {
+       "id": {
+        "type": "id",
+        "required": true
+       },
+       "label": {
+        "type": "string",
+        "required": true
+       },
+       "disclose": {
+        "type": "enum",
+        "values": [
+         "answer-only",
+         "shared"
+        ],
+        "required": true
+       }
+      }
+     }
+    },
+    "queries": {
+     "type": "array",
+     "doc": "[{question, answer, asker, time}]"
+    }
+   }
+  },
+  "NeedForm": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "draft",
+    "checking",
+    "published"
+   ],
+   "events": [
+    "coalition.need"
+   ],
+   "props": {
+    "audience": {
+     "type": "scope",
+     "doc": "scope"
+    },
+    "constraints": {
+     "type": "array",
+     "doc": "[{kind, value}]"
+    },
+    "quantity": {
+     "type": "number",
+     "doc": "int"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "OfferForm": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "draft",
+    "published",
+    "withdrawn"
+   ],
+   "events": [
+    "coalition.offer"
+   ],
+   "props": {
+    "conditions": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "cost": {
+     "type": "object",
+     "doc": "{amount, kind: quote|estimate}"
+    },
+    "expires": {
+     "type": "datetime",
+     "doc": "ISO?"
+    },
+    "target": {
+     "type": "enum",
+     "values": [
+      "need",
+      "task"
+     ],
+     "doc": "need|task"
+    },
+    "what": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "OwnerSign": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "ready",
+    "signing",
+    "signed",
+    "failed closed"
+   ],
+   "events": [
+    "sign.confirm"
+   ],
+   "props": {
+    "answer": {
+     "type": "enum",
+     "values": [
+      "bool",
+      "choice"
+     ],
+     "doc": "bool|choice"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "kid": {
+     "type": "id",
+     "doc": "owner key"
+    },
+    "method": {
+     "type": "enum",
+     "values": [
+      "passkey",
+      "hosted key"
+     ],
+     "doc": "passkey|hosted key"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "Receipt": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "recorded"
+   ],
+   "events": [
+    "receipt.verify",
+    "decide.change"
+   ],
+   "props": {
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "hash": {
+     "type": "string",
+     "doc": "hex"
+    },
+    "receipt": {
+     "type": "object",
+     "doc": "host-signed"
+    },
+    "remaining": {
+     "type": "array",
+     "doc": "[participant]"
+    },
+    "seq": {
+     "type": "number",
+     "doc": "int"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "ReviewStep": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "ready",
+    "blocked"
+   ],
+   "events": [
+    "wizard.finish"
+   ],
+   "props": {
+    "notice": {
+     "type": "string",
+     "doc": "string"
+    },
+    "precheck": {
+     "type": "object",
+     "doc": "steward verdict"
+    },
+    "sections": {
+     "type": "array",
+     "doc": "[{label, summary, editStep}]"
+    }
+   }
+  },
+  "ValidationSummary": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "shown"
+   ],
+   "events": [
+    "field.focus(id)"
+   ],
+   "props": {
+    "errors": {
+     "type": "array",
+     "doc": "[{field, text}]"
+    }
+   }
+  },
+  "Wizard": {
+   "family": "04",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "step",
+    "saving",
+    "done"
+   ],
+   "events": [
+    "wizard.next",
+    "wizard.back",
+    "wizard.finish"
+   ],
+   "props": {
+    "canSkip": {
+     "type": "boolean",
+     "doc": "bool"
+    },
+    "current": {
+     "type": "id",
+     "doc": "id"
+    },
+    "draft": {
+     "type": "object",
+     "doc": "host-saved"
+    },
+    "steps": {
+     "type": "array",
+     "doc": "[{id, label, fields|components}]"
+    }
+   }
+  },
+  "ActsForGraph": {
+   "family": "05",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "agent.inspect(card)"
+   ],
+   "props": {
+    "acting": {
+     "type": "id",
+     "doc": "card?"
+    },
+    "agents": {
+     "type": "array",
+     "doc": "[{card, cardKid, vendor, runtime, actsFor}]"
+    },
+    "people": {
+     "type": "array",
+     "doc": "[{participant, ownerKid}]"
+    }
+   }
+  },
+  "AgentPresence": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "live",
+    "idle",
+    "offline"
+   ],
+   "events": [],
+   "props": {
+    "agent": {
+     "type": "id",
+     "doc": "card"
+    },
+    "latencyMs": {
+     "type": "number",
+     "doc": "int"
+    },
+    "pinnedKid": {
+     "type": "string",
+     "doc": "string"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "live",
+      "idle",
+      "offline"
+     ],
+     "doc": "live|idle|offline"
+    }
+   }
+  },
+  "CharterCard": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "current",
+    "new revision pending"
+   ],
+   "events": [
+    "charter.history"
+   ],
+   "props": {
+    "revision": {
+     "type": "number",
+     "doc": "int"
+    },
+    "roles": {
+     "type": "array",
+     "doc": "[{name, min, max}]"
+    },
+    "rules": {
+     "type": "array",
+     "doc": "[{n, text}]"
+    },
+    "signedBy": {
+     "type": "array",
+     "doc": "[participant]"
+    }
+   }
+  },
+  "CoalitionHeader": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "charter.open"
+   ],
+   "props": {
+    "budget": {
+     "type": "object",
+     "doc": "{used, cap}"
+    },
+    "counts": {
+     "type": "object",
+     "doc": "{people, agents, watchers, tasks, plans}"
+    },
+    "goal": {
+     "type": "string",
+     "doc": "string"
+    },
+    "pack": {
+     "type": "id",
+     "doc": "id?"
+    },
+    "revision": {
+     "type": "number",
+     "doc": "int"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "yourState": {
+     "type": "enum",
+     "doc": "tag",
+     "values": [
+      "agreed",
+      "needs-you",
+      "changed",
+      "private",
+      "blocked"
+     ]
+    }
+   }
+  },
+  "InviteList": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "invited",
+    "joined",
+    "expired",
+    "revoked"
+   ],
+   "events": [
+    "invite.send",
+    "invite.revoke"
+   ],
+   "props": {
+    "invitations": {
+     "type": "array",
+     "doc": "[{participant?, role, channel, sentAt, expires, state}]"
+    },
+    "openSeats": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "LeaveControl": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "ready",
+    "confirming",
+    "left"
+   ],
+   "events": [
+    "coalition.leave"
+   ],
+   "props": {
+    "consequences": {
+     "type": "array",
+     "doc": "[] from host"
+    }
+   }
+  },
+  "PackChip": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "active",
+    "available"
+   ],
+   "events": [
+    "pack.open"
+   ],
+   "props": {
+    "pack": {
+     "type": "object",
+     "doc": "{id, name, version, views[], policies[], authorKid}"
+    }
+   }
+  },
+  "ParticipantCard": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "agreed",
+    "acting",
+    "owes",
+    "watcher",
+    "invited",
+    "left"
+   ],
+   "events": [
+    "participant.open"
+   ],
+   "props": {
+    "act": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "capabilities": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "participant": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "roles": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "seat": {
+     "type": "number",
+     "doc": "1-5"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "agreed",
+      "acting",
+      "owes",
+      "watcher",
+      "invited",
+      "left"
+     ],
+     "doc": "agreed|acting|owes|watcher|invited|left"
+    }
+   }
+  },
+  "RoleChip": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "held",
+    "open"
+   ],
+   "events": [],
+   "props": {
+    "open": {
+     "type": "boolean",
+     "doc": "bool"
+    },
+    "role": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "RoleMatrix": {
+   "family": "05",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "rights": {
+     "type": "array",
+     "doc": "authorization table"
+    },
+    "roles": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "Roster": {
+   "family": "05",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "member.remind(participant)"
+   ],
+   "props": {
+    "members": {
+     "type": "array",
+     "doc": "[{participant, roles, agents, acceptedRevision, load, state}]"
+    }
+   }
+  },
+  "SeatRing": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "seat.open(participant)"
+   ],
+   "props": {
+    "goal": {
+     "type": "string",
+     "doc": "label"
+    },
+    "openSeats": {
+     "type": "number",
+     "doc": "int"
+    },
+    "seats": {
+     "type": "array",
+     "doc": "[{participant, seat, role, state: acting|owes|idle|left}]"
+    }
+   }
+  },
+  "StageTrack": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "done",
+    "now",
+    "next"
+   ],
+   "events": [],
+   "props": {
+    "current": {
+     "type": "binding",
+     "doc": "path"
+    },
+    "progress": {
+     "type": "number",
+     "doc": "deciders answered"
+    },
+    "stages": {
+     "type": "array",
+     "doc": "7 from spec"
+    }
+   }
+  },
+  "VendorBadge": {
+   "family": "05",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "framework": {
+     "type": "string",
+     "doc": "label (no logo)"
+    },
+    "transport": {
+     "type": "string",
+     "doc": "A2A|MCP|hosted|minted|local"
+    }
+   }
+  },
+  "AnswerCard": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "waiting",
+    "answered",
+    "declined"
+   ],
+   "events": [],
+   "props": {
+    "answer": {
+     "type": "any",
+     "doc": "value"
+    },
+    "from": {
+     "type": "string",
+     "doc": "vault"
+    },
+    "kind": {
+     "type": "enum",
+     "values": [
+      "bool",
+      "number-range",
+      "choice"
+     ],
+     "doc": "bool|number-range|choice"
+    },
+    "query": {
+     "type": "string",
+     "doc": "text"
+    },
+    "task_id": {
+     "type": "id",
+     "doc": "ref?"
+    }
+   }
+  },
+  "AssignmentRow": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "assignments": {
+     "type": "array",
+     "doc": "viewer's own []"
+    },
+    "fit": {
+     "type": "string",
+     "doc": "vault check"
+    },
+    "hours": {
+     "type": "number",
+     "doc": "int"
+    },
+    "share": {
+     "type": "number",
+     "doc": "pct"
+    }
+   }
+  },
+  "Checklist": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "item.toggle (owner only)"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{text, done, by?, evidence?}]"
+    }
+   }
+  },
+  "CostSplit": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{label, payer, amount, kind}]"
+    },
+    "rule": {
+     "type": "enum",
+     "values": [
+      "even",
+      "by share",
+      "by use"
+     ],
+     "doc": "even|by share|by use"
+    },
+    "settlements": {
+     "type": "array",
+     "doc": "[] (display only in v0.1)"
+    }
+   }
+  },
+  "DependencyGraph": {
+   "family": "06",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default",
+    "ripple"
+   ],
+   "events": [
+    "task.open(id)"
+   ],
+   "props": {
+    "changed": {
+     "type": "id",
+     "doc": "task?"
+    },
+    "edges": {
+     "type": "array",
+     "doc": "[{from, to}]"
+    },
+    "invalidated": {
+     "type": "array",
+     "doc": "[task]"
+    },
+    "nodes": {
+     "type": "array",
+     "doc": "[{task, status}]"
+    }
+   }
+  },
+  "FairnessMeter": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "within",
+    "over-cap"
+   ],
+   "events": [],
+   "props": {
+    "cap": {
+     "type": "number",
+     "doc": "pct (charter)"
+    },
+    "rows": {
+     "type": "array",
+     "doc": "[{participant, hours, share, agreedShare}]"
+    }
+   }
+  },
+  "Gantt": {
+   "family": "06",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default",
+    "ripple-highlight"
+   ],
+   "events": [
+    "task.open(id)"
+   ],
+   "props": {
+    "criticalPath": {
+     "type": "array",
+     "doc": "[task]"
+    },
+    "deadlines": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "now": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "rows": {
+     "type": "array",
+     "doc": "[{task, assignee, start, end, status}]"
+    },
+    "zoom": {
+     "type": "enum",
+     "values": [
+      "hours",
+      "days",
+      "weeks"
+     ],
+     "doc": "hours|days|weeks"
+    }
+   }
+  },
+  "MatchView": {
+   "family": "06",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "match.inspect(offer)"
+   ],
+   "props": {
+    "chosen": {
+     "type": "id",
+     "doc": "offer?"
+    },
+    "need": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "offers": {
+     "type": "array",
+     "doc": "[{offer, fit, reasons[], blockedBy?}]"
+    }
+   }
+  },
+  "NeedCard": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "open",
+    "matched",
+    "fulfilled",
+    "withdrawn"
+   ],
+   "events": [
+    "need.open",
+    "need.withdraw"
+   ],
+   "props": {
+    "by": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "constraints": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "need_id": {
+     "type": "id",
+     "doc": "id"
+    },
+    "offers": {
+     "type": "number",
+     "doc": "int"
+    },
+    "owner": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "open",
+      "matched",
+      "fulfilled",
+      "withdrawn"
+     ],
+     "doc": "open|matched|fulfilled|withdrawn"
+    },
+    "text": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    }
+   }
+  },
+  "ObjectiveBars": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "objectives": {
+     "type": "array",
+     "doc": "[{name, value, unit, better}]"
+    }
+   }
+  },
+  "OfferCard": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "open",
+    "accepted",
+    "expired",
+    "withdrawn"
+   ],
+   "events": [
+    "offer.accept",
+    "offer.ask",
+    "offer.withdraw"
+   ],
+   "props": {
+    "conditions": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "cost": {
+     "type": "object",
+     "doc": "{amount, kind}"
+    },
+    "expires": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "offer_id": {
+     "type": "id",
+     "doc": "id"
+    },
+    "scope": {
+     "type": "scope",
+     "doc": "scope"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "open",
+      "accepted",
+      "expired",
+      "withdrawn"
+     ],
+     "doc": "open|accepted|expired|withdrawn"
+    },
+    "target": {
+     "type": "enum",
+     "values": [
+      "need",
+      "task"
+     ],
+     "doc": "need|task"
+    },
+    "what": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "PlanCompare": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "proposed",
+    "decided",
+    "superseded"
+   ],
+   "events": [
+    "plan.decide(id) → consent",
+    "plan.details(id)"
+   ],
+   "props": {
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "plans": {
+     "type": "array",
+     "required": true,
+     "doc": "[{id, label, subject {kind, id, revision}, objectives{}, assignments[]}]"
+    },
+    "proposal_set_id": {
+     "type": "id",
+     "doc": "id"
+    },
+    "rejected": {
+     "type": "array",
+     "doc": "[{plan, reason}]"
+    }
+   }
+  },
+  "TaskCard": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message"
+   ],
+   "states": [
+    "each status"
+   ],
+   "events": [
+    "task.open",
+    "task.done"
+   ],
+   "props": {
+    "assignee": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "deps": {
+     "type": "object",
+     "doc": "{waitsFor[], unblocks[]}"
+    },
+    "evidence": {
+     "type": "id",
+     "doc": "ref?"
+    },
+    "status": {
+     "type": "enum",
+     "values": [
+      "open",
+      "negotiating",
+      "proposed",
+      "decided",
+      "committed",
+      "done",
+      "withdrawn"
+     ],
+     "doc": "open|negotiating|proposed|decided|committed|done|withdrawn"
+    },
+    "task_id": {
+     "type": "id",
+     "doc": "id"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "window": {
+     "type": "object",
+     "doc": "{start, end}"
+    }
+   }
+  },
+  "TensionCard": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "open",
+    "decided",
+    "split → replan",
+    "expired"
+   ],
+   "events": [
+    "tension.choose(option) → consent"
+   ],
+   "props": {
+    "answered": {
+     "type": "number",
+     "doc": "count"
+    },
+    "deciders": {
+     "type": "array",
+     "required": true,
+     "doc": "[participant]"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)",
+     "required": true
+    },
+    "options": {
+     "type": "array",
+     "required": true,
+     "doc": "[{id, label, tradeoffs[]}]"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "task_ids": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "tension_id": {
+     "type": "id",
+     "doc": "id"
+    }
+   }
+  },
+  "Timeline": {
+   "family": "06",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{start, end?, title, assignee, state}]"
+    },
+    "now": {
+     "type": "datetime",
+     "doc": "ISO"
+    }
+   }
+  },
+  "AgendaList": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "item.action"
+   ],
+   "props": {
+    "day": {
+     "type": "datetime",
+     "doc": "date"
+    },
+    "items": {
+     "type": "array",
+     "doc": "[{time, title, state, action?}]"
+    }
+   }
+  },
+  "ArrivalCard": {
+   "family": "07",
+   "doors": [
+    "lens",
+    "message",
+    "compact"
+   ],
+   "states": [
+    "arrived"
+   ],
+   "events": [],
+   "props": {
+    "arrivedAt": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "next": {
+     "type": "string",
+     "doc": "string"
+    },
+    "others": {
+     "type": "array",
+     "doc": "[{participant, state}]"
+    },
+    "place": {
+     "type": "id",
+     "doc": "ref"
+    }
+   }
+  },
+  "CalendarWeek": {
+   "family": "07",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "event.open",
+    "calendar.export"
+   ],
+   "props": {
+    "events": {
+     "type": "array",
+     "doc": "[{kind: task|deadline|private-busy, start, end, assignee}]"
+    },
+    "range": {
+     "type": "object",
+     "doc": "week"
+    }
+   }
+  },
+  "IndoorMap": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "map.select(room)"
+   ],
+   "props": {
+    "liveLayers": {
+     "type": "array",
+     "doc": "[{label, value, source}]"
+    },
+    "path": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "plan": {
+     "type": "id",
+     "doc": "venue asset"
+    },
+    "rooms": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "you": {
+     "type": "object",
+     "doc": "position"
+    }
+   }
+  },
+  "LocationShare": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "off",
+    "sharing",
+    "expired"
+   ],
+   "events": [
+    "location.share",
+    "location.stop"
+   ],
+   "props": {
+    "audience": {
+     "type": "scope",
+     "doc": "scope"
+    },
+    "precision": {
+     "type": "enum",
+     "doc": "exact|~500 m|place-only|off",
+     "values": [
+      "exact",
+      "approximate",
+      "place-only",
+      "off"
+     ]
+    },
+    "until": {
+     "type": "enum",
+     "values": [
+      "task end",
+      "time",
+      "arrival"
+     ],
+     "doc": "task end|time|arrival"
+    }
+   }
+  },
+  "MapView": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "loading",
+    "ready",
+    "no-location"
+   ],
+   "events": [
+    "map.select(point)",
+    "map.area(polygon)"
+   ],
+   "props": {
+    "areas": {
+     "type": "array",
+     "doc": "[{polygon, label}]"
+    },
+    "points": {
+     "type": "array",
+     "doc": "[{id, label, kind, lat, lng, ref?}]"
+    },
+    "routes": {
+     "type": "array",
+     "doc": "[{path, mode, eta}]"
+    },
+    "selected": {
+     "type": "id",
+     "doc": "id?"
+    },
+    "you": {
+     "type": "object",
+     "doc": "{position, precision}"
+    }
+   }
+  },
+  "PlacePicker": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "searching",
+    "results",
+    "pinned"
+   ],
+   "events": [
+    "place.pick(ref)"
+   ],
+   "props": {
+    "pin": {
+     "type": "object",
+     "doc": "position"
+    },
+    "query": {
+     "type": "string",
+     "doc": "string"
+    },
+    "results": {
+     "type": "array",
+     "doc": "[{place, distance, facts[], limitCheck}]"
+    }
+   }
+  },
+  "RouteCard": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "planned",
+    "moving",
+    "arrived"
+   ],
+   "events": [],
+   "props": {
+    "distance": {
+     "type": "number",
+     "doc": "metres, bound to its source"
+    },
+    "eta": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "mode": {
+     "type": "string",
+     "doc": "string"
+    },
+    "participants": {
+     "type": "array",
+     "doc": "[participant]"
+    },
+    "progress": {
+     "type": "number",
+     "doc": "0-1"
+    },
+    "steps": {
+     "type": "array",
+     "doc": "[{label, state, time}]"
+    }
+   }
+  },
+  "TimeZoneStrip": {
+   "family": "07",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "now": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "people": {
+     "type": "array",
+     "doc": "[{participant, tz, workingHours (ranges)}]"
+    }
+   }
+  },
+  "ApprovalButton": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "ready",
+    "disabled",
+    "signing"
+   ],
+   "events": [
+    "approve → owner-signed"
+   ],
+   "props": {
+    "consequence": {
+     "type": "string",
+     "required": true,
+     "doc": "what saying yes binds you to"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)",
+     "required": true
+    },
+    "disabledReason": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "CanaryMonitor": {
+   "family": "08",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "clean",
+    "leak"
+   ],
+   "events": [],
+   "props": {
+    "canaries": {
+     "type": "number",
+     "doc": "int"
+    },
+    "found": {
+     "type": "number",
+     "doc": "int (must be 0)"
+    },
+    "runs": {
+     "type": "number",
+     "doc": "int"
+    },
+    "surfaces": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "CommitmentCard": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "pending",
+    "approved",
+    "suspended",
+    "withdrawn"
+   ],
+   "events": [
+    "commit.approve",
+    "commit.withdraw"
+   ],
+   "props": {
+    "assignee": {
+     "type": "id",
+     "doc": "participant"
+    },
+    "commitment_id": {
+     "type": "id",
+     "doc": "member ULID"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "due": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "status": {
+     "type": "enum",
+     "values": [
+      "pending",
+      "approved",
+      "suspended",
+      "withdrawn",
+      "superseded"
+     ],
+     "doc": "pending|approved|suspended|withdrawn|superseded"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "task": {
+     "type": "id",
+     "doc": "ref"
+    }
+   }
+  },
+  "ConsentCard": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "open",
+    "answered",
+    "stale",
+    "expired"
+   ],
+   "events": [
+    "decide(yes|no) owner-signed",
+    "compare"
+   ],
+   "props": {
+    "consequence": {
+     "type": "string",
+     "required": true,
+     "doc": "what saying yes binds you to"
+    },
+    "consequenceOfNo": {
+     "type": "string",
+     "doc": "string"
+    },
+    "cost": {
+     "type": "string",
+     "doc": "string"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)",
+     "required": true
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "string"
+    },
+    "yourPart": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "DecisionLog": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "entry.open"
+   ],
+   "props": {
+    "entries": {
+     "type": "array",
+     "doc": "[{time, participant, subject, revision, answer, reason?, seq, verified}]"
+    }
+   }
+  },
+  "DisclosureLadder": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "disclosure.raise → consent",
+    "disclosure.lower"
+   ],
+   "props": {
+    "buckets": {
+     "type": "array",
+     "doc": "[]?"
+    },
+    "field": {
+     "type": "id",
+     "doc": "id"
+    },
+    "level": {
+     "type": "enum",
+     "values": [
+      "none",
+      "bool",
+      "range",
+      "exact"
+     ],
+     "doc": "none|bool|range|exact"
+    },
+    "overrides": {
+     "type": "array",
+     "doc": "[{audience, level}]"
+    }
+   }
+  },
+  "DurableConsent": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "grant.allow",
+    "grant.revoke"
+   ],
+   "props": {
+    "grants": {
+     "type": "array",
+     "doc": "[{grantee, action, scope, expires, signed}]"
+    },
+    "requests": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "OverlapView": {
+   "family": "08",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "running",
+    "done"
+   ],
+   "events": [],
+   "props": {
+    "mode": {
+     "type": "enum",
+     "values": [
+      "intersection",
+      "count-only"
+     ],
+     "doc": "intersection|count-only"
+    },
+    "parties": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "result": {
+     "type": "enum",
+     "values": [
+      "slots",
+      "count"
+     ],
+     "doc": "slots|count"
+    },
+    "run": {
+     "type": "id",
+     "doc": "log ref"
+    },
+    "tokens": {
+     "type": "array",
+     "doc": "truncated"
+    }
+   }
+  },
+  "PrivateField": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "masked",
+    "revealed"
+   ],
+   "events": [
+    "field.reveal"
+   ],
+   "props": {
+    "display": {
+     "type": "string",
+     "required": true,
+     "doc": "the masked text shown; the value itself stays in the local vault"
+    },
+    "policy": {
+     "type": "string",
+     "doc": "chip"
+    },
+    "reveal": {
+     "type": "number",
+     "doc": "seconds"
+    }
+   }
+  },
+  "ProjectionNote": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "projection.verify"
+   ],
+   "props": {
+    "removed": {
+     "type": "number",
+     "doc": "count"
+    },
+    "source": {
+     "type": "object",
+     "doc": "{event_id, seq, prev_hash, hash}"
+    },
+    "viewerSpecific": {
+     "type": "boolean",
+     "doc": "bool"
+    }
+   }
+  },
+  "RedactionDiff": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "redaction.appeal"
+   ],
+   "props": {
+    "delivered": {
+     "type": "string",
+     "doc": "text"
+    },
+    "original": {
+     "type": "string",
+     "doc": "sender only"
+    },
+    "verdict": {
+     "type": "object",
+     "doc": "{action, policy_id, paths}"
+    }
+   }
+  },
+  "ScopeBadge": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "audience": {
+     "type": "scope",
+     "doc": "host|self|task:x|role:y|coalition|public"
+    },
+    "redact": {
+     "type": "array",
+     "doc": "[path]"
+    }
+   }
+  },
+  "StaleNotice": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "shown"
+   ],
+   "events": [
+    "subject.review"
+   ],
+   "props": {
+    "currentRevision": {
+     "type": "number",
+     "doc": "int"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "diff": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "yourRevision": {
+     "type": "number",
+     "doc": "int"
+    }
+   }
+  },
+  "VaultCard": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "vault.export",
+    "vault.wipe"
+   ],
+   "props": {
+    "answersToday": {
+     "type": "number",
+     "doc": "int"
+    },
+    "categories": {
+     "type": "array",
+     "doc": "[{name, count, policy: answer-only|psi|masked|never}]"
+    },
+    "location": {
+     "type": "enum",
+     "values": [
+      "device",
+      "self-hosted"
+     ],
+     "doc": "device|self-hosted"
+    }
+   }
+  },
+  "VoteTally": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "open",
+    "closed"
+   ],
+   "events": [],
+   "props": {
+    "answered": {
+     "type": "number",
+     "doc": "count"
+    },
+    "answers": {
+     "type": "array",
+     "doc": "after close"
+    },
+    "deciders": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "decision_deadline": {
+     "type": "datetime",
+     "doc": "ISO 8601; after it the decision is closed (deadline_exceeded)"
+    },
+    "outcome": {
+     "type": "enum",
+     "values": [
+      "decided",
+      "refused",
+      "split",
+      "expired"
+     ],
+     "doc": "decided|refused|split|expired"
+    },
+    "rule": {
+     "type": "string",
+     "doc": "string"
+    },
+    "subject": {
+     "type": "subject",
+     "required": true,
+     "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    }
+   }
+  },
+  "WhatOthersKnow": {
+   "family": "08",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "view.export"
+   ],
+   "props": {
+    "rows": {
+     "type": "array",
+     "doc": "[{participant, knows[], notKnows[], because}]"
+    }
+   }
+  },
+  "ActivityStream": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "item.open(seq)"
+   ],
+   "props": {
+    "filter": {
+     "type": "enum",
+     "values": [
+      "all",
+      "about me",
+      "decisions"
+     ],
+     "doc": "all|about me|decisions"
+    },
+    "items": {
+     "type": "array",
+     "doc": "[{actor, verb, object, time, seq}]"
+    }
+   }
+  },
+  "CanvasPresence": {
+   "family": "09",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "acting",
+    "idle"
+   ],
+   "events": [],
+   "props": {
+    "cursors": {
+     "type": "array",
+     "doc": "[{actor, kind, target, verb}]"
+    }
+   }
+  },
+  "ChainView": {
+   "family": "09",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "intact",
+    "broken"
+   ],
+   "events": [
+    "chain.verify"
+   ],
+   "props": {
+    "entries": {
+     "type": "array",
+     "doc": "[{seq, type, actor, prev_hash, hash, verified}]"
+    },
+    "genesis": {
+     "type": "string",
+     "doc": "hash"
+    }
+   }
+  },
+  "ChangedValue": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "flash",
+    "tinted",
+    "seen"
+   ],
+   "events": [],
+   "props": {
+    "after": {
+     "type": "any",
+     "doc": "value"
+    },
+    "before": {
+     "type": "any",
+     "doc": "value"
+    },
+    "path": {
+     "type": "string",
+     "doc": "json pointer"
+    }
+   }
+  },
+  "ConnectionStatus": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "live",
+    "reconnecting",
+    "offline"
+   ],
+   "events": [
+    "feed.reconnect"
+   ],
+   "props": {
+    "feed": {
+     "type": "enum",
+     "values": [
+      "live",
+      "reconnecting",
+      "offline"
+     ],
+     "doc": "live|reconnecting|offline"
+    },
+    "latencyMs": {
+     "type": "number",
+     "doc": "int"
+    },
+    "run": {
+     "type": "id",
+     "doc": "id"
+    }
+   }
+  },
+  "ErrorNotice": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "message",
+    "voice"
+   ],
+   "states": [
+    "shown"
+   ],
+   "events": [
+    "error.retry?"
+   ],
+   "props": {
+    "code": {
+     "type": "string",
+     "doc": "spec error code",
+     "required": true
+    },
+    "detail": {
+     "type": "object",
+     "doc": "{}"
+    },
+    "ref": {
+     "type": "id",
+     "doc": "event?"
+    }
+   }
+  },
+  "EventRow": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "selected"
+   ],
+   "events": [
+    "entry.open"
+   ],
+   "props": {
+    "form": {
+     "type": "enum",
+     "values": [
+      "original",
+      "projection",
+      "receipt-only"
+     ],
+     "doc": "original|projection|receipt-only"
+    },
+    "seq": {
+     "type": "number",
+     "doc": "int"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "string"
+    },
+    "type": {
+     "type": "string",
+     "doc": "message type"
+    }
+   }
+  },
+  "EvidenceCard": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "masked"
+   ],
+   "events": [
+    "evidence.open"
+   ],
+   "props": {
+    "captured_at": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "kind": {
+     "type": "string",
+     "doc": "string"
+    },
+    "masks": {
+     "type": "array",
+     "doc": "[]?"
+    },
+    "ref": {
+     "type": "id",
+     "doc": "id"
+    },
+    "task": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "verified_by": {
+     "type": "id",
+     "doc": "participant"
+    }
+   }
+  },
+  "GardenerThinking": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "voice"
+   ],
+   "states": [
+    "running",
+    "done",
+    "failed"
+   ],
+   "events": [],
+   "props": {
+    "actor": {
+     "type": "id",
+     "doc": "planner"
+    },
+    "steps": {
+     "type": "array",
+     "doc": "[{name, state, took}]"
+    }
+   }
+  },
+  "LiveDocks": {
+   "family": "09",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "dock.open(ref)"
+   ],
+   "props": {
+    "docks": {
+     "type": "array",
+     "doc": "[{icon, label, value, ref}]"
+    }
+   }
+  },
+  "LogStream": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "gap"
+   ],
+   "events": [
+    "entry.open(seq)"
+   ],
+   "props": {
+    "entries": {
+     "type": "array",
+     "doc": "[{seq, ts, type, actor, summary, hash, form}]"
+    },
+    "filter": {
+     "type": "array",
+     "doc": "types"
+    }
+   }
+  },
+  "MediaWithMasks": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "loading",
+    "ready"
+   ],
+   "events": [
+    "mask.label(id, label)"
+   ],
+   "props": {
+    "frame": {
+     "type": "number",
+     "doc": "int?"
+    },
+    "hidden": {
+     "type": "array",
+     "doc": "[region]"
+    },
+    "labels": {
+     "type": "array",
+     "doc": "[{mask, label}] editable by the owner"
+    },
+    "masks": {
+     "type": "array",
+     "doc": "[{polygon|rle, label, score}]"
+    },
+    "media_ref": {
+     "type": "id",
+     "doc": "ref"
+    }
+   }
+  },
+  "ProvenanceTag": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "kind": {
+     "type": "enum",
+     "values": [
+      "measured",
+      "vault",
+      "signed",
+      "model",
+      "estimate"
+     ],
+     "doc": "measured|vault|signed|model|estimate"
+    },
+    "source": {
+     "type": "id",
+     "doc": "ref"
+    }
+   }
+  },
+  "ReceiptBadge": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "ok",
+    "bad",
+    "pending"
+   ],
+   "events": [
+    "receipt.verify"
+   ],
+   "props": {
+    "seq": {
+     "type": "number",
+     "doc": "int"
+    },
+    "state": {
+     "type": "enum",
+     "values": [
+      "ok",
+      "bad",
+      "pending"
+     ],
+     "doc": "ok|bad|pending"
+    }
+   }
+  },
+  "RippleBanner": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message"
+   ],
+   "states": [
+    "shown",
+    "dismissed"
+   ],
+   "events": [
+    "ripple.open"
+   ],
+   "props": {
+    "ripple": {
+     "type": "object",
+     "doc": "{by, change, invalidated[], untouched[]}"
+    }
+   }
+  },
+  "StepProgress": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact",
+    "lens"
+   ],
+   "states": [
+    "running",
+    "deviating",
+    "done"
+   ],
+   "events": [],
+   "props": {
+    "eta": {
+     "type": "datetime",
+     "doc": "ISO"
+    },
+    "measured": {
+     "type": "array",
+     "doc": "series (device)"
+    },
+    "planned": {
+     "type": "array",
+     "doc": "series"
+    },
+    "progress": {
+     "type": "number",
+     "doc": "0-1"
+    },
+    "task": {
+     "type": "id",
+     "doc": "ref"
+    }
+   }
+  },
+  "StewardVerdict": {
+   "family": "09",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "allow",
+    "redact",
+    "block",
+    "quarantine",
+    "escalate"
+   ],
+   "events": [
+    "verdict.verify"
+   ],
+   "props": {
+    "verdict": {
+     "type": "object",
+     "doc": "{event_id, revision, action, policy_id, redact[], explain, model_audited, issued_at, sig}"
+    }
+   }
+  },
+  "VerifyPanel": {
+   "family": "09",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "running",
+    "passed",
+    "failed"
+   ],
+   "events": [
+    "verify.run",
+    "log.download"
+   ],
+   "props": {
+    "checks": {
+     "type": "array",
+     "doc": "[{name, state, detail}]"
+    },
+    "export": {
+     "type": "object",
+     "doc": "log + receipts + host key"
+    }
+   }
+  },
+  "AttackTests": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "running",
+    "passed",
+    "failed"
+   ],
+   "events": [
+    "tests.rerun"
+   ],
+   "props": {
+    "tests": {
+     "type": "array",
+     "doc": "[{name, kind: bounds|injection|egress|rate|failsafe, state, log}]"
+    }
+   }
+  },
+  "CaptureCard": {
+   "family": "10",
+   "doors": [
+    "compact"
+   ],
+   "states": [
+    "ready",
+    "recording",
+    "done"
+   ],
+   "events": [
+    "capture.start",
+    "capture.stop → MintPipeline"
+   ],
+   "props": {
+    "masks": {
+     "type": "array",
+     "doc": "live SAM [{label, score}]"
+    },
+    "narration": {
+     "type": "id",
+     "doc": "audio"
+    },
+    "tips": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "video": {
+     "type": "id",
+     "doc": "vault ref"
+    }
+   }
+  },
+  "DeviceAlarm": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact",
+    "lens",
+    "message"
+   ],
+   "states": [
+    "firing",
+    "acknowledged",
+    "cleared"
+   ],
+   "events": [
+    "alarm.stop",
+    "alarm.ack"
+   ],
+   "props": {
+    "autoAction": {
+     "type": "string",
+     "doc": "string?"
+    },
+    "device": {
+     "type": "id",
+     "doc": "agent"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "s"
+    },
+    "reading": {
+     "type": "number",
+     "doc": "value"
+    },
+    "threshold": {
+     "type": "number",
+     "doc": "value"
+    }
+   }
+  },
+  "DeviceReading": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "live",
+    "stale"
+   ],
+   "events": [
+    "reading.export"
+   ],
+   "props": {
+    "annotations": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "limits": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "planned": {
+     "type": "array",
+     "doc": "series?"
+    },
+    "series": {
+     "type": "array",
+     "doc": "[{t, value, confidence}]"
+    },
+    "source": {
+     "type": "id",
+     "doc": "agent"
+    },
+    "unit": {
+     "type": "string",
+     "doc": "string"
+    }
+   }
+  },
+  "EdgeReaderStatus": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "reading",
+    "low-confidence",
+    "lost"
+   ],
+   "events": [],
+   "props": {
+    "confidence": {
+     "type": "number",
+     "doc": "0-1"
+    },
+    "fallback": {
+     "type": "string",
+     "doc": "rule"
+    },
+    "framesKept": {
+     "type": "string",
+     "doc": "none default"
+    },
+    "rate": {
+     "type": "number",
+     "doc": "fps"
+    },
+    "source": {
+     "type": "enum",
+     "values": [
+      "camera",
+      "serial",
+      "vendor app"
+     ],
+     "doc": "camera|serial|vendor app"
+    }
+   }
+  },
+  "MintPipeline": {
+   "family": "10",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "running",
+    "failed",
+    "ready to publish"
+   ],
+   "events": [
+    "stage.open(artifact)"
+   ],
+   "props": {
+    "cost": {
+     "type": "string",
+     "doc": "meter"
+    },
+    "elapsed": {
+     "type": "number",
+     "doc": "s"
+    },
+    "stages": {
+     "type": "array",
+     "doc": "[{name: capture|read|design|code|attack|publish, state, took, detail, artifacts[]}]"
+    }
+   }
+  },
+  "MintedAgentCard": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "live",
+    "offline",
+    "updating"
+   ],
+   "events": [
+    "agent.logs",
+    "agent.offline",
+    "agent.remint"
+   ],
+   "props": {
+    "agent": {
+     "type": "object",
+     "doc": "{name, version, runtime, owner}"
+    },
+    "health": {
+     "type": "string",
+     "doc": "state"
+    },
+    "readings": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "tools": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  },
+  "PublishApproval": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "locked",
+    "ready",
+    "published"
+   ],
+   "events": [
+    "publish → owner-signed",
+    "decline"
+   ],
+   "props": {
+    "coalitions": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "spec": {
+     "type": "object",
+     "doc": "{reads[], acts[] with bounds, never[]}"
+    },
+    "tests": {
+     "type": "object",
+     "doc": "summary"
+    }
+   }
+  },
+  "ScheduleTwin": {
+   "family": "10",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "slot.hold → offer"
+   ],
+   "props": {
+    "machines": {
+     "type": "array",
+     "doc": "[{name, owner, bookings[{start, end, mine?}]}]"
+    }
+   }
+  },
+  "ChannelHandoff": {
+   "family": "11",
+   "doors": [
+    "lens",
+    "compact",
+    "message"
+   ],
+   "states": [
+    "offered",
+    "opened",
+    "expired"
+   ],
+   "events": [
+    "handoff.open"
+   ],
+   "props": {
+    "from": {
+     "type": "string",
+     "doc": "door"
+    },
+    "reason": {
+     "type": "enum",
+     "values": [
+      "money",
+      "identity",
+      "too long"
+     ],
+     "doc": "money|identity|too long"
+    },
+    "subject": {
+     "type": "subject",
+     "doc": "ref + revision"
+    },
+    "to": {
+     "type": "string",
+     "doc": "door"
+    }
+   }
+  },
+  "ChannelSettings": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "channel.set(kind, level)",
+    "quiet.set"
+   ],
+   "props": {
+    "channels": {
+     "type": "array",
+     "doc": "[{kind, level}]"
+    },
+    "overrides": {
+     "type": "array",
+     "doc": "per coalition"
+    },
+    "quiet": {
+     "type": "object",
+     "doc": "{from, to, tz}"
+    }
+   }
+  },
+  "CoalitionArchive": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "empty"
+   ],
+   "events": [
+    "archive.open(id)"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{coalition, pack, ended, outcome, yourCost, log}]"
+    }
+   }
+  },
+  "CostMeter": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "ok",
+    "warning 80%",
+    "stopped 100%"
+   ],
+   "events": [],
+   "props": {
+    "budget": {
+     "type": "number",
+     "doc": "money"
+    },
+    "rows": {
+     "type": "array",
+     "doc": "[{role, model, tokens, cost}]"
+    },
+    "total": {
+     "type": "number",
+     "doc": "money"
+    }
+   }
+  },
+  "DissolveSummary": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [
+    "log.download",
+    "results.open"
+   ],
+   "props": {
+    "contributions": {
+     "type": "array",
+     "doc": "[{participant, tasks, hours}]"
+    },
+    "cost": {
+     "type": "string",
+     "doc": "meter"
+    },
+    "counts": {
+     "type": "object",
+     "doc": "{tasks, decisions, replans}"
+    },
+    "goal": {
+     "type": "string",
+     "doc": "string"
+    },
+    "log": {
+     "type": "id",
+     "doc": "sealed ref"
+    },
+    "outcome": {
+     "type": "enum",
+     "values": [
+      "reached",
+      "partly",
+      "not",
+      "deadline"
+     ],
+     "doc": "reached|partly|not|deadline"
+    }
+   }
+  },
+  "DoorMatrix": {
+   "family": "11",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "doors": {
+     "type": "array",
+     "doc": "[wide|compact|message|voice|lens|mcp-app]"
+    },
+    "target": {
+     "type": "string",
+     "doc": "the catalog component whose doors are shown"
+    }
+   }
+  },
+  "ExportControl": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "default",
+    "exporting",
+    "wiped"
+   ],
+   "events": [
+    "export.zip",
+    "vault.wipe"
+   ],
+   "props": {
+    "items": {
+     "type": "array",
+     "doc": "[{kind, size, included}]"
+    }
+   }
+  },
+  "LessonReview": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "suggested",
+    "saved"
+   ],
+   "events": [
+    "lessons.save"
+   ],
+   "props": {
+    "lessons": {
+     "type": "array",
+     "doc": "[{text, from[], scope: private|shareable, kind}]"
+    }
+   }
+  },
+  "MessageTemplate": {
+   "family": "11",
+   "doors": [
+    "message"
+   ],
+   "states": [
+    "sent",
+    "replied"
+   ],
+   "events": [
+    "reply(id)"
+   ],
+   "props": {
+    "params": {
+     "type": "array",
+     "doc": "[] (no private fields)"
+    },
+    "quickReplies": {
+     "type": "number",
+     "doc": "≤3"
+    },
+    "template": {
+     "type": "string",
+     "doc": "id + version"
+    }
+   }
+  },
+  "MetricTile": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "measured",
+    "not run yet"
+   ],
+   "events": [],
+   "props": {
+    "context": {
+     "type": "string",
+     "doc": "string"
+    },
+    "label": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "run": {
+     "type": "id",
+     "doc": "ref"
+    },
+    "unit": {
+     "type": "string",
+     "doc": "string"
+    },
+    "value": {
+     "type": "number",
+     "doc": "measured?"
+    }
+   }
+  },
+  "NotificationCard": {
+   "family": "11",
+   "doors": [
+    "push"
+   ],
+   "states": [
+    "delivered",
+    "grouped"
+   ],
+   "events": [
+    "notification.open"
+   ],
+   "props": {
+    "body": {
+     "type": "string",
+     "doc": "≤90 chars, no private values"
+    },
+    "link": {
+     "type": "string",
+     "doc": "deep link"
+    },
+    "title": {
+     "type": "string",
+     "required": true,
+     "doc": "coalition"
+    }
+   }
+  },
+  "Scorecard": {
+   "family": "11",
+   "doors": [
+    "wide"
+   ],
+   "states": [
+    "default"
+   ],
+   "events": [],
+   "props": {
+    "tiles": {
+     "type": "array",
+     "doc": "[MetricTile]"
+    }
+   }
+  },
+  "SkillCard": {
+   "family": "11",
+   "doors": [
+    "wide",
+    "compact"
+   ],
+   "states": [
+    "draft",
+    "shared"
+   ],
+   "events": [
+    "coalition.create(from skill)"
+   ],
+   "props": {
+    "name": {
+     "type": "string",
+     "required": true,
+     "doc": "string"
+    },
+    "roles": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "rules": {
+     "type": "array",
+     "doc": "[]"
+    },
+    "source": {
+     "type": "string",
+     "doc": "coalition"
+    },
+    "templates": {
+     "type": "array",
+     "doc": "[]"
+    }
+   }
+  }
+ }
+}

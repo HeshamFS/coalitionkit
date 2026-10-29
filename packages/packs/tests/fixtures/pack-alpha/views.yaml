@@ -1,0 +1,11 @@
+components:
+  StepList:
+    props: [title, steps]
+    required: [title]
+    doors: [children]
+order:
+  coordinator:
+    wide: [Card, StepList]
+    compact: [StepList]
+  helper:
+    message: [Card]

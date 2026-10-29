@@ -57,7 +57,7 @@
     },
     "sig": {
       "type": "string",
-      "description": "Compact JWS over the JCS-canonical envelope without sig, seq, ts and prev_hash"
+      "description": "Compact JWS (detached payload) over the JCS-canonical envelope without sig, seq, ts and prev_hash"
     },
     "seq": {
       "type": "integer",

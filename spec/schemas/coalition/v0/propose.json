@@ -7,7 +7,8 @@
   "additionalProperties": false,
   "required": [
     "proposal_set_id",
-    "plans"
+    "plans",
+    "decision_deadline"
   ],
   "properties": {
     "proposal_set_id": {
@@ -27,7 +28,7 @@
         ],
         "properties": {
           "plan_id": {
-            "$ref": "common.json#/$defs/id"
+            "$ref": "common.json#/$defs/ulid"
           },
           "revision": {
             "$ref": "common.json#/$defs/revision"
@@ -43,7 +44,7 @@
               ],
               "properties": {
                 "task_id": {
-                  "$ref": "common.json#/$defs/id"
+                  "$ref": "common.json#/$defs/ulid"
                 },
                 "assignee": {
                   "$ref": "common.json#/$defs/id"
@@ -59,6 +60,10 @@
           }
         }
       }
+    },
+    "decision_deadline": {
+      "$ref": "common.json#/$defs/datetime",
+      "description": "Absolute time after which no decision on these plans is recorded."
     }
   }
 }

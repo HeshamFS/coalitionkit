@@ -7,13 +7,16 @@
   "additionalProperties": false,
   "required": [
     "tension_id",
+    "revision",
+    "task_ids",
     "options",
     "tradeoffs",
-    "deciders"
+    "deciders",
+    "decision_deadline"
   ],
   "properties": {
     "tension_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "revision": {
       "$ref": "common.json#/$defs/revision"
@@ -53,6 +56,19 @@
         "$ref": "common.json#/$defs/id"
       },
       "uniqueItems": true
+    },
+    "task_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.json#/$defs/ulid"
+      },
+      "uniqueItems": true,
+      "description": "The tasks the tension holds in proposed status."
+    },
+    "decision_deadline": {
+      "$ref": "common.json#/$defs/datetime",
+      "description": "Absolute time after which no decision on this tension is recorded."
     }
   }
 }

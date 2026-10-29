@@ -9,10 +9,12 @@ from collections.abc import Iterator
 from typing import Any, cast
 
 import pytest
-from examples import PAYLOADS, SCOPE, make_envelope
+from examples import PAYLOADS, PLAN_ID, SCOPE, TASK_ID, make_envelope
 from pydantic import ValidationError
 
 from coalitionkit_contracts import (
+    HOST_ONLY_TYPES,
+    MEMBER_TYPES,
     MESSAGE_TYPES,
     PAYLOAD_MODELS,
     Envelope,
@@ -22,6 +24,7 @@ from coalitionkit_contracts import (
     validate_payload,
     validate_scope,
 )
+from coalitionkit_contracts.payloads import PSI_MAX_BLOB_CHARS
 from coalitionkit_contracts.validate import SCHEMA_FILES, load_schemas
 
 TYPES = sorted(PAYLOADS)
@@ -65,8 +68,11 @@ def at(value: Any, path: tuple[Any, ...]) -> Any:
     return value
 
 
-def test_sixteen_types_and_every_schema_exists() -> None:
-    assert len(MESSAGE_TYPES) == 16
+def test_eighteen_types_and_every_schema_exists() -> None:
+    assert len(MESSAGE_TYPES) == 18
+    assert set(MESSAGE_TYPES) == HOST_ONLY_TYPES | MEMBER_TYPES
+    assert not HOST_ONLY_TYPES & MEMBER_TYPES
+    assert len(HOST_ONLY_TYPES) == 8
     assert set(PAYLOAD_MODELS) == set(PAYLOADS) == set(SCHEMA_FILES)
     ids = set(load_schemas())
     for name in [*SCHEMA_FILES.values(), "envelope", "scope", "common"]:
@@ -94,6 +100,8 @@ def test_extra_field_fails_both_at_every_level(message_type: str) -> None:
     for path in dict_paths(example):
         if path and path[-1] == "objective_scores":
             continue  # an open map of objective name to score, not a fixed shape
+        if message_type == "coalition.projection" and path == ("payload",):
+            continue  # the projected payload is an open object by design
         bad = copy.deepcopy(example)
         at(bad, path)["unexpected"] = 1
         assert not model_accepts(message_type, bad), path
@@ -143,10 +151,81 @@ BAD_VALUES: list[tuple[str, dict[str, Any]]] = [
     ("coalition.answer", {"result": "maybe"}),
     ("coalition.match", {"round": "final"}),
     ("coalition.match", {"blob": "not base64url!"}),
-    ("coalition.decide", {"subject": {"kind": "plan", "id": "p", "revision": 0}}),
-    ("coalition.decide", {"subject": {"kind": "plan", "id": "p"}}),
+    ("coalition.decide", {"subject": {"kind": "plan", "id": PLAN_ID, "revision": 0}}),
+    ("coalition.decide", {"subject": {"kind": "plan", "id": PLAN_ID}}),
+    ("coalition.decide", {"subject": {"kind": "plan", "id": "plan-a", "revision": 1}}),
+    ("coalition.decide", {"subject": {"kind": "offer", "id": PLAN_ID, "revision": 1}}),
     ("coalition.decide", {"consent": "yes"}),
+    ("coalition.decide", {"consent_sig": "eyJhbGciOiJFZERTQSJ9.cGF5.c2ln"}),
+    ("coalition.decide", {"consent_sig": ""}),
+    ("coalition.decide", {"decided_at": "yesterday"}),
     ("coalition.commit", {"status": "done"}),
+    ("coalition.commit", {"status": "approved"}),
+    ("coalition.commit", {"task_id": "t-1"}),
+    ("coalition.commit", {"revision": 0}),
+    ("coalition.join", {"owner_proof": "eyJhbGciOiJFZERTQSJ9.cGF5.c2ln"}),
+    ("coalition.join", {"owner_key": {"kty": "RSA", "crv": "Ed25519", "x": "A" * 43, "kid": "k"}}),
+    ("coalition.join", {"owner_key": {"kty": "OKP", "crv": "Ed25519", "x": "short", "kid": "k"}}),
+    ("coalition.join", {"owner_key": {"kty": "OKP", "crv": "Ed25519", "x": "A" * 43}}),
+    ("coalition.match", {"blob": "A" * (PSI_MAX_BLOB_CHARS + 1)}),
+    ("coalition.match", {"peer": ""}),
+    ("coalition.charter", {"deciders": []}),
+    ("coalition.charter", {"revision": 0}),
+    ("coalition.charter", {"created_at": "today"}),
+    ("coalition.tension", {"tension_id": "tn-1"}),
+    (
+        "coalition.propose",
+        {
+            "plans": [
+                {"plan_id": "plan-a", "revision": 1, "assignments": [], "objective_scores": {}}
+            ]
+        },
+    ),
+    (
+        "coalition.propose",
+        {
+            "plans": [
+                {
+                    "plan_id": PLAN_ID,
+                    "revision": 1,
+                    "assignments": [{"task_id": "t-1", "assignee": "p2"}],
+                    "objective_scores": {},
+                }
+            ]
+        },
+    ),
+    ("coalition.need", {"need_id": "n-1"}),
+    ("coalition.offer", {"target": {"kind": "need", "id": "n-1"}}),
+    ("coalition.done", {"task_id": "t-1"}),
+    ("coalition.ripple", {"invalidates": ["t-1"]}),
+    ("coalition.ripple", {"invalidates": [TASK_ID, TASK_ID]}),
+    ("coalition.error", {"code": "duplicate"}),
+    (
+        "coalition.projection",
+        {"source": {"event_id": "x", "seq": 7, "type": "coalition.need", "on_behalf_of": "host"}},
+    ),
+    (
+        "coalition.projection",
+        {
+            "source": {
+                "event_id": PLAN_ID,
+                "seq": 0,
+                "type": "coalition.need",
+                "on_behalf_of": "host",
+            }
+        },
+    ),
+    (
+        "coalition.projection",
+        {"source": {"event_id": PLAN_ID, "seq": 1, "type": "need", "on_behalf_of": "host"}},
+    ),
+    ("coalition.projection", {"payload": []}),
+    ("coalition.projection", {"redacted": ["window"]}),
+    ("coalition.projection", {"redacted": ["payload.a", "payload.a"]}),
+    ("coalition.receipt", {"head_hash": "AB" * 32}),
+    ("coalition.receipt", {"head_hash": "ab" * 31}),
+    ("coalition.receipt", {"seq": 0}),
+    ("coalition.receipt", {"coalition_id": "c-1"}),
     ("coalition.dissolve", {"reason": "bored"}),
     ("coalition.error", {"code": "oops"}),
     ("coalition.error", {"ref": "not-a-ulid"}),
@@ -167,6 +246,36 @@ def test_bad_values_fail_both(message_type: str, change: dict[str, Any]) -> None
     bad = {**PAYLOADS[message_type], **change}
     assert not model_accepts(message_type, bad)
     assert not schema_accepts(message_type, bad)
+
+
+def test_query_deadline_is_optional_with_a_default() -> None:
+    from coalitionkit_contracts.payloads import DEFAULT_QUERY_DEADLINE_MS, QueryPayload
+
+    payload = {"query_id": "q-1", "kind": "cost", "subject": "n-1"}
+    assert model_accepts("coalition.query", payload)
+    assert schema_accepts("coalition.query", payload)
+    assert QueryPayload.model_validate(payload).deadline_ms == DEFAULT_QUERY_DEADLINE_MS == 10_000
+
+
+@pytest.mark.parametrize("kind", ["plan", "tension_option", "commitment", "charter", "task"])
+def test_every_subject_kind_passes_both(kind: str) -> None:
+    subject = {"kind": kind, "id": PLAN_ID, "revision": 4}
+    payload = {**PAYLOADS["coalition.decide"], "subject": subject}
+    assert model_accepts("coalition.decide", payload)
+    assert schema_accepts("coalition.decide", payload)
+
+
+def test_new_error_codes_pass_both() -> None:
+    for code in ("duplicate_mismatch", "not_authorized"):
+        payload = {**PAYLOADS["coalition.error"], "code": code}
+        assert model_accepts("coalition.error", payload)
+        assert schema_accepts("coalition.error", payload)
+
+
+def test_projection_payload_is_open_but_the_rest_is_closed() -> None:
+    payload = {**PAYLOADS["coalition.projection"], "payload": {"anything": {"nested": [1, 2]}}}
+    assert model_accepts("coalition.projection", payload)
+    assert schema_accepts("coalition.projection", payload)
 
 
 def test_answer_accepts_yes_and_no() -> None:

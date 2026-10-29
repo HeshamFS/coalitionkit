@@ -2,11 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coalitionkit.dev/schemas/coalition/v0/match.json",
   "title": "coalition.match",
-  "description": "Vault to vault, relayed by the host: an opaque PSI blob.",
+  "description": "Vault to vault, relayed by the host: an opaque PSI blob about one task.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "match_id",
+    "task_id",
+    "peer",
     "round",
     "blob",
     "reveal"
@@ -24,13 +26,22 @@
     },
     "blob": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9_-]*$"
+      "pattern": "^[A-Za-z0-9_-]*$",
+      "maxLength": 94000,
+      "description": "base64url, no padding. At most 2 x (4 + 1024 x 32) bytes."
     },
     "reveal": {
       "enum": [
         "overlap",
         "count"
       ]
+    },
+    "peer": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "task_id": {
+      "$ref": "common.json#/$defs/ulid",
+      "description": "The task the exchange concerns. Fixed by setup; every round must repeat it."
     }
   }
 }

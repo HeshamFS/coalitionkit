@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coalitionkit.dev/schemas/coalition/v0/commit.json",
   "title": "coalition.commit",
-  "description": "Member to host: a commitment to a task.",
+  "description": "Member to host: create (pending) or withdraw a commitment to a task. Approval is never sent here: it comes from an owner-signed coalition.decide.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,20 +12,20 @@
   ],
   "properties": {
     "commitment_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "task_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "status": {
       "enum": [
         "pending",
-        "approved",
         "withdrawn"
       ]
     },
     "revision": {
-      "$ref": "common.json#/$defs/revision"
+      "$ref": "common.json#/$defs/revision",
+      "description": "Omit on create (the host starts at 1). On withdraw, the revision being withdrawn."
     }
   }
 }

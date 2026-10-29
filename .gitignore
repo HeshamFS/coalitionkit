@@ -16,3 +16,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# acceptance run outputs
+packages/acceptance/scorecard-*.json
+# Example run outputs (scorecards)
+examples/out/
+examples/.venv/

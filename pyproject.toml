@@ -8,6 +8,18 @@ dependencies = []
 [dependency-groups]
 dev = [
     "coalitionkit-contracts",
+    "coalitionkit-vault",
+    "coalitionkit-runtime",
+    "coalitionkit-edges",
+    "coalitionkit-gardener",
+    "hypothesis==6.170.13",
+    "coalitionkit-models",
+    "coalitionkit-steward",
+    "coalitionkit-mcp",
+    "coalitionkit-acceptance",
+    "coalitionkit-surfaces",
+    "coalitionkit-server",
+    "coalitionkit-packs",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -24,6 +36,17 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 coalitionkit-contracts = { workspace = true }
+coalitionkit-vault = { workspace = true }
+coalitionkit-runtime = { workspace = true }
+coalitionkit-edges = { workspace = true }
+coalitionkit-gardener = { workspace = true }
+coalitionkit-models = { workspace = true }
+coalitionkit-steward = { workspace = true }
+coalitionkit-mcp = { workspace = true }
+coalitionkit-acceptance = { workspace = true }
+coalitionkit-surfaces = { workspace = true }
+coalitionkit-server = { workspace = true }
+coalitionkit-packs = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -34,16 +57,20 @@ extend-exclude = [".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["coalitionkit_contracts"]
+# The contracts tests import a helper module named "examples"; the top-level examples/ folder
+# must not turn it into a first-party import.
+known-third-party = ["examples"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs"]
 
 [tool.pyright]
-include = ["packages/contracts", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
+extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_package = "coalitionkit_contracts"
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -53,11 +80,14 @@ source_modules = ["coalitionkit_contracts"]
 # import-linter has no partial wildcards: add each new coalitionkit_* package here.
 forbidden_modules = [
     "coalitionkit",
+    "coalitionkit_acceptance",
     "coalitionkit_conformance",
     "coalitionkit_edge",
+    "coalitionkit_edges",
     "coalitionkit_gardener",
     "coalitionkit_host",
     "coalitionkit_mcp",
+    "coalitionkit_models",
     "coalitionkit_packs",
     "coalitionkit_psi",
     "coalitionkit_runtime",
@@ -66,10 +96,117 @@ forbidden_modules = [
     "coalitionkit_vault",
 ]
 
+[[tool.importlinter.contracts]]
+name = "vault imports only contracts from coalitionkit"
+type = "forbidden"
+source_modules = ["coalitionkit_vault"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_runtime",
+    "coalitionkit_steward", "coalitionkit_surfaces",
+]
+
+[[tool.importlinter.contracts]]
+name = "edges import only contracts from coalitionkit (not the runtime yet)"
+type = "forbidden"
+source_modules = ["coalitionkit_edges"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_runtime",
+    "coalitionkit_steward", "coalitionkit_surfaces", "coalitionkit_vault",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["packages"]
 addopts = "--import-mode=importlib"
-pythonpath = ["packages/contracts/tests"]
+pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
+markers = ["live: calls the real Meta Model API; runs only with COALITIONKIT_LIVE=1 and COALITIONKIT_META_API_KEY set"]
+
+[[tool.importlinter.contracts]]
+name = "runtime uses contracts only"
+type = "forbidden"
+source_modules = ["coalitionkit_runtime"]
+forbidden_modules = ["coalitionkit_acceptance", "coalitionkit_vault", "coalitionkit_gardener", "coalitionkit_surfaces", "coalitionkit_mcp", "coalitionkit_edge"]
+
+[[tool.importlinter.contracts]]
+name = "gardener imports only contracts from coalitionkit"
+type = "forbidden"
+source_modules = ["coalitionkit_gardener"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_edges", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_runtime",
+    "coalitionkit_steward", "coalitionkit_surfaces", "coalitionkit_vault",
+]
+
+[[tool.importlinter.contracts]]
+name = "models imports only contracts from coalitionkit"
+type = "forbidden"
+source_modules = ["coalitionkit_models"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge", "coalitionkit_edges",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp", "coalitionkit_packs",
+    "coalitionkit_psi", "coalitionkit_runtime", "coalitionkit_steward", "coalitionkit_surfaces",
+    "coalitionkit_vault",
+]
+
+[[tool.importlinter.contracts]]
+name = "steward imports only contracts and models from coalitionkit"
+type = "forbidden"
+source_modules = ["coalitionkit_steward"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge", "coalitionkit_edges",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp", "coalitionkit_packs",
+    "coalitionkit_psi", "coalitionkit_runtime", "coalitionkit_surfaces", "coalitionkit_vault",
+]
+
+[[tool.importlinter.contracts]]
+name = "mcp imports contracts and the edge host port only (never the runtime)"
+type = "forbidden"
+source_modules = ["coalitionkit_mcp"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_packs",
+    "coalitionkit_psi", "coalitionkit_runtime", "coalitionkit_steward",
+    "coalitionkit_surfaces", "coalitionkit_vault",
+    "coalitionkit_edges.a2a.client", "coalitionkit_edges.a2a.identity",
+    "coalitionkit_edges.a2a.server", "coalitionkit_edges.a2a.wire",
+]
+
+[[tool.importlinter.contracts]]
+name = "surfaces import only contracts and runtime from coalitionkit"
+type = "forbidden"
+source_modules = ["coalitionkit_surfaces"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_conformance", "coalitionkit_edge", "coalitionkit_edges",
+    "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp", "coalitionkit_models",
+    "coalitionkit_packs", "coalitionkit_psi", "coalitionkit_steward", "coalitionkit_vault",
+    "coalitionkit_acceptance",
+]
+
+[[tool.importlinter.contracts]]
+name = "server never imports acceptance"
+type = "forbidden"
+source_modules = ["coalitionkit_server"]
+forbidden_modules = ["coalitionkit_acceptance"]
+
+[[tool.importlinter.contracts]]
+name = "library packages never import the composition server"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_mcp", "coalitionkit_surfaces", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_vault", "coalitionkit_packs"]
+forbidden_modules = ["coalitionkit_server"]
+
+[[tool.importlinter.contracts]]
+name = "packs import only contracts, steward and surfaces directly (models, runtime only via them)"
+type = "forbidden"
+source_modules = ["coalitionkit_packs"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_psi", "coalitionkit_vault", "coalitionkit_server",
+]

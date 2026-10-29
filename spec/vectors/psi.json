@@ -1,0 +1,92 @@
+{
+  "warning": "TEST ONLY: fixed signing seeds, scalars and order. Never use in production.",
+  "left": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "right": [
+    "beta",
+    "delta"
+  ],
+  "context": {
+    "coalition_id": "coalition-1",
+    "match_id": "match-1",
+    "task_id": "01M4XRC2A00000000000000002",
+    "requester": "alice",
+    "responder": "bob",
+    "count_trusted": [
+      "alice"
+    ]
+  },
+  "signing_seeds_hex": [
+    "0101010101010101010101010101010101010101010101010101010101010101",
+    "0202020202020202020202020202020202020202020202020202020202020202"
+  ],
+  "scalars_little_endian_hex": {
+    "requester_psi": "0300000000000000000000000000000000000000000000000000000000000000",
+    "requester_channel": "0500000000000000000000000000000000000000000000000000000000000000",
+    "responder_psi": "0700000000000000000000000000000000000000000000000000000000000000",
+    "responder_channel": "0b00000000000000000000000000000000000000000000000000000000000000"
+  },
+  "overlap": {
+    "messages": [
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "alice",
+        "round": "setup",
+        "blob": "Q0tQMQCJw0oRaEz1EeG4EJ14IBZABeMABtFZQ18uqPMDAuEtybzoP4ul3S-lcoZMJLoYEPlSK8YASv6Vh3rHMkHK_atCHOyhNABigQZHsunfo0Jl5u0cvmoPSLq69MeOFd7XPClvUdBMh43pjXKo7sg6gB5PyaAAYn5DR4fVk79wzt-YDw",
+        "reveal": "overlap"
+      },
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "bob",
+        "round": "request",
+        "blob": "Q0tQMQGJw0oRaEz1EeG4EJ14IBZABeMABtFZQ18uqPMDAuEtyeiCsTEBa1LB0zNwgBh892hCPvzLtRe7SVq4EsQWD_ROo4O9jgjYNlBZzb8xzxD9cVz_Nf74Nt7tbJu7_Wr4TjuGmDqGyVg2OsrbkpmXsfBTiujgzZ9h4QVIjMFbiLjUZZxeQqYQLfLHLnBwYNHBdzu4VEJS03qtZOmdOWwkvvrlcGIxDuyg8_u1rzYZvUQTUHz7oUOB8BhSePuAiHPTODMYSVP2MA3lof9lICEIZhNexxoFTYJ2Qf6lCY8TU3-XTjKzhbdMk8u4sEO7vslg4RMdBkLnKcEKAg",
+        "reveal": "overlap"
+      },
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "alice",
+        "round": "response",
+        "blob": "Q0tQMQKJw0oRaEz1EeG4EJ14IBZABeMABtFZQ18uqPMDAuEtycFR_KiPO1L7BT7VLWjPiDyfR7zEdEmVCbE8Q_4Lqo5wL-OLDt8NxFNg7oae8fdA2b09n_AiuRVeL-1vCM3B6gwoK-V-JrQ99J4Pg5BNDy-rpLOS8xgKHDErs-5L5hjpXjDWbwNwzklB9XqRZyqPlnS0hfdWcQiu4FOouQH9F8AzpzuQVlMrDfDPtYIAQZrToLIUi0smHV1G3S5E5pBUu1mhPtZDPL1r7MbZQ4oiSxsNANy2oSv0pRDuwmty9LqLMeR6SnTL8SL16KyFzM3eF7AalvA_u95TJ3mnlDRW1MSaXuv01CRcR-CH_DST3hRsQnYVovbAHitsTgDJ6qYG",
+        "reveal": "overlap"
+      }
+    ],
+    "result": [
+      "beta"
+    ]
+  },
+  "count": {
+    "messages": [
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "alice",
+        "round": "setup",
+        "blob": "Q0tQMQALTI0PlmUAE_xOJgrOmExlNl97We5kl5Ip0KQANfOgv7zoP4ul3S-lcoZMJLoYEPlSK8YASv6Vh3rHMkHK_atCZDsNUXi0n2bL5d5nnWhzm_4fVPYRqfW9vxeiduKDjqRZMAT9yVEtxFV5uOrrKn1T7bKLdx1tSwx7b6e8_DrUBQ",
+        "reveal": "count"
+      },
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "bob",
+        "round": "request",
+        "blob": "Q0tQMQELTI0PlmUAE_xOJgrOmExlNl97We5kl5Ip0KQANfOgv-iCsTEBa1LB0zNwgBh892hCPvzLtRe7SVq4EsQWD_ROkmpn0L5R83yRh8nmEbdeq6cmvMX_epSNyLYJUalyJ0ZW3p1g7cln5OCns7_kVL-SsNEukuGXC1SHAF_fbATm7stfVVjwe7ZmQHISY6GK0Lwa7cvYV6uM1PJPIiL_J1Pzoc_ShgEwyfuU46Mtw_CF00ppcrwCqwOdgS7_RNjhgun6CVI6MLiYpuqhxUDcq13Q-7WeoZ_bTw1FFwOOclzoKd4MEKYimXA41xiK1bAtlda-3M3Vr0XcBw",
+        "reveal": "count"
+      },
+      {
+        "match_id": "match-1",
+        "task_id": "01M4XRC2A00000000000000002",
+        "peer": "alice",
+        "round": "response",
+        "blob": "Q0tQMQILTI0PlmUAE_xOJgrOmExlNl97We5kl5Ip0KQANfOgvxCq5p4YBQaPglKb7Ok9UbyNV7ukskmoSVSgjjGjoOLoDmuQCgE77WEdLNkyv2hP0ugiJaw7Vx2zzZ9UX6awhGvBLBpkRHtnCU0Y0jMhwyd7fokXupdT27c2G04Uodd2QXDOsqaL8QjOorzlD2HRITIZxUHnZRAXRHbum6F5BxVRRFCs18rIszxFsLTrPlGKaoMZShYVMTzC-KSCqmZFPdsim8mqQKbjebLLngts-PK9OId_8K_WNa58vY8sCajk-Q7bvYiZvn_P9Httaxvu5fcIacG9Lh00n3BY3dZ4kmiblwYufVaQxPdT-KaPg3XQ6ERcf-ad2knMs7SFs-AG",
+        "reveal": "count"
+      }
+    ],
+    "result": 1
+  }
+}

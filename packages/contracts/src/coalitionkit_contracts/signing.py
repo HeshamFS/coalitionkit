@@ -55,28 +55,26 @@ def protected_header(kid: str) -> str:
     return _b64(rfc8785.dumps({"alg": ALG, "typ": TYP, "kid": kid}))
 
 
-def sign_envelope(
-    envelope: Envelope | Mapping[str, Any], private_key: Ed25519PrivateKey, kid: str
-) -> str:
-    """Sign an envelope and return the compact JWS to put in ``sig``."""
+def sign_detached(payload: bytes, private_key: Ed25519PrivateKey, kid: str) -> str:
+    """Compact JWS with a detached payload over ``payload`` (already canonical bytes)."""
     header = protected_header(kid)
-    signing_input = f"{header}.{_b64(signing_payload(envelope))}".encode("ascii")
+    signing_input = f"{header}.{_b64(payload)}".encode("ascii")
     return f"{header}..{_b64(private_key.sign(signing_input))}"
 
 
-def verify_envelope(
-    envelope: Envelope | Mapping[str, Any],
+def verify_detached(
+    sig: object,
+    payload: bytes,
     public_key: Ed25519PublicKey,
     *,
     expected_kid: str | None = None,
 ) -> str:
-    """Verify ``envelope['sig']`` against ``public_key`` only. Returns the ``kid``.
+    """Verify a detached-payload compact JWS against ``public_key`` only. Returns the ``kid``.
 
     Raises SignatureError on any failure.
     """
-    sig = envelope_dict(envelope).get("sig")
     if not isinstance(sig, str):
-        raise SignatureError("envelope has no sig")
+        raise SignatureError("no signature")
     parts = sig.split(".")
     if len(parts) != 3 or parts[1] != "":
         raise SignatureError("sig must be a compact JWS with a detached payload")
@@ -92,12 +90,35 @@ def verify_envelope(
     kid: str = header["kid"]
     if expected_kid is not None and kid != expected_kid:
         raise SignatureError("kid does not match the expected key")
-    signing_input = f"{header_b64}.{_b64(signing_payload(envelope))}".encode("ascii")
+    signing_input = f"{header_b64}.{_b64(payload)}".encode("ascii")
     try:
         public_key.verify(_unb64(signature_b64), signing_input)
     except InvalidSignature as exc:
         raise SignatureError("signature does not verify") from exc
     return kid
+
+
+def sign_envelope(
+    envelope: Envelope | Mapping[str, Any], private_key: Ed25519PrivateKey, kid: str
+) -> str:
+    """Sign an envelope and return the compact JWS to put in ``sig``."""
+    return sign_detached(signing_payload(envelope), private_key, kid)
+
+
+def verify_envelope(
+    envelope: Envelope | Mapping[str, Any],
+    public_key: Ed25519PublicKey,
+    *,
+    expected_kid: str | None = None,
+) -> str:
+    """Verify ``envelope['sig']`` against ``public_key`` only. Returns the ``kid``.
+
+    Raises SignatureError on any failure.
+    """
+    sig = envelope_dict(envelope).get("sig")
+    if not isinstance(sig, str):
+        raise SignatureError("envelope has no sig")
+    return verify_detached(sig, signing_payload(envelope), public_key, expected_kid=expected_kid)
 
 
 def is_valid_signature(

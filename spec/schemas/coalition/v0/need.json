@@ -13,7 +13,7 @@
   ],
   "properties": {
     "need_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "description": {
       "type": "string",

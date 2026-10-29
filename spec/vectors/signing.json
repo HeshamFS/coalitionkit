@@ -36,7 +36,7 @@
       "offer_id": "o-1",
       "target": {
         "kind": "need",
-        "id": "n-1"
+        "id": "01M4XRC2A00000000000000001"
       },
       "capacity": 2,
       "cost": {
@@ -47,9 +47,9 @@
       "valid_until": "2026-11-02T18:00:00Z"
     }
   },
-  "signing_payload_utf8": "{\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"correlation_id\":\"01M4XRC0FM2GAHC5RR34D1P70X\",\"event_id\":\"01M4XRC0Z8185GR38E1W8124GK\",\"ext_version\":\"0.1\",\"on_behalf_of\":\"p2\",\"payload\":{\"capacity\":2,\"cost\":{\"effort\":\"medium\",\"minutes\":90,\"money\":2500},\"offer_id\":\"o-1\",\"target\":{\"id\":\"n-1\",\"kind\":\"need\"},\"valid_until\":\"2026-11-02T18:00:00Z\"},\"scope\":{\"audience\":\"participants\",\"participants\":[\"p2\",\"p5\"],\"redact\":[\"payload.valid_until\"]},\"sender\":\"https://agents.example.org/p2/card.json\",\"type\":\"coalition.offer\"}",
-  "signing_payload_sha256": "e7c6772bf68270ba406a628a2ef503dc3d52484075b3ee1b5aa91597c80911cd",
-  "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ",
+  "signing_payload_utf8": "{\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"correlation_id\":\"01M4XRC0FM2GAHC5RR34D1P70X\",\"event_id\":\"01M4XRC0Z8185GR38E1W8124GK\",\"ext_version\":\"0.1\",\"on_behalf_of\":\"p2\",\"payload\":{\"capacity\":2,\"cost\":{\"effort\":\"medium\",\"minutes\":90,\"money\":2500},\"offer_id\":\"o-1\",\"target\":{\"id\":\"01M4XRC2A00000000000000001\",\"kind\":\"need\"},\"valid_until\":\"2026-11-02T18:00:00Z\"},\"scope\":{\"audience\":\"participants\",\"participants\":[\"p2\",\"p5\"],\"redact\":[\"payload.valid_until\"]},\"sender\":\"https://agents.example.org/p2/card.json\",\"type\":\"coalition.offer\"}",
+  "signing_payload_sha256": "f14f7e4a4a16c6aac16886304e74d29edef5314af141292a0a7b5336f48a5468",
+  "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..8RG7PiR8ViqdOGhGvroX9gNIpXz-Nz3khcKxarf2oEhQhIFDPA6f0worXI9c83xRG7-FBcSHmDuucd4QXmjGCA",
   "envelope_signed": {
     "ext_version": "0.1",
     "coalition_id": "01M4XRC000000G40R40M30E209",
@@ -72,7 +72,7 @@
       "offer_id": "o-1",
       "target": {
         "kind": "need",
-        "id": "n-1"
+        "id": "01M4XRC2A00000000000000001"
       },
       "capacity": 2,
       "cost": {
@@ -82,7 +82,7 @@
       },
       "valid_until": "2026-11-02T18:00:00Z"
     },
-    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ"
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..8RG7PiR8ViqdOGhGvroX9gNIpXz-Nz3khcKxarf2oEhQhIFDPA6f0worXI9c83xRG7-FBcSHmDuucd4QXmjGCA"
   },
   "envelope_accepted_by_host": {
     "ext_version": "0.1",
@@ -106,7 +106,7 @@
       "offer_id": "o-1",
       "target": {
         "kind": "need",
-        "id": "n-1"
+        "id": "01M4XRC2A00000000000000001"
       },
       "capacity": 2,
       "cost": {
@@ -116,11 +116,12 @@
       },
       "valid_until": "2026-11-02T18:00:00Z"
     },
-    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..GimUKNE0ig7n5HyQppF5vHPG08fqi7zIxzgPbUzn0CB7BzKTXjMMWNjN3s80mnoEhLkTHG0gSNtzveHWn2kiDQ",
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..8RG7PiR8ViqdOGhGvroX9gNIpXz-Nz3khcKxarf2oEhQhIFDPA6f0worXI9c83xRG7-FBcSHmDuucd4QXmjGCA",
     "seq": 7,
     "ts": "2026-10-29T09:30:00.250Z",
     "prev_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   },
   "accepted_still_verifies": true,
-  "prev_hash_of_accepted": "6f6328580af72d4d86955842575fcef8be0659dcba24c3e0b08cab4a1966e90c"
+  "prev_hash_of_accepted": "98466177adfa709dd9a5043ab3531cc3b98b4ffe6472e653753b6502a28d10d3",
+  "submission_digest_of_accepted": "62ef68889d205185a2620ff4947da16e8041fc6023b4c046177cdf205ade799c"
 }

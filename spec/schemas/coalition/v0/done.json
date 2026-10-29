@@ -11,7 +11,7 @@
   ],
   "properties": {
     "task_id": {
-      "$ref": "common.json#/$defs/id"
+      "$ref": "common.json#/$defs/ulid"
     },
     "evidence": {
       "type": "array",

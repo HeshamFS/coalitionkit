@@ -1,0 +1,177 @@
+{
+  "description": "Authenticated log boundary. TEST KEY ONLY: the host seed is public. genesis = SHA-256 hex of JCS({coalition_id, host_card_url, created_at}) is the prev_hash of seq 1; each later prev_hash is the SHA-256 hex of the JCS of the previous envelope with all its fields. A coalition.receipt for seq N has head_hash equal to that hash of entry N. Failure cases an implementation must detect, derived from these entries: drop the last entries (truncated); edit the last entry (receipt_mismatch, even if its own prev_hash is recomputed); edit an earlier entry (broken_chain); remove a middle entry (gap); change a genesis input (bad_genesis).",
+  "host_key": {
+    "kid": "host-key-1",
+    "private_seed_hex": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e",
+    "public_key_hex": "acdb0e29743f0ccb8686d0a104cb96e05abefec1538765e7595869f7dc8c49aa"
+  },
+  "genesis": {
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "host_card_url": "https://host.example.org/card.json",
+    "created_at": "2026-10-29T08:00:00Z",
+    "canonical_utf8": "{\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"created_at\":\"2026-10-29T08:00:00Z\",\"host_card_url\":\"https://host.example.org/card.json\"}",
+    "hash": "deb84fba998c5e69e8040205f29ce693d77d5f9342b23e619a689e7168b40706"
+  },
+  "entries": [
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W8124GP",
+      "type": "coalition.leave",
+      "sender": "https://agents.example.org/p2/card.json",
+      "on_behalf_of": "p2",
+      "scope": {
+        "audience": "host"
+      },
+      "payload": {
+        "reason": "entry 1"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..IRZsuX06JjkT_apmiLoS3d5WuC8z2TNBbqOmjJEJz8hg5TKChJkLxc20YNUV23T1IB3FXXjBg9lAHWAKnLfJAw",
+      "seq": 1,
+      "ts": "2026-10-29T09:01:00Z",
+      "prev_hash": "deb84fba998c5e69e8040205f29ce693d77d5f9342b23e619a689e7168b40706"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W8124GQ",
+      "type": "coalition.leave",
+      "sender": "https://agents.example.org/p2/card.json",
+      "on_behalf_of": "p2",
+      "scope": {
+        "audience": "host"
+      },
+      "payload": {
+        "reason": "entry 2"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..-i9EmEi5Zm55jjN9fkl2_y8PUauyPOwaHLCpcJ96cgU3mwZolF47mKlGp1YWDZj_bVkuIswU5XAtFQt-Qa__DA",
+      "seq": 2,
+      "ts": "2026-10-29T09:02:00Z",
+      "prev_hash": "ea7ccbcf01c89b09bafd967b856a2e48a8ab5322e09d38b79d604de826aa44d5"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W8124GR",
+      "type": "coalition.leave",
+      "sender": "https://agents.example.org/p2/card.json",
+      "on_behalf_of": "p2",
+      "scope": {
+        "audience": "host"
+      },
+      "payload": {
+        "reason": "entry 3"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0.._Xt76uk79dw1tYYYdZPG3adqgO6b7-fI1SGFoP5AYncDIiIwT5dK4aF7DXu7ntAsWRZmRdZ1ibNLZAy94zAQBQ",
+      "seq": 3,
+      "ts": "2026-10-29T09:03:00Z",
+      "prev_hash": "8ffd802c8dd4a14510e247d094f832eb775b8c5768189da4ac936a0f6074c9cd"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W8124GS",
+      "type": "coalition.leave",
+      "sender": "https://agents.example.org/p2/card.json",
+      "on_behalf_of": "p2",
+      "scope": {
+        "audience": "host"
+      },
+      "payload": {
+        "reason": "entry 4"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..yN8Pt7Uaqid2-5u_aKIXjB6VUKlsuCREFBkrbiNCD30CJnIGudAi_rnwzDLmlpS-g8CJ15LzsufY01DgUBpYBg",
+      "seq": 4,
+      "ts": "2026-10-29T09:04:00Z",
+      "prev_hash": "047d4179a6bb9c50e562a2d6fe5985c0e0724dfc9531193257ab244a6726489a"
+    }
+  ],
+  "receipts": [
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W81251A",
+      "type": "coalition.receipt",
+      "sender": "https://host.example.org/card.json",
+      "on_behalf_of": "host",
+      "scope": {
+        "audience": "participants",
+        "participants": [
+          "p2"
+        ]
+      },
+      "payload": {
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "seq": 1,
+        "head_hash": "ea7ccbcf01c89b09bafd967b856a2e48a8ab5322e09d38b79d604de826aa44d5"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6Imhvc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..P_hsks5ZNrSth8oeUx7LcdQe3_KPWzCWJTGl3wqqkkQGQsxpTl0uQlx03W04j6QqaBJ-RARWlzywFlvB0OjVAQ"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W81252A",
+      "type": "coalition.receipt",
+      "sender": "https://host.example.org/card.json",
+      "on_behalf_of": "host",
+      "scope": {
+        "audience": "participants",
+        "participants": [
+          "p2"
+        ]
+      },
+      "payload": {
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "seq": 2,
+        "head_hash": "8ffd802c8dd4a14510e247d094f832eb775b8c5768189da4ac936a0f6074c9cd"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6Imhvc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..DSs0IlI9QhIrBH4GtjswEM1I5edI43LJ5SsyKp0oJb7lBdCLGJsryZRHTcrjLev0QnRMhEvQRaNVSsREekEJCg"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W81253A",
+      "type": "coalition.receipt",
+      "sender": "https://host.example.org/card.json",
+      "on_behalf_of": "host",
+      "scope": {
+        "audience": "participants",
+        "participants": [
+          "p2"
+        ]
+      },
+      "payload": {
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "seq": 3,
+        "head_hash": "047d4179a6bb9c50e562a2d6fe5985c0e0724dfc9531193257ab244a6726489a"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6Imhvc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..wfVuMSEAFqiJeY23H0pL-DJfTUNdjXC0Fu5cwFTCv3WolRehROcFJkX5ATydWJlYuohySXTJ9lBVJdYFvBj_Cg"
+    },
+    {
+      "ext_version": "0.1",
+      "coalition_id": "01M4XRC000000G40R40M30E209",
+      "event_id": "01M4XRC0Z8185GR38E1W81254A",
+      "type": "coalition.receipt",
+      "sender": "https://host.example.org/card.json",
+      "on_behalf_of": "host",
+      "scope": {
+        "audience": "participants",
+        "participants": [
+          "p2"
+        ]
+      },
+      "payload": {
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "seq": 4,
+        "head_hash": "7c0bf0df351caf209abb71a94db358af27a0962d21e7ece93365987954bded86"
+      },
+      "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6Imhvc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..SH9cEIl7I27k6r_hSKx1Z92Fsz5Zeturj9__kDgbaJ-rAbCDSCHmdRUV05ola9L0xzZOO8wgzdo9B3546_bvDQ"
+    }
+  ],
+  "head_hashes": [
+    "ea7ccbcf01c89b09bafd967b856a2e48a8ab5322e09d38b79d604de826aa44d5",
+    "8ffd802c8dd4a14510e247d094f832eb775b8c5768189da4ac936a0f6074c9cd",
+    "047d4179a6bb9c50e562a2d6fe5985c0e0724dfc9531193257ab244a6726489a",
+    "7c0bf0df351caf209abb71a94db358af27a0962d21e7ece93365987954bded86"
+  ]
+}

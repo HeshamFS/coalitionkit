@@ -1,0 +1,6 @@
+components:
+  ReviewBoard:
+    props: [rows]
+order:
+  member:
+    wide: [ReviewBoard, Card]

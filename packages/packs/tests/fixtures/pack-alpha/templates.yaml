@@ -1,0 +1,6 @@
+templates:
+  - id: review-step
+    title: Review the item
+    role: helper
+    requirements: [two reviewers]
+    scope: { audience: roles, roles: [coordinator] }

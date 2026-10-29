@@ -1,0 +1,23 @@
+[project]
+name = "coalitionkit-packs"
+version = "0.1.0.dev0"
+description = "CoalitionKit Discipline Packs: load, validate, sign and verify"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.15"
+dependencies = [
+    "coalitionkit-contracts",
+    "coalitionkit-steward",
+    "coalitionkit-surfaces",
+    "cryptography==50.0.2",
+    "jsonschema==4.26.0",
+    "pydantic==2.14.1",
+    "ruamel.yaml==0.19.1",
+]
+
+[project.scripts]
+coalitionkit-pack = "coalitionkit_packs.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"

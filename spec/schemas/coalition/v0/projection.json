@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/projection.json",
+  "title": "coalition.projection",
+  "description": "Host to member: a redacted or viewer-specific delivery of a logged event, signed by the host key. Never carries the sender's JWS.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "payload"
+  ],
+  "properties": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "seq",
+        "type",
+        "on_behalf_of",
+        "prev_hash",
+        "hash"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "common.json#/$defs/ulid"
+        },
+        "seq": {
+          "$ref": "common.json#/$defs/revision"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^coalition\\.[a-z_]+$"
+        },
+        "on_behalf_of": {
+          "$ref": "common.json#/$defs/id"
+        },
+        "prev_hash": {
+          "$ref": "common.json#/$defs/sha256_hex",
+          "description": "prev_hash of the logged original entry."
+        },
+        "hash": {
+          "$ref": "common.json#/$defs/sha256_hex",
+          "description": "SHA-256 of the JCS form of the logged original entry (the value the next entry's prev_hash holds)."
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "The source payload after redaction or per-viewer projection; not validated against the source type's schema."
+    },
+    "redacted": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^payload\\."
+      },
+      "uniqueItems": true
+    }
+  }
+}

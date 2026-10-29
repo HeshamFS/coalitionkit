@@ -1,0 +1,74 @@
+{
+  "description": "Owner-signed consent. TEST KEYS ONLY: both private seeds are public. consent_sig is a compact JWS with a detached payload ('<protected>..<signature>') by the OWNER key over the JCS of {coalition_id, participant (the decide envelope's on_behalf_of), subject, choice, consent, decided_at}. The agent key signs the envelope as usual. It must NOT verify consent_sig, and the owner key must NOT verify the envelope sig. owner_proof is a detached JWS by the owner key over the JCS of {coalition_id, participant (the join's on_behalf_of), card_url, owner_key}.",
+  "agent_key": {
+    "kid": "test-key-1",
+    "private_seed_hex": "c25f9a89feed702c8fabb78bef6b052ccf62e6923c694fbda04d40db70cb5b13",
+    "public_key_hex": "6e206c4c9e3d21cf886eef5571a06af35503c7f29844acb5e0fbb6743bf5caad"
+  },
+  "owner_key": {
+    "kid": "owner-1",
+    "private_seed_hex": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+    "public_key_hex": "d9bf2148748a85c89da5aad8ee0b0fc2d105fd39d41a4c796536354f0ae2900c",
+    "public_jwk": {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "2b8hSHSKhcidparY7gsPwtEF_TnUGkx5ZTY1TwrikAw",
+      "kid": "owner-1"
+    }
+  },
+  "consent_payload_utf8": "{\"choice\":\"01M4XRC2A00000000000000004\",\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"consent\":true,\"decided_at\":\"2026-10-29T10:15:00Z\",\"participant\":\"p2\",\"subject\":{\"id\":\"01M4XRC2A00000000000000004\",\"kind\":\"plan\",\"revision\":2}}",
+  "consent_payload_sha256": "c2367c52b32268b46360efecc2b8801d257ed8f1b7394805d98e024d0beadcac",
+  "decide_envelope": {
+    "ext_version": "0.1",
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "event_id": "01M4XRC0Z8185GR38E1W8124GM",
+    "type": "coalition.decide",
+    "sender": "https://agents.example.org/p2/card.json",
+    "on_behalf_of": "p2",
+    "scope": {
+      "audience": "host"
+    },
+    "payload": {
+      "subject": {
+        "kind": "plan",
+        "id": "01M4XRC2A00000000000000004",
+        "revision": 2
+      },
+      "choice": "01M4XRC2A00000000000000004",
+      "consent": true,
+      "decided_at": "2026-10-29T10:15:00Z",
+      "consent_sig": "eyJhbGciOiJFZERTQSIsImtpZCI6Im93bmVyLTEiLCJ0eXAiOiJKT1NFIn0..0U_SOon5EPc26RnvCpp6pkyb8PPgQhxrB7Dda7CNkY5Gla0uawh3sKP19s5s8DT-4sBS9CECQQATi5A2z1fwBg"
+    },
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..o2tyayHZM0C2tJedQBcg6GD2uRukcgsHnJWX1CcTDSn5sm9FEF4y_x08EeibiTUihimue_q8kAg16bX0AxP_CQ"
+  },
+  "owner_proof_payload_utf8": "{\"card_url\":\"https://agents.example.org/p2/card.json\",\"coalition_id\":\"01M4XRC000000G40R40M30E209\",\"owner_key\":{\"crv\":\"Ed25519\",\"kid\":\"owner-1\",\"kty\":\"OKP\",\"x\":\"2b8hSHSKhcidparY7gsPwtEF_TnUGkx5ZTY1TwrikAw\"},\"participant\":\"p2\"}",
+  "join_envelope": {
+    "ext_version": "0.1",
+    "coalition_id": "01M4XRC000000G40R40M30E209",
+    "event_id": "01M4XRC0Z8185GR38E1W8124GN",
+    "type": "coalition.join",
+    "sender": "https://agents.example.org/p2/card.json",
+    "on_behalf_of": "p2",
+    "scope": {
+      "audience": "host"
+    },
+    "payload": {
+      "card_url": "https://agents.example.org/p2/card.json",
+      "owner_key": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "2b8hSHSKhcidparY7gsPwtEF_TnUGkx5ZTY1TwrikAw",
+        "kid": "owner-1"
+      },
+      "owner_proof": "eyJhbGciOiJFZERTQSIsImtpZCI6Im93bmVyLTEiLCJ0eXAiOiJKT1NFIn0..ItXFfKsveurFqUUP2ONp_eCBDsBgB_jRda5CRdTWenASHDlwZjCLQJlkkx0P-VYpz3pB6cpuRACND9UH8lQyBw",
+      "roles_requested": [
+        "member"
+      ],
+      "surfaces": [
+        "web"
+      ],
+      "vault": "local"
+    },
+    "sig": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3Qta2V5LTEiLCJ0eXAiOiJKT1NFIn0..ebpr9JUm99MRg3rhIe3_FjAEPN_6lQ0YBYYu17omrffcfTUHPjh-iKQE-BP5kOwM-3esPm5ZFMtYcJ0vE5TeAQ"
+  }
+}

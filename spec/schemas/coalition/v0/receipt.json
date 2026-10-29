@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/receipt.json",
+  "title": "coalition.receipt",
+  "description": "Host to sender, with every acknowledgement: the host-signed head of the log after the event.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "coalition_id",
+    "seq",
+    "head_hash"
+  ],
+  "properties": {
+    "coalition_id": {
+      "$ref": "common.json#/$defs/ulid"
+    },
+    "seq": {
+      "$ref": "common.json#/$defs/revision"
+    },
+    "head_hash": {
+      "$ref": "common.json#/$defs/sha256_hex"
+    }
+  }
+}

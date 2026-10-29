@@ -1,0 +1,142 @@
+/* Gallery sheet chrome, ported from ck.css (.sheet, .cell). */
+/* ---------- Catalog sheet ---------- */
+.sheet {
+  position: relative;
+  width: 1440px;
+  overflow: hidden;
+  display: block;
+  padding: 28px 36px 36px;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  font-size: 14px;
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--bg-dot) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+.sheet-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.sheet-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.fam {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 10px;
+}
+.fam-n {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.fam-t {
+  font-size: 14px;
+  font-weight: 600;
+}
+.fam-line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-strong);
+}
+.g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.g3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.g4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.cell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.demo-dark {
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+  border-radius: var(--r-card);
+  padding: 10px;
+}
+.cell-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+.door {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.door span {
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 16px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.props {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+}
+.evts {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--blue-text);
+}
+
+.span2 {
+  grid-column: span 2;
+}
+.span3 {
+  grid-column: span 3;
+}
+.span4 {
+  grid-column: span 4;
+}
+.gallery-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 1500px) {
+  .sheet {
+    width: auto;
+  }
+}

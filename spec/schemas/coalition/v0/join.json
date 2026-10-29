@@ -2,11 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://coalitionkit.dev/schemas/coalition/v0/join.json",
   "title": "coalition.join",
-  "description": "Member to host: asks to join with the listed roles.",
+  "description": "Member to host: asks to join with the listed roles and binds the owner's Ed25519 key to the participant.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "card_url",
+    "owner_key",
     "owner_proof",
     "roles_requested",
     "surfaces",
@@ -17,9 +18,11 @@
       "type": "string",
       "format": "uri"
     },
+    "owner_key": {
+      "$ref": "common.json#/$defs/ed25519_jwk"
+    },
     "owner_proof": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "common.json#/$defs/detached_jws"
     },
     "roles_requested": {
       "type": "array",
