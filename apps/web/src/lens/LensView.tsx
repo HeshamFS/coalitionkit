@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { LensCard, type LensGesture } from "../components/lens";
-import { answerFor } from "../feed/actions";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "../feed/useFeed";
 import { buildSteps, type Gesture, type LensStep, press, START } from "./machine";
 
@@ -9,58 +8,30 @@ import { buildSteps, type Gesture, type LensStep, press, START } from "./machine
 export const LENS_COMPONENTS = ["LensCard"] as const;
 
 function hintsFor(step: LensStep | undefined): LensGesture[] {
-  if (step?.kind === "ask") {
-    return [
-      { gesture: "Tap", does: "yes" },
-      { gesture: "Swipe", does: "no", tone: "muted" },
-    ];
-  }
   return [
-    { gesture: "Tap", does: "got it" },
+    { gesture: "Tap", does: step?.kind === "phone" ? "next" : "got it" },
     { gesture: "Swipe", does: "next", tone: "muted" },
   ];
 }
 
 /**
  * The lens door (glasses simulator): one card, one step, 600 x 600. It reads the same feed as
- * the room and answers a request only through the host's answers endpoint, after a confirm step.
+ * the room. It never answers anything: a request is shown with "Decide on your phone".
  */
 export function LensView() {
   const feed = useFeedSnapshot();
   const agent = useAgentSnapshot();
-  const { answer, agent: agentStore, signOut } = useFeedApi();
+  const { signOut } = useFeedApi();
   const [machine, setMachine] = useState(START);
-  const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
   const frame = useRef<HTMLDivElement>(null);
 
-  const steps = useMemo(
-    () => buildSteps(feed.state, agent.requests, sent),
-    [feed.state, agent.requests, sent],
-  );
+  const steps = useMemo(() => buildSteps(feed.state, agent.requests), [feed.state, agent.requests]);
   const index = Math.max(0, Math.min(machine.index, steps.length - 1));
   const step = steps[index];
 
   useEffect(() => frame.current?.focus(), []);
 
-  const gesture = (g: Gesture) => {
-    if (agent.refusal) {
-      agentStore.setRefusal(null);
-      return;
-    }
-    const result = press(machine, steps, g);
-    setMachine(result.state);
-    if (!result.send) return;
-    const { request, consent } = result.send;
-    let body: ReturnType<typeof answerFor>;
-    try {
-      body = answerFor(request, consent);
-    } catch {
-      return;
-    }
-    void answer(body).then(() => {
-      if (agentStore.getSnapshot().refusal === null) setSent((s) => new Set(s).add(request.id));
-    });
-  };
+  const gesture = (g: Gesture) => setMachine((m) => press(m, steps, g));
 
   const onKey = (e: KeyboardEvent) => {
     const map: Record<string, Gesture> = {
@@ -75,41 +46,10 @@ export function LensView() {
     gesture(g);
   };
 
-  let card: ReactNode;
-  if (agent.refusal) {
-    card = (
-      <LensCard
-        eyebrow="The host"
-        title="Not taken"
-        body={agent.refusal}
-        hints={[{ gesture: "Tap", does: "close" }]}
-      />
-    );
-  } else if (!step || (feed.state === null && feed.status === "connecting")) {
-    card = <LensCard eyebrow="Coalition" title="Connecting" />;
-  } else if (machine.ack !== null) {
-    card = (
-      <LensCard
-        state="acknowledged"
-        eyebrow={step.eyebrow}
-        title={machine.ack}
-        hints={[{ gesture: "Tap", does: "close" }]}
-      />
-    );
-  } else if (machine.confirming && step.kind === "ask") {
-    card = (
-      <LensCard
-        eyebrow="Confirm"
-        title={machine.confirming.consent ? "Send yes?" : "Send no?"}
-        body={step.title}
-        hints={[
-          { gesture: "Tap", does: "send" },
-          { gesture: "Swipe", does: "cancel", tone: "muted" },
-        ]}
-      />
-    );
-  } else {
-    card = (
+  const card =
+    !step || (feed.state === null && feed.status === "connecting") ? (
+      <LensCard eyebrow="Coalition" title="Connecting" />
+    ) : (
       <LensCard
         eyebrow={step.eyebrow}
         title={step.title}
@@ -118,7 +58,6 @@ export function LensView() {
         hints={hintsFor(step)}
       />
     );
-  }
 
   return (
     <main className="lens-page" data-testid="lens" data-step={step?.id ?? "none"}>
@@ -150,7 +89,7 @@ export function LensView() {
           Sign out
         </button>
         <span className="small">
-          Keys: Enter or Space taps, the arrow keys swipe. A decision is always confirmed once more.
+          Keys: Enter or Space taps, the arrow keys swipe. Decisions are made on your phone.
         </span>
       </fieldset>
     </main>

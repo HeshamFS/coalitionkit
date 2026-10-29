@@ -39,9 +39,29 @@ type Seat = { page: Page; frame: () => Frame; kind: "kv" | "lens" };
 /** Runs in every frame before its scripts: arms a watch for "N log entries" and times the paint. */
 function installProbe() {
   const w = window as unknown as {
-    __ck: { t: number | null; arm: (k: string, n: number) => void };
+    __ck: { t: number | null; wire: string; arm: (k: string, n: number) => void };
+  };
+  // Keep everything this page's browser receives on the feed and agent streams, as text.
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const res = await realFetch(input, init);
+    const raw =
+      typeof input === "string" ? input : input instanceof Request ? input.url : `${input}`;
+    if (!/\/v1\/(feed|agent)$/.test(new URL(raw, location.href).pathname) || !res.body) return res;
+    const [mine, theirs] = res.body.tee();
+    void (async () => {
+      const reader = theirs.getReader();
+      const decoder = new TextDecoder();
+      for (;;) {
+        const chunk = await reader.read().catch(() => ({ done: true, value: undefined }));
+        if (chunk.done) return;
+        w.__ck.wire += decoder.decode(chunk.value, { stream: true });
+      }
+    })();
+    return new Response(mine, res);
   };
   w.__ck = {
+    wire: "",
     t: null,
     arm(kind, n) {
       w.__ck.t = null;
@@ -184,6 +204,49 @@ async function open(
   return { seats, mcpRequests, close: () => context.close() };
 }
 
+const carries = (text: string) => text.includes(MARKER);
+
+/** The first complete STATE_SNAPSHOT frame of an SSE response, as its `data: ...` line. */
+async function firstSnapshotFrame(res: Response): Promise<string> {
+  const reader = (res.body as ReadableStream<Uint8Array>).getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  for (;;) {
+    const chunk = await reader.read();
+    if (chunk.done) throw new Error("no snapshot");
+    text += decoder.decode(chunk.value, { stream: true });
+    const hit = text
+      .split("\n\n")
+      .find((f) => f.includes('"STATE_SNAPSHOT"') && f.startsWith("data: "));
+    if (hit && text.includes(`${hit}\n\n`)) {
+      await reader.cancel();
+      return hit;
+    }
+  }
+}
+
+/** A room for p2 whose feed carries `snapshot` instead of the real one. */
+async function controlPage(browser: Browser, rig: Rig, snapshot: object): Promise<Seat> {
+  const context = await browser.newContext({ viewport: { width: 1000, height: 760 } });
+  await context.addInitScript(installProbe);
+  const page = await context.newPage();
+  await page.addInitScript(
+    (t) => sessionStorage.setItem("ck.token", t),
+    rig.info.tokens.p2 as string,
+  );
+  await page.route("**/v1/feed", (route) => {
+    const frames = [{ type: "RUN_STARTED", threadId: "control", runId: "control-1" }, snapshot];
+    return route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: frames.map((f) => `data: ${JSON.stringify(f)}\n\n`).join(""),
+    });
+  });
+  await page.goto(`${origin(40)}/`);
+  await expect(page.getByText("Log entries")).toBeVisible();
+  return { page, frame: () => page.mainFrame(), kind: "kv" };
+}
+
 const percentile = (sorted: number[], p: number) =>
   sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)] as number;
 
@@ -207,18 +270,49 @@ test("one state, four roles: the room, the lens and the MCP App view agree and s
           .toEqual(EXPECTED[role]);
       }
     }
-    // Content outside a role's scope reaches no part of its pages.
-    for (const role of ROLES) {
-      const sees = role === "p1" || role === "p4";
-      const log = await seats[role].mcp.page.evaluate(() =>
+    // Content outside a role's scope reaches no part of what its browser receives: every feed
+    // snapshot and delta, every agent-session payload and every MCP tool result, not just the DOM.
+    const received = async (seat: Seat) =>
+      seat.page.evaluate(() => (window as never as { __ck: { wire: string } }).__ck.wire);
+    const mcpData = (role: Role) =>
+      seats[role].mcp.page.evaluate(() =>
         JSON.stringify((window as unknown as { __hostLog: unknown }).__hostLog),
       );
-      expect(log.includes(MARKER), `${role} mcp data`).toBe(sees);
-      for (const surface of ["web", "lens", "mcp"] as const) {
+    for (const role of ROLES) {
+      const sees = role === "p1" || role === "p4";
+      for (const surface of ["web", "lens"] as const) {
+        const wire = await received(seats[role][surface]);
+        // The streams were read at all (guards against an empty capture passing every check).
+        expect(wire, `${role} ${surface} wire`).toContain("STATE_SNAPSHOT");
+        expect(wire, `${role} ${surface} wire`).toContain("coalition.charter");
+        expect(carries(wire), `${role} ${surface} wire`).toBe(sees);
+      }
+      const log = await mcpData(role);
+      expect(log, `${role} mcp data`).toContain("coalition.charter");
+      expect(carries(log), `${role} mcp data`).toBe(sees);
+      for (const surface of SURFACES) {
         const html = await seats[role][surface].frame().content();
-        expect(html.includes(MARKER), `${role} ${surface} dom`).toBe(false);
+        expect(carries(html), `${role} ${surface} dom`).toBe(false);
       }
     }
+
+    // Negative control: a marker slipped into an existing event of p2's own feed. The counts and
+    // the DOM do not change, so the earlier checks would pass; the wire check must catch it.
+    const upstream = await fetch(`http://127.0.0.1:${RIG_PORT}/v1/feed`, {
+      headers: { Authorization: `Bearer ${rig.info.tokens.p2}` },
+    });
+    const snapshotFrame = await firstSnapshotFrame(upstream);
+    const tampered = JSON.parse(snapshotFrame.slice("data: ".length)) as {
+      snapshot: { events: Record<string, { payload: Record<string, unknown> }> };
+    };
+    const first = Object.values(tampered.snapshot.events)[0];
+    if (!first) throw new Error("no event to tamper with");
+    first.payload.note = MARKER;
+    const control = await controlPage(browser, rig, tampered);
+    const tamperedWire = await received(control);
+    expect(carries(tamperedWire), "control: marker in p2's stream is caught").toBe(true);
+    await expect.poll(() => snapshot(control)).toEqual(EXPECTED.p2); // counts alone would pass
+    await control.page.context().close();
 
     // Pictures of the three surfaces for the owner to compare with the sheets.
     const shots = resolve(import.meta.dirname, "../../test-results/doors");

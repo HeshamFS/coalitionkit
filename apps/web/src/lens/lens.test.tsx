@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { OpenRequest } from "../feed/agent";
@@ -34,143 +34,130 @@ describe("lens steps and gestures", () => {
       request(),
       request({ id: "x:t1:1:u1", kind: "tension_option" }),
     ]);
-    expect(steps.map((s) => s.kind)).toEqual(["info", "info", "ask", "phone"]);
+    expect(steps.map((s) => s.kind)).toEqual(["info", "info", "phone", "phone"]);
     expect(steps[0]).toMatchObject({ title: "Goal 1", body: "1 member" });
     expect(steps[1]).toMatchObject({ title: "3 log entries" });
-    expect(buildSteps(state, [request()], new Set(["plan:p1:2:u1"]))).toHaveLength(2);
+    expect(steps[2]).toMatchObject({ title: "Take Plan A?", body: "Decide on your phone" });
+    expect(steps[3]?.body).toBe("Decide on your phone");
   });
 
   it("moves with tap and swipe and never past either end", () => {
-    const steps = buildSteps(state, []);
+    const steps = buildSteps(state, [request()]);
     let s: LensState = START;
-    s = press(s, steps, "back").state;
+    s = press(s, steps, "back");
     expect(s.index).toBe(0);
-    s = press(s, steps, "tap").state;
-    s = press(s, steps, "next").state;
-    expect(s.index).toBe(1);
+    for (let i = 0; i < 6; i++) s = press(s, steps, i % 2 ? "tap" : "next");
+    expect(s.index).toBe(2);
   });
 
-  it("sends nothing on the first tap: an answer needs a confirm step", () => {
+  it("a gesture has no other effect than moving", () => {
     const steps = buildSteps(state, [request()]);
-    const first = press({ ...START, index: 2 }, steps, "tap");
-    expect(first.send).toBeUndefined();
-    expect(first.state.confirming).toEqual({ consent: true });
-    const swipe = press(first.state, steps, "next");
-    expect(swipe.send).toBeUndefined();
-    expect(swipe.state.confirming).toBeNull();
-    const second = press(first.state, steps, "tap");
-    expect(second.send).toMatchObject({ consent: true, request: { id: "plan:p1:2:u1" } });
-    expect(second.state.ack).toBe("Answer sent");
-  });
-
-  it("a swipe on a request means no, and still needs the confirm step", () => {
-    const steps = buildSteps(state, [request()]);
-    const first = press({ ...START, index: 2 }, steps, "next");
-    expect(first.send).toBeUndefined();
-    expect(first.state.confirming).toEqual({ consent: false });
-    expect(press(first.state, steps, "tap").send?.consent).toBe(false);
-  });
-
-  it("a request that needs an option is left to the phone", () => {
-    const steps = buildSteps(state, [request({ id: "t:t1:1:u1", kind: "tension_option" })]);
-    const r = press({ ...START, index: 2 }, steps, "tap");
-    expect(r.send).toBeUndefined();
-    expect(r.state.confirming).toBeNull();
+    expect(Object.keys(press({ index: 2 }, steps, "tap"))).toEqual(["index"]);
   });
 });
 
-const sse = (events: object[]) =>
-  new Response(
-    new ReadableStream({
-      start(controller) {
-        const enc = new TextEncoder();
-        for (const e of events) controller.enqueue(enc.encode(`data: ${JSON.stringify(e)}\n\n`));
-      },
-    }),
-    { status: 200, headers: { "Content-Type": "text/event-stream" } },
-  );
+const interrupt = (id: string, revision: number, message: string) => ({
+  type: "RUN_FINISHED",
+  threadId: "t",
+  runId: `ra${revision}`,
+  outcome: {
+    type: "interrupt",
+    interrupts: [{ id, message, metadata: { subject: { kind: "plan", id: "p1", revision } } }],
+  },
+});
 
-function host(answers: unknown[]): Fetch {
-  return vi.fn(async (url: string, init: RequestInit) => {
+/** An SSE response that stays open: `push` plays the host sending a later event. */
+function stream(first: object[]) {
+  const enc = new TextEncoder();
+  let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+  const body = new ReadableStream<Uint8Array>({
+    start(c) {
+      controller = c;
+      for (const e of first)
+        c.enqueue(
+          enc.encode(`data: ${JSON.stringify(e)}
+
+`),
+        );
+    },
+  });
+  return {
+    response: new Response(body, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
+    push: (e: object) =>
+      controller?.enqueue(
+        enc.encode(`data: ${JSON.stringify(e)}
+
+`),
+      ),
+  };
+}
+
+function host() {
+  const posts: { url: string; body: unknown }[] = [];
+  const agent = stream([
+    { type: "RUN_STARTED", threadId: "t", runId: "ra0" },
+    interrupt("plan:p1:2:u1", 2, "Take Plan A?"),
+  ]);
+  const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
     const path = new URL(url, "http://x").pathname;
     if (path === "/v1/feed") {
-      return sse([
+      return stream([
         { type: "RUN_STARTED", threadId: "t", runId: "r1" },
         { type: "STATE_SNAPSHOT", snapshot: state },
-      ]);
+      ]).response;
     }
-    if (path === "/v1/agent") {
-      return sse([
-        { type: "RUN_STARTED", threadId: "t", runId: "ra" },
-        {
-          type: "RUN_FINISHED",
-          threadId: "t",
-          runId: "ra",
-          outcome: {
-            type: "interrupt",
-            interrupts: [
-              {
-                id: "plan:p1:2:u1",
-                message: "Take Plan A?",
-                metadata: { subject: { kind: "plan", id: "p1", revision: 2 } },
-              },
-            ],
-          },
-        },
-      ]);
-    }
-    answers.push(JSON.parse(String(init.body)));
+    if (path === "/v1/agent") return agent.response;
+    posts.push({ url: path, body: init.body });
     return new Response(JSON.stringify({ seq: 9 }), { status: 200 });
   }) as unknown as Fetch;
+  return { fetchFn, posts, agent };
 }
 
 const config: HostConfig = { baseUrl: "", token: "tok-1" };
 
 describe("the lens view", () => {
-  it("draws one card for one step and answers only after the confirm step", async () => {
-    const answers: unknown[] = [];
+  it("shows a request as a card that sends you to the phone, and sends nothing", async () => {
+    const h = host();
     const user = userEvent.setup();
     render(
-      <FeedProvider config={config} fetchFn={host(answers)}>
+      <FeedProvider config={config} fetchFn={h.fetchFn}>
         <LensView />
       </FeedProvider>,
     );
     const frame = await screen.findByRole("application", { name: /Lens display/ });
     expect(await screen.findByRole("heading", { name: "Goal 1" })).toBeInTheDocument();
     expect(frame.querySelectorAll("article")).toHaveLength(1);
-
     await user.click(screen.getByRole("button", { name: "Swipe next" }));
-    expect(screen.getByRole("heading", { name: "3 log entries" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Swipe next" }));
-    await screen.findByRole("heading", { name: "Take Plan A?" });
-
+    expect(await screen.findByRole("heading", { name: "Take Plan A?" })).toBeInTheDocument();
+    expect(screen.getByText("Decide on your phone")).toBeInTheDocument();
+    // Every gesture, by button and by key, at the request step.
     await user.click(screen.getByRole("button", { name: "Tap" }));
-    expect(screen.getByRole("heading", { name: "Send yes?" })).toBeInTheDocument();
-    expect(answers).toHaveLength(0);
-
     await user.click(screen.getByRole("button", { name: "Tap" }));
-    await waitFor(() => expect(answers).toHaveLength(1));
-    expect(answers[0]).toEqual({ interrupt_id: "plan:p1:2:u1", consent: true });
+    await user.keyboard("{Enter}{ }{ArrowRight}{ArrowLeft}{ArrowRight}{Enter}");
+    expect(h.posts).toEqual([]);
   });
 
-  it("answers from the keyboard with the same two steps", async () => {
-    const answers: unknown[] = [];
+  it("sends nothing after live request updates either (a new revision, a new request)", async () => {
+    const h = host();
     const user = userEvent.setup();
     render(
-      <FeedProvider config={config} fetchFn={host(answers)}>
+      <FeedProvider config={config} fetchFn={h.fetchFn}>
         <LensView />
       </FeedProvider>,
     );
     await screen.findByRole("heading", { name: "Goal 1" });
     await user.keyboard("{ArrowRight}{ArrowRight}");
     await screen.findByRole("heading", { name: "Take Plan A?" });
-    await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("heading", { name: "Send no?" })).toBeInTheDocument();
-    expect(answers).toHaveLength(0);
-    await user.keyboard("{Enter}");
-    await waitFor(() =>
-      expect(answers).toEqual([{ interrupt_id: "plan:p1:2:u1", consent: false }]),
-    );
+    h.agent.push(interrupt("plan:p1:3:u1", 3, "Take Plan A, revision 3?"));
+    await screen.findByRole("heading", { name: "Take Plan A, revision 3?" });
+    await user.keyboard("{Enter}{ArrowRight}{Enter}");
+    await user.click(screen.getByRole("button", { name: "Tap" }));
+    h.agent.push(interrupt("plan:p2:1:u1", 1, "Take Plan B?"));
+    await screen.findByRole("heading", { name: "Take Plan B?" });
+    await user.keyboard("{Enter}{Enter}{ArrowRight}");
+    await user.click(screen.getByRole("button", { name: "Tap" }));
+    expect(h.posts).toEqual([]);
   });
 });
 
@@ -185,7 +172,7 @@ describe("the lens uses only components that list the lens door", () => {
 
   it("draws nothing else", async () => {
     render(
-      <FeedProvider config={config} fetchFn={host([])}>
+      <FeedProvider config={config} fetchFn={host().fetchFn}>
         <LensView />
       </FeedProvider>,
     );
