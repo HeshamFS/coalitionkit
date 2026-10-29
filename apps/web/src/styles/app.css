@@ -1,0 +1,213 @@
+/* App-level rules: page frame, focus rings, reduced motion, responsive shell. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+a {
+  color: var(--blue-text);
+}
+a:hover {
+  color: var(--ink);
+}
+button {
+  font-family: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:not(:disabled):hover {
+  background: var(--surface-2);
+}
+.btn-primary:not(:disabled):hover {
+  background: var(--btn-hover);
+}
+.btn-ink:not(:disabled):hover {
+  background: var(--ink-2);
+}
+.btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+.btn-ghost,
+.icon-btn {
+  cursor: pointer;
+}
+.btn-fill {
+  width: 100%;
+}
+.compact .btn,
+.compact .btn-sm {
+  min-height: 44px;
+}
+.seen {
+  background: var(--blue-tint);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.shell-root {
+  height: 100vh;
+  min-height: 560px;
+}
+.shell-root .shell {
+  height: 100%;
+  border-radius: 0;
+  border: 0;
+}
+.shell-body {
+  display: grid;
+  grid-template-columns: 188px 1fr 300px;
+  min-height: 0;
+}
+.shell-body.no-dock {
+  grid-template-columns: 188px 1fr;
+}
+.agent-dock {
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.canvas-scroll {
+  overflow: auto;
+  padding: 44px 24px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+.tray-dock {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 16px;
+}
+.deck-i {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  width: 100%;
+  text-align: left;
+}
+.deck-i:hover {
+  background: var(--surface-3);
+}
+.deck-on:hover {
+  background: var(--surface);
+}
+.phone-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--canvas);
+}
+.phone-stack {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.phone-root .tabbar button {
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 9.5px;
+  color: var(--ink-3);
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+}
+.phone-root .tabbar button[aria-selected="true"] {
+  color: var(--blue-text);
+  font-weight: 600;
+}
+.surface-host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bubble-in,
+.bubble-out {
+  display: block;
+}
+@media (max-width: 880px) {
+  .shell-body,
+  .shell-body.no-dock {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .flash {
+    animation: none;
+    background: var(--blue-tint);
+  }
+}
+
+.g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.g3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.g4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .g2,
+  .g3,
+  .g4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

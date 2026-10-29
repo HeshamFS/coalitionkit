@@ -1,0 +1,612 @@
+/* Ported from the owner's Coalition Blue kit (ck.css). Colours are tokens, see tokens.css. */
+/* ---------- Text ---------- */
+.caps {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.small {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.answer {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.h-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.h-meta {
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.h-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  font-size: 12.5px;
+}
+.kv dt {
+  color: var(--ink-2);
+}
+.kv dd {
+  margin: 0;
+}
+
+/* ---------- Containers ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.card-2 {
+  background: var(--surface-2);
+}
+.card-live {
+  border: 2px solid var(--blue);
+  padding: 9px 11px;
+}
+.card-ask {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+}
+.card-dashed {
+  border: 1px dashed var(--line-strong);
+  box-shadow: none;
+}
+
+/* ---------- Controls ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+}
+.btn-ink {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-fill);
+}
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.btn-lg {
+  height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  place-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.chip-on {
+  background: var(--blue-tint);
+  border-color: var(--blue-line);
+  color: var(--blue-text);
+  font-weight: 500;
+}
+.seg {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 1px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  align-self: flex-start;
+}
+.seg button {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.input {
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.input .unit {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.switch {
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--blue);
+  position: relative;
+  flex: none;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #ffffff;
+}
+.switch-off {
+  background: var(--line-strong);
+}
+.switch-off::after {
+  right: auto;
+  left: 2px;
+}
+.box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--surface);
+}
+.box-on {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+}
+.radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  flex: none;
+}
+.radio-on {
+  border: 5px solid var(--blue);
+}
+
+/* ---------- Status, provenance, scope ---------- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.tag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.t-agreed {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.t-needs {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+.t-changed {
+  background: var(--blue-tint);
+  color: var(--blue-text);
+}
+.t-private {
+  background: var(--mute-bg);
+  color: var(--mute-fg);
+}
+.t-blocked {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.b-measured {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.b-vault {
+  background: var(--mute-bg);
+  color: var(--mute-fg);
+}
+.b-signed {
+  background: var(--blue-tint);
+  color: var(--blue-text);
+}
+.b-model {
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px dashed #8a8578;
+}
+.b-estimate {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.b-example {
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px dashed var(--line-strong);
+}
+.scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.redact {
+  display: inline-block;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--ink);
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+/* ---------- Seats and presence ---------- */
+.av {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.av-sq {
+  border-radius: 6px;
+}
+.pin {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.s1 {
+  background: var(--seat-1);
+}
+.s2 {
+  background: var(--seat-2);
+}
+.s3 {
+  background: var(--seat-3);
+}
+.s4 {
+  background: var(--seat-4);
+}
+.s5 {
+  background: var(--seat-5);
+}
+.sh {
+  background: var(--ink);
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex: none;
+}
+.dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.dock b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.cursor-tag {
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Log, code, bars ---------- */
+.code {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.ln {
+  display: flex;
+  gap: 10px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.8;
+  border-left: 3px solid transparent;
+}
+.ln .no {
+  width: 28px;
+  text-align: right;
+  color: var(--ink-3);
+  flex: none;
+}
+.ln-hit {
+  border-left-color: var(--blue);
+  background: var(--blue-tint);
+}
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 999px;
+}
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tbl th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-2);
+  font-size: 11px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.tbl td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.skel {
+  background: linear-gradient(90deg, var(--skel-a) 0%, var(--skel-b) 50%, var(--skel-a) 100%);
+  background-size: 600px 100%;
+  animation: ckSkel 1.3s linear infinite;
+  border-radius: 6px;
+}
+
+/* ---------- Motion (every movement reports something real) ---------- */
+@keyframes ckIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ckFlash {
+  0% {
+    background: var(--flash-from);
+  }
+  100% {
+    background: var(--blue-tint);
+  }
+}
+@keyframes ckPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--blue-rgb), 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(var(--blue-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--blue-rgb), 0);
+  }
+}
+@keyframes ckSkel {
+  0% {
+    background-position: -300px 0;
+  }
+  100% {
+    background-position: 300px 0;
+  }
+}
+@keyframes ckSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ckFlow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.in {
+  animation: ckIn 0.45s cubic-bezier(0.2, 0, 0, 1) both;
+}
+.flash {
+  animation: ckFlash 0.9s ease-out both;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.pulse {
+  animation: ckPulse 1.4s ease-out infinite;
+}
+.spin {
+  animation: ckSpin 1s linear infinite;
+}
+.flow {
+  stroke-dasharray: 4 8;
+  animation: ckFlow 1.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .in,
+  .flash,
+  .pulse,
+  .skel,
+  .spin,
+  .flow {
+    animation: none;
+  }
+}
