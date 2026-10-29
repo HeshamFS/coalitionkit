@@ -72,6 +72,24 @@ def event_list(surface: dict[str, Any]) -> list[dict[str, Any]]:
     return sorted(found, key=lambda e: int(e.get("seq", 0)))  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType, reportUnknownVariableType]
 
 
+#: How much of one entry's own text the plain-text mirror carries.
+TEXT_PREVIEW = 280
+
+
+def event_line(event: dict[str, Any]) -> str:
+    """One log entry; a note's own text is shown, since hosts that read only text need it.
+
+    The text comes from the same projection as the structured result, so a field the viewer may
+    not see (redacted or out of scope) is already absent here.
+    """
+    line = f"- #{event.get('seq')} {event.get('type')}"
+    payload: Any = event.get("payload")
+    content: Any = payload.get("content") if isinstance(payload, dict) else None  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    if isinstance(content, str) and content.strip():
+        line += ": " + " ".join(content.split())[:TEXT_PREVIEW]
+    return line
+
+
 def surface_text(data: dict[str, Any]) -> str:
     """A plain-text rendering of the rebuilt surface, for hosts that render no view."""
     surface: dict[str, Any] = data.get("surface", {})
@@ -88,7 +106,7 @@ def surface_text(data: dict[str, Any]) -> str:
     lines = [str(title), f"Status: {surface.get('status', 'unknown')}"]
     if events:
         lines.append(f"Log entries: {len(events)}")
-        lines.extend(f"- #{e.get('seq')} {e.get('type')}" for e in events)
+        lines.extend(event_line(e) for e in events)
     for task in surface.get("tasks", []):
         lines.append(f"- task {task.get('task_id')}: {task.get('status')} {task.get('title', '')}")
     for question in surface.get("questions", []):

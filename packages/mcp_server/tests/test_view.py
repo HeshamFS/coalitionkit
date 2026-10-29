@@ -53,6 +53,11 @@ async def test_my_view_carries_the_viewers_events_in_order_and_readable_text(rig
         events = {
             "b": {"type": "coalition.join", "seq": 2, "payload": {}, "hash": "never"},
             "a": {"type": "coalition.charter", "seq": 1, "payload": {"goal": "Goal 1"}},
+            "c": {
+                "type": "coalition.observe",
+                "seq": 3,
+                "payload": {"content": "Room  is" + chr(10) + "free"},
+            },
         }
         return {"coalition_id": coalition_id, "events": events, "secret_note": "never shown"}
 
@@ -61,9 +66,11 @@ async def test_my_view_carries_the_viewers_events_in_order_and_readable_text(rig
         result = await client.call_tool("my_view", {"coalition_id": C1, "device": "mcp-app"})
     assert not result.is_error
     data = result.structured_content
-    assert [e["seq"] for e in data["surface"]["events"]] == [1, 2]
+    assert [e["seq"] for e in data["surface"]["events"]] == [1, 2, 3]
     assert data["surface"]["events"][0]["payload"] == {"goal": "Goal 1"}
     text = result.content[0].text  # type: ignore[union-attr]
-    assert text.splitlines()[0] == "Goal 1" and "Log entries: 2" in text
+    assert text.splitlines()[0] == "Goal 1" and "Log entries: 3" in text
+    # A host that reads only the text still sees a note's own words.
+    assert "- #3 coalition.observe: Room is free" in text.splitlines()
     assert "never" not in str(result)  # fields no allowlist names are dropped
     assert (result.meta or {})["ui"]["resourceUri"] == VIEW
