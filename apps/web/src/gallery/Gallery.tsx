@@ -4,6 +4,7 @@ import "../styles/gallery.css";
 import { IMPLEMENTED } from "../catalog";
 import { Badge } from "../components/primitives";
 import { Basic } from "./SectionsBasic";
+import { Lens } from "./SectionsLens";
 import { Shell } from "./SectionsShell";
 import { Work } from "./SectionsWork";
 
@@ -65,6 +66,7 @@ export function Gallery() {
       <Basic />
       <Work />
       <Shell />
+      <Lens />
       <div className="small" style={{ marginTop: 18 }}>
         Every value bound by path; numbers carry provenance; nothing renders outside the viewer
         scope.

@@ -1,0 +1,151 @@
+/* The lens door: 600 x 600, black is transparent, large type, high contrast, no hover.
+   Colours are the kit's dark-door tokens; text is 20 px or more at this size. */
+.lens-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px 40px;
+  background: var(--canvas);
+  color: var(--ink);
+}
+.lens-frame {
+  width: 600px;
+  height: 600px;
+  flex: none;
+  box-sizing: border-box;
+  background: #000;
+  color: #fff;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  font-family: var(--font-ui);
+}
+.lens-frame:focus-visible {
+  outline: 3px solid var(--dark-blue);
+  outline-offset: 3px;
+}
+.lens-card {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+.lens-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.lens-eyebrow {
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--dark-ink-2);
+}
+.lens-dots {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.lens-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dark-line);
+}
+.lens-dots span.on {
+  background: var(--dark-blue);
+}
+.lens-main {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lens-title {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+.lens-body {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  color: var(--dark-ink-2);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.lens-card[data-state="acknowledged"] .lens-title {
+  color: var(--dark-ink-2);
+}
+.lens-hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--dark-blue);
+}
+.lens-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.lens-hint.muted {
+  color: var(--dark-ink-2);
+  font-weight: 500;
+  margin-left: auto;
+}
+.lens-sim {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.lens-sim .small {
+  flex-basis: 100%;
+  text-align: center;
+}
+.lens-caps {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lens-card {
+    animation: lens-in 120ms ease-out;
+  }
+}
+@keyframes lens-in {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}

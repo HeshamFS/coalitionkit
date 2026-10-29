@@ -141,6 +141,7 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
             "tasks": (TASK,),
             "questions": (QUESTION,),
             "decisions": ({"subject": SUBJECT, "prompt": LEAF},),
+            "events": ({"seq": LEAF, "type": LEAF, "payload": JSON},),
         },
     },
     "pending_questions": {"coalition_id": LEAF, "questions": (QUESTION,)},
