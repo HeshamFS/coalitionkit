@@ -72,7 +72,7 @@ def _dicts(value: Any) -> list[dict[str, Any]]:
 def _int_or_zero(value: Any) -> int:
     try:
         return max(0, int(value or 0))
-    except TypeError, ValueError:
+    except TypeError, ValueError, OverflowError:
         return 0
 
 

@@ -432,3 +432,13 @@ async def test_transcription_is_billed_when_fields_are_malformed() -> None:
     meter = CostMeter(load_price_table())
     await _media(handler, meter).transcribe(_wav(frames=16_000), coalition_id=COALITION)
     assert meter.total(COALITION) == 50
+
+
+async def test_transcription_is_billed_when_the_duration_overflows() -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        body = b'{"transcript": "x", "audioDurationMs": 1e309, "turns": []}'
+        return httpx2.Response(200, content=body, headers={"content-type": "application/json"})
+
+    meter = CostMeter(load_price_table())
+    await _media(handler, meter).transcribe(_wav(frames=16_000), coalition_id=COALITION)
+    assert meter.total(COALITION) == 50
