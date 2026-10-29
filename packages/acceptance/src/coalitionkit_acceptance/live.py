@@ -12,10 +12,10 @@ import os
 
 from pydantic import SecretStr
 
-from coalitionkit_models import CostMeter, ModelGateway
+from coalitionkit_models import ModelGateway
 
 from .gateways import Kit
-from .ledger import KEY_VAR, dedicated_key_set
+from .ledger import KEY_VAR, StampedMeter, dedicated_key_set
 from .privacy_live import CONTRIBUTOR, CONTRIBUTOR_PRICES, LiveTransport, live_settings
 from .privacy_live import KEY_VAR as API_KEY_VAR
 
@@ -43,7 +43,7 @@ def live_kit() -> Kit:
     if dedicated_key_set():  # runs made with this key are the ones the export is filtered to
         key = SecretStr(os.environ[KEY_VAR].strip())
         settings = settings.model_copy(update={"meta_api_key": key})
-    meter = CostMeter(CONTRIBUTOR_PRICES)
+    meter = StampedMeter(CONTRIBUTOR_PRICES)
     server_side, agent_side = LiveTransport(settings), LiveTransport(settings)
     return Kit(
         ModelGateway(settings, transport=server_side, meter=meter),

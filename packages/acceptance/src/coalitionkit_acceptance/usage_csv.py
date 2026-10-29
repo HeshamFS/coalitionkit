@@ -11,15 +11,21 @@ Usage can take up to an hour to appear in the export.
 The export carries no key column. With the dedicated acceptance key
 (``COALITIONKIT_META_ACCEPTANCE_KEY``) set, the export is taken to be filtered to it and the match
 is exact. Without it the export is all-key and only an upper bound is checked (never presented as a
-match); the exact match is then reported as not run. Spend is not compared: the export EUR spend
-is reported as given (0 while the account credit covers it), next to the USD the published price
-table gives. No currency is ever converted.
+match); the exact match is then reported as not run.
+
+Spend is not compared while the export gives it in EUR (the account is credit-covered, so the
+export has no billing figure to match): the report says "not run: no comparable billing data". It
+shows the export spend as given next to the USD the published rates give, and never converts.
+Only the token, request, image and audio counts are compared. Only a window the export covers is
+compared: whole UTC days before the export last day, or up to an explicit ``until``; records after
+it are reported as not run.
 """
 
 from __future__ import annotations
 
 import csv
-from decimal import Decimal
+from datetime import UTC, datetime
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +44,7 @@ COMPARED: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("images", ("images/total",)),
     ("audio_seconds", ("audio_transcription/total",)),
 )
+SPEND_NOT_RUN = "not run: no comparable billing data (export spend is EUR, credit-covered)"
 NOT_RECORDED = ("images_processed/total", "video_frames_processed/total", "tool_calls/total")
 
 
@@ -116,17 +123,61 @@ def compare_day(
     return found
 
 
+def spend_units(path: Path) -> set[str]:
+    """The units the export gives its spend in (EUR for this account)."""
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        return {row["unit"] for row in csv.DictReader(stream) if row["metric"] == "spend"}
+
+
+def window_end(exported: dict[str, dict[str, Decimal]], until: datetime | None) -> datetime:
+    """Where the export is complete: ``until``, else the start of the export last day.
+
+    The last day of an export is partial (it was downloaded part way through), so only whole days
+    before it are compared. Usage can also take up to an hour to appear.
+    """
+    if until is not None:
+        return until.astimezone(UTC)
+    last = max(exported)
+    return datetime.fromisoformat(last).replace(tzinfo=UTC)
+
+
+def spend_report(
+    export: Path,
+    exported: dict[str, dict[str, Decimal]],
+    days: list[str],
+    rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """The spend is compared only when the export gives it in USD; the account is billed in EUR."""
+    units = spend_units(export)
+    reported = sum((exported.get(d, {}).get("spend/total", Decimal(0)) for d in days), Decimal(0))
+    report: dict[str, Any] = {
+        "meter_usd_published_rates": str(meter_usd(rows)),
+        "export_spend_as_reported": str(reported),
+        "export_unit": ",".join(sorted(units)) or "none",
+    }
+    if units != {"USD"}:
+        report["status"] = SPEND_NOT_RUN
+        return report
+    cents = Decimal("0.01")
+    mine = meter_usd(rows).quantize(cents, rounding=ROUND_HALF_UP)
+    theirs = reported.quantize(cents, rounding=ROUND_HALF_UP)
+    report["status"] = "equal to the cent" if mine == theirs else "differs"
+    return report
+
+
 def reconcile(
     export: Path | None,
     ledger_rows: list[dict[str, Any]] | None = None,
     *,
     key_set: bool | None = None,
+    until: datetime | None = None,
 ) -> dict[str, Any]:
-    """Compare the merged ledger with the export, per day and per metric.
+    """Compare the merged ledger with a completed window of the export, per day and metric.
 
     With the dedicated key the export is filtered to it and the dedicated records must match it
     exactly. Without it the export holds every call of the account, so the check is only an upper
-    bound (meter at most export) and the exact match is reported as not run.
+    bound (meter at most export) and the exact match is reported as not run. Ledger records after
+    the window the export covers are reported as not run, never compared.
     """
     every = entries() if ledger_rows is None else ledger_rows
     exact = dedicated_key_set() if key_set is None else key_set
@@ -136,27 +187,30 @@ def reconcile(
     if not rows:
         return {"ran": False, "reason": "not run: no live usage in the ledger", "comparisons": []}
     exported = read_export(export)
-    days = sorted({r["day"] for r in rows})
+    end = window_end(exported, until)
+    inside = [r for r in rows if datetime.fromisoformat(r["at"]) < end]
+    after = len(rows) - len(inside)
+    days = sorted({r["at"][:10] for r in inside})
     comparisons: list[dict[str, Any]] = []
     for day in days:
-        mine = [r for r in rows if r["day"] == day]
+        mine = [r for r in inside if r["at"][:10] == day]
         comparisons += compare_day(day, mine, exported.get(day), exact=exact)
     made = [c for c in comparisons if c["status"] != "not run"]
     good, bad = ("equal", "differs") if exact else ("within bound", "exceeds bound")
-    spend = sum((exported.get(d, {}).get("spend/total", Decimal(0)) for d in days), Decimal(0))
+    why = "" if made else "not run: no completed day of the ledger is covered by the export"
     return {
         "ran": bool(made),
         "mode": "exact" if exact else "upper bound",
-        "reason": "" if made else "not run: every comparison was not run; see the comparisons",
+        "reason": why,
+        "window_end": end.isoformat(),
+        "after_window": {
+            "records": after,
+            "status": "not run: after the export window" if after else "none",
+        },
         "exact_match": "ran" if exact else "not run: " + NO_KEY,
         good.replace(" ", "_"): sum(1 for c in made if c["status"] == good),
         bad.replace(" ", "_"): sum(1 for c in made if c["status"] == bad),
         "not_run": sum(1 for c in comparisons if c["status"] == "not run"),
         "comparisons": comparisons,
-        "spend": {
-            "meter_usd_published_rates": str(meter_usd(rows)),
-            "export_spend_as_reported": str(spend),
-            "export_unit": "EUR",
-            "note": "not converted or compared; 0 in the export means the account credit covers it",
-        },
+        "spend": spend_report(export, exported, days, inside),
     }

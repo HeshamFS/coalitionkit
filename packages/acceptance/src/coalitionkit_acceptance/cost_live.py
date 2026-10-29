@@ -3,14 +3,16 @@
 
 Meta documents no usage or billing endpoint (the API reference at
 https://dev.meta.ai/docs/api-reference has none; pricing is at
-https://dev.meta.ai/docs/pricing-rate-limits). Two checks run:
+https://dev.meta.ai/docs/pricing-rate-limits). What this module establishes:
 
 * every response carries the provider's own ``usage`` (prompt, cached and completion tokens); the
   meter records are re-priced here from those counts at the published contributor rates with exact
-  decimal arithmetic and compared with the meter;
-* the usage CSV the owner exports from the dashboard (``usage_csv``) is reconciled, per day and per
-  metric, with the ledger of every live run made with the dedicated acceptance key. Each missing
-  comparison is reported as not run, with the reason.
+  decimal arithmetic and compared with the meter. This checks the meter arithmetic on provider
+  counts; it does not establish what the provider billed.
+* a live run only collects each response, stamped with its UTC time, into the ledger. The usage
+  CSV the owner exports from the dashboard is reconciled offline with the ``reconcile`` module
+  (see its docstring), per UTC day and metric, over the window the export covers. Spend is not
+  compared: the export gives EUR, credit-covered.
 """
 
 from __future__ import annotations
@@ -109,8 +111,7 @@ async def run_live_cost(calls: int = 12) -> Recorder:
     recorder.value("window", [started.isoformat(), datetime.now(UTC).isoformat()])
     recorder.value("model", CONTRIBUTOR)
     row = reconcile(kit.meter, recorder)
-    record_run("cost_live", kit.meter)
-    export_comparison(recorder)
+    record_run("cost_live", kit.meter)  # collection only; reconciliation is offline
     recorder.count("responses", row["responses"])
     recorder.value("cost_micro_usd_metered", row["meter_micro_usd"])
     recorder.value("live_cost_micro_usd", row["meter_micro_usd"])
