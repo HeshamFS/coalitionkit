@@ -18,6 +18,7 @@ from coalitionkit_contracts import new_ulid, public_key_to_jwk, validate_payload
 from coalitionkit_edges.a2a import HostSigner, create_host_app
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
+from coalitionkit_models import ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_runtime import Acknowledgement, CoalitionHost, PostgresStore, SQLiteStore
 from coalitionkit_runtime.host import utc_now
@@ -34,7 +35,7 @@ from .views import OwnerSigner, ViewerAuth, ViewPort
 
 
 class Server:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, model_gateway: ModelGateway | None = None) -> None:
         self.settings = settings
         self.key = load_key(settings.host_key_file)
         url = settings.store.get_secret_value()
@@ -47,7 +48,7 @@ class Server:
             self.store = PostgresStore(url)
         else:
             raise ValueError("store must be sqlite:///path or a Postgres URL")
-        self.gateway = gateway()
+        self.gateway = model_gateway or gateway()
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
             Steward(self.gateway, signing_key=self.key, kid="host"), self.runner
@@ -205,8 +206,9 @@ class Dispatch:
         await self.server.surfaces[row["coalition"]](scope, receive, send)
 
 
-def create_server(settings: Settings) -> FastAPI:
-    server = Server(settings)
+def create_server(settings: Settings, model_gateway: ModelGateway | None = None) -> FastAPI:
+    """The composed application. ``model_gateway`` is a test hook for metered gateways."""
+    server = Server(settings, model_gateway)
     mcp = mcp_app(
         Deps(MCPPort(server), ViewPort(server.hosts, server.registry), server.registry),
         public_url=settings.public_base_url + "/mcp",
