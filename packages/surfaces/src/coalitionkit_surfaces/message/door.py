@@ -144,9 +144,14 @@ class MessageDoor:
         number of messages handed to the channel.
 
         If the channel raises, nothing is lost: the unsent parts stay queued and the next
-        ``sync`` or ``flush`` sends exactly those (parts already delivered are not repeated)."""
-        if viewer in self._queue:
-            return self._drain(viewer)
+        ``sync`` or ``flush`` sends exactly those (parts already delivered are not repeated), then
+        goes on to the latest view."""
+        sent = self._drain(viewer) if viewer in self._queue else 0
+        return sent + self._send_latest(viewer)
+
+    def _send_latest(self, viewer: str) -> int:
+        """Compare the latest view with what was last sent and deliver the difference, or keep
+        the viewer pending while the waiting time runs."""
         current = self._render(viewer)
         previous = self._sent.get(viewer)
         if previous is None:

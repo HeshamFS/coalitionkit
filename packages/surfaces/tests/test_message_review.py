@@ -167,9 +167,27 @@ def test_a_failed_delta_is_not_lost(
     message_world.need("Need two")
     with pytest.raises(OSError, match="channel down"):
         door.sync("p3")
-    assert door.flush() == 1  # flush finds the unsent message
-    assert channel.inner.texts_to("p3")[-1] == "New: Need two"
+    message_world.need("Need three")  # the state moves on while the delivery is stuck
+    assert door.sync("p3") == 2  # the stuck message, then the newer change
+    assert channel.inner.texts_to("p3")[-2:] == ["New: Need two", "New: Need three"]
+    assert door.flush() == 0
     assert door.sync("p3") == 0
+
+
+def test_a_newer_change_waits_pending_when_the_rate_limit_holds_it(
+    message_world: MsgWorld, catalog: Catalog, doors: Doors
+) -> None:
+    message_world.need("Need one")
+    rig = make_rig(message_world, catalog, doors, min_interval=30.0)
+    rig.door.sync("p3")
+    rig.clock.advance(31)
+    message_world.need("Need two")
+    rig.door.sync("p3")
+    message_world.need("Need three")
+    assert rig.door.sync("p3") == 0  # inside the waiting time: held, not dropped
+    rig.clock.advance(31)
+    assert rig.door.flush() == 1
+    assert rig.channel.texts_to("p3")[-1] == "New: Need three"
 
 
 def test_a_partly_delivered_message_resumes_with_the_missing_parts_only(
