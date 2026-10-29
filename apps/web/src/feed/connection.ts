@@ -11,10 +11,14 @@ export type StreamOptions = {
   /** Return false to drop the stream and reopen it with a fresh run. */
   onEvent: (event: FeedEvent) => boolean;
   onStatus: (status: "live" | "reconnecting") => void;
+  /** The host refused the token (401 or 403). The stream stops for good instead of retrying. */
+  onAuthError?: () => void;
   fetchFn?: Fetch;
   /** Delay before reconnect number `attempt` (0-based), in ms. */
   delay?: (attempt: number) => number;
 };
+
+export const isAuthFailure = (status: number) => status === 401 || status === 403;
 
 export const backoff = (attempt: number) => Math.min(15_000, 1000 * 2 ** attempt);
 
@@ -46,13 +50,19 @@ export function openStream(opts: StreamOptions): () => void {
     abort = controller;
     const url = `${opts.config.baseUrl}${opts.path}`;
     const source = transformHttpEventStream(
-      runHttpRequest(() =>
-        fetchFn(url, {
+      runHttpRequest(async () => {
+        const res = await fetchFn(url, {
           method: "GET",
           headers: { Authorization: `Bearer ${opts.config.token}`, Accept: "text/event-stream" },
           signal: controller.signal,
-        }),
-      ),
+        });
+        if (isAuthFailure(res.status)) {
+          stopped = true;
+          opts.onAuthError?.();
+          throw new Error("unauthorized");
+        }
+        return res;
+      }),
     );
     const sub = source.subscribe({
       next: (event) => {
@@ -75,7 +85,9 @@ export function openStream(opts: StreamOptions): () => void {
   };
 }
 
-export type AnswerResult = { ok: true; seq: number } | { ok: false; error: string; detail: string };
+export type AnswerResult =
+  | { ok: true; seq: number }
+  | { ok: false; error: string; detail: string; auth?: boolean };
 
 /** A consent answer goes to the host as plain JSON; the host asks the owner key to sign it. */
 export async function postAnswer(
@@ -91,5 +103,10 @@ export async function postAnswer(
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (res.ok) return { ok: true, seq: Number(json.seq ?? 0) };
+  // The host also answers 403 with an error code for a request that is not yours: that is a
+  // refused answer, not a refused token.
+  if (res.status === 401 || (res.status === 403 && !json.error)) {
+    return { ok: false, error: "unauthorized", detail: "", auth: true };
+  }
   return { ok: false, error: String(json.error ?? res.status), detail: String(json.detail ?? "") };
 }

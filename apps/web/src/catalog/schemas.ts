@@ -9,7 +9,9 @@ const { DynamicString, DynamicBoolean, ChildList, Action, DataBinding } = Common
 /** A literal or a binding to the viewer's state. */
 const lit = <T extends z.ZodTypeAny>(s: T) => z.union([s, DataBinding]);
 
-export const Bound = z.object({ value: z.number(), event_ref: z.string().min(1) }).strict();
+export const Bound = z
+  .object({ value: z.number().finite(), event_ref: z.string().min(1) })
+  .strict();
 // Plain numbers never travel as numbers (the host rejects an unbound number), so seats, gaps and
 // column counts are strings on the wire and turned into numbers by the implementation.
 export const Seat = z.enum(["1", "2", "3", "4", "5", "host", "steward"]);
@@ -27,14 +29,14 @@ const plan = z.object({
   id: z.string(),
   label: z.string(),
   short: z.string().optional(),
-  objectives: z.array(objective),
+  objectives: z.array(objective).max(12),
   tag: z
     .object({
       label: z.string(),
       kind: z.enum(["measured", "vault", "signed", "model", "estimate", "example"]),
     })
     .optional(),
-  people: z.array(Person).optional(),
+  people: z.array(Person).max(50).optional(),
   note: z.string().optional(),
   highlight: z.boolean().optional(),
 });
@@ -83,7 +85,7 @@ export const apis = {
       tone: z.enum(["default", "live", "ask", "dashed"]).optional(),
       scope: z.string().optional(),
       /** Label and value pairs; the fixed fallback layout fills this from the viewer's state. */
-      fields: lit(z.array(z.object({ label: z.string(), value: z.string() }))).optional(),
+      fields: lit(z.array(z.object({ label: z.string(), value: z.string() })).max(50)).optional(),
       subject: subject.optional(),
     }),
   },
@@ -99,7 +101,9 @@ export const apis = {
     name: "Button",
     schema: z.object({
       label: DynamicString,
-      variant: z.enum(["primary", "secondary", "ink", "ghost"]).optional(),
+      variant: z
+        .enum(["primary", "secondary", "ink", "ghost", "soft", "danger", "danger-fill"])
+        .optional(),
       size: z.enum(["sm", "md", "lg"]).optional(),
       action: Action.optional(),
       disabled: DynamicBoolean.optional(),
@@ -122,7 +126,7 @@ export const apis = {
   },
   ScopeBadge: {
     name: "ScopeBadge",
-    schema: z.object({ audience: z.string(), redact: z.array(z.string()).optional() }),
+    schema: z.object({ audience: z.string(), redact: z.array(z.string()).max(16).optional() }),
   },
   Avatar: {
     name: "Avatar",
@@ -136,7 +140,7 @@ export const apis = {
   },
   AvatarStack: {
     name: "AvatarStack",
-    schema: z.object({ people: z.array(Person), max: Bound.optional() }),
+    schema: z.object({ people: z.array(Person).max(50), max: Bound.optional() }),
   },
   Banner: {
     name: "Banner",
@@ -207,8 +211,8 @@ export const apis = {
       ]),
       deps: z
         .object({
-          waitsFor: z.array(z.string()).optional(),
-          unblocks: z.array(z.string()).optional(),
+          waitsFor: z.array(z.string()).max(50).optional(),
+          unblocks: z.array(z.string()).max(50).optional(),
         })
         .optional(),
       evidence: z.string().optional(),
@@ -245,22 +249,27 @@ export const apis = {
     name: "Timeline",
     schema: z.object({
       items: lit(
-        z.array(
-          z.object({
-            when: z.string(),
-            title: z.string(),
-            assignee: z.string().optional(),
-            state: z.enum(["done", "now", "next"]),
-          }),
-        ),
+        z
+          .array(
+            z.object({
+              when: z.string(),
+              title: z.string(),
+              assignee: z.string().optional(),
+              state: z.enum(["done", "now", "next"]),
+            }),
+          )
+          .max(200),
       ),
     }),
   },
   PlanCompare: {
     name: "PlanCompare",
     schema: z.object({
-      plans: z.array(plan),
-      rejected: z.array(z.object({ plan, reason: z.string() })).optional(),
+      plans: z.array(plan).max(8),
+      rejected: z
+        .array(z.object({ plan, reason: z.string() }))
+        .max(8)
+        .optional(),
       state: z.enum(["proposed", "decided", "superseded"]).optional(),
       proposal_set_id: z.string().optional(),
       decision_deadline: z.string().optional(),
@@ -272,10 +281,12 @@ export const apis = {
     schema: z.object({
       tension_id: z.string(),
       title: DynamicString,
-      options: z.array(
-        z.object({ id: z.string(), label: z.string(), tradeoffs: z.array(z.string()) }),
-      ),
-      deciders: z.array(Person.extend({ answered: z.boolean().optional() })),
+      options: z
+        .array(
+          z.object({ id: z.string(), label: z.string(), tradeoffs: z.array(z.string()).max(12) }),
+        )
+        .max(12),
+      deciders: z.array(Person.extend({ answered: z.boolean().optional() })).max(50),
       answered: Bound,
       decision_deadline: z.string().optional(),
       state: z.enum(["open", "decided", "split", "expired"]).optional(),
@@ -303,7 +314,9 @@ export const apis = {
     schema: z.object({
       title: DynamicString,
       rule: z.string().optional(),
-      deciders: z.array(Person.extend({ answered: z.boolean(), answer: z.boolean().optional() })),
+      deciders: z
+        .array(Person.extend({ answered: z.boolean(), answer: z.boolean().optional() }))
+        .max(50),
       outcome: z.enum(["decided", "refused", "split", "expired"]).optional(),
       closed: z.boolean().optional(),
     }),
@@ -314,8 +327,8 @@ export const apis = {
       ripple: z.object({
         by: z.string(),
         change: z.string(),
-        invalidated: z.array(z.string()),
-        untouched: z.array(z.string()),
+        invalidated: z.array(z.string()).max(500),
+        untouched: z.array(z.string()).max(500),
       }),
     }),
   },
@@ -332,18 +345,20 @@ export const apis = {
     name: "ActivityStream",
     schema: z.object({
       items: lit(
-        z.array(
-          z.object({
-            seq: Bound.optional(),
-            actor: Person,
-            verb: z.string(),
-            object: z.string().optional(),
-            time: z.string(),
-            live: z.boolean().optional(),
-            aboutMe: z.boolean().optional(),
-            decision: z.boolean().optional(),
-          }),
-        ),
+        z
+          .array(
+            z.object({
+              seq: Bound.optional(),
+              actor: Person,
+              verb: z.string(),
+              object: z.string().optional(),
+              time: z.string(),
+              live: z.boolean().optional(),
+              aboutMe: z.boolean().optional(),
+              decision: z.boolean().optional(),
+            }),
+          )
+          .max(200),
       ),
     }),
   },
@@ -351,16 +366,18 @@ export const apis = {
     name: "LogStream",
     schema: z.object({
       entries: lit(
-        z.array(
-          z.object({
-            seq: Bound.optional(),
-            ts: z.string(),
-            type: z.string(),
-            summary: z.string(),
-            hash: z.string(),
-            form: z.enum(["original", "projection", "receipt-only"]),
-          }),
-        ),
+        z
+          .array(
+            z.object({
+              seq: Bound.optional(),
+              ts: z.string(),
+              type: z.string(),
+              summary: z.string(),
+              hash: z.string(),
+              form: z.enum(["original", "projection", "receipt-only"]),
+            }),
+          )
+          .max(500),
       ),
       selected: Bound.optional(),
     }),

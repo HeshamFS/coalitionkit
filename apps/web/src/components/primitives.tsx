@@ -361,7 +361,7 @@ export function AvatarStack({
   max?: number;
   size?: "xs" | "sm" | "lg";
 }) {
-  const shown = people.slice(0, max);
+  const shown = people.slice(0, Math.min(20, Math.max(1, Math.round(max))));
   const extra = people.length - shown.length;
   return (
     // biome-ignore lint/a11y/useSemanticElements: a stack of avatars is a labelled group, not a form

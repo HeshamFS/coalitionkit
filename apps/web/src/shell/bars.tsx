@@ -66,6 +66,7 @@ export function TopBar({
   me,
   onInvite,
   onSearch,
+  onSignOut,
 }: {
   title: string;
   meta?: string;
@@ -74,6 +75,7 @@ export function TopBar({
   me?: { seat: Seat; label: string };
   onInvite?: () => void;
   onSearch?: () => void;
+  onSignOut?: () => void;
 }) {
   return (
     <header className="topbar">
@@ -109,6 +111,11 @@ export function TopBar({
           Invite
         </button>
         {me && <Avatar seat={me.seat} label={me.label} size="lg" />}
+        {onSignOut && (
+          <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
+            Sign out
+          </button>
+        )}
       </span>
     </header>
   );

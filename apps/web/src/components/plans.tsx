@@ -162,8 +162,8 @@ export type TensionState = "open" | "decided" | "split" | "expired";
 export function TensionCard({
   title,
   options,
-  deciders,
-  answered,
+  deciders = [],
+  answered = 0,
   deadline,
   state = "open",
   chosenId,
@@ -172,8 +172,9 @@ export function TensionCard({
 }: {
   title: string;
   options: TensionOption[];
-  deciders: (Participant & { answered?: boolean })[];
-  answered: number;
+  /** Left out when the host state does not say who decides. */
+  deciders?: (Participant & { answered?: boolean })[];
+  answered?: number;
   deadline?: string;
   state?: TensionState;
   chosenId?: string;
@@ -234,15 +235,17 @@ export function TensionCard({
         })}
       </div>
       <div className="row">
-        <span className="small">Deciders</span>
+        {deciders.length > 0 && <span className="small">Deciders</span>}
         <div className="stack">
           {deciders.map((d) => (
             <Avatar key={d.label} seat={d.seat} label={d.label} size="xs" ring={d.answered} />
           ))}
         </div>
-        <span className="small">
-          {answered} of {deciders.length} answered
-        </span>
+        {deciders.length > 0 && (
+          <span className="small">
+            {answered} of {deciders.length} answered
+          </span>
+        )}
         {deadline && open && (
           <span className="h-right num small" style={{ color: "var(--warn-fg)" }}>
             decide by {deadline}

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { type FormEvent, useState } from "react";
+import { Banner } from "./components/feedback";
 import { saveToken } from "./feed/config";
 import { Icon } from "./ui/Icon";
 
 /** The sign-in step: the viewer pastes the token from the invitation. It is never read from the address. */
-export function SignIn({ onDone }: { onDone: () => void }) {
+export function SignIn({ onDone, notice }: { onDone: () => void; notice?: string }) {
   const [value, setValue] = useState("");
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -24,6 +25,7 @@ export function SignIn({ onDone }: { onDone: () => void }) {
         <Icon name="lock" />
         <b>Sign in</b>
       </div>
+      {notice && <Banner tone="ask" title={notice} />}
       <div className="field">
         <label htmlFor="ck-token">Viewer token</label>
         <input

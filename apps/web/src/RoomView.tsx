@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { ConsentCard } from "./components/consent";
 import { EmptyState, Skeleton } from "./components/feedback";
 import { Card } from "./components/primitives";
 import { deriveRoom, eventsOf, fixedFields } from "./feed/derive";
@@ -9,6 +8,7 @@ import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
 import type { DeckGroup, PresenceEntry } from "./shell/bars";
 import { AgentDock, type ConsentRequest, ConsentTray, WiringDrawer } from "./shell/dock";
 import { PhoneShell, type PhoneTab, RoomShell } from "./shell/RoomShell";
+import { TrustedRequest } from "./TrustedRequest";
 
 const SEATS = [1, 2, 3, 4, 5] as const;
 
@@ -42,12 +42,13 @@ export function FixedView({ fields }: { fields: { label: string; value: string }
 export function RoomView() {
   const feed = useFeedSnapshot();
   const agent = useAgentSnapshot();
-  const { answer } = useFeedApi();
+  const { answer, agent: agentStore, signOut } = useFeedApi();
   const phone = useMedia("(max-width: 720px)");
   const [selected, setSelected] = useState("canvas");
   const [tab, setTab] = useState<PhoneTab>("Now");
   const [wiring, setWiring] = useState(false);
-  const [focus, setFocus] = useState<string | null>(null);
+  const focus = agent.focus;
+  const setFocus = (id: string | null) => agentStore.setFocus(id);
 
   const room = deriveRoom(feed.state);
   const events = eventsOf(feed.state);
@@ -103,13 +104,8 @@ export function RoomView() {
           </span>
         </Card>
       )}
-      {open && open.kind !== "tension_option" && (
-        <ConsentCard
-          subject={{ kind: open.kind, id: open.subjectId, revision: open.revision }}
-          title={open.message}
-          deadline={open.expiresAt}
-          onDecide={(consent) => void answer({ interrupt_id: open.id, consent })}
-        />
+      {open && (
+        <TrustedRequest request={open} state={feed.state} onAnswer={(a) => void answer(a)} />
       )}
       {selected !== "canvas" ? (
         <EmptyState
@@ -155,6 +151,7 @@ export function RoomView() {
         tab={tab}
         onTab={setTab}
         tray={tray}
+        onSignOut={signOut}
       >
         {tab === "Agent" ? dock : canvas}
       </PhoneShell>
@@ -174,6 +171,7 @@ export function RoomView() {
       connection={feed.status === "reconnecting" ? "reconnecting" : "live"}
       tray={tray}
       dock={dock}
+      onSignOut={signOut}
       wiringOpen={wiring}
       onToggleWiring={() => setWiring((v) => !v)}
       wiring={

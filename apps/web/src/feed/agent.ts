@@ -16,11 +16,13 @@ export type AgentSnapshot = {
   requests: OpenRequest[];
   /** The last answer the host refused, in the host words. */
   refusal: string | null;
+  /** The request the shell is showing in trusted UI, if any. */
+  focus: string | null;
 };
 
 /** Interrupts and text from the agent stream. Each run lists the requests still open. */
 export class AgentStore {
-  private snap: AgentSnapshot = { lines: [], requests: [], refusal: null };
+  private snap: AgentSnapshot = { lines: [], requests: [], refusal: null, focus: null };
   private listeners = new Set<() => void>();
   private open = new Map<string, AgentLine>();
 
@@ -34,6 +36,10 @@ export class AgentStore {
   private set(patch: Partial<AgentSnapshot>) {
     this.snap = { ...this.snap, ...patch };
     for (const fn of this.listeners) fn();
+  }
+
+  setFocus(id: string | null) {
+    this.set({ focus: id });
   }
 
   setRefusal(text: string | null) {
@@ -65,7 +71,9 @@ export class AgentStore {
           | { type?: string; interrupts?: Record<string, unknown>[] }
           | undefined;
         const list = outcome?.type === "interrupt" ? (outcome.interrupts ?? []) : [];
-        this.set({ requests: list.map(toRequest) });
+        const requests = list.map(toRequest);
+        const focus = requests.some((r) => r.id === this.snap.focus) ? this.snap.focus : null;
+        this.set({ requests, focus });
         return true;
       }
       case "RUN_ERROR":

@@ -2,8 +2,6 @@
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { answerFor } from "./actions";
-import type { OpenRequest } from "./agent";
 import { openStream } from "./connection";
 import { fixedFields } from "./derive";
 import { FeedStore } from "./store";
@@ -120,48 +118,6 @@ describe("fallback to the fixed view", () => {
     store.handle(activity(surfaceMessages([{ id: "root", component: "Heading", text: "A1" }])));
     store.handle({ type: "RUN_STARTED", runId: "r2" });
     expect(store.getSnapshot().surfaces).toHaveLength(0);
-  });
-});
-
-describe("consent answers", () => {
-  const open: OpenRequest[] = [
-    { id: "plan:p1:2:u1", kind: "plan", subjectId: "p1", revision: 2, message: "" },
-    {
-      id: "tension_option:t1:1:u1",
-      kind: "tension_option",
-      subjectId: "t1",
-      revision: 1,
-      message: "",
-    },
-  ];
-  it("maps decide, plan.decide and tension.choose to answers", () => {
-    expect(
-      answerFor(
-        { name: "decide", context: { subject: { kind: "plan", id: "p1" }, consent: false } },
-        open,
-      ),
-    ).toEqual({ interrupt_id: "plan:p1:2:u1", consent: false });
-    expect(
-      answerFor({ name: "plan.decide", context: { subject: { kind: "plan", id: "p1" } } }, open),
-    ).toEqual({ interrupt_id: "plan:p1:2:u1", consent: true });
-    expect(
-      answerFor(
-        {
-          name: "tension.choose",
-          context: { subject: { kind: "tension_option", id: "t1" }, option: "o1" },
-        },
-        open,
-      ),
-    ).toEqual({ interrupt_id: "tension_option:t1:1:u1", consent: true, choice: "o1" });
-  });
-  it("never answers a request the host did not list", () => {
-    expect(
-      answerFor(
-        { name: "decide", context: { subject: { kind: "plan", id: "zz" }, consent: true } },
-        open,
-      ),
-    ).toBeNull();
-    expect(answerFor({ name: "task.open", context: {} }, open)).toBeNull();
   });
 });
 

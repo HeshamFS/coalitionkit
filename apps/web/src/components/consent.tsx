@@ -178,19 +178,19 @@ export function VoteTally({
           )}
         </div>
         <div className="row small">
-          {deciders.map((d) => (
-            <span
-              key={d.label}
-              className="badge"
-              style={
-                d.answer
-                  ? { background: "var(--ok-bg)", color: "var(--ok-fg)" }
-                  : { background: "var(--bad-bg)", color: "var(--bad-fg)" }
-              }
-            >
-              {d.label} {d.answer ? "yes" : "no"}
-            </span>
-          ))}
+          {deciders.map((d) => {
+            const none = !d.answered;
+            const style = none
+              ? { background: "var(--surface-3)", color: "var(--ink-2)" }
+              : d.answer
+                ? { background: "var(--ok-bg)", color: "var(--ok-fg)" }
+                : { background: "var(--bad-bg)", color: "var(--bad-fg)" };
+            return (
+              <span key={d.label} className="badge" style={style}>
+                {d.label} {none ? "no answer" : d.answer ? "yes" : "no"}
+              </span>
+            );
+          })}
         </div>
       </section>
     );

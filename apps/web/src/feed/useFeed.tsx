@@ -2,13 +2,14 @@
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
 } from "react";
-import { type Answer, answerFor } from "./actions";
+import { type Answer, focusRequest } from "./actions";
 import { AgentStore } from "./agent";
 import type { HostConfig } from "./config";
 import { type Fetch, openStream, postAnswer } from "./connection";
@@ -18,7 +19,9 @@ import { FeedStore } from "./store";
 export type FeedApi = {
   feed: FeedStore;
   agent: AgentStore;
+  /** For trusted UI only: built from a host OpenRequest. */
   answer: (a: Answer) => Promise<void>;
+  signOut: () => void;
 };
 
 const Ctx = createContext<FeedApi | null>(null);
@@ -42,11 +45,14 @@ export function FeedProvider({
   config,
   fetchFn,
   delay,
+  onSignedOut,
   children,
 }: {
   config: HostConfig;
   fetchFn?: Fetch;
   delay?: (attempt: number) => number;
+  /** The token was refused, or the viewer signed out. The caller clears it and shows sign-in. */
+  onSignedOut?: (reason: "expired" | "signout") => void;
   children: ReactNode;
 }) {
   const agent = useMemo(() => new AgentStore(), []);
@@ -54,14 +60,23 @@ export function FeedProvider({
   const feed = useMemo(
     () =>
       new FeedStore((action) => {
-        const answer = answerFor(action, agent.getSnapshot().requests);
-        if (answer) void answerRef.current(answer);
+        // A composed tree can only point at an open request; it can never answer one.
+        const hit = focusRequest(action, agent.getSnapshot().requests);
+        if (hit) agent.setFocus(hit.id);
       }),
     [agent],
   );
 
+  const signedOut = useRef(onSignedOut);
+  signedOut.current = onSignedOut;
+  const expired = useCallback(() => signedOut.current?.("expired"), []);
+
   answerRef.current = async (a) => {
     const result = await postAnswer(config, a, fetchFn);
+    if (!result.ok && result.auth) {
+      expired();
+      return;
+    }
     agent.setRefusal(
       result.ok ? null : `${result.error}${result.detail ? `: ${result.detail}` : ""}`,
     );
@@ -73,6 +88,7 @@ export function FeedProvider({
       path: "/v1/feed",
       fetchFn,
       delay,
+      onAuthError: expired,
       onEvent: (e) => {
         const keep = feed.handle(e);
         if (e.type === "STATE_SNAPSHOT" || e.type === "STATE_DELTA") {
@@ -87,6 +103,7 @@ export function FeedProvider({
       path: "/v1/agent",
       fetchFn,
       delay,
+      onAuthError: expired,
       onEvent: (e) => agent.handle(e),
       onStatus: () => {},
     });
@@ -94,10 +111,15 @@ export function FeedProvider({
       stopFeed();
       stopAgent();
     };
-  }, [config, fetchFn, delay, feed, agent]);
+  }, [config, fetchFn, delay, feed, agent, expired]);
 
   const api = useMemo<FeedApi>(
-    () => ({ feed, agent, answer: (a) => answerRef.current(a) }),
+    () => ({
+      feed,
+      agent,
+      answer: (a) => answerRef.current(a),
+      signOut: () => signedOut.current?.("signout"),
+    }),
     [feed, agent],
   );
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

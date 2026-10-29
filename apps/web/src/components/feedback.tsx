@@ -60,13 +60,17 @@ export function Banner({
 
 /* ---------- Toast ---------- */
 
+/** Bounds for numbers a composed tree controls. */
+export const clamp = (n: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, Math.round(n)));
+
 export type ToastTone = "done" | "change" | "error";
 
 export function Toast({
   tone,
   text,
   action,
-  undoWindow,
+  undoWindow: undoRaw,
   onAction,
   onUndo,
   onDismiss,
@@ -80,7 +84,8 @@ export function Toast({
   onUndo?: () => void;
   onDismiss?: () => void;
 }) {
-  const [left, setLeft] = useState(undoWindow ?? 0);
+  const undoWindow = undoRaw ? clamp(undoRaw, 1, 60) : 0;
+  const [left, setLeft] = useState(undoWindow);
   useEffect(() => {
     if (!undoWindow) return;
     setLeft(undoWindow);
@@ -278,8 +283,8 @@ function Bone({ w, h, round }: { w: number | string; h: number; round?: boolean 
 
 export function Skeleton({
   shape = "card",
-  lines = 2,
-  reserves,
+  lines: linesRaw = 2,
+  reserves: reservesRaw,
   state = "skeleton",
   value,
   previous,
@@ -294,6 +299,8 @@ export function Skeleton({
   previous?: string;
   label?: string;
 }) {
+  const lines = clamp(linesRaw, 1, 20);
+  const reserves = reservesRaw === undefined ? undefined : clamp(reservesRaw, 0, 2000);
   if (state !== "skeleton") {
     const body = (
       <span className={cx(state === "filled" && "in")} aria-live="polite">

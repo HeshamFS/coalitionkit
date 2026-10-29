@@ -26,6 +26,7 @@ export type RoomShellProps = {
   onToggleWiring?: () => void;
   onInvite?: () => void;
   onSearch?: () => void;
+  onSignOut?: () => void;
   style?: CSSProperties;
 };
 
@@ -43,6 +44,7 @@ export function RoomShell(p: RoomShellProps) {
         me={p.me}
         onInvite={p.onInvite}
         onSearch={p.onSearch}
+        onSignOut={p.onSignOut}
       />
       <div
         className={cx("shell-body", watcher && "no-dock")}
@@ -114,6 +116,7 @@ export function PhoneShell({
   children,
   tray,
   height,
+  onSignOut,
 }: {
   title: string;
   stage: Stage;
@@ -123,6 +126,7 @@ export function PhoneShell({
   children?: ReactNode;
   tray?: ReactNode;
   height?: number | string;
+  onSignOut?: () => void;
 }) {
   return (
     <div className="phone-root compact" style={height ? { height } : undefined}>
@@ -138,6 +142,11 @@ export function PhoneShell({
         <StageBar current={stage} compact />
         <span className="h-right">
           <AvatarStack people={people} size="xs" max={4} />
+          {onSignOut && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
+              Sign out
+            </button>
+          )}
         </span>
       </header>
       <main className="phone-stack" aria-label={tab}>

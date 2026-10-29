@@ -84,3 +84,33 @@ export function fixedFields(state: ViewerState | null): { label: string; value: 
     { label: "Log entries", value: String(room.counts.log) },
   ];
 }
+
+export type TensionView = { options: { id: string; label: string }[]; tradeoffs: string[] };
+
+/**
+ * The options of a tension from the viewer own host-sent state, never from a composed tree.
+ * Null when the state does not hold them (or holds another revision), so no answer is offered.
+ */
+export function tensionView(
+  state: ViewerState | null,
+  tensionId: string,
+  revision: number,
+): TensionView | null {
+  const found = [...eventsOf(state)]
+    .reverse()
+    .find((e) => e.type === "coalition.tension" && e.payload.tension_id === tensionId);
+  if (!found) return null;
+  const rev = found.payload.revision;
+  if (typeof rev === "number" && rev !== revision) return null;
+  const raw = found.payload.options;
+  if (!Array.isArray(raw)) return null;
+  const options = raw
+    .map((o) => o as { option_id?: unknown; summary?: unknown })
+    .filter((o) => typeof o.option_id === "string" && typeof o.summary === "string")
+    .map((o) => ({ id: o.option_id as string, label: o.summary as string }));
+  if (options.length < 2) return null;
+  const tradeoffs = Array.isArray(found.payload.tradeoffs)
+    ? found.payload.tradeoffs.filter((t): t is string => typeof t === "string")
+    : [];
+  return { options, tradeoffs };
+}
