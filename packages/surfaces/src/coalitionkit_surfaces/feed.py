@@ -20,6 +20,8 @@ from ag_ui.core import (
 )
 
 from coalitionkit_contracts import new_ulid
+from coalitionkit_runtime import CoalitionHost
+from coalitionkit_runtime.projector import ViewerProjection
 
 from .a2ui import ACTIVITY_TYPE
 from .catalog import Catalog
@@ -63,6 +65,7 @@ class FeedSession:
         self._surfaces: dict[str, list[Document]] = {}
         self._created: set[str] = set()
         self._closed = False
+        self._projection = ViewerProjection(viewer)
 
     # -- the run -----------------------------------------------------------------------------
 
@@ -71,7 +74,11 @@ class FeedSession:
         self._created = set()
         self.run_id = self.new_id()
         self._started = self.clock()
-        self._previous = deepcopy(self.source.view(self.viewer))
+        if isinstance(self.source, CoalitionHost):
+            self.source.update_view(self._projection)
+            self._previous = self._projection.document
+        else:
+            self._previous = deepcopy(self.source.view(self.viewer))
         frames: list[Frame] = [
             RunStartedEvent(thread_id=self.thread_id, run_id=self.run_id),
             StateSnapshotEvent(snapshot=deepcopy(self._previous)),
@@ -84,9 +91,13 @@ class FeedSession:
         """Call after a bus wake. A delta only when this viewer's own projection changed."""
         if self._closed:
             return []
-        current = deepcopy(self.source.view(self.viewer))
-        ops = json_patch(self._previous, current)
-        self._previous = current
+        if isinstance(self.source, CoalitionHost):
+            ops = self.source.update_view(self._projection)
+            self._previous = self._projection.document
+        else:
+            current = deepcopy(self.source.view(self.viewer))
+            ops = json_patch(self._previous, current)
+            self._previous = current
         frames: list[Frame] = self._drain()
         if ops:
             frames.insert(0, StateDeltaEvent(delta=cast(Any, ops)))

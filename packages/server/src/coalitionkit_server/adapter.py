@@ -7,10 +7,12 @@ import logging
 from typing import Any
 
 from a2a.types import AgentCard
+from fastapi import HTTPException
 
 from coalitionkit_contracts import is_ulid, new_ulid
 from coalitionkit_edges.a2a.identity import CardRegistry
 from coalitionkit_runtime import Acknowledgement, AuthenticatedSender, CoalitionHost
+from coalitionkit_runtime.pool import StoreUnavailable
 
 Document = dict[str, Any]
 logger = logging.getLogger("coalitionkit.server")
@@ -39,7 +41,12 @@ class HostPort:
                 }
             }
         sender = AuthenticatedSender(authenticated_sender, pin.participant)
-        reply = await asyncio.to_thread(self.host.accept, envelope_json, sender)
+        try:
+            reply = await asyncio.to_thread(self.host.accept, envelope_json, sender)
+        except StoreUnavailable:
+            raise HTTPException(
+                503, "store unavailable; retry the same event", headers={"Retry-After": "1"}
+            ) from None
         if isinstance(reply, Acknowledgement):
             payload = reply.receipt["payload"]
             logger.info(

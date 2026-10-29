@@ -6,7 +6,8 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import suppress
 from typing import Any, Protocol
 
 from coalitionkit_contracts import new_ulid
@@ -82,22 +83,37 @@ class SurfaceHub:
 
     # -- streams -----------------------------------------------------------------------------
 
-    async def stream(self, session: Session, viewer: str | None = None) -> AsyncIterator[str]:
+    async def stream(self, session: Session, viewer: str | None = None) -> AsyncGenerator[str]:
         """SSE text for one connection. Subscribes before the first snapshot so nothing is lost."""
         bus = self.host.bus
-        sub: Subscription = bus.subscribe(self.host.coalition_id, latest_seq(self.host))
+        loop = asyncio.get_running_loop()
+        wake = asyncio.Event()
+
+        def notify() -> None:
+            loop.call_soon_threadsafe(wake.set)
+
+        sub: Subscription = bus.subscribe(
+            self.host.coalition_id,
+            await asyncio.to_thread(latest_seq, self.host),
+            notify,
+        )
         registered = isinstance(session, FeedSession) and viewer is not None
         if registered and viewer is not None and isinstance(session, FeedSession):
             self.feeds.setdefault(viewer, []).append(session)
         try:
             try:
-                for frame in session.start():
+                for frame in await asyncio.to_thread(session.start):
                     yield encode(frame)
                 ticks = 0
                 while self.max_ticks is None or ticks < self.max_ticks:
-                    await self.sleep(self.poll_interval)
+                    if self.sleep is asyncio.sleep:
+                        with suppress(TimeoutError):
+                            await asyncio.wait_for(wake.wait(), timeout=self.poll_interval)
+                        wake.clear()
+                    else:
+                        await self.sleep(self.poll_interval)
                     ticks += 1
-                    frames = self._poll(session, sub)
+                    frames = await asyncio.to_thread(self._poll, session, sub)
                     for frame in frames:
                         yield encode(frame)
             except SubscriberDropped:

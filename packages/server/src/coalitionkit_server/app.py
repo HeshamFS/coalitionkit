@@ -21,6 +21,7 @@ from coalitionkit_mcp.app import create_app as mcp_app
 from coalitionkit_models.settings import ROLES
 from coalitionkit_runtime import Acknowledgement, CoalitionHost, PostgresStore, SQLiteStore
 from coalitionkit_runtime.host import utc_now
+from coalitionkit_runtime.pool import StoreUnavailable
 from coalitionkit_steward import Steward
 from coalitionkit_surfaces import SurfaceHub
 from coalitionkit_surfaces.app import create_app as surfaces_app
@@ -51,9 +52,8 @@ class Server:
         self.gateway = gateway()
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
-            Steward(self.gateway, signing_key=self.key, kid="host"),
+            lambda: Steward(self.gateway, signing_key=self.key, kid="host"),
             self.runner,
-            self._members_of,
         )
         self.signer = HostSigner(
             settings.public_base_url + "/.well-known/agent-card.json", self.key, "host"
@@ -69,14 +69,6 @@ class Server:
                 raise ValueError("public base URL differs from the stored host identity")
             self.attach(coalition)
         self.registry.restore(self.ports)
-
-    def _members_of(self, coalition: str) -> frozenset[str] | None:
-        host = self.hosts.get(coalition)
-        if host is None:
-            return None
-        # Called inside the host's own write transaction, so read the folded state it just
-        # refreshed (the public ``state`` property would open a second transaction).
-        return frozenset(host._cache.state.members)  # pyright: ignore[reportPrivateUsage]
 
     def attach(self, coalition: str) -> CoalitionHost:
         host = CoalitionHost(
@@ -243,10 +235,13 @@ def create_server(settings: Settings) -> FastAPI:
     app.state.server = server
     admin_routes(app, server)
 
-    @app.get("/healthz")
-    def health() -> Document:  # pyright: ignore[reportUnusedFunction]
-        with server.store.transaction("") as tx:
-            tx.execute("SELECT 1")
+    @app.get("/healthz", response_model=None)
+    def health() -> Document | JSONResponse:  # pyright: ignore[reportUnusedFunction]
+        try:
+            with server.store.transaction("") as tx:
+                tx.execute("SELECT 1")
+        except StoreUnavailable:
+            return JSONResponse({"status": "unavailable", "store": "down"}, status_code=503)
         routes: dict[str, str] = {}
         for role in ROLES:
             try:

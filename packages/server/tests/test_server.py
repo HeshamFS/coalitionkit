@@ -318,3 +318,83 @@ def test_steward_adapter_without_members_fails_closed_and_sends_nothing() -> Non
         runner.close()
     assert fake.calls == []
     assert (verdict.action, verdict.policy_id) == ("escalate", "steward-members-unknown")
+
+
+@pytest.mark.parametrize("kind", ["observe", "offer", "ripple"])
+def test_steward_adapter_receives_consented_recipients(kind: str) -> None:
+    from coalitionkit_runtime.steward import ReviewContext
+
+    adapter, fake, runner = _adapter(None)
+    members = frozenset({"p1", "p2"})
+    context = ReviewContext(members, members, members)
+    event: Document = {**_proposal(), "type": f"coalition.{kind}", "payload": {}}
+    event["scope"] = {"audience": "participants", "participants": ["p1", "p2"]}
+    try:
+        assert adapter.review(event, context=context).action == "allow"
+        event["scope"] = {"audience": "participants", "participants": ["p1", "p2", "p3"]}
+        assert adapter.review(event, context=context).action == "block"
+        assert not fake.calls
+    finally:
+        runner.close()
+
+
+def test_selftest_does_not_block_first_safe_review() -> None:
+    from coalitionkit_runtime.steward import ReviewContext
+    from coalitionkit_server.audit import StewardAdapter
+
+    ready = threading.Event()
+    adapter, _, runner = _adapter(frozenset({"p1", "p2"}))
+    steward = adapter.steward
+
+    def initialize() -> Any:
+        assert ready.wait(5)
+        return steward
+
+    deferred = StewardAdapter(initialize, runner)
+    members = frozenset({"p1", "p2"})
+    context = ReviewContext(members, members, members)
+    try:
+        event = {**_proposal(), "type": "coalition.observe", "payload": {"content": "update"}}
+        assert deferred.review(event, context=context).action == "allow"
+        assert deferred.review(_proposal(), context=context).policy_id == "steward-selftest-pending"
+        ready.set()
+        assert deferred._ready is not None  # pyright: ignore[reportPrivateUsage]
+        deferred._ready.result(timeout=5)  # pyright: ignore[reportPrivateUsage]
+        assert deferred.review(_proposal(), context=context).action == "allow"
+    finally:
+        ready.set()
+        runner.close()
+
+
+def test_health_reports_store_failure(settings: Settings) -> None:
+    from unittest.mock import patch
+
+    from fastapi.testclient import TestClient
+
+    from coalitionkit_runtime.pool import StoreUnavailable
+
+    app = create_server(settings)
+    with TestClient(app) as client:
+        with patch.object(app.state.server.store, "transaction", side_effect=StoreUnavailable):
+            response = client.get("/healthz")
+            assert response.status_code == 503
+            assert response.json()["store"] == "down"
+        assert client.get("/healthz").json()["store"] == "ok"
+
+
+async def test_interrupted_append_is_retryable_over_a2a(running: Running) -> None:
+    from unittest.mock import patch
+
+    from coalitionkit_runtime.pool import StoreUnavailable
+
+    enrolled = running.enroll()
+    event = running.join(enrolled)
+    host = running.state.hosts[enrolled["coalition_id"]]
+    with (
+        patch.object(host, "accept", side_effect=StoreUnavailable),
+        pytest.raises(A2AClientError, match="503"),
+    ):
+        await send(running, enrolled, event)
+    await send(running, enrolled, event)
+    await send(running, enrolled, event)
+    assert sum(e["event_id"] == event["event_id"] for e in host.store.read(host.coalition_id)) == 1

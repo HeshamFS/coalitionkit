@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from threading import RLock
 from typing import Any, Protocol
 
-import psycopg
+from .pool import ConnectionPool
 
 Document = dict[str, Any]
 
@@ -103,23 +103,23 @@ class SQLiteStore:
 
 class PostgresStore:
     def __init__(self, url: str) -> None:
-        self.connection = psycopg.connect(url, autocommit=True)
-        self._lock = RLock()
-        for statement in DDL:
-            self.connection.execute(statement)
-        self.connection.execute(
-            "CREATE OR REPLACE FUNCTION coalition_events_immutable() RETURNS trigger "
-            "LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'append-only'; END $$"
-        )
-        self.connection.execute(
-            "CREATE OR REPLACE TRIGGER events_immutable BEFORE UPDATE OR DELETE ON events "
-            "FOR EACH ROW EXECUTE FUNCTION coalition_events_immutable()"
-        )
+        self.pool = ConnectionPool(url)
+        with self.pool.connection() as connection:
+            for statement in DDL:
+                connection.execute(statement)
+            connection.execute(
+                "CREATE OR REPLACE FUNCTION coalition_events_immutable() RETURNS trigger "
+                "LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'append-only'; END $$"
+            )
+            connection.execute(
+                "CREATE OR REPLACE TRIGGER events_immutable BEFORE UPDATE OR DELETE ON events "
+                "FOR EACH ROW EXECUTE FUNCTION coalition_events_immutable()"
+            )
 
     @contextmanager
     def transaction(self, coalition_id: str) -> Generator[SQLTransaction]:
-        with self._lock, self.connection.transaction():
-            tx = SQLTransaction(self.connection, True)
+        with self.pool.connection() as connection, connection.transaction():
+            tx = SQLTransaction(connection, True)
             tx.execute("SELECT seq FROM coalitions WHERE id = ? FOR UPDATE", (coalition_id,))
             yield tx
 
@@ -131,15 +131,15 @@ class PostgresStore:
             )
 
     def read(self, coalition_id: str, since: int = 0) -> list[Document]:
-        with self._lock:
-            return read_events(SQLTransaction(self.connection, True), coalition_id, since)
+        with self.pool.connection() as connection:
+            return read_events(SQLTransaction(connection, True), coalition_id, since)
 
     def redactions(self, coalition_id: str) -> dict[str, tuple[str, ...]]:
-        with self._lock:
-            return read_redactions(SQLTransaction(self.connection, True), coalition_id)
+        with self.pool.connection() as connection:
+            return read_redactions(SQLTransaction(connection, True), coalition_id)
 
     def close(self) -> None:
-        self.connection.close()
+        self.pool.close()
 
 
 def read_events(tx: Transaction, coalition_id: str, since: int = 0) -> list[Document]:
