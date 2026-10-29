@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 import httpx2
@@ -14,6 +15,7 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.exceptions import MCPError
 
 from coalitionkit_mcp.testing_rig import C1, C2, Rig
+from coalitionkit_mcp.view import CSP
 
 VIEW = "ui://coalitionkit/surface-v1.html"
 
@@ -102,8 +104,9 @@ async def test_view_resource_has_the_app_mime_and_a_closed_csp(rig: Rig) -> None
     assert content.mime_type == "text/html;profile=mcp-app"
     assert content.meta is not None and content.meta["ui"]["csp"] == {}  # no extra origins
     text = content.text  # type: ignore[union-attr]
-    assert "default-src 'none'" in text and "connect-src" not in text
-    assert C1 not in text and "coalition://" not in text
+    policy = re.search(r'http-equiv="Content-Security-Policy"\s+content="([^"]*)"', text)
+    assert policy is not None and policy.group(1) == CSP  # closed: nothing but inline style/script
+    assert C1 not in text
     assert VIEW in {str(r.uri) for r in listed.resources}
 
 

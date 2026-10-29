@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test host</title>
+    <style>
+      body { margin: 0; font: 14px system-ui, sans-serif; }
+      #view { width: 100%; height: 640px; border: 0; display: block; }
+    </style>
+  </head>
+  <body>
+    <iframe id="view" title="MCP App view" sandbox="allow-scripts"></iframe>
+    <script type="module" src="./host.ts"></script>
+  </body>
+</html>

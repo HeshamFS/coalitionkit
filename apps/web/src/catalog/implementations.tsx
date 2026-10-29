@@ -4,6 +4,7 @@ import type { ComponentContext } from "@a2ui/web_core/v0_9";
 import { Fragment, type ReactNode } from "react";
 import { ConsentCard, VoteTally } from "../components/consent";
 import { Banner, EmptyState, ErrorState, Skeleton, Toast } from "../components/feedback";
+import { LensCard } from "../components/lens";
 import { ActivityStream, ChangedValue, LogStream, RippleBanner } from "../components/live";
 import { PlanCompare, TensionCard } from "../components/plans";
 import {
@@ -304,6 +305,16 @@ export const implementations = [
   createComponentImplementation(apis.RippleBanner, ({ props, context }) => (
     <RippleBanner ripple={props.ripple} onOpen={() => emit(context, "ripple.open")} />
   )),
+  createComponentImplementation(apis.LensCard, ({ props }) => {
+    const count = props.gestures === undefined ? 2 : Number(props.gestures);
+    const hints = [
+      { gesture: "Tap" as const, does: "confirm" },
+      { gesture: "Swipe" as const, does: "next", tone: "muted" as const },
+    ].slice(0, count);
+    return (
+      <LensCard eyebrow={props.eyebrow} title={props.title ?? ""} body={props.body} hints={hints} />
+    );
+  }),
   createComponentImplementation(apis.ChangedValue, ({ props }) => (
     <ChangedValue before={props.before} after={props.after ?? ""} state={props.state} />
   )),

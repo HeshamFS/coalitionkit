@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { clearToken, readConfig, scrubAddress } from "./feed/config";
 import { FeedProvider } from "./feed/useFeed";
 import { Gallery } from "./gallery/Gallery";
+import { LensView } from "./lens/LensView";
 import { RoomView } from "./RoomView";
 import { SignIn } from "./SignIn";
 
@@ -33,7 +34,7 @@ export function App() {
         setConfig(null);
       }}
     >
-      <RoomView />
+      {location.pathname.startsWith("/lens") ? <LensView /> : <RoomView />}
     </FeedProvider>
   );
 }

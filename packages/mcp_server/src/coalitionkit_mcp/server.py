@@ -40,7 +40,8 @@ PLAIN_WRITES = (
     leave_coalition,
 )
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
-PLAIN_READS = (list_coalitions, pending_questions)
+#: The read tools whose results the view can draw; each links to it through its UI metadata.
+VIEW_READS = (list_coalitions, pending_questions)
 
 
 class PortTokenVerifier:
@@ -87,6 +88,8 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
         description="Show your live Coalition surface as readable text, with its data attached.",
         annotations=READ,
     )(my_view)
+    for read in VIEW_READS:
+        apps.tool(resource_uri=VIEW_URI, name=read.__name__, annotations=READ)(read)
     server = CoalitionMCPServer(
         deps,
         name="coalitionkit",
@@ -104,8 +107,6 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
         extensions=[apps],
         middleware=[carry_error_code],
     )
-    for fn in PLAIN_READS:
-        server.add_tool(fn, annotations=READ)
     for fn in (*PLAIN_WRITES, *CONSENT_WRITES):
         server.add_tool(fn, annotations=WRITE)
     server.resource(CHARTER_URI, name="charter", mime_type="application/json")(charter)

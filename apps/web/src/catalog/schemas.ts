@@ -332,6 +332,16 @@ export const apis = {
       }),
     }),
   },
+  LensCard: {
+    name: "LensCard",
+    schema: z.object({
+      title: DynamicString,
+      eyebrow: z.string().optional(),
+      body: DynamicString.optional(),
+      /** How many gesture hints the card shows (0 to 2). A string on the wire, like every count. */
+      gestures: z.enum(["0", "1", "2"]).optional(),
+    }),
+  },
   ChangedValue: {
     name: "ChangedValue",
     schema: z.object({
