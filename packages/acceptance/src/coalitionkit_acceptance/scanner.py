@@ -91,21 +91,26 @@ def holds(canary: Canary, text: str) -> bool:
 
 #: How one sighting is judged. Only "allowed" is a clean sighting; "steward_model" and
 #: "member_agent" are measured and reported on their own; "leak" is a finding.
-Judgement = Literal["allowed", "steward_model", "member_agent", "leak"]
+Judgement = Literal["allowed", "steward_model", "steward_projection", "member_agent", "leak"]
 
 
 def judge(canary: Canary, item: Outbound) -> Judgement:
     """A canary in a model prompt is allowed only for its owner's own agent.
 
     A prompt to the Steward model is a separate, explicit category when the Steward may see the
-    event the canary rode on; a prompt to the agent of a member the scope entitles is another.
-    Neither is an allowed sighting. Any other prompt is a leak.
+    event the canary rode on (``steward_projection`` when a recipient may see the canary,
+    ``steward_model`` when none may); a prompt to the agent of a member the scope entitles is
+    another. None of these is an allowed sighting. Any other prompt is a leak.
     """
     if item.surface == "prompt":
         if item.agent_owner == canary.owner:
             return "allowed"
         if item.agent_owner == STEWARD and STEWARD in canary.legit:
-            return "steward_model"
+            # A recipient other than the owner may see it, so the audit prompt carried a
+            # projection that recipient gets. With no such recipient, the prompt carried
+            # content nobody was to receive: the PRIV-4 defect.
+            others = canary.legit - {HOST, STEWARD, canary.owner}
+            return "steward_projection" if others else "steward_model"
         if item.agent_owner in canary.legit and item.agent_owner not in (HOST, STEWARD):
             return "member_agent"
         return "leak"

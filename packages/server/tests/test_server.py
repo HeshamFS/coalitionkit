@@ -246,6 +246,9 @@ async def test_restart_preserves_members_log_and_credentials(settings: Settings)
         with httpx.Client() as http:
             response = http.get(second.base + "/healthz")
             assert response.json()["store"] == "ok"
+            steward = response.json()["steward"]
+            assert set(steward) == {"provider", "model", "fallback"}
+            assert steward["fallback"] == (steward["provider"] == "meta")
             assert "admin-test" not in response.text
         person = second.state.registry.hosted_for(host.coalition_id, "p1")
         await send(

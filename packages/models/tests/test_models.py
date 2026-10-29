@@ -132,10 +132,11 @@ def test_price_table_fixed_usage_to_the_micro_dollar() -> None:
     assert table.cost_micro_usd("muse-spark-1.3", prompt_tokens=1, completion_tokens=0) == 2
 
 
-def test_baseten_price_is_marked_unverified() -> None:
+def test_baseten_price_is_the_published_one() -> None:
     table = load_price_table()
-    spark_open = table.price("meta-models/muse-spark-open-1026")
-    assert not spark_open.verified
+    spark_open = table.price("meta-models/muse-spark-open")
+    assert spark_open.verified
+    assert "baseten.co/library/muse-spark-open" in spark_open.source
     assert spark_open.input == table.price("muse-spark-1.3").input
     assert table.price("muse-wonder-1.0").verified
 
@@ -275,3 +276,29 @@ async def test_gateway_rate_limits_per_role() -> None:
     for _ in range(3):
         await gateway.complete("steward", [{"role": "user", "content": "x"}])
     assert sleeps == [60.0]
+
+
+def test_steward_defaults_to_muse_spark_open_on_baseten_when_its_key_is_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _env(monkeypatch, BASETEN_API_KEY=FAKE_KEY)
+    settings = load_settings()
+    route = settings.route("steward")
+    assert settings.steward_host == "baseten"
+    assert (route.model, route.key_name) == ("meta-models/muse-spark-open", "baseten")
+    assert route.base_url == "https://inference.baseten.co/v1"
+
+
+def test_steward_falls_back_to_meta_without_a_baseten_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    _env(monkeypatch, META_API_KEY=FAKE_KEY)
+    settings = load_settings()
+    assert settings.steward_host == "meta"
+    assert settings.route("steward").model == "muse-spark-1.3"
+    assert load_settings().route("steward").key_name == "meta"
+
+
+def test_an_explicit_steward_provider_beats_the_key_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _env(monkeypatch, BASETEN_API_KEY=FAKE_KEY, STEWARD_PROVIDER="meta")
+    assert load_settings().steward_host == "meta"

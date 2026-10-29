@@ -239,7 +239,13 @@ def create_server(settings: Settings) -> FastAPI:
                 routes[role] = "missing_key"
             else:
                 routes[role] = "configured_not_probed"
-        return {"status": "ok", "store": "ok", "model_routes": routes}
+        steward = server.gateway.settings.route("steward")
+        steward_status = {
+            "provider": server.gateway.settings.steward_host,
+            "model": steward.model,
+            "fallback": server.gateway.settings.steward_host == "meta",
+        }
+        return {"status": "ok", "store": "ok", "model_routes": routes, "steward": steward_status}
 
     app.mount("/", Dispatch(server, mcp))
     return app

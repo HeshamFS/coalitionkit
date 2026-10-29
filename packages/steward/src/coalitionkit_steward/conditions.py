@@ -33,6 +33,9 @@ class StewardContext:
     private_paths: frozenset[str] = frozenset()
     #: How many participants share the work (the fairness check needs at least two).
     participant_count: int = 2
+    #: The members of the Coalition, when the host passes them. The model audit then covers
+    #: only the views of members; an assignee who is no member is shown nothing.
+    members: frozenset[str] | None = None
 
 
 @dataclass(frozen=True)
