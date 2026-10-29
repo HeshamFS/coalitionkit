@@ -83,6 +83,12 @@ def clean(text: str) -> str:
     return "".join(ch for ch in text if ch == "\n" or ch.isprintable()).strip()
 
 
+def is_vault(item: Any) -> bool:
+    """True for a node or record whose provenance says its content comes from a vault."""
+    body = _doc(item)
+    return body is not None and str(body.get("provenance", "")).strip().lower() == "vault"
+
+
 def _doc(value: Any) -> Document | None:
     return cast(Document, value) if isinstance(value, dict) else None
 
@@ -144,7 +150,7 @@ class _Renderer:
     def record_line(self, record: Document | str) -> str:
         if isinstance(record, str):
             return clean(record)
-        if record.get("provenance") == "vault":
+        if is_vault(record):
             self.withheld = True
             return ""
         label = next((self.fmt(record[k]) for k in RECORD_LABELS if self.fmt(record.get(k))), "")
@@ -224,13 +230,13 @@ class _Renderer:
 
     def lines(self, node_id: str, depth: int = 0) -> list[str]:
         node = self.nodes[node_id]
+        if is_vault(node):  # first: before the summary, the own fields, options and children
+            self.withheld = True
+            return []
         if not on_message_door(self.doors, str(node.get("component"))):
             summary = self.fmt(node.get("summary"))
             self.hidden = self.hidden or not summary
             return [summary] if summary else []
-        if node.get("provenance") == "vault":
-            self.withheld = True
-            return []
         lines = self.own_lines(node_id, node)
         if depth < MAX_DEPTH:
             for child in self.children(node):
@@ -240,7 +246,10 @@ class _Renderer:
     def section(self, node_id: str, *, own_only: bool = False) -> Section:
         self.hidden = self.withheld = False
         node = self.nodes[node_id]
-        if not own_only:
+        if is_vault(node):
+            self.withheld = True
+            lines: list[str] = []
+        elif not own_only:
             lines = self.lines(node_id)
         elif on_message_door(self.doors, str(node.get("component"))):
             lines = self.own_lines(node_id, node)
@@ -258,6 +267,8 @@ def render_tree(components: list[Document], data_model: Any, doors: Doors) -> Re
     nodes = {str(c["id"]): c for c in components}
     renderer = _Renderer(nodes, data_model, doors)
     root = nodes[ROOT_ID]
+    if is_vault(root):  # a withheld root withholds its whole subtree
+        return Rendered([Section(ROOT_ID, WITHHELD)], [])
     kids = renderer.children(root)
     sections: list[Section] = []
     if kids:

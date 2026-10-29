@@ -7,7 +7,10 @@ from collections.abc import Sequence
 
 DEFAULT_LIMIT = 1000
 MIN_LIMIT = 40
-_MARK_RESERVE = 10  # room for " (99/99)"
+
+
+def _mark(index: int, total: int) -> str:
+    return f" ({index}/{total})"
 
 
 def _break(text: str, limit: int) -> list[str]:
@@ -64,6 +67,12 @@ def split_blocks(blocks: Sequence[str], limit: int = DEFAULT_LIMIT) -> list[str]
     parts = _layout(blocks, limit)
     if len(parts) <= 1:
         return parts
-    parts = _layout(blocks, limit - _MARK_RESERVE)
+    count = len(parts)
+    while True:  # the suffix width depends on the page count, which depends on the width
+        width = len(_mark(count, count))
+        parts = _layout(blocks, limit - width)
+        if len(_mark(len(parts), len(parts))) <= width:
+            break
+        count = len(parts)
     total = len(parts)
-    return [f"{part} ({index}/{total})" for index, part in enumerate(parts, start=1)]
+    return [f"{part}{_mark(index, total)}" for index, part in enumerate(parts, start=1)]

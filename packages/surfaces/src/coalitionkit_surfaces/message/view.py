@@ -41,6 +41,33 @@ def _plan_cards(event_id: str, event: Document) -> list[Document]:
     return cards
 
 
+def _tension_card(events: Document, row: Document) -> Document | None:
+    """A tension shown with the options of the viewer's own projected copy, at exactly the
+    revision the consent request names. ``None`` when that copy is not in the viewer's view."""
+    if row["kind"] != "tension_option":
+        return None
+    for event in events.values():
+        body = event["payload"]
+        if (
+            event["type"] == "coalition.tension"
+            and body.get("tension_id") == row["id"]
+            and body.get("revision") == row["revision"]
+        ):
+            options = [
+                {"id": str(o["option_id"]), "label": str(o.get("summary") or o["option_id"])}
+                for o in body.get("options", [])
+            ]
+            return {
+                "id": f"c-{row['kind']}-{row['id']}",
+                "component": "TensionCard",
+                "options": options,
+                "deciders": [str(d) for d in body.get("deciders", [])],
+                "decision_deadline": body["decision_deadline"],
+                "subject": {"kind": row["kind"], "id": row["id"], "revision": row["revision"]},
+            }
+    return None
+
+
 def host_is_open(host: CoalitionHost) -> Callable[[str, Document], bool]:
     """For ``ConfirmGate``: the subject, at exactly that revision, still waits for this person."""
 
@@ -68,6 +95,10 @@ class HostTreeSource:
         deadline = str(self.host.state.charter.get("deadline", ""))
         for row in self.host.open_consents(viewer):
             subject = self.host.state.subject(row["kind"], row["id"])
+            tension = _tension_card(events, row)
+            if tension is not None:
+                cards.append(tension)
+                continue
             cards.append(
                 {
                     "id": f"c-{row['kind']}-{row['id']}",

@@ -103,6 +103,8 @@ class MessageDoor:
         self._sent: dict[str, Rendered] = {}
         self._last_send: dict[str, float] = {}
         self._pending: set[str] = set()
+        self._queue: dict[str, list[str]] = {}
+        self._target: dict[str, Rendered] = {}
 
     # -- state to the person -------------------------------------------------------------------
 
@@ -114,15 +116,37 @@ class MessageDoor:
         return render_tree(components, data, self.doors)
 
     def _deliver(self, viewer: str, blocks: list[str]) -> int:
+        """Send one-off texts (help lines, confirm codes). No view state hangs on them."""
         messages = split_blocks([b for b in blocks if b], self.limit)
         for text in messages:
             self.channel.send(viewer, text)
         return len(messages)
 
+    def _drain(self, viewer: str) -> int:
+        """Hand the queued parts to the channel one by one. A part leaves the queue only after
+        its send returned, so a failure keeps the unsent rest; the view counts as sent (and
+        the waiting time starts) only when the last part is out."""
+        queue = self._queue[viewer]
+        sent = 0
+        while queue:
+            self.channel.send(viewer, queue[0])
+            queue.pop(0)
+            sent += 1
+        self._sent[viewer] = self._target.pop(viewer)
+        self._last_send[viewer] = self.clock()
+        self._pending.discard(viewer)
+        del self._queue[viewer]
+        return sent
+
     def sync(self, viewer: str) -> int:
         """Bring this person up to date. The first call sends the full view; later calls send one
         short line per changed item, and only when this viewer's own view changed. Returns the
-        number of messages handed to the channel."""
+        number of messages handed to the channel.
+
+        If the channel raises, nothing is lost: the unsent parts stay queued and the next
+        ``sync`` or ``flush`` sends exactly those (parts already delivered are not repeated)."""
+        if viewer in self._queue:
+            return self._drain(viewer)
         current = self._render(viewer)
         previous = self._sent.get(viewer)
         if previous is None:
@@ -138,14 +162,14 @@ class MessageDoor:
             moved = previous.options != current.options
             block = current.options_block() if moved else ""
             blocks = ["\n".join(lines), block or ("" if not moved else NOTHING_OPEN)]
-        self._pending.discard(viewer)
-        self._sent[viewer] = current
-        self._last_send[viewer] = self.clock()
-        return self._deliver(viewer, blocks)
+        self._queue[viewer] = split_blocks([b for b in blocks if b], self.limit)
+        self._target[viewer] = current
+        return self._drain(viewer)
 
     def flush(self) -> int:
-        """Send the held deltas of viewers whose waiting time has passed."""
-        return sum(self.sync(viewer) for viewer in sorted(self._pending))
+        """Send the held deltas of viewers whose waiting time has passed, and finish any
+        message a failed send left behind."""
+        return sum(self.sync(viewer) for viewer in sorted(self._pending | set(self._queue)))
 
     # -- replies ---------------------------------------------------------------------------------
 

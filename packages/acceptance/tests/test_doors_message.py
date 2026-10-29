@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from coalitionkit_acceptance.doors_message import MEMBERS, run_live_prompts, run_message_door
+from coalitionkit_acceptance.doors_message import (
+    LIVE_SHAPES,
+    MEMBERS,
+    run_live_prompts,
+    run_message_door,
+)
 from coalitionkit_acceptance.metrics import SESSION, Recorder, Scorecard, percentile
 from coalitionkit_acceptance.privacy_live import (
     live_enabled,
@@ -60,4 +65,7 @@ async def test_live_model_member_replies_with_an_option_number() -> None:
     card = Scorecard()
     card.add(recorder)
     card.write(SCORECARD)
-    assert result.prompts > 0
+    detail = f"replies: {result.replies}"
+    assert result.prompts == len(LIVE_SHAPES), detail
+    assert result.parsed == result.prompts, detail
+    assert result.correct == result.prompts, detail
