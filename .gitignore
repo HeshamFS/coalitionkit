@@ -16,3 +16,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+# Example run outputs (scorecards)
+examples/out/
+examples/.venv/
