@@ -13,6 +13,7 @@ dev = [
     "coalitionkit-edges",
     "coalitionkit-gardener",
     "hypothesis==6.170.13",
+    "coalitionkit-mint",
     "coalitionkit-models",
     "coalitionkit-steward",
     "coalitionkit-mcp",
@@ -41,6 +42,7 @@ coalitionkit-runtime = { workspace = true }
 coalitionkit-edges = { workspace = true }
 coalitionkit-gardener = { workspace = true }
 coalitionkit-models = { workspace = true }
+coalitionkit-mint = { workspace = true }
 coalitionkit-steward = { workspace = true }
 coalitionkit-mcp = { workspace = true }
 coalitionkit-acceptance = { workspace = true }
@@ -60,17 +62,17 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 # The contracts tests import a helper module named "examples"; the top-level examples/ folder
 # must not turn it into a first-party import.
 known-third-party = ["examples"]
-known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -210,3 +212,18 @@ forbidden_modules = [
     "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
     "coalitionkit_psi", "coalitionkit_vault", "coalitionkit_server",
 ]
+
+[[tool.importlinter.contracts]]
+name = "mint uses only models, steward, edges, contracts and vault"
+type = "forbidden"
+source_modules = ["coalitionkit_mint"]
+forbidden_modules = ["coalitionkit_runtime", "coalitionkit_gardener", "coalitionkit_surfaces", "coalitionkit_mcp", "coalitionkit_packs", "coalitionkit_server", "coalitionkit_acceptance"]
+
+[[tool.importlinter.contracts]]
+name = "only acceptance and server may import mint"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_edges", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_gardener", "coalitionkit_surfaces", "coalitionkit_mcp", "coalitionkit_packs"]
+forbidden_modules = ["coalitionkit_mint"]
+
+# Template imports use the fail-closed AST allowlist in coalitionkit_mint.scan.
+# test_template_scan enforces it; a forbidden-import list cannot cover new network clients.

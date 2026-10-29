@@ -21,3 +21,5 @@ packages/acceptance/scorecard-*.json
 # Example run outputs (scorecards)
 examples/out/
 examples/.venv/
+
+packages/mint/scorecard-*.json
