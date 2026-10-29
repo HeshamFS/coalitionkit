@@ -20,9 +20,9 @@ from typing import Literal
 MaskKind = Literal["lossless", "one_bit", "unknown"]
 
 _FRAME = re.compile(r"<(\d+)f>")
-_RECORD = re.compile(
-    r"(?P<ordinal>\d+)?<\|box;(?P<box>[^|]*)\|>(?:<\|mask;(?P<mask>.*?)\|>)?", re.DOTALL
-)
+_HEAD = re.compile(r"(?P<ordinal>\d+)?<\|box;(?P<box>[^|]*)\|>")
+_MASK_OPEN = "<|mask;"
+_MASK_CLOSE = "|>"
 
 
 class SamParseError(ValueError):
@@ -131,20 +131,39 @@ def parse_sam_output(text: str) -> list[Segment]:
             raise SamParseError("a line does not start with a <Nf> frame marker")
         frame = int(header.group(1))
         body = line[header.end() :]
-        found = list(_RECORD.finditer(body))
-        if not found and body.strip():
-            raise SamParseError(f"frame {frame} has content but no box records")
-        for position, match in enumerate(found):
-            ordinal = int(match.group("ordinal")) if match.group("ordinal") else position
-            mask = _parse_mask(match.group("mask")) if match.group("mask") is not None else None
-            segments.append(
-                Segment(
-                    _parse_box(match.group("box")),
-                    mask.payload if mask else "",
-                    ordinal,
-                    mask.kind if mask else "unknown",
-                    mask,
-                    frame,
-                )
-            )
+        segments.extend(_parse_frame(frame, body))
     return segments
+
+
+def _parse_frame(frame: int, body: str) -> list[Segment]:
+    """Parse a whole frame body: every character must belong to a record or a separator."""
+    out: list[Segment] = []
+    pos = 0
+    while pos < len(body):
+        if out:
+            if body[pos] != ",":
+                raise SamParseError(f"frame {frame}: unexpected text at offset {pos}")
+            pos += 1
+        head = _HEAD.match(body, pos)
+        if head is None:
+            raise SamParseError(f"frame {frame}: no valid box record at offset {pos}")
+        pos = head.end()
+        mask: Mask | None = None
+        if body.startswith(_MASK_OPEN, pos):
+            end = body.find(_MASK_CLOSE, pos + len(_MASK_OPEN))
+            if end < 0:
+                raise SamParseError(f"frame {frame}: unterminated mask at offset {pos}")
+            mask = _parse_mask(body[pos + len(_MASK_OPEN) : end])
+            pos = end + len(_MASK_CLOSE)
+        ordinal = int(head.group("ordinal")) if head.group("ordinal") else len(out)
+        out.append(
+            Segment(
+                _parse_box(head.group("box")),
+                mask.payload if mask else "",
+                ordinal,
+                mask.kind if mask else "unknown",
+                mask,
+                frame,
+            )
+        )
+    return out

@@ -15,6 +15,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from coalitionkit_models import (
+    BudgetExhaustedError,
     CostMeter,
     FakeModel,
     MediaClient,
@@ -336,3 +337,98 @@ async def test_media_retries_transient_and_not_client_errors() -> None:
         await _media(denied).generate_image("p")
     assert info.value.status == 401
     assert hits[0] == 103
+
+
+async def test_budget_is_rechecked_before_the_truncation_retry() -> None:
+    cut = ScriptedResponse("", 1000, 4000, reasoning_tokens=4000, finish_reason="length")
+    gateway, fake, meter = _gateway([cut, ScriptedResponse("never")])
+    meter.set_budget(COALITION, 100)
+    with pytest.raises(BudgetExhaustedError):
+        await gateway.complete("composer", USER, coalition_id=COALITION)
+    assert len(fake.calls) == 1  # the doubled-budget retry never reached the transport
+
+
+def _tool_calls(raw: Any) -> Any:
+    from coalitionkit_models.structured import parse_tool_calls
+
+    return parse_tool_calls(raw)
+
+
+@pytest.mark.parametrize("text", ["", "   ", '{"q": ', "not json", "[1, 2]", '"text"', "3", "null"])
+def test_invalid_tool_arguments_are_marked_never_an_empty_object(text: str) -> None:
+    (call,) = _tool_calls([{"id": "c1", "function": {"name": "lookup", "arguments": text}}])
+    assert call.arguments is None
+    assert call.error
+    assert call.raw_arguments == text
+    assert not call.executable
+
+
+def test_valid_tool_arguments_are_executable() -> None:
+    (call,) = _tool_calls([{"id": "c1", "function": {"name": "lookup", "arguments": "{}"}}])
+    assert call.arguments == {} and call.error is None and call.executable
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|><|mask;x=0;y=0;data=3,3,~ab",  # cut mask
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|>junk",  # trailing garbage
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|>,",  # separator with no record
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|>1<|box;x1=1;y1=2;x2=3;y2=4;w=1;h=1|>",
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|>,1<|oops",  # unmatched second record
+        "<0f>0<|mask;x=0;y=0;data=3,3,~ab|>",  # mask with no box
+        "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=10;h=20|><|mask;x=0;y=0;data=3,~ab|>",  # bad dims
+    ],
+)
+def test_sam_parser_rejects_partial_or_corrupt_output(bad: str) -> None:
+    with pytest.raises(SamParseError):
+        parse_sam_output(bad)
+
+
+async def test_media_is_billed_even_when_the_reply_is_unusable() -> None:
+    def junk_sam(request: httpx2.Request) -> httpx2.Response:
+        text = {"output_text": "<0f>0<|box;x1=1;y1=2;x2=3;y2=4;w=1;h=1|><|mask;x=0"}
+        return httpx2.Response(200, json=text)
+
+    meter = CostMeter(load_price_table())
+    with pytest.raises(SamParseError):
+        await _media(junk_sam, meter).segment(b"\x89PNGxxxx", "circle", coalition_id=COALITION)
+    assert meter.total(COALITION) == 2_500
+
+    def no_image(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"data": []})
+
+    meter = CostMeter(load_price_table())
+    with pytest.raises(ProviderError):
+        await _media(no_image, meter).generate_image("p", coalition_id=COALITION)
+    assert meter.total(COALITION) == 10_000
+
+    def not_json(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, content=b"<html>")
+
+    meter = CostMeter(load_price_table())
+    with pytest.raises(ProviderError):
+        await _media(not_json, meter).generate_image("p", coalition_id=COALITION)
+    assert meter.total(COALITION) == 10_000
+
+
+@pytest.mark.parametrize("reply", [{"transcript": "x"}, {"transcript": "x", "audioDurationMs": 1}])
+async def test_transcription_bills_at_least_the_audio_sent(reply: dict[str, Any]) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json=reply)
+
+    meter = CostMeter(load_price_table())
+    audio = _wav(frames=16_000)  # one second: 50 micro-USD at $0.18 per hour
+    result = await _media(handler, meter).transcribe(audio, coalition_id=COALITION)
+    assert meter.total(COALITION) == 50
+    assert result.audio_ms == 1000
+
+
+async def test_transcription_is_billed_when_fields_are_malformed() -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        reply = {"transcript": "x", "audioDurationMs": "n/a", "turns": [{"startMs": "bad"}]}
+        return httpx2.Response(200, json=reply)
+
+    meter = CostMeter(load_price_table())
+    await _media(handler, meter).transcribe(_wav(frames=16_000), coalition_id=COALITION)
+    assert meter.total(COALITION) == 50

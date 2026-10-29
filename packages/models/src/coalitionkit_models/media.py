@@ -69,6 +69,13 @@ def _dicts(value: Any) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict)]  # pyright: ignore[reportUnknownVariableType]
 
 
+def _int_or_zero(value: Any) -> int:
+    try:
+        return max(0, int(value or 0))
+    except TypeError, ValueError:
+        return 0
+
+
 def _response_text(body: dict[str, Any]) -> str:
     direct = body.get("output_text")
     if isinstance(direct, str):
@@ -110,7 +117,16 @@ class MediaClient:
     async def aclose(self) -> None:
         await self._http.aclose()
 
-    async def _post(self, model: str, path: str, **kwargs: Any) -> dict[str, Any]:
+    async def _post(
+        self,
+        model: str,
+        path: str,
+        bill: Callable[[dict[str, Any] | None], None],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """POST and return the JSON object. ``bill`` runs right after the provider answered
+        successfully, before the body is parsed or validated; it gets ``None`` when the body is
+        not a JSON object, so unusable replies are still billed."""
         route = self.settings.media_route(model)
         url = route.base_url.rstrip("/") + path
         headers = {"Authorization": f"Bearer {self.settings.api_key(route)}"}
@@ -118,7 +134,11 @@ class MediaClient:
         async def call() -> dict[str, Any]:
             response = await self._http.post(url, headers=headers, **kwargs)
             response.raise_for_status()
-            body: Any = response.json()
+            body: Any = None
+            try:
+                body = response.json()
+            finally:
+                bill(body if isinstance(body, dict) else None)  # pyright: ignore[reportUnknownArgumentType]
             if not isinstance(body, dict):
                 raise ProviderError("media reply is not a JSON object")
             return body  # pyright: ignore[reportUnknownVariableType]
@@ -153,13 +173,13 @@ class MediaClient:
         body = await self._post(
             model,
             "/images/generations",
+            lambda _: self._meter(coalition_id, participant, model, images=1),
             json={"model": model, "prompt": prompt, "size": size, "response_format": "b64_json"},
         )
         data = _dicts(body.get("data"))
         encoded = data[0].get("b64_json") if data else None
         if not isinstance(encoded, str):
             raise ProviderError("image reply has no data[0].b64_json")
-        self._meter(coalition_id, participant, model, images=1)
         return base64.b64decode(encoded)
 
     async def segment(
@@ -189,10 +209,13 @@ class MediaClient:
         }
         if include_confidence:
             payload["metadata"] = {"include_confidence": "true"}
-        body = await self._post(model, "/responses", json=payload)
-        segments = parse_sam_output(_response_text(body))
-        self._meter(coalition_id, participant, model, images=1)
-        return segments
+        body = await self._post(
+            model,
+            "/responses",
+            lambda _: self._meter(coalition_id, participant, model, images=1),
+            json=payload,
+        )
+        return parse_sam_output(_response_text(body))
 
     async def transcribe(
         self,
@@ -205,7 +228,7 @@ class MediaClient:
         participant: str = SYSTEM_PARTICIPANT,
     ) -> Transcript:
         """Transcribe a mono 16-bit PCM WAV (16 or 24 kHz). Validated before anything is sent."""
-        validate_wav(wav_bytes)
+        wav_ms = validate_wav(wav_bytes).duration_ms
         self._check(coalition_id)
         model = self.settings.transcribe_model
         request: dict[str, Any] = {"model": model, "audioEncoding": "WAV", "mode": mode}
@@ -217,16 +240,21 @@ class MediaClient:
             "request": (None, json.dumps(request), "application/json"),
             "audio": ("audio.wav", wav_bytes, "audio/wav"),
         }
-        body = await self._post(model, "/asr/transcribe", files=files)
+
+        def bill(body: dict[str, Any] | None) -> None:
+            # Never less than the audio we sent: a missing or low reported duration is not free.
+            reported = _int_or_zero(body.get("audioDurationMs")) if body else 0
+            self._meter(coalition_id, participant, model, audio_ms=max(reported, wav_ms))
+
+        body = await self._post(model, "/asr/transcribe", bill, files=files)
         turns = tuple(
             Turn(
-                int(t.get("startMs", 0)),
-                int(t.get("endMs", 0)),
+                _int_or_zero(t.get("startMs")),
+                _int_or_zero(t.get("endMs")),
                 str(t.get("transcript", "")),
                 t.get("speaker"),
             )
             for t in _dicts(body.get("turns"))
         )
-        audio_ms = int(body.get("audioDurationMs") or 0)
-        self._meter(coalition_id, participant, model, audio_ms=audio_ms)
+        audio_ms = max(_int_or_zero(body.get("audioDurationMs")), wav_ms)
         return Transcript(str(body.get("transcript", "")), turns, audio_ms)

@@ -14,12 +14,22 @@ from .errors import SchemaValidationError
 
 @dataclass(frozen=True)
 class ToolCall:
-    """One tool call the model asked for. ``arguments`` is the parsed JSON object."""
+    """One tool call the model asked for.
+
+    ``arguments`` is the parsed JSON object. When the model sent empty, malformed or non-object
+    arguments, ``arguments`` is ``None``, ``error`` says why and ``raw_arguments`` keeps the
+    text: the call is not executable and the caller must not run it (never an empty object).
+    """
 
     id: str
     name: str
-    arguments: dict[str, Any]
+    arguments: dict[str, Any] | None
     raw_arguments: str = ""
+    error: str | None = None
+
+    @property
+    def executable(self) -> bool:
+        return self.arguments is not None and self.error is None
 
 
 def _get(obj: Any, name: str) -> Any:
@@ -28,20 +38,32 @@ def _get(obj: Any, name: str) -> Any:
     return getattr(obj, name, None)
 
 
+def _parse_arguments(text: str) -> tuple[dict[str, Any] | None, str | None]:
+    if not text.strip():
+        return None, "arguments are empty"
+    try:
+        loaded: Any = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return None, f"arguments are not valid JSON: {exc.msg} at position {exc.pos}"
+    if not isinstance(loaded, dict):
+        return None, f"arguments are a JSON {type(loaded).__name__}, not an object"  # pyright: ignore[reportUnknownArgumentType]
+    return loaded, None  # pyright: ignore[reportUnknownVariableType]
+
+
 def parse_tool_calls(raw: Any) -> tuple[ToolCall, ...]:
     """Type the ``tool_calls`` of an OpenAI-style message (SDK objects or dicts)."""
     out: list[ToolCall] = []
     for item in raw or ():
         function = _get(item, "function")
         text = str(_get(function, "arguments") or "")
-        try:
-            loaded: Any = json.loads(text) if text else {}
-        except json.JSONDecodeError:
-            loaded = {}
-        arguments: dict[str, Any] = loaded if isinstance(loaded, dict) else {}  # pyright: ignore[reportUnknownVariableType]
+        arguments, error = _parse_arguments(text)
         out.append(
             ToolCall(
-                str(_get(item, "id") or ""), str(_get(function, "name") or ""), arguments, text
+                str(_get(item, "id") or ""),
+                str(_get(function, "name") or ""),
+                arguments,
+                text,
+                error,
             )
         )
     return tuple(out)

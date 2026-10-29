@@ -251,11 +251,11 @@ class ModelGateway:
         and ProviderError when the call fails for good.
         """
         route = self.settings.route(role)
-        if self.meter is not None and coalition_id is not None:
-            self.meter.check(coalition_id)
         budget = self._budget(role, opts)
         base = self._base_opts(role, route, opts, response_schema)
         for tries in (1, 2):
+            if self.meter is not None and coalition_id is not None:
+                self.meter.check(coalition_id)  # before every billed request, retry included
             request = {**base, "max_completion_tokens": budget}
             raw = await self._call(role, route, messages, request)
             done = self._finish(role, route, raw, coalition_id, participant)
