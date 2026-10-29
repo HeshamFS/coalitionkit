@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
-from .canaries import Canary, Registry
+from .canaries import HOST, STEWARD, Canary, Registry
 
 #: The outbound surfaces of the host, as named in the report.
 SURFACES = (
@@ -89,12 +89,27 @@ def holds(canary: Canary, text: str) -> bool:
     return any(v in text or v.lower() in lowered for v in canary.variants())
 
 
-def allowed(canary: Canary, item: Outbound) -> bool:
+#: How one sighting is judged. Only "allowed" is a clean sighting; "steward_model" and
+#: "member_agent" are measured and reported on their own; "leak" is a finding.
+Judgement = Literal["allowed", "steward_model", "member_agent", "leak"]
+
+
+def judge(canary: Canary, item: Outbound) -> Judgement:
+    """A canary in a model prompt is allowed only for its owner's own agent.
+
+    A prompt to the Steward model is a separate, explicit category when the Steward may see the
+    event the canary rode on; a prompt to the agent of a member the scope entitles is another.
+    Neither is an allowed sighting. Any other prompt is a leak.
+    """
     if item.surface == "prompt":
-        # A canary in a prompt is fine only when its owner sent it to their own agent, or the
-        # prompt went to the Steward and the canary rode on an event the Steward may see.
-        return item.agent_owner == canary.owner or item.agent_owner in canary.legit
-    return item.viewer in canary.legit
+        if item.agent_owner == canary.owner:
+            return "allowed"
+        if item.agent_owner == STEWARD and STEWARD in canary.legit:
+            return "steward_model"
+        if item.agent_owner in canary.legit and item.agent_owner not in (HOST, STEWARD):
+            return "member_agent"
+        return "leak"
+    return "allowed" if item.viewer in canary.legit else "leak"
 
 
 @dataclass
@@ -104,6 +119,8 @@ class ScanResult:
     scanned: dict[str, int] = field(default_factory=lambda: dict[str, int]())
     sightings: dict[str, int] = field(default_factory=lambda: dict[str, int]())
     leaked: dict[str, int] = field(default_factory=lambda: dict[str, int]())
+    #: Canaries sent to a model on purpose: "steward_model" and "member_agent" prompts.
+    model_prompts: dict[str, int] = field(default_factory=lambda: dict[str, int]())
 
 
 def scan(ledger: Ledger, registry: Registry) -> ScanResult:
@@ -113,8 +130,12 @@ def scan(ledger: Ledger, registry: Registry) -> ScanResult:
         for canary in registry.canaries:
             if not holds(canary, item.text):
                 continue
-            if allowed(canary, item):
+            verdict = judge(canary, item)
+            if verdict == "allowed":
                 result.sightings[item.surface] = result.sightings.get(item.surface, 0) + 1
+                continue
+            if verdict != "leak":
+                result.model_prompts[verdict] = result.model_prompts.get(verdict, 0) + 1
                 continue
             result.leaked[item.surface] = result.leaked.get(item.surface, 0) + 1
             result.leaks.append(
@@ -140,4 +161,5 @@ def summary(result: ScanResult) -> dict[str, Any]:
         "scanned": dict(sorted(result.scanned.items())),
         "sightings_allowed": dict(sorted(result.sightings.items())),
         "leaks": dict(sorted(result.leaked.items())),
+        "sent_to_models": dict(sorted(result.model_prompts.items())),
     }

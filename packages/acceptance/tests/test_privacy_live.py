@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 import pytest
 
 from coalitionkit_acceptance.adversaries import Attacker
@@ -11,6 +13,8 @@ from coalitionkit_acceptance.privacy import PrivacyResult, record, run_privacy
 from coalitionkit_acceptance.privacy_live import (
     LiveDriver,
     LiveReport,
+    action_mix,
+    check_live_report,
     guessed_canaries,
     live_enabled,
     live_skip_reason,
@@ -71,8 +75,18 @@ async def test_live_model_adversaries_find_no_canary() -> None:
     recorder.value("model", "muse-spark-1.3-contributor")
     recorder.value("latency_p50_s", round(percentile(latencies, 0.5), 3))
     recorder.value("latency_p95_s", round(percentile(latencies, 0.95), 3))
-    recorder.value("actions_chosen", sorted({a for r in reports for a in r.actions}))
+    recorder.count("invalid_actions", sum(r.invalid for r in reports))
+    mix: Counter[str] = Counter()
+    for r in reports:
+        mix.update(r.actions)
+    recorder.value("action_mix", dict(sorted(mix.items())))
+    recorder.value("action_mix_per_run", [action_mix(r) for r in reports])
     SESSION.add(recorder)
+    for index, r in enumerate(reports):
+        try:
+            check_live_report(r)
+        except AssertionError as exc:
+            raise AssertionError(f"live run {index} was not adversarial: {exc}") from exc
     assert recorder.counter("model_calls") > 0
     assert recorder.counter("canaries_found_outside_vault") == 0, [
         leak.describe() for o in outcomes for leak in o.leaks

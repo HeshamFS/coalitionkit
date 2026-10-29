@@ -52,6 +52,13 @@ async def test_the_adversaries_actually_ran() -> None:
             "replay_old",
         } <= kinds, name
     assert outcome.psi_overlap_ok
+    trouble = [
+        line
+        for steps in outcome.attack_log.values()
+        for line in steps
+        if "ERROR" in line or line.startswith("invalid")
+    ]
+    assert trouble == []
     replays = [
         line for steps in outcome.attack_log.values() for line in steps if "replay_old" in line
     ]

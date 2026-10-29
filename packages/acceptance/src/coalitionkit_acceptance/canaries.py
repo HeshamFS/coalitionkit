@@ -12,7 +12,7 @@ import base64
 import random
 import string
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from urllib.parse import quote
 
@@ -42,20 +42,37 @@ class Canary:
     #: A second planted value that belongs to the first (the end of a slot).
     extra: str = ""
 
+    def needles(self) -> tuple[str, ...]:
+        """Everything that identifies the canary: a slot has two, its start and its end."""
+        if self.shape == "slot" and self.extra:
+            return (self.needle, self.extra[:16])
+        return (self.needle,)
+
     def variants(self) -> tuple[str, ...]:
-        """Encodings a leak could take: plain, case, URL, base64 and hex of the needle."""
-        raw = self.needle.encode()
-        forms = {
-            self.needle,
-            self.needle.lower(),
-            self.needle.upper(),
-            quote(self.needle, safe=""),
-            base64.b64encode(raw).decode().rstrip("="),
-            base64.urlsafe_b64encode(raw).decode().rstrip("="),
-            raw.hex(),
-        }
-        if self.shape == "slot":
-            forms.add(self.needle.replace("T", " "))
+        """Encodings a leak could take, for every needle: plain, case, URL, base64, hex.
+
+        A slot also appears with a space for the T, as compact digits and as epoch seconds.
+        """
+        forms: set[str] = set()
+        for needle in self.needles():
+            raw = needle.encode()
+            forms |= {
+                needle,
+                needle.lower(),
+                needle.upper(),
+                quote(needle, safe=""),
+                base64.b64encode(raw).decode().rstrip("="),
+                base64.urlsafe_b64encode(raw).decode().rstrip("="),
+                raw.hex(),
+            }
+            if self.shape == "slot":
+                moment = datetime.strptime(needle, "%Y-%m-%dT%H:%M").replace(tzinfo=UTC)
+                forms |= {
+                    needle.replace("T", " "),
+                    moment.strftime("%Y%m%dT%H%M"),
+                    moment.strftime("%Y%m%d%H%M"),
+                    str(int(moment.timestamp())),
+                }
         return tuple(sorted(f for f in forms if f))
 
 
@@ -110,6 +127,7 @@ class CanaryFactory:
         end = start + timedelta(hours=1)
         needle = start.strftime("%Y-%m-%dT%H:%M")
         self._unique(needle)
+        self._unique((start + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"))
         return start.strftime("%Y-%m-%dT%H:%M:00Z"), end.strftime("%Y-%m-%dT%H:%M:00Z")
 
     def document(self) -> tuple[str, str]:

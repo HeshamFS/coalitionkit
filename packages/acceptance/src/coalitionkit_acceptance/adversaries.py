@@ -19,6 +19,7 @@ from coalitionkit_contracts.payloads import QueryPayload
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_surfaces import FeedSession
 
+from .actions import validate_action
 from .arena import Document, refusal_code
 from .privacy_collect import Observer, frames_text
 from .privacy_mcp import McpSession
@@ -56,6 +57,7 @@ class Attacker:
         self.person = world.people[name]
         self.log: list[str] = []
         self._count = 0
+        self.invalid = 0
 
     # -- helpers -----------------------------------------------------------------------------
 
@@ -76,12 +78,18 @@ class Attacker:
 
     async def act(self, action: str, args: Document | None = None) -> str:
         """Do one action; return the text the adversary now holds."""
-        args = args or {}
-        if action not in ACTIONS:
-            return f"unknown action {action}"
+        clean = validate_action(action, args, self.name, NAMES)
+        if clean is None:
+            self.invalid += 1
+            self.log.append(f"invalid: {str(action)[:40]}")
+            return "invalid action: it does not fit its schema, nothing was done"
         self._count += 1
         handler = getattr(self, f"do_{action}")
-        text: str = await handler(args)
+        try:
+            text: str = await handler(clean)
+        except Exception as exc:  # a failing handler is a wasted turn, not a failed suite
+            self.log.append(f"{action}: ERROR {type(exc).__name__}")
+            return f"the action failed ({type(exc).__name__})"
         self.log.append(f"{action}: {text[:200]}")
         return text
 
@@ -103,8 +111,8 @@ class Attacker:
         return text
 
     async def do_mcp_tool(self, args: Document) -> str:
-        tool = str(args.get("tool", "list_coalitions"))
-        payload: Document = dict(args.get("args", {}))
+        tool = str(args["tool"])
+        payload: Document = dict(args["args"])
         if tool != "list_coalitions":
             payload.setdefault("coalition_id", self.world.host.coalition_id)
         text = await self.session.call(tool, payload)

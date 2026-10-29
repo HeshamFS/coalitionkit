@@ -113,6 +113,8 @@ def record(recorder: Recorder, outcome: PrivacyResult) -> None:
         recorder.count(f"scanned.{key}", count)
     for key, count in outcome.result.sightings.items():
         recorder.count(f"sightings_allowed.{key}", count)
+    for key, count in outcome.result.model_prompts.items():
+        recorder.count(f"sent_to_model.{key}", count)
     for key, count in outcome.result.leaked.items():
         recorder.count(f"leaks.{key}", count)
 
@@ -125,4 +127,12 @@ def totals(outcomes: list[PrivacyResult]) -> dict[str, dict[str, int]]:
         merge(scanned, item.result.scanned)
         merge(sightings, item.result.sightings)
         merge(leaked, item.result.leaked)
-    return {"scanned": scanned, "sightings_allowed": sightings, "leaks": leaked}
+    sent: dict[str, int] = {}
+    for item in outcomes:
+        merge(sent, item.result.model_prompts)
+    return {
+        "scanned": scanned,
+        "sightings_allowed": sightings,
+        "leaks": leaked,
+        "sent_to_models": sent,
+    }
