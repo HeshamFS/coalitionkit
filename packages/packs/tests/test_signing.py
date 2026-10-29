@@ -113,5 +113,5 @@ def test_cli_validate_sign_verify(tmp_path: Path, capsys: pytest.CaptureFixture[
     assert main(["verify", str(root), "--trusted-key", str(jwk)]) == 1
     assert main(["validate", str(root), "--core-version", CORE_VERSION]) == 1  # no core catalog
     err = capsys.readouterr().err
-    assert "[signature]" in err and "[unknown_component]" in err
+    assert "[signature]" in err and "[core_catalog_missing]" in err
     assert main(["sign", str(root), "--key", str(tmp_path / "none"), "--kid", "k"]) == 2

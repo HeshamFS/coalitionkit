@@ -3,42 +3,68 @@
 
 from __future__ import annotations
 
-from coalitionkit_contracts import Scope
+from coalitionkit_contracts import Membership, Scope, ScopeSource, principals
 
-_RANK = {"host": 0, "self": 1, "participants": 2, "roles": 2, "coalition": 3}
 #: Audiences a pack template may name. A pack names no people and sets no coalition-wide default.
 PACK_AUDIENCES = frozenset({"host", "self", "roles"})
 
 
 class ScopeWidenError(ValueError):
-    """A pack scope reaches someone the scope it narrows does not."""
+    """A pack scope reaches someone the scope it narrows does not, or that cannot be shown."""
 
 
-def check_not_wider(base: Scope, candidate: Scope) -> None:
-    """Raise ScopeWidenError unless ``candidate`` reaches no one ``base`` does not.
+def check_not_wider(
+    base: Scope,
+    candidate: Scope,
+    *,
+    owner: str | None = None,
+    membership: Membership | None = None,
+) -> None:
+    """Raise ScopeWidenError unless ``candidate`` provably reaches no one ``base`` does not.
 
-    Redaction paths of ``base`` must all stay in ``candidate``. Roles and participants lists
-    must be subsets; a roles scope and a participants scope are not comparable, so swapping
-    one for the other counts as widening.
+    With ``owner`` (the sender's owner) and ``membership`` the two scopes are resolved to
+    recipient sets and compared. Without them only conversions whose subset relation holds for
+    every possible membership are accepted: anything to ``host``, ``coalition`` to anything,
+    equal audiences with subset lists, and ``self`` to ``self``. Converting ``participants`` or
+    ``roles`` to ``self`` (or between roles and participants) needs the resolved sets, so it
+    is refused. The candidate must also keep every redaction path of ``base``.
     """
-    if _RANK[candidate.audience] > _RANK[base.audience]:
-        raise ScopeWidenError(f"{candidate.audience} is wider than {base.audience}")
-    if candidate.audience == base.audience:
-        for attr in ("participants", "roles"):
-            extra = set(getattr(candidate, attr) or []) - set(getattr(base, attr) or [])
-            if extra:
-                raise ScopeWidenError(f"{attr} {sorted(extra)} are not in the base scope")
-    elif base.audience in ("participants", "roles") and candidate.audience in (
-        "participants",
-        "roles",
-    ):
-        raise ScopeWidenError("roles and participants scopes are not comparable")
+    if membership is not None and owner is not None:
+        wider = principals(ScopeSource(candidate, owner), membership) - principals(
+            ScopeSource(base, owner), membership
+        )
+        if wider:
+            raise ScopeWidenError(f"candidate reaches {sorted(wider)}, which the base does not")
+    elif not _structurally_narrower(base, candidate):
+        raise ScopeWidenError(
+            f"cannot show that {candidate.audience} is within {base.audience} "
+            "without the owner and membership"
+        )
     dropped = set(base.redact or []) - set(candidate.redact or [])
     if dropped:
         raise ScopeWidenError(f"redaction paths {sorted(dropped)} were dropped")
 
 
-def narrow(base: Scope, candidate: Scope) -> Scope:
-    """``candidate`` if it is no wider than ``base``; otherwise ScopeWidenError."""
-    check_not_wider(base, candidate)
+def _structurally_narrower(base: Scope, candidate: Scope) -> bool:
+    if candidate.audience == "host" or base.audience == "coalition":
+        return True
+    if candidate.audience != base.audience:
+        return False
+    if base.audience in ("self", "host"):
+        return True
+    for attr in ("participants", "roles"):
+        if not set(getattr(candidate, attr) or []) <= set(getattr(base, attr) or []):
+            return False
+    return True
+
+
+def narrow(
+    base: Scope,
+    candidate: Scope,
+    *,
+    owner: str | None = None,
+    membership: Membership | None = None,
+) -> Scope:
+    """``candidate`` if it is provably no wider than ``base``; otherwise ScopeWidenError."""
+    check_not_wider(base, candidate, owner=owner, membership=membership)
     return candidate

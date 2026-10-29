@@ -115,8 +115,8 @@ def test_template_scope_roles_must_exist(tmp_path: Path) -> None:
 def test_scope_narrowing_rules() -> None:
     base = Scope(audience="roles", roles=["a", "b"], redact=["payload.x"])
     check_not_wider(base, Scope(audience="roles", roles=["a"], redact=["payload.x", "payload.y"]))
-    check_not_wider(base, Scope(audience="self", redact=["payload.x"]))
     for wider in (
+        Scope(audience="self", redact=["payload.x"]),  # self is not provably in the audience
         Scope(audience="coalition"),
         Scope(audience="roles", roles=["a", "c"], redact=["payload.x"]),
         Scope(audience="roles", roles=["a"]),

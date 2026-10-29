@@ -57,3 +57,10 @@ Hooks wanted (surfaces and steward are unchanged): a `Catalog` constructor or a 
 `ComponentSpec` export from `coalitionkit_surfaces` (the loader imports it from
 `coalitionkit_surfaces.catalog`); a steward helper that loads a policy set from text so packs
 need not read files themselves.
+
+## Hardening after review (round 1)
+
+- Packs load from one confined, size-bounded snapshot (256 KB per file, 500 files, 8 MB): verification hashes exactly those bytes and parsing uses the same bytes; no file is reopened after verification.
+- Any link in the pack folder (symlink, junction, other reparse point) refuses the whole pack, even an unreferenced one; drive-qualified, absolute, backslash, `.`/`..` and NUL paths are refused.
+- Validating views requires the core catalog (`core_catalog_missing` otherwise); the loader never assumes an empty core.
+- `check_not_wider(base, candidate, *, owner=None, membership=None)`: with owner and membership it compares resolved recipient sets; without them it accepts only conversions that hold for every membership.
