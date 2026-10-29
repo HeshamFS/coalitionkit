@@ -303,3 +303,27 @@ async def test_live_meter_matches_the_provider_reported_usage() -> None:
     assert 0 <= reconciliation["gap_micro_usd"] < reconciliation["responses"]
     # The provider export is reconciled offline, never in the live run.
     assert "provider_export" not in values
+
+
+def test_a_whole_exported_day_missing_from_the_ledger_is_a_mismatch() -> None:
+    only_day1 = [r for r in matching() if r["at"][:10] == DAY1]
+    result = reconcile(FIXTURE, only_day1, key_set=True, until=THROUGH)
+    assert result["differs"] > 0
+    assert {c["day"] for c in result["comparisons"]} == {DAY1, DAY2}
+
+
+def test_the_reconcile_command_fails_on_a_usd_spend_mismatch(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from coalitionkit_acceptance import reconcile as command
+
+    def mismatched(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"ran": True, "differs": 0, "spend": {"status": "differs"}}
+
+    monkeypatch.setattr(command, "reconcile", mismatched)
+
+    def no_entries(*args: Any) -> list[dict[str, Any]]:
+        return []
+
+    monkeypatch.setattr(command, "entries", no_entries)
+    assert command.main(["--export", str(tmp_path / "x.csv")]) == 1

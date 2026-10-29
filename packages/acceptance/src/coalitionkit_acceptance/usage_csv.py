@@ -24,7 +24,7 @@ it are reported as not run.
 from __future__ import annotations
 
 import csv
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
@@ -191,6 +191,15 @@ def reconcile(
     inside = [r for r in rows if datetime.fromisoformat(r["at"]) < end]
     after = len(rows) - len(inside)
     days = sorted({r["at"][:10] for r in inside})
+    if exact:
+        # The export is filtered to the dedicated key, so a whole exported day missing from the
+        # ledger is provider usage the meter never saw: compare it against zero.
+        whole = {
+            d
+            for d in exported
+            if datetime.fromisoformat(d).replace(tzinfo=UTC) + timedelta(days=1) <= end
+        }
+        days = sorted(set(days) | whole)
     comparisons: list[dict[str, Any]] = []
     for day in days:
         mine = [r for r in inside if r["at"][:10] == day]

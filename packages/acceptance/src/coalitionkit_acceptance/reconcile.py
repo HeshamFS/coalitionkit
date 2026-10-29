@@ -35,7 +35,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     result = reconcile(args.export, entries(args.ledger), until=parse_until(args.until))
     print(json.dumps(result, indent=2))
-    return 1 if result.get("differs") or result.get("exceeds_bound") else 0
+    spend_differs = result.get("spend", {}).get("status") == "differs"
+    return 1 if result.get("differs") or result.get("exceeds_bound") or spend_differs else 0
 
 
 if __name__ == "__main__":
