@@ -5,6 +5,7 @@ requires-python = ">=3.15"
 [manifest]
 members = [
     "coalitionkit-acceptance",
+    "coalitionkit-channels",
     "coalitionkit-contracts",
     "coalitionkit-edges",
     "coalitionkit-gardener",
@@ -243,6 +244,27 @@ requires-dist = [
 ]
 
 [[package]]
+name = "coalitionkit-channels"
+version = "0.1.0.dev0"
+source = { editable = "packages/channels" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-surfaces" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
+    { name = "fastapi", specifier = "==0.162.0" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "pydantic", specifier = "==2.14.1" },
+]
+
+[[package]]
 name = "coalitionkit-contracts"
 version = "0.1.0.dev0"
 source = { editable = "packages/contracts" }
@@ -382,6 +404,7 @@ name = "coalitionkit-server"
 version = "0.1.0.dev0"
 source = { editable = "packages/server" }
 dependencies = [
+    { name = "coalitionkit-channels" },
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-mcp" },
@@ -398,6 +421,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "coalitionkit-channels", editable = "packages/channels" },
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
@@ -481,6 +505,7 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "coalitionkit-acceptance" },
+    { name = "coalitionkit-channels" },
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-gardener" },
@@ -506,6 +531,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coalitionkit-acceptance", editable = "packages/acceptance" },
+    { name = "coalitionkit-channels", editable = "packages/channels" },
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-gardener", editable = "packages/gardener" },

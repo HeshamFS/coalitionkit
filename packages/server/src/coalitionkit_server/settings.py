@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     bind_port: int = Field(default=8000, ge=1, le=65535)
     surfaces: set[Literal["mcp", "feed", "agent"]] = {"mcp", "feed", "agent"}
     admin_token: SecretStr | None = None
+    # WhatsApp message door: mounted only when all four are set.
+    whatsapp_token: SecretStr | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_app_secret: SecretStr | None = None
+    whatsapp_verify_token: SecretStr | None = None
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        return None not in (
+            self.whatsapp_token,
+            self.whatsapp_phone_number_id,
+            self.whatsapp_app_secret,
+            self.whatsapp_verify_token,
+        )
 
     @field_validator("public_base_url")
     @classmethod

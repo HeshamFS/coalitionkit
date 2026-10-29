@@ -31,6 +31,7 @@ from .mcp_port import MCPPort
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
+from .whatsapp import DoorFactory, mount_whatsapp
 
 
 class Server:
@@ -205,7 +206,7 @@ class Dispatch:
         await self.server.surfaces[row["coalition"]](scope, receive, send)
 
 
-def create_server(settings: Settings) -> FastAPI:
+def create_server(settings: Settings, make_door: DoorFactory | None = None) -> FastAPI:
     server = Server(settings)
     mcp = mcp_app(
         Deps(MCPPort(server), ViewPort(server.hosts, server.registry), server.registry),
@@ -241,5 +242,7 @@ def create_server(settings: Settings) -> FastAPI:
                 routes[role] = "configured_not_probed"
         return {"status": "ok", "store": "ok", "model_routes": routes}
 
+    if make_door is not None:
+        mount_whatsapp(app, settings, make_door, lambda request: admin(request, settings))
     app.mount("/", Dispatch(server, mcp))
     return app
