@@ -215,9 +215,15 @@ dependencies = [
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-gardener" },
+    { name = "coalitionkit-mcp" },
     { name = "coalitionkit-models" },
     { name = "coalitionkit-runtime" },
+    { name = "coalitionkit-steward" },
+    { name = "coalitionkit-surfaces" },
+    { name = "coalitionkit-vault" },
     { name = "httpx" },
+    { name = "httpx2" },
+    { name = "mcp" },
 ]
 
 [package.metadata]
@@ -225,9 +231,15 @@ requires-dist = [
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-gardener", editable = "packages/gardener" },
+    { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
     { name = "coalitionkit-models", editable = "packages/models" },
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "coalitionkit-steward", editable = "packages/steward" },
+    { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
+    { name = "coalitionkit-vault", editable = "packages/vault" },
     { name = "httpx" },
+    { name = "httpx2", specifier = "==2.16.0" },
+    { name = "mcp", specifier = ">=2.3.0" },
 ]
 
 [[package]]
