@@ -3,13 +3,19 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from coalitionkit_contracts import (
+    LogIntegrityError,
     SchemaValidationError,
+    SignatureError,
     new_ulid,
     sign_envelope,
+    validate_envelope,
     validate_payload,
+    verify_receipt,
 )
 from coalitionkit_edges.a2a.host_port import HostPort
 
@@ -52,7 +58,7 @@ async def send(
     *,
     scope: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Validate, sign and submit one envelope. Returns the host's accepted envelope.
+    """Submit an envelope and return its acknowledgement metadata or accepted envelope.
 
     Raises CoalitionToolError with the host's ``coalition.error`` code when it refuses.
     """
@@ -68,6 +74,35 @@ async def send(
         message = detail.get("message", "") if isinstance(detail, dict) else ""  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
         raise CoalitionToolError(str(error.get("code", "not_authorized")), str(message))  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
     accepted: Any = reply.get("accepted")
+    if accepted is None:
+        return receipt_ack(host, reply.get("receipt"), envelope)
     if not isinstance(accepted, dict):
         raise CoalitionToolError("not_authorized", "the host gave no acknowledgement")
     return {k: v for k, v in accepted.items()}  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+
+
+def receipt_ack(host: HostPort, receipt: Any, submitted: dict[str, Any]) -> dict[str, Any]:
+    """Verify a receipt against locally configured trust, never a key from the reply.
+
+    Remote ports expose ``host_public_key``. In-process adapters may instead expose
+    their host or signer, whose configured key supplies the same trust anchor.
+    """
+    key = getattr(host, "host_public_key", None)
+    if key is None:
+        local = getattr(host, "host", None) or getattr(host, "signer", None)
+        private = getattr(local, "private_key", None)
+        if private is not None:
+            key = private.public_key()
+    if not isinstance(key, Ed25519PublicKey):
+        raise CoalitionToolError("bad_signature", "no pinned host key for receipt")
+    try:
+        if not isinstance(receipt, dict):
+            raise ValueError("missing receipt")
+        data = cast(dict[str, Any], receipt)
+        validate_envelope(data)
+        info = verify_receipt(data, key)
+        if data["coalition_id"] != submitted["coalition_id"]:
+            raise ValueError("wrong coalition")
+    except SchemaValidationError, SignatureError, LogIntegrityError, ValueError:
+        raise CoalitionToolError("bad_signature", "invalid host receipt") from None
+    return {"event_id": submitted["event_id"], "seq": info.seq}

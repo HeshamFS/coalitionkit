@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from typing import Any
 
 import pytest
@@ -14,6 +16,7 @@ from coalitionkit_models import (
     CostMeter,
     FakeModel,
     ModelGateway,
+    OpenAITransport,
     ScriptedResponse,
     Settings,
     load_price_table,
@@ -295,7 +298,7 @@ async def test_malformed_model_verdict_becomes_escalate(answer: str) -> None:
     steward, fake, _ = make([reply(answer)])
     signed = await steward.review(envelope("coalition.propose", plan_payload("p1", "p2", "p3")))
     assert signed.body.action == "escalate"
-    assert signed.body.policy_id == "steward-model-malformed"
+    assert signed.body.policy_id == "steward-model-audit"
     assert len(fake.calls) == 1
 
 
@@ -303,7 +306,7 @@ async def test_model_failure_and_spent_budget_escalate() -> None:
     steward, _, _ = make([RuntimeError("boom")])
     propose = envelope("coalition.propose", plan_payload("p1", "p2", "p3"))
     signed = await steward.review(propose)
-    assert (signed.body.action, signed.body.policy_id) == ("escalate", "steward-model-unavailable")
+    assert (signed.body.action, signed.body.policy_id) == ("escalate", "steward-model-audit")
 
     steward2, fake2, meter2 = make([reply(ALLOW)])
     meter2.set_budget(COALITION, 1)
@@ -311,7 +314,7 @@ async def test_model_failure_and_spent_budget_escalate() -> None:
     signed2 = await steward2.review(propose)
     assert (signed2.body.action, signed2.body.policy_id) == (
         "escalate",
-        "steward-model-unavailable",
+        "steward-model-audit",
     )
     assert fake2.calls == []
 
@@ -323,7 +326,7 @@ async def test_valid_model_verdict_can_tighten_but_never_loosen() -> None:
     first = await steward.review(propose)
     assert (first.body.action, first.body.policy_id, first.body.model_audited) == (
         "block",
-        "x-1",
+        "steward-model-audit",
         True,
     )
     unfair = envelope("coalition.propose", plan_payload("p1", "p1", "p2"))
@@ -421,3 +424,63 @@ def test_core_selftest_passes_and_engine_refuses_tampered_policies() -> None:
         make([], core=tampered)
     with pytest.raises(SelfTestError):
         run_selftest(PolicySet([]))
+
+
+@pytest.mark.parametrize("policy_id", ["private-value-71", "no-regulated-advice", None])
+async def test_model_text_stays_host_only(policy_id: str | None) -> None:
+    secret = "private-value-71"
+    answer = json.dumps({"action": "escalate", "policy_id": policy_id, "reason": secret})
+    steward, _, _ = make([reply(answer)])
+    signed = await steward.review(
+        envelope(
+            OBSERVE,
+            {"source": "chat", "content": secret},
+            Scope(audience="coalition", redact=["payload.content"]),
+        ),
+        flagged=True,
+    )
+    assert secret not in signed.model_dump_json()
+    assert steward.audit_reason(COALITION, EVENT) == secret
+    assert steward.audit_reason(COALITION, EVENT, 2) is None
+    policy = core_policies().get(policy_id or "")
+    assert signed.body.policy_id == (policy.id if policy else "steward-model-audit")
+    if policy:
+        assert signed.body.explain == policy.explain
+    verify_verdict(signed, KEY.public_key(), event_id=EVENT, revision=1)
+
+
+@pytest.mark.live
+async def test_live_audit_keeps_reason_out_of_signed_verdict() -> None:
+    if not os.environ.get("COALITIONKIT_META_API_KEY", "").strip():
+        pytest.skip("no key")
+    settings = Settings(_env_file=None, steward_provider="meta")  # pyright: ignore[reportCallIssue]
+    meter = CostMeter(load_price_table())
+    transport = OpenAITransport(settings)
+    steward = Steward(
+        ModelGateway(settings, transport=transport, meter=meter), signing_key=KEY, kid="steward-1"
+    )
+    secret = "private-value-71"
+    started = time.perf_counter()
+    try:
+        signed = await steward.review(
+            envelope(
+                OBSERVE,
+                {"source": "chat", "content": secret},
+                Scope(audience="coalition", redact=["payload.content"]),
+            ),
+            flagged=True,
+        )
+    finally:
+        await transport.aclose()
+        print(
+            {
+                "latency_s": time.perf_counter() - started,
+                "prompt_tokens": sum(r.prompt_tokens for r in meter.records),
+                "completion_tokens": sum(r.completion_tokens for r in meter.records),
+                "cost_micro_usd": meter.total(COALITION),
+            }
+        )
+    assert meter.records, "model request did not complete"
+    assert steward.audit_reason(COALITION, EVENT) is not None, "model returned no valid verdict"
+    assert secret not in signed.model_dump_json()
+    verify_verdict(signed, KEY.public_key(), event_id=EVENT, revision=1)

@@ -1,8 +1,7 @@
 # Notes from acceptance test 2 (privacy canaries)
 
-Nothing in another package was changed. Every finding has an id, an exact path and a minimal
-reproducing test in `tests/test_privacy_findings.py`, marked `xfail(strict=True)` with the same id.
-A fix elsewhere makes the test pass unexpectedly, which fails the suite until the marker is removed.
+PRIV-1 through PRIV-3 are fixed and their reproductions in `tests/test_privacy_findings.py`
+now run without xfail. The observations below describe the original defects. PRIV-4 is unchanged.
 
 Result of the runs themselves: no canary of the 20 planted per run was found outside its vault,
 redacted field, private scope, plan assignment or PSI input on any surface the host sends out
@@ -10,7 +9,7 @@ redacted field, private scope, plan assignment or PSI input on any surface the h
 needs a model that repeats what it was asked to judge; it is not part of the 0 above because the
 runs use a model that answers honestly.
 
-## PRIV-1: a Steward verdict repeats whatever the model puts in its reason (leak)
+## PRIV-1 (fixed): a Steward verdict repeats whatever the model puts in its reason (leak)
 
 - Surface: Steward verdict text (`VerdictBody.explain`, `VerdictBody.policy_id`).
 - Event: any logged event that the Steward audits and the model answers with a stricter action
@@ -30,7 +29,7 @@ runs use a model that answers honestly.
   leaves the host. Use the fixed `explain` of the policy, or check the model's reason and
   `policy_id` against the payload before it is signed.
 
-## PRIV-2: an MCP write is committed, but the tool reports `not_authorized` (bug, no leak)
+## PRIV-2 (fixed): an MCP write is committed, but the tool reports `not_authorized` (bug, no leak)
 
 - Surface: MCP tool results.
 - Event: every write tool that sends with the server's default scope (`gateway.HOST_SCOPE`,
@@ -43,7 +42,7 @@ runs use a model that answers honestly.
 - Reproduce: `test_priv2_mcp_write_reports_success_for_a_committed_event`
   (`report_ripple` over a real served MCP app on top of `CoalitionHost`).
 
-## PRIV-3: the host refuses the request and response rounds of a PSI exchange (bug, no leak)
+## PRIV-3 (fixed): the host refuses the request and response rounds of a PSI exchange (bug, no leak)
 
 - Surface: `coalition.match` relay.
 - Path: `lifecycle.State.apply` stores `requester = owner` of the `setup` message and
@@ -85,3 +84,18 @@ runs use a model that answers honestly.
   reported apart as `sent_to_models.member_agent`; that is legitimate (a member's own agent sees
   what that member may see) and is documented here as such.
 - Related: PRIV-1 is the other half, the verdict text coming back out.
+
+## Core fixes and interop disposition
+
+- PRIV-1: public model findings use a known policy's fixed explanation or a generic sentence.
+  Unknown model policy IDs become `steward-model-audit`. Model reasons are available only
+  through the Steward instance's host-only `audit_reason` accessor, keyed by subject revision.
+- PRIV-2: receipt-only writes verify the receipt schema, signature and coalition against the
+  configured host key and return the submitted event ID and receipt sequence. Remote ports
+  supply `host_public_key`; local adapters can use their configured host/signer key.
+- PRIV-3: setup records its sender as responder and peer as requester. Count authorization
+  checks the requester. Request and response then follow the spec's party and order checks.
+- Interop host-scoped commitments remain receipt-only: the protocol's Acknowledgements and
+  receipts and Projections sections explicitly forbid delivery outside scope, even to the
+  sender. The revision projection applies when the sender is in scope; the consent request
+  also exposes the revision. No protocol text was changed.

@@ -106,7 +106,7 @@ def test_c20_match_parties_and_rounds(world: World) -> None:
     setup = accepted(world.alice.send("match", body, causation_id=need.accepted["event_id"]))
     error(world.observer.send("match", {**body, "round": "request"}), "not_authorized")
     error(world.bob.send("match", {**body, "peer": "alice", "round": "response"}), "not_authorized")
-    accepted(world.alice.send("match", {**body, "round": "request"}))
+    accepted(world.bob.send("match", {**body, "peer": "alice", "round": "request"}))
     error(world.alice.send("match", {**body, "round": "request"}), "not_authorized")
-    accepted(world.bob.send("match", {**body, "peer": "alice", "round": "response"}))
+    accepted(world.alice.send("match", {**body, "round": "response"}))
     assert setup.accepted["payload"]["round"] == "setup"

@@ -1,13 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Leaks and bugs the privacy runs found in other packages, each pinned as a strict xfail.
-
-The ids match ``NOTES-privacy.md``. A fix elsewhere turns the xfail into an unexpected pass, which
-fails the suite until the marker is removed.
-"""
+"""Regression tests for PRIV-1 through PRIV-3 in NOTES-privacy.md."""
 
 from __future__ import annotations
-
-import pytest
 
 from coalitionkit_acceptance.privacy_collect import ECHO, Observer, steward_pass
 from coalitionkit_acceptance.privacy_mcp import HostBackedPorts, McpRun
@@ -15,9 +9,6 @@ from coalitionkit_acceptance.privacy_world import PrivacyWorld
 from coalitionkit_acceptance.scanner import scan
 
 
-@pytest.mark.xfail(
-    strict=True, reason="PRIV-1: the Steward passes a model's reason into the verdict unfiltered"
-)
 async def test_priv1_steward_verdict_text_carries_no_redacted_field() -> None:
     world = PrivacyWorld(7)
     world.build()
@@ -27,9 +18,6 @@ async def test_priv1_steward_verdict_text_carries_no_redacted_field() -> None:
     assert leaks == []
 
 
-@pytest.mark.xfail(
-    strict=True, reason="PRIV-2: an MCP write is committed but the tool reports not_authorized"
-)
 async def test_priv2_mcp_write_reports_success_for_a_committed_event() -> None:
     world = PrivacyWorld(4)
     world.build()
@@ -52,9 +40,6 @@ async def test_priv2_mcp_write_reports_success_for_a_committed_event() -> None:
     assert "not_authorized" not in text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="PRIV-3: the host refuses the request and response rounds of a PSI exchange"
-)
 def test_priv3_psi_rounds_are_relayed_in_protocol_order() -> None:
     world = PrivacyWorld(9)
     world.build()
