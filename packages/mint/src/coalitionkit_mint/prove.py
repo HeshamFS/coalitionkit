@@ -15,7 +15,24 @@ from coalitionkit_contracts.signing import sign_detached
 
 from .artifact import connect, consent_payload, generate
 from .process import Sandbox
+from .refusal import POLICY_CODES
 from .schema import Attacks, Config, DeviceConfig, ResourceConfig
+
+# A Steward-written case passes only on a registered policy refusal (or an unknown tool),
+# never on a crash or a lifecycle refusal; the codes come from the templates' own registry.
+STEWARD_CASE_CODES = ("Unknown tool", *sorted(POLICY_CODES))
+
+
+def read_tools(config: Config) -> frozenset[str]:
+    """The template's read operations; called with no arguments they are allowed for anyone."""
+    if isinstance(config, DeviceConfig):
+        return frozenset({"status", "alarm", *("read_" + f.id for f in config.fields)})
+    return frozenset({"list_free_slots"})
+
+
+def not_an_attack(config: Config, tool: str, arguments: dict[str, Any]) -> bool:
+    """A model-written plain read is valid by policy, so its success proves nothing."""
+    return not arguments and tool in read_tools(config)
 
 
 @dataclass(frozen=True)
@@ -199,27 +216,15 @@ async def run_suite(
             arguments: Any = json.loads(attack.arguments_json)
             if not isinstance(arguments, dict):
                 raise ValueError("Steward attack arguments must be an object")
-            # Only an explicit policy or protocol refusal counts, never an arbitrary crash.
-            accepted_codes = (
-                "Unknown tool",
-                "oversized input",
-                "unexpected arguments",
-                "Steward blocked input",
-                "invalid duration",
-                "invalid fields",
-                "integer bounds required",
-                "outside opening rules",
-                "missing prerequisites",
-                "occupied",
-                "off_grid",
-                "owner_consent",
-                "stale_hold",
-            )
+            call = attack.tool + " " + attack.arguments_json[:200]
+            if not_an_attack(config, attack.tool, cast("dict[str, Any]", arguments)):
+                results.append(AttackResult(f"steward {index}", True, "not an attack: " + call))
+                continue
             control = await client.call_tool(tool, {})
             passed = not control.is_error and await rejected(
-                client, attack.tool, cast("dict[str, Any]", arguments), accepted_codes
+                client, attack.tool, cast("dict[str, Any]", arguments), STEWARD_CASE_CODES
             )
-            results.append(AttackResult(f"steward {index}", passed))
+            results.append(AttackResult(f"steward {index}", passed, call))
     return results
 
 

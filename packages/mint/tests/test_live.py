@@ -13,6 +13,7 @@ from mcp.shared.exceptions import MCPError
 from coalitionkit_contracts.signing import sign_detached
 from coalitionkit_mint.acceptance import run_one
 from coalitionkit_mint.artifact import consent_payload
+from coalitionkit_mint.pipeline import MintFailure
 from coalitionkit_mint.reader import append_frame
 from coalitionkit_models.gateway import ModelGateway
 from coalitionkit_models.media import MediaClient
@@ -40,16 +41,21 @@ async def test_live_mint(
     media = MediaClient(settings, meter=meter)
     owner = Ed25519PrivateKey.generate()
     try:
-        result = await run_one(
-            video,
-            voice,
-            tmp_path / "live",
-            tmp_path / "scorecard-live.json",
-            template=cast("Literal['resource', 'device']", config["template"]),
-            gateway=gateway,
-            media=media,
-            owner=owner,
-        )
+        try:
+            result = await run_one(
+                video,
+                voice,
+                tmp_path / "live",
+                tmp_path / "scorecard-live.json",
+                template=cast("Literal['resource', 'device']", config["template"]),
+                gateway=gateway,
+                media=media,
+                owner=owner,
+            )
+        except MintFailure as failure:
+            # The scorecard names each attack and its call, so a live failure is diagnosable.
+            print(json.dumps(failure.scorecard))
+            raise
         try:
             print(json.dumps(result.scorecard()))
             assert result.scorecard()["passed"]

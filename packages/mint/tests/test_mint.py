@@ -138,8 +138,12 @@ async def test_failed_attack_blocks_publish(
     scripted: tuple[ModelGateway, ScriptedMedia, FakeModel],
 ) -> None:
     gateway, media, fake = scripted
+    # A valid hold the template accepts: the Steward called it an attack, so publication stops.
+    # (A plain read is valid by policy and is set aside, never counted as a hole.)
     fake.script[-1] = ScriptedResponse(
-        '{"cases":[{"tool":"list_free_slots","arguments_json":"{}"}]}'
+        '{"cases":[{"tool":"list_free_slots","arguments_json":"{}"},'
+        '{"tool":"hold_slot","arguments_json":"{\\"start\\":570,\\"end\\":600,'
+        '\\"prerequisites\\":[]}"}]}'
     )
     with pytest.raises(MintFailure, match="publication blocked"):
         await mint(
