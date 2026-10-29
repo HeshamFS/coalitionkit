@@ -1,0 +1,6 @@
+id: alpha-flag-keyword
+applies_to: [coalition.offer, coalition.propose]
+when:
+  any_text_matches: ["\bunreviewed\b"]
+then: escalate
+explain: "Ask a reviewer before this goes further."

@@ -1,0 +1,18 @@
+scenario: two-parties-one-item
+charter: "Agree on a shared step order for one item."
+participants:
+  - id: p1
+    vault: { free: ["slot-a", "slot-b"], canary: "C-ALPHA-1" }
+  - id: p2
+    vault: { free: ["slot-b"], canary: "C-ALPHA-2" }
+expect:
+  decision: { slot: "slot-b" }
+  canaries_leaked: 0
+  max_messages: 40
+examples:
+  - type: coalition.need
+    payload:
+      need_id: "01J8ZQ4M7R0000000000000001"
+      description: "one item needs a review step"
+      requirements: ["review"]
+      window: { start: "2030-01-01T10:00:00Z", end: "2030-01-01T12:00:00Z" }
