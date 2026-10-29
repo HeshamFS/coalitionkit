@@ -8,6 +8,7 @@ import secrets
 import signal
 import subprocess
 import sys
+import threading
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -52,6 +53,7 @@ class Sandbox:
         try:
             line = await asyncio.wait_for(asyncio.to_thread(self.process.stdout.readline), 30)
             self.port = int(line.strip())
+            threading.Thread(target=self._drain_stdout, daemon=True).start()
             self.url = f"http://127.0.0.1:{self.port}/mcp"
         except BaseException:
             self.stop()
@@ -68,6 +70,11 @@ class Sandbox:
                     pass
                 await asyncio.sleep(0.05)
         raise TimeoutError("Mint worker startup")
+
+    def _drain_stdout(self) -> None:
+        assert self.process is not None and self.process.stdout is not None
+        while self.process.stdout.read(4096):
+            pass
 
     @asynccontextmanager
     async def client(self, *, proving: bool = False) -> AsyncGenerator[Client]:

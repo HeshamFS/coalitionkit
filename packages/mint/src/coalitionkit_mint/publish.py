@@ -2,6 +2,7 @@
 """Signed discovery metadata and explicit local lifecycle operations."""
 
 import json
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -28,7 +29,7 @@ from .schema import Config, DeviceConfig
 def tool_names(config: Config) -> list[str]:
     if isinstance(config, DeviceConfig):
         return [*("read_" + field.id for field in config.fields), "status", "alarm"]
-    return ["list_free_slots", "hold_slot", "confirm", "cancel"]
+    return ["list_free_slots", "hold_challenge", "hold_slot", "confirm", "cancel"]
 
 
 def publish(
@@ -98,7 +99,10 @@ class Minted:
     tokens: int
     regions: list[str] = field(default_factory=list[str])
 
+    stage_seconds: dict[str, float] = field(default_factory=dict[str, float])
+
     def approve(self, signature: str, owner: Ed25519PrivateKey) -> None:
+        started = time.monotonic()
         config, manifest, current = load(self.folder)
         if current != self.manifest_hash or not all(a.passed for a in self.attacks):
             raise ValueError("approval does not match proven manifest")
@@ -111,6 +115,7 @@ class Minted:
                 raise ValueError("only pending artifacts may be approved")
             publish(self.folder, self.sandbox, config, owner, signature)
             db.execute("UPDATE lifecycle SET state='approved', proof=?", (signature,))
+        self.stage_seconds["publish"] = time.monotonic() - started
 
     def pause(self) -> None:
         with connect(self.folder) as db:
@@ -162,7 +167,13 @@ class Minted:
                 "cost": str(self.cost_micro_usd),
                 "elapsed": self.elapsed_seconds,
                 "stages": [
-                    {"name": name, "state": "done", "took": None, "detail": "", "artifacts": []}
+                    {
+                        "name": name,
+                        "state": "done" if name in self.stage_seconds else "pending",
+                        "took": self.stage_seconds.get(name),
+                        "detail": "",
+                        "artifacts": [],
+                    }
                     for name in ("capture", "read", "design", "code", "attack", "publish")
                 ],
             },

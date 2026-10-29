@@ -5,8 +5,10 @@ import argparse
 import hmac
 import json
 import os
+import secrets
 import socket
 import threading
+import time
 from pathlib import Path
 from typing import Any, cast
 
@@ -38,6 +40,14 @@ class Operations:
         guard(tool, arguments)
         with connect(self.folder) as db:
             db.execute("BEGIN IMMEDIATE")
+            if tool == "hold_challenge":
+                nonce = secrets.token_urlsafe(32)
+                db.execute("DELETE FROM hold_requests WHERE expires < ?", (time.time(),))
+                db.execute(
+                    "INSERT INTO hold_requests VALUES (?, ?, ?)",
+                    (nonce, json.dumps(arguments, sort_keys=True), time.time() + 60),
+                )
+                return {"nonce": nonce}
             requires_proof = tool in {"confirm", "cancel"} or (
                 tool == "hold_slot"
                 and isinstance(self.config, ResourceConfig)
@@ -54,11 +64,35 @@ class Operations:
                     raise Refusal("stale_hold")
             if requires_proof:
                 verify_consent(self.key, self.manifest_hash, tool, arguments, signature)
-                if tool in {"confirm", "cancel"}:
-                    db.execute("INSERT INTO consumed_proofs VALUES (?)", (signature,))
-            if isinstance(self.config, ResourceConfig):
-                return resource.act(db, self.config, tool, arguments)
-            return device.act(db, self.config, tool, arguments)
+                if db.execute(
+                    "SELECT 1 FROM consumed_proofs WHERE signature=?", (signature,)
+                ).fetchone():
+                    raise Refusal("consumed_proof")
+                db.execute("INSERT INTO consumed_proofs VALUES (?)", (signature,))
+                if tool == "hold_slot":
+                    payload = {k: v for k, v in arguments.items() if k != "nonce"}
+                    request = db.execute(
+                        "SELECT arguments, expires FROM hold_requests WHERE nonce=?",
+                        (arguments.get("nonce"),),
+                    ).fetchone()
+                    if (
+                        request is None
+                        or request[0] != json.dumps(payload, sort_keys=True)
+                        or request[1] < time.time()
+                    ):
+                        db.commit()
+                        raise Refusal("stale_hold")
+                    db.execute("DELETE FROM hold_requests WHERE nonce=?", (arguments["nonce"],))
+            if tool == "hold_slot":
+                arguments = {k: v for k, v in arguments.items() if k != "nonce"}
+            try:
+                if isinstance(self.config, ResourceConfig):
+                    return resource.act(db, self.config, tool, arguments)
+                return device.act(db, self.config, tool, arguments)
+            except Refusal:
+                # A verified consent cannot be retried after a policy refusal.
+                db.commit()
+                raise
 
     def call(self, tool: str, arguments: dict[str, Any], signature: str = "") -> dict[str, Any]:
         try:
@@ -93,7 +127,8 @@ def build(folder: Path, proof_token: str) -> MCPServer:
             arguments = cast("dict[str, Any]", raw)
             guard(tool, arguments)
             allowed = {
-                "hold_slot": {"start", "end", "prerequisites", "signature"},
+                "hold_slot": {"start", "end", "prerequisites", "nonce", "signature"},
+                "hold_challenge": {"start", "end", "prerequisites"},
                 "confirm": {"id", "start", "end", "nonce", "revision", "signature"},
                 "cancel": {"id", "start", "end", "nonce", "revision", "signature"},
             }
@@ -116,12 +151,22 @@ def build(folder: Path, proof_token: str) -> MCPServer:
     def list_free_slots() -> dict[str, Any]:
         return ops.call("list_free_slots", {})
 
+    def hold_challenge(start: int, end: int, prerequisites: list[str]) -> dict[str, Any]:
+        return ops.call(
+            "hold_challenge", {"start": start, "end": end, "prerequisites": prerequisites}
+        )
+
     def hold_slot(
-        start: int, end: int, prerequisites: list[str], signature: str = ""
+        start: int, end: int, prerequisites: list[str], signature: str = "", nonce: str = ""
     ) -> dict[str, Any]:
         return ops.call(
             "hold_slot",
-            {"start": start, "end": end, "prerequisites": prerequisites},
+            {
+                "start": start,
+                "end": end,
+                "prerequisites": prerequisites,
+                **({"nonce": nonce} if nonce else {}),
+            },
             signature,
         )
 
@@ -161,7 +206,7 @@ def build(folder: Path, proof_token: str) -> MCPServer:
         for field in ops.config.fields:
             server.add_tool(reader("read_" + field.id), name="read_" + field.id)
     else:
-        for function in (list_free_slots, hold_slot, confirm, cancel):
+        for function in (list_free_slots, hold_challenge, hold_slot, confirm, cancel):
             server.add_tool(function)
 
     @server.custom_route("/healthz", methods=["GET"])

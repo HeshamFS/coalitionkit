@@ -42,6 +42,14 @@ async def rejected(
     return "Unknown tool" in codes and text == "Unknown tool: " + tool
 
 
+async def positive_call(client: Client, tool: str, arguments: dict[str, Any]) -> Any:
+    try:
+        result = await client.call_tool(tool, arguments)
+        return None if result.is_error else result
+    except MCPError:
+        return None
+
+
 def clear(sandbox: Sandbox) -> None:
     with connect(sandbox.folder) as db:
         db.execute("DELETE FROM bookings")
@@ -62,7 +70,10 @@ async def resource_attacks(
         "prerequisites": config.prerequisites,
     }
 
-    def signed(args: dict[str, Any]) -> dict[str, Any]:
+    async def signed(args: dict[str, Any]) -> dict[str, Any]:
+        if config.prerequisites:
+            challenge = await client.call_tool("hold_challenge", args)
+            args = {**args, **dict(challenge.structured_content or {})}
         return {
             **args,
             "signature": sign_detached(
@@ -84,6 +95,27 @@ async def resource_attacks(
             "missing prerequisites",
         ),
     ]
+    grid_window = next((w for w in config.windows if w.end - w.start > config.duration), None)
+    if config.duration > 1 and grid_window:
+        cases.append(
+            (
+                "slot grid",
+                {
+                    **base,
+                    "start": grid_window.start + 1,
+                    "end": grid_window.start + config.duration + 1,
+                },
+                "off_grid",
+            )
+        )
+    other_slots = [
+        {**base, "start": start, "end": start + config.duration}
+        for w in config.windows
+        for start in range(w.start, w.end - config.duration + 1, config.duration)
+        if start != base["start"]
+    ]
+    if len(other_slots) >= config.limit:
+        cases.append(("hold limit", base, "limit reached"))
     # A slot just before the earliest window cannot fall in a different opening window.
     first = min(config.windows, key=lambda w: w.start)
     cases[0] = (
@@ -94,24 +126,31 @@ async def resource_attacks(
     results: list[AttackResult] = []
     for name, args, expected in cases:
         clear(sandbox)
-        control = await client.call_tool("hold_slot", signed(base))
-        positive = not control.is_error
+        control = await positive_call(client, "hold_slot", await signed(base))
+        positive = control is not None
         if name != "double booking":
             clear(sandbox)
-        refused = await rejected(client, "hold_slot", signed(args), expected)
+        if name == "hold limit":
+            for slot in other_slots[: config.limit]:
+                filled = await positive_call(client, "hold_slot", await signed(slot))
+                positive = positive and filled is not None
+        refused = await rejected(client, "hold_slot", await signed(args), expected)
         results.append(AttackResult(name, positive and refused, expected))
     for operation in ("confirm", "cancel"):
         clear(sandbox)
-        held = await client.call_tool("hold_slot", signed(base))
+        held = await positive_call(client, "hold_slot", await signed(base))
+        if held is None:
+            results.append(AttackResult("owner " + operation, False, "valid hold refused"))
+            continue
         arguments = dict(held.structured_content or {})
         arguments.pop("state", None)
         refused = await rejected(client, operation, {**arguments, "signature": ""}, "owner_consent")
         signature = sign_detached(
             consent_payload(manifest_hash, operation, arguments), owner, "owner"
         )
-        control = await client.call_tool(operation, {**arguments, "signature": signature})
+        control = await positive_call(client, operation, {**arguments, "signature": signature})
         results.append(
-            AttackResult("owner " + operation, refused and not control.is_error, "owner_consent")
+            AttackResult("owner " + operation, refused and control is not None, "owner_consent")
         )
     clear(sandbox)
     return results

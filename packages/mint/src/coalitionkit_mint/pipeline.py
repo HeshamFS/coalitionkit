@@ -90,6 +90,7 @@ async def mint(
     sandbox: Sandbox | None = None
     attacks: list[AttackResult] = []
     selections: list[str] = []
+    timings: dict[str, float] = {}
     folder = folder.resolve()
     folder.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -97,9 +98,18 @@ async def mint(
             scan_templates(Path(__file__).parent / "templates")
             with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:
                 records, rules = await perceive(
-                    video, voice, Path(temporary), media, gateway, run_id, template, selections
+                    video,
+                    voice,
+                    Path(temporary),
+                    media,
+                    gateway,
+                    run_id,
+                    template,
+                    selections,
+                    timings,
                 )
             evidence = json.dumps({"records": [r.model_dump() for r in records], "rules": rules})
+            stage_start = time.monotonic()
             config = await model_config(gateway, template, evidence, run_id)
             attacks_reply = await gateway.complete(
                 "steward",
@@ -118,10 +128,15 @@ async def mint(
                 coalition_id=run_id,
             )
             extra = Attacks.model_validate_json(attacks_reply.text)
+            timings["design"] = time.monotonic() - stage_start
+            stage_start = time.monotonic()
             manifest_hash = generate(folder, config, owner, owner_id)
             sandbox = Sandbox(folder)
             await sandbox.start()
+            timings["code"] = time.monotonic() - stage_start
+            stage_start = time.monotonic()
             attacks = await prove(sandbox, config, extra)
+            timings["attack"] = time.monotonic() - stage_start
             if not attacks or not all(a.passed for a in attacks):
                 failed = ", ".join(a.name for a in attacks if not a.passed)
                 raise MintFailure("attack suite failed; publication blocked: " + failed)
@@ -146,6 +161,7 @@ async def mint(
                 cost,
                 tokens,
                 selections,
+                timings,
             )
     except BaseException as exc:
         if sandbox:

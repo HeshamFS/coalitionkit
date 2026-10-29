@@ -60,6 +60,9 @@ async def test_end_to_end(
         ):
             async with result.sandbox.client():
                 pytest.fail("pending connection accepted")
+        stages = result.catalog_data()["MintPipeline"]["stages"]
+        assert all(s["state"] == "done" and s["took"] >= 0 for s in stages[:-1])
+        assert stages[-1]["state"] == "pending" and stages[-1]["took"] is None
         payload = consent_payload(result.manifest_hash, "approve", {})
         with pytest.raises(SignatureError):
             result.approve(sign_detached(payload, Ed25519PrivateKey.generate(), "owner"), owner)
@@ -67,6 +70,8 @@ async def test_end_to_end(
         with pytest.raises(SignatureError):
             result.approve(sign_detached(stale, owner, "owner"), owner)
         result.approve(sign_detached(payload, owner, "owner"), owner)
+        assert result.catalog_data()["MintPipeline"]["stages"][-1]["state"] == "done"
+        assert result.catalog_data()["MintPipeline"]["stages"][-1]["took"] >= 0
         async with result.sandbox.client() as client:
             assert not (await client.call_tool(tool, {})).is_error
             if config["template"] == "resource":

@@ -190,3 +190,17 @@ async def test_acceptance_continues_and_uses_output(
     with pytest.raises(SystemExit) as exc:
         await acceptance.main()
     assert exc.value.code == 1 and calls == ["resource", "device"]
+
+
+@pytest.mark.parametrize("config", ["resource"], indirect=True)
+def test_publish_stage_waits_for_approval(pending: tuple[Minted, Ed25519PrivateKey]) -> None:
+    minted, owner = pending
+    try:
+        stage = minted.catalog_data()["MintPipeline"]["stages"][-1]
+        assert stage["state"] == "pending" and stage["took"] is None
+        proof = sign_detached(consent_payload(minted.manifest_hash, "approve", {}), owner, "owner")
+        minted.approve(proof, owner)
+        stage = minted.catalog_data()["MintPipeline"]["stages"][-1]
+        assert stage["state"] == "done" and stage["took"] > 0
+    finally:
+        minted.close()

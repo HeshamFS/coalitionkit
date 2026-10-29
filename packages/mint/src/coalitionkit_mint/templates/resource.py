@@ -34,10 +34,11 @@ def act(
             raise Refusal("invalid duration")
         if not any(w.start <= start < end <= w.end for w in config.windows):
             raise Refusal("outside opening rules")
-        if not any(
-            w.start <= start < end <= w.end and (start - w.start) % config.duration == 0
-            for w in config.windows
-        ):
+        origin = max(
+            (w.start for w in config.windows if w.start <= start),
+            default=min(w.start for w in config.windows),
+        )
+        if (start - origin) % config.duration != 0:
             raise Refusal("off_grid")
         if args["prerequisites"] != config.prerequisites:
             raise Refusal("missing prerequisites")

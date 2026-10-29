@@ -21,7 +21,9 @@ excluding `signature` and the returned `state`. Holds have server-issued IDs, bo
 a single-use nonce and a revision. Confirm and cancel bind all five fields; use
 the updated revision returned by confirm when cancelling. Verified operation
 proofs are consumed transactionally. Prerequisite attestations for hold creation
-are reusable; they do not confirm a hold. The card is signed by the owner at approval
+require a `hold_challenge` nonce bound to the exact request, expiring after 60 seconds.
+Include that nonce in the signed `hold_slot` arguments. Every verified operation proof
+is consumed even if policy refuses the operation; retry with a fresh challenge. The card is signed by the owner at approval
 and includes a hash of the approval proof. Pending discovery is unsigned.
 
 Before approval, MCP calls from outside the proof runner are refused. The runner's

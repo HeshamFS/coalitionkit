@@ -56,6 +56,7 @@ def generate(folder: Path, config: Config, owner: Ed25519PublicKey, owner_id: st
                                    nonce TEXT, revision INTEGER);
             CREATE TABLE reader_errors (field TEXT, error TEXT, observed REAL);
             CREATE TABLE readings (field TEXT, value REAL, observed REAL, confidence REAL);
+            CREATE TABLE hold_requests (nonce TEXT PRIMARY KEY, arguments TEXT, expires REAL);
             CREATE TABLE consumed_proofs (signature TEXT PRIMARY KEY);
         """)
     return digest(manifest)

@@ -8,6 +8,7 @@ import json
 import math
 import shutil
 import subprocess
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
@@ -168,14 +169,21 @@ async def perceive(
     run_id: str,
     template: str = "device",
     selections: list[str] | None = None,
+    timings: dict[str, float] | None = None,
 ) -> tuple[list[Record], str]:
+    started = time.monotonic()
     if not voice.is_file() or voice.stat().st_size > 4 * 1024 * 1024:
         raise ValueError("voice note missing or too large")
     frames = await asyncio.to_thread(extract, video, work / "frames")
+    if timings is not None:
+        timings["capture"] = time.monotonic() - started
+    started = time.monotonic()
     records: list[Record] = []
     for frame in frames:
         records.extend(await read_frame(frame, media, gateway, run_id, template, selections))
     transcript = await media.transcribe(voice.read_bytes(), coalition_id=run_id)
     if not transcript.text or len(transcript.text) > 8000:
         raise ValueError("voice rules missing or oversized")
+    if timings is not None:
+        timings["read"] = time.monotonic() - started
     return records, transcript.text

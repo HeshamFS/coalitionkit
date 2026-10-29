@@ -25,6 +25,10 @@ from coalitionkit_mint.worker import build
         (None, None),
         ("window", "out of hours"),
         ("overlap", "double booking"),
+        ("grid", "slot grid"),
+        ("limit", "hold limit"),
+        ("refuse", "controls"),
+        ("consent", "owners"),
     ],
 )
 @pytest.mark.parametrize("prerequisites", [[], ["ready"]])
@@ -46,6 +50,21 @@ async def test_policy_mutations(
             '"SELECT 1 FROM bookings WHERE start < ? AND end > ?"',
             '"SELECT 1 FROM bookings WHERE 0 AND start < ? AND end > ?"',
         )
+    if mutation == "grid":
+        source = source.replace('raise Refusal("off_grid")', "pass")
+    if mutation == "limit":
+        source = source.replace('raise Refusal("limit reached")', "pass")
+    if mutation == "refuse":
+        source = source.replace(
+            'if tool == "hold_slot":', 'if tool == "hold_slot":\n        raise Refusal("refused")'
+        )
+    if mutation == "consent":
+        from coalitionkit_mint import worker
+
+        def no_consent(*args: Any) -> None:
+            pass
+
+        monkeypatch.setattr(worker, "verify_consent", no_consent)
     namespace: dict[str, Any] = dict(vars(resource))
     exec(compile(source, "<policy mutation>", "exec"), namespace)
     monkeypatch.setattr(resource, "act", namespace["act"])
@@ -81,7 +100,21 @@ async def test_policy_mutations(
             manifest,
         )
         failures = {r.name for r in results if not r.passed}
-        assert failures == ({failed} if failed else set())
+        if failed == "controls":
+            assert {
+                "out of hours",
+                "double booking",
+                "duration",
+                "missing prerequisites",
+                "slot grid",
+                "hold limit",
+                "owner confirm",
+                "owner cancel",
+            } <= failures
+        elif failed == "owners":
+            assert {"owner confirm", "owner cancel"} <= failures
+        else:
+            assert failures == ({failed} if failed else set())
     finally:
         server.should_exit = True
         await asyncio.wait_for(task, 5)

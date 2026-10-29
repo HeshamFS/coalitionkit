@@ -12,13 +12,23 @@ ALLOWED = {
     "coalitionkit_mint.schema",
     "coalitionkit_mint.refusal",
 }
-FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "getattr", "globals", "locals"}
+FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "getattr", "globals", "locals", "open"}
 
 
 def scan_templates(folder: Path) -> None:
     for path in folder.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and node.attr in {
+                "os",
+                "sys",
+                "subprocess",
+                "socket",
+                "importlib",
+                "builtins",
+                *FORBIDDEN_CALLS,
+            }:
+                raise ValueError("unsafe template attribute")
             modules: list[str] = []
             if isinstance(node, ast.Import):
                 modules = [alias.name for alias in node.names]

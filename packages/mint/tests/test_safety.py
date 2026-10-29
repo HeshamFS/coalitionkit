@@ -32,6 +32,8 @@ def test_bounds_and_prerequisites(tmp_path: Path, config: dict[str, Any]) -> Non
         ops.invoke("hold_slot", args)
 
     def signed(arguments: dict[str, Any]) -> str:
+        arguments.pop("nonce", None)
+        arguments.update(ops.invoke("hold_challenge", arguments))
         return sign_detached(consent_payload(manifest_hash, "hold_slot", arguments), owner, "owner")
 
     invalid: list[dict[str, Any]] = [

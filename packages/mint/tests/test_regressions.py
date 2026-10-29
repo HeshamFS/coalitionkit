@@ -2,7 +2,9 @@
 """Regression coverage for consent, input decoding and model evidence."""
 
 import json
+import shutil
 import subprocess
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -98,7 +100,9 @@ def test_concat_disguised_as_video(
 ) -> None:
     video = media_files[0]
     source = tmp_path / "concat.mp4"
-    source.write_text("ffconcat version 1.0\nfile '" + video.as_posix() + "'\n")
+    (tmp_path / "other").mkdir()
+    shutil.copyfile(video, tmp_path / "other" / "secret.mp4")
+    source.write_text("ffconcat version 1.0\nfile other/secret.mp4\nduration 1\n")
     with pytest.raises((ValueError, subprocess.CalledProcessError)):
         extract(source, tmp_path / "bad_frames")
     assert not (tmp_path / "bad_frames").exists()
@@ -197,20 +201,21 @@ def test_grid_uses_containing_window(tmp_path: Path, config: dict[str, Any]) -> 
 
 
 @pytest.mark.parametrize("config", ["resource"], indirect=True)
-def test_prerequisite_attestation_allows_rehold(tmp_path: Path, config: dict[str, Any]) -> None:
+def test_prerequisite_attestation_replay_refused(tmp_path: Path, config: dict[str, Any]) -> None:
     config["prerequisites"] = ["ready"]
     owner = Ed25519PrivateKey.generate()
     folder = tmp_path / "artifact"
     manifest = generate(folder, ResourceConfig.model_validate(config), owner.public_key(), "p1")
     ops = Operations(folder)
     args = {"start": 540, "end": 570, "prerequisites": ["ready"]}
+    # Old workers have no challenge endpoint: exercise their original signed request.
+    with suppress(ValueError):
+        args.update(ops.invoke("hold_challenge", args))
     proof = sign_detached(consent_payload(manifest, "hold_slot", args), owner, "owner")
-    ids: set[str] = set()
-    for _ in range(2):
-        held = ops.invoke("hold_slot", args, proof)
-        held.pop("state")
-        ids.add(held["id"])
-        ops.invoke(
-            "cancel", held, sign_detached(consent_payload(manifest, "cancel", held), owner, "owner")
-        )
-    assert len(ids) == 2
+    held = ops.invoke("hold_slot", args, proof)
+    held.pop("state")
+    ops.invoke(
+        "cancel", held, sign_detached(consent_payload(manifest, "cancel", held), owner, "owner")
+    )
+    with pytest.raises(ValueError, match=r"consumed_proof|stale_hold"):
+        ops.invoke("hold_slot", args, proof)
