@@ -118,6 +118,7 @@ pythonpath = ["packages/contracts/tests", "packages/surfaces/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
+markers = ["live: calls a real model; runs only with COALITIONKIT_LIVE=1 and a key, otherwise skipped"]
 
 [[tool.importlinter.contracts]]
 name = "runtime uses contracts only"

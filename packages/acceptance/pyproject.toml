@@ -10,7 +10,13 @@ dependencies = [
     "coalitionkit-edges",
     "coalitionkit-gardener",
     "coalitionkit-models",
+    "coalitionkit-vault",
+    "coalitionkit-steward",
+    "coalitionkit-surfaces",
+    "coalitionkit-mcp",
+    "mcp>=2.3.0",
     "httpx",
+    "httpx2==2.16.0",
 ]
 
 [build-system]
