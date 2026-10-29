@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 import interop.coalition as coalition_module
@@ -129,7 +130,9 @@ async def test_bearer_tokens_are_random_per_member() -> None:
     tokens = coalition._tokens_out  # pyright: ignore[reportPrivateUsage]
     assert len(set(tokens.values())) == len(tokens) == 3
     for name, token in tokens.items():
-        assert len(token) >= 32 and name not in token and "host" not in token
+        # Random, not derived: long, URL-safe, and never one of the old predictable forms.
+        assert len(token) >= 32 and re.fullmatch(r"[A-Za-z0-9_-]+", token)
+        assert token not in {f"from-host-{name}", f"to-host-{name}", name}
 
 
 # ---- 2. the owner's policy bounds what the model may sign ------------------------------------
