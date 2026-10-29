@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
+import { ConfirmRoute, confirmCode } from "./ConfirmRoute";
 import { clearToken, readConfig, scrubAddress } from "./feed/config";
 import { FeedProvider } from "./feed/useFeed";
 import { Gallery } from "./gallery/Gallery";
@@ -11,6 +12,7 @@ export const EXPIRED_NOTICE = "Your session ended. Sign in again.";
 export function App() {
   const [config, setConfig] = useState(() => readConfig());
   const [notice, setNotice] = useState<string | undefined>();
+  const [code] = useState(() => confirmCode(location.pathname));
   useEffect(() => scrubAddress(), []);
   if (location.pathname.startsWith("/gallery")) return <Gallery />;
   if (!config) {
@@ -33,7 +35,7 @@ export function App() {
         setConfig(null);
       }}
     >
-      <RoomView />
+      {code ? <ConfirmRoute code={code} config={config} /> : <RoomView />}
     </FeedProvider>
   );
 }

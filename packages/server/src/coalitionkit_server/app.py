@@ -217,10 +217,15 @@ def create_server(settings: Settings) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        whatsapp = getattr(app.state, "whatsapp", None)
+        if whatsapp is not None:
+            whatsapp.start()
         try:
             async with mcp.router.lifespan_context(mcp):
                 yield
         finally:
+            if whatsapp is not None:
+                await asyncio.to_thread(whatsapp.stop)
             await asyncio.to_thread(server.close)
 
     app = create_host_app(server, server.signer, server.registry, settings.public_base_url)
@@ -243,7 +248,12 @@ def create_server(settings: Settings) -> FastAPI:
         return {"status": "ok", "store": "ok", "model_routes": routes}
 
     mount_whatsapp(
-        app, settings, server.store, server.hosts, lambda request: admin(request, settings)
+        app,
+        settings,
+        server.store,
+        server.hosts,
+        lambda request: admin(request, settings),
+        server.registry.lookup,
     )
     app.mount("/", Dispatch(server, mcp))
     return app

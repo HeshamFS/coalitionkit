@@ -35,12 +35,16 @@ class Settings(BaseSettings):
     whatsapp_phone_number_id: str | None = None
     whatsapp_app_secret: SecretStr | None = None
     whatsapp_verify_token: SecretStr | None = None
-    # Where the message door's confirm link points: the trusted confirm page of the web app
-    # (for example https://app.example/confirm). Empty: the message gives the code only.
+    # Where the message door's confirm link points: the web app's /confirm/<code> route.
+    # Unset: the server's own public origin (the web app is served from there).
     confirm_link_base: str | None = None
     catalog_file: Path = (
         Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
     )
+
+    @property
+    def effective_confirm_base(self) -> str:
+        return (self.confirm_link_base or self.public_base_url + "/confirm").rstrip("/")
 
     @property
     def whatsapp_configured(self) -> bool:

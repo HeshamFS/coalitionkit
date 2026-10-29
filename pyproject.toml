@@ -68,7 +68,7 @@ known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionk
 include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/channels", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
-extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests"]
+extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
@@ -123,7 +123,7 @@ forbidden_modules = [
 [tool.pytest.ini_options]
 testpaths = ["packages"]
 addopts = "--import-mode=importlib"
-pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests"]
+pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]

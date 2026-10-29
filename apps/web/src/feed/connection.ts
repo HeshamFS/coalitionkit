@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { runHttpRequest, transformHttpEventStream } from "@ag-ui/client";
+import { type OpenRequest, toRequest } from "./agent";
 import { assertAllowedBase, type HostConfig } from "./config";
 import type { FeedEvent } from "./store";
 
@@ -109,4 +110,45 @@ export async function postAnswer(
     return { ok: false, error: "unauthorized", detail: "", auth: true };
   }
   return { ok: false, error: String(json.error ?? res.status), detail: String(json.detail ?? "") };
+}
+
+export type RedeemFailure =
+  | "unauthorized"
+  | "unknown"
+  | "expired"
+  | "used"
+  | "other_person"
+  | "failed";
+export type RedeemResult =
+  | { ok: true; request: OpenRequest }
+  | { ok: false; reason: RedeemFailure };
+
+/**
+ * Use the code from a message: the host checks it belongs to this signed-in person and that the
+ * request is still current, and returns the consent request for the trusted shell to show. The
+ * decision itself is signed only through the existing answer flow (postAnswer).
+ */
+export async function redeemConfirm(
+  config: HostConfig,
+  code: string,
+  fetchFn: Fetch = (url, init) => fetch(url, init),
+): Promise<RedeemResult> {
+  assertAllowedBase(config.baseUrl);
+  const res = await fetchFn(`${config.baseUrl}/v1/confirm/redeem`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (res.ok) {
+    const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    return json ? { ok: true, request: toRequest(json) } : { ok: false, reason: "failed" };
+  }
+  const reasons: Record<number, RedeemFailure> = {
+    401: "unauthorized",
+    403: "other_person",
+    404: "unknown",
+    409: "used",
+    410: "expired",
+  };
+  return { ok: false, reason: reasons[res.status] ?? "failed" };
 }

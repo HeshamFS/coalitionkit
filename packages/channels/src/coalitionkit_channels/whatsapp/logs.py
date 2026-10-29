@@ -10,22 +10,42 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import unquote_plus
 
-_TOKEN = re.compile(r"(hub(?:\.|%2E)verify_token=)[^&\s\"']*", re.IGNORECASE)
+_PAIR = re.compile(r"([^\s&?#\"'=]+)=([^&\s\"']*)")
+SECRET_PARAM = "hub.verify_token"
 REDACTED = "[redacted]"
 LOGGERS = ("uvicorn.access", "httpx", "httpx2", "httpcore")
+
+
+def _name(raw: str) -> str:
+    """The parameter name as the server reads it: percent-decoded (also when encoded twice)."""
+    for _ in range(3):
+        decoded = unquote_plus(raw)
+        if decoded == raw:
+            break
+        raw = decoded
+    return raw.lower()
+
+
+def _hide(found: re.Match[str]) -> str:
+    if _name(found.group(1)) == SECRET_PARAM:
+        return found.group(1) + "=" + REDACTED
+    return found.group(0)
+
+
+def redact(text: str) -> str:
+    """Hide the value of ``hub.verify_token`` however the name is spelled (case, %-encoding)."""
+    return _PAIR.sub(_hide, text)
 
 
 class RedactVerifyToken(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         text = record.getMessage()
-        if "verify_token" in text.lower():
-            record.msg, record.args = _TOKEN.sub(r"\1" + REDACTED, text), None
+        hidden = redact(text)
+        if hidden != text:
+            record.msg, record.args = hidden, None
         return True
-
-
-def redact(text: str) -> str:
-    return _TOKEN.sub(r"\1" + REDACTED, text)
 
 
 def install_log_redaction() -> None:

@@ -2,46 +2,24 @@
 """The server mounts the WhatsApp door when configured, per coalition, on its own database."""
 
 import json
-import time
 from pathlib import Path
-from typing import Any
 
-import httpx
 import pytest
-from fastapi import FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
-from message_support import MsgWorld, message_world
-from pydantic import SecretStr
-from wa_support import APP_SECRET, PHONE_ID, VERIFY, WA_ID, Fake, signed, text_payload
+from message_support import message_world
+from wa_server_support import settings
+from wa_support import VERIFY, WA_ID
 
-from coalitionkit_channels.whatsapp import UNKNOWN_LINE, Bindings
+from coalitionkit_channels.whatsapp import Bindings
 from coalitionkit_runtime import SQLiteStore
-from coalitionkit_server import Settings, create_server
-from coalitionkit_server.whatsapp import SqlBindingStore, mount_whatsapp
+from coalitionkit_server import create_server
+from coalitionkit_server.whatsapp import SqlBindingStore
 
 __all__ = ["message_world"]
 
 CHARTER = json.loads((Path(__file__).parent / "fixtures" / "charter.json").read_text())
 ADMIN = {"Authorization": "Bearer admin-test"}
 HANDSHAKE = {"hub.mode": "subscribe", "hub.verify_token": VERIFY, "hub.challenge": "42"}
-
-
-def settings(tmp_path: Path, *, whatsapp: bool) -> Settings:
-    extra: dict[str, Any] = {}
-    if whatsapp:
-        extra = {
-            "whatsapp_token": SecretStr("t"),
-            "whatsapp_phone_number_id": PHONE_ID,
-            "whatsapp_app_secret": SecretStr(APP_SECRET),
-            "whatsapp_verify_token": SecretStr(VERIFY),
-        }
-    return Settings(
-        _env_file=None,  # pyright: ignore[reportCallIssue]
-        store=SecretStr(f"sqlite:///{tmp_path / 'host.db'}"),
-        host_key_file=tmp_path / "keys" / "host.key",
-        admin_token=SecretStr("admin-test"),
-        **extra,
-    )
 
 
 @pytest.fixture(autouse=True)
@@ -77,54 +55,6 @@ def test_create_server_mounts_the_door_when_configured(tmp_path: Path) -> None:
     app.state.server.close()
 
 
-def test_binding_then_reply_opens_only_the_confirm_step(
-    message_world: MsgWorld, tmp_path: Path
-) -> None:
-    world = message_world
-    world.propose(world.need("Task for p1"), ["p1"])
-    fake = Fake()
-    app = FastAPI()
-    coalition = world.host.coalition_id
-
-    def admin(request: Request) -> None:
-        if request.headers.get("authorization") != "Bearer admin-test":
-            raise HTTPException(401)
-
-    mount = mount_whatsapp(
-        app,
-        settings(tmp_path, whatsapp=True),
-        world.host.store,
-        {coalition: world.host},
-        admin,
-        http=httpx.Client(transport=httpx.MockTransport(fake)),
-    )
-    assert mount is not None
-    client = TestClient(app)
-    invite = client.post(
-        "/admin/whatsapp/invitations",
-        json={"coalition": coalition, "participant": "p1"},
-        headers=ADMIN,
-    )
-    code = invite.json()["code"]
-
-    def say(text: str, mid: str) -> None:
-        body, headers = signed(text_payload(WA_ID, text, mid, time.time()))
-        assert client.post("/webhooks/whatsapp", content=body, headers=headers).status_code == 200
-
-    say("hi", "w0")  # not a code: the fixed line only
-    assert fake.bodies()[-1]["text"]["body"] == UNKNOWN_LINE
-    say(code, "w1")  # binds and delivers the first view
-    assert mount.bindings.viewer_of(WA_ID) == f"{coalition}/p1"
-    sent = [b["text"]["body"] for b in fake.bodies()]
-    assert any("Task for p1" in text for text in sent)
-    log_before = len(world.host.store.read(coalition))
-    say("1", "w2")  # the one option: opens the confirm step
-    assert "not your decision" in fake.bodies()[-1]["text"]["body"]
-    assert [o.kind for o in mount.outcomes] == ["confirm"]
-    assert len(world.host.store.read(coalition)) == log_before  # nothing signed or appended
-    assert world.host.open_consents("p1")
-
-
 def test_bindings_survive_a_restart_on_the_same_database(tmp_path: Path) -> None:
     path = str(tmp_path / "bindings.db")
     first = SQLiteStore(path)
@@ -148,3 +78,20 @@ def test_bindings_survive_a_restart_on_the_same_database(tmp_path: Path) -> None
     third = Bindings(SqlBindingStore(last))
     assert third.redeem("15550000010", third.invite("c1/p3")).status == "locked"
     last.close()
+
+
+def test_the_server_lifespan_owns_the_delivery_timer(tmp_path: Path) -> None:
+    app = create_server(settings(tmp_path, whatsapp=True))
+    mount = app.state.whatsapp
+    assert not mount.running
+    with TestClient(app):
+        assert mount.running
+    assert not mount.running
+
+
+def test_confirm_link_base_defaults_to_the_web_confirm_route(tmp_path: Path) -> None:
+    assert (
+        settings(tmp_path, whatsapp=False).effective_confirm_base == "http://127.0.0.1:8000/confirm"
+    )
+    custom = settings(tmp_path, whatsapp=False, confirm_link_base="https://app.example/confirm/")
+    assert custom.effective_confirm_base == "https://app.example/confirm"

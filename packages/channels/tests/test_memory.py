@@ -71,3 +71,30 @@ def test_outbound_memory_full_refuses_instead_of_forgetting() -> None:
     assert len(r.fake.requests) == sent  # nothing went out
     r.channel.send_once("p1", "a", "id-1")  # id-1 was not evicted: still deduplicated
     assert len(r.fake.requests) == sent
+
+
+def _batch(*items: tuple[str, float]) -> dict[str, object]:
+    """One signed-style payload carrying several messages: ``(id, timestamp)`` each."""
+    payload = text_payload(WA_ID, "1", "x")
+    messages = payload["entry"][0]["changes"][0]["value"]["messages"]
+    template = messages[0]
+    messages.clear()
+    for mid, stamp in items:
+        messages.append({**template, "id": mid, "timestamp": str(int(stamp))})
+    return payload
+
+
+def test_one_id_repeated_in_a_batch_takes_room_for_one() -> None:
+    r = rig(memory_capacity=2)
+    result = r.channel.ingest(_batch(("same", NOW), ("same", NOW), ("same", NOW)))  # pyright: ignore[reportArgumentType]
+    assert result.replies == 1 and result.duplicates == 2
+
+
+def test_duplicates_and_stale_messages_take_no_room() -> None:
+    r = rig(memory_capacity=2)
+    r.channel.ingest(_batch(("m0", NOW)))  # pyright: ignore[reportArgumentType]
+    batch = _batch(("m0", NOW), ("old", NOW - 99999), ("m1", NOW))
+    result = r.channel.ingest(batch)  # pyright: ignore[reportArgumentType]
+    assert result.duplicates == 1 and result.stale == 1 and result.replies == 1
+    with pytest.raises(CapacityExhausted):  # now genuinely full: one new id, no room
+        r.channel.ingest(_batch(("m2", NOW)))  # pyright: ignore[reportArgumentType]

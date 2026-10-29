@@ -116,3 +116,45 @@ def test_handshake_logs_never_contain_the_verify_token(caplog: pytest.LogCapture
     assert len(seen) == 1 and "hub.verify_token=[redacted]" in seen[0].getMessage()
     for record in [*caplog.records, *seen]:
         assert clean(record.getMessage()) and clean(str(record.args))
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "hub.verify_token",
+        "hub.verify%5Ftoken",
+        "hub%2Everify_token",
+        "hub%2Everify%5Ftoken",
+        "HUB.Verify_Token",
+        "Hub.Verify%5fToken",
+        "hub.verify%255Ftoken",
+    ],
+)
+def test_verify_token_is_redacted_however_the_name_is_spelled(
+    name: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    from coalitionkit_channels.whatsapp.logs import redact
+
+    secret = CANARIES[2]
+    line = f"GET /webhooks/whatsapp?a=1&{name}={secret}&hub.challenge=7&b=2 HTTP/1.1"
+    hidden = redact(line)
+    assert secret not in hidden
+    assert "a=1" in hidden and "hub.challenge=7" in hidden and "b=2" in hidden
+    # And through the filter on the access logger.
+    FastAPI().include_router(create_router(rig().channel))  # installs the filter
+    seen: list[str] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            seen.append(record.getMessage())
+
+    access = logging.getLogger("uvicorn.access")
+    grab, old = Grab(), access.level
+    access.addHandler(grab)
+    access.setLevel(logging.INFO)
+    try:
+        access.info("%s", line)
+    finally:
+        access.removeHandler(grab)
+        access.setLevel(old)
+    assert len(seen) == 1 and secret not in seen[0]

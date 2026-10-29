@@ -4,11 +4,13 @@ server names WhatsApp.
 
 One ``MessageDoor`` per coalition, built from that host's own projection; a person is linked to
 one ``coalition/participant`` viewer by a single-use invitation code. A reply can only open the
-door's confirm step (a one-time code for the trusted confirm page); nothing here signs.
+door's confirm step (a one-time code for the trusted confirm page); nothing here signs. A pump
+owned by the server lifespan listens to committed host events and retries deferred updates.
 """
 
 import logging
 import threading
+import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -28,95 +30,38 @@ from coalitionkit_channels.whatsapp import (
     WhatsAppError,
     create_router,
 )
-from coalitionkit_runtime import CoalitionHost, EventStore
-from coalitionkit_surfaces import load_catalog
+from coalitionkit_runtime import CoalitionHost, EventStore, SubscriberDropped, Subscription
+from coalitionkit_surfaces import ConsentRequest, load_catalog
 from coalitionkit_surfaces.catalog import Catalog
+from coalitionkit_surfaces.hub import latest_seq
 from coalitionkit_surfaces.message import (
     ConfirmGate,
+    ConfirmVoid,
     Doors,
     HostTreeSource,
     MessageDoor,
     ReplyOutcome,
+    Ticket,
     host_is_open,
     load_doors,
 )
 
 from .settings import Settings
+from .whatsapp_store import SqlBindingStore
+
+__all__ = ["SqlBindingStore", "WhatsAppMount", "mount_whatsapp"]
 
 log = logging.getLogger("coalitionkit.server.whatsapp")
 SEP = "/"
-ATTEMPT_WINDOW = 3600.0
-TABLES = (
-    "CREATE TABLE IF NOT EXISTS whatsapp_invites "
-    "(digest TEXT PRIMARY KEY, viewer TEXT NOT NULL, expires_at DOUBLE PRECISION NOT NULL)",
-    "CREATE TABLE IF NOT EXISTS whatsapp_bindings "
-    "(wa_id TEXT PRIMARY KEY, viewer TEXT NOT NULL UNIQUE)",
-    "CREATE TABLE IF NOT EXISTS whatsapp_attempts "
-    "(wa_id TEXT NOT NULL, at DOUBLE PRECISION NOT NULL)",
-)
-
-
-class SqlBindingStore:
-    """``BindingStore`` on the host's own database (SQLite or Postgres), in its own tables.
-    Only SHA-256 digests of invitation codes are stored."""
-
-    def __init__(self, store: EventStore) -> None:
-        self.store = store
-        with store.transaction("") as tx:
-            for statement in TABLES:
-                tx.execute(statement)
-
-    def add_invite(self, code_digest: str, viewer: str, expires_at: float) -> None:
-        with self.store.transaction("") as tx:
-            tx.execute(
-                "INSERT INTO whatsapp_invites VALUES (?, ?, ?)", (code_digest, viewer, expires_at)
-            )
-
-    def take_invite(self, code_digest: str) -> tuple[str, float] | None:
-        with self.store.transaction("") as tx:
-            row = tx.execute(
-                "SELECT viewer, expires_at FROM whatsapp_invites WHERE digest = ?", (code_digest,)
-            ).fetchone()
-            if row is None:
-                return None
-            tx.execute("DELETE FROM whatsapp_invites WHERE digest = ?", (code_digest,))
-        return str(row[0]), float(row[1])
-
-    def bind(self, wa_id: str, viewer: str) -> bool:
-        with self.store.transaction("") as tx:
-            taken = tx.execute("SELECT 1 FROM whatsapp_bindings WHERE wa_id = ?", (wa_id,))
-            if taken.fetchone() is not None:
-                return False
-            tx.execute("DELETE FROM whatsapp_bindings WHERE viewer = ?", (viewer,))
-            tx.execute("INSERT INTO whatsapp_bindings VALUES (?, ?)", (wa_id, viewer))
-        return True
-
-    def viewer_of(self, wa_id: str) -> str | None:
-        with self.store.transaction("") as tx:
-            row = tx.execute(
-                "SELECT viewer FROM whatsapp_bindings WHERE wa_id = ?", (wa_id,)
-            ).fetchone()
-        return None if row is None else str(row[0])
-
-    def wa_id_of(self, viewer: str) -> str | None:
-        with self.store.transaction("") as tx:
-            row = tx.execute(
-                "SELECT wa_id FROM whatsapp_bindings WHERE viewer = ?", (viewer,)
-            ).fetchone()
-        return None if row is None else str(row[0])
-
-    def note_failure(self, wa_id: str, at: float) -> None:
-        with self.store.transaction("") as tx:
-            tx.execute("DELETE FROM whatsapp_attempts WHERE at < ?", (at - ATTEMPT_WINDOW,))
-            tx.execute("INSERT INTO whatsapp_attempts VALUES (?, ?)", (wa_id, at))
-
-    def failures_since(self, wa_id: str, since: float) -> int:
-        with self.store.transaction("") as tx:
-            row = tx.execute(
-                "SELECT COUNT(*) FROM whatsapp_attempts WHERE wa_id = ? AND at >= ?",
-                (wa_id, since),
-            ).fetchone()
-        return int(row[0])
+TICK = 0.5  # how often the pump looks for committed host events
+RETRY = 15.0  # how often it retries deferred updates (rate limit, closed 24-hour window)
+VOID_STATUS = {
+    ConfirmVoid.UNKNOWN: 404,
+    ConfirmVoid.EXPIRED: 410,
+    ConfirmVoid.USED: 409,
+    ConfirmVoid.STALE: 409,
+    ConfirmVoid.WRONG_VIEWER: 403,
+}
 
 
 def viewer_key(coalition: str, participant: str) -> str:
@@ -142,6 +87,10 @@ class WhatsAppInvite(BaseModel):
     participant: str
 
 
+class RedeemBody(BaseModel):
+    code: str
+
+
 @dataclass
 class WhatsAppMount:
     channel: WhatsAppChannel
@@ -150,24 +99,42 @@ class WhatsAppMount:
     catalog: Catalog
     doors: Doors
     link_base: str | None
+    clock: Callable[[], float] = time.monotonic
+    gate_ttl: float = 300.0
     outcomes: deque[ReplyOutcome] = field(default_factory=lambda: deque[ReplyOutcome](maxlen=1000))
     _doors: dict[str, MessageDoor] = field(default_factory=lambda: dict[str, MessageDoor]())
-    _lock: threading.Lock = field(default_factory=threading.Lock)
+    _gates: dict[str, ConfirmGate] = field(default_factory=lambda: dict[str, ConfirmGate]())
+    _subs: dict[str, Subscription] = field(default_factory=lambda: dict[str, Subscription]())
+    _lock: threading.RLock = field(default_factory=threading.RLock)
+    _stop: threading.Event = field(default_factory=threading.Event)
+    _thread: threading.Thread | None = None
 
     def door_for(self, coalition: str) -> MessageDoor | None:
         host = self.hosts.get(coalition)
         if host is None:
             return None
-        if coalition not in self._doors:
-            self._doors[coalition] = MessageDoor(
-                ScopedChannel(self.channel, coalition),
-                HostTreeSource(host),
-                self.catalog,
-                self.doors,
-                ConfirmGate(host_is_open(host)),
-                link_base=self.link_base,
-            )
-        return self._doors[coalition]
+        with self._lock:
+            if coalition not in self._doors:
+                gate = ConfirmGate(host_is_open(host), clock=self.clock, ttl=self.gate_ttl)
+                self._gates[coalition] = gate
+                # Subscribe before the first view so no commit between the two is missed.
+                self._subs[coalition] = host.bus.subscribe(coalition, latest_seq(host))
+                self._doors[coalition] = MessageDoor(
+                    ScopedChannel(self.channel, coalition),
+                    HostTreeSource(host),
+                    self.catalog,
+                    self.doors,
+                    gate,
+                    clock=self.clock,
+                    link_base=self.link_base,
+                )
+            return self._doors[coalition]
+
+    def gate_for(self, coalition: str) -> ConfirmGate | None:
+        """The one gate shared by this coalition's door and the confirm endpoint."""
+        return self._gates.get(coalition) if self.door_for(coalition) else None
+
+    # -- inbound -------------------------------------------------------------------------------
 
     def on_ingest(self, result: Ingest) -> None:
         """After a verified delivery: greet newly linked people, then let each coalition's door
@@ -203,6 +170,93 @@ class WhatsAppMount:
         except WhatsAppError, KeyError, ValueError:
             log.warning("whatsapp sync deferred")
 
+    # -- outbound: committed host events and the retry timer -----------------------------------
+
+    def pump_once(self, retry: bool = False) -> None:
+        """Sync linked viewers of every coalition that committed events since the last look
+        (and, when ``retry``, of every coalition: deferred updates are tried again)."""
+        with self._lock:
+            if retry:
+                for key in self.bindings.viewers():
+                    self.door_for(key.partition(SEP)[0])
+            for coalition in list(self._subs):
+                if self._woke(coalition) or retry:
+                    self._sync_coalition(coalition)
+
+    def _woke(self, coalition: str) -> bool:
+        sub, host = self._subs[coalition], self.hosts.get(coalition)
+        if host is None or not sub.wake.is_set():
+            return False
+        try:
+            sub.read(host.store)  # advances the cursor and clears the wake
+        except SubscriberDropped:
+            host.bus.unsubscribe(sub)
+            self._subs[coalition] = host.bus.subscribe(coalition, latest_seq(host))
+        return True
+
+    def _sync_coalition(self, coalition: str) -> None:
+        for key in self.bindings.viewers():
+            if key.startswith(coalition + SEP):
+                self._sync(key)
+
+    def start(self, tick: float = TICK, retry: float = RETRY) -> None:
+        """Run the pump on a thread (the server lifespan calls this)."""
+        if self._thread is not None:
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(
+            target=self._run, args=(tick, retry), name="whatsapp-pump", daemon=True
+        )
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(10)
+            self._thread = None
+
+    @property
+    def running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
+
+    def _run(self, tick: float, retry: float) -> None:
+        last = float("-inf")
+        while not self._stop.wait(tick):
+            due = time.monotonic() - last >= retry
+            if due:
+                last = time.monotonic()
+            try:
+                self.pump_once(retry=due)
+            except Exception:  # keep the pump alive; the next tick tries again
+                log.warning("whatsapp pump tick failed")
+
+    # -- the confirm handoff -------------------------------------------------------------------
+
+    def redeem(self, coalition: str, participant: str, code: str) -> dict[str, Any]:
+        """Use a confirm code for this signed-in person and return the consent request for the
+        trusted shell (the same shape as an interrupt on the agent stream). Signing happens only
+        through the existing answer flow."""
+        gate, host = self.gate_for(coalition), self.hosts.get(coalition)
+        if gate is None or host is None:
+            raise HTTPException(404, ConfirmVoid.UNKNOWN)
+        try:
+            ticket = gate.redeem(code, participant)
+        except ConfirmVoid as void:
+            raise HTTPException(VOID_STATUS.get(void.code, 400), void.code) from None
+        return consent_request(host, ticket, participant)
+
+
+def consent_request(host: CoalitionHost, ticket: Ticket, participant: str) -> dict[str, Any]:
+    subject = ticket.subject
+    request = ConsentRequest(subject["kind"], subject["id"], int(subject["revision"]), participant)
+    deadline = host.state.subject(request.kind, request.subject_id).get("decision_deadline")
+    return {
+        "id": request.interrupt_id,
+        "message": f"Your decision is needed on a {request.kind.replace('_', ' ')}",
+        "expires_at": deadline if isinstance(deadline, str) else None,
+        "metadata": {"subject": request.subject},
+    }
+
 
 def mount_whatsapp(
     app: FastAPI,
@@ -210,10 +264,14 @@ def mount_whatsapp(
     store: EventStore,
     hosts: dict[str, CoalitionHost],
     check_admin: Callable[[Request], None],
+    lookup: Callable[[str], dict[str, Any] | None],
     *,
     http: httpx.Client | None = None,
+    clock: Callable[[], float] = time.monotonic,
+    wall: Callable[[], float] = time.time,
 ) -> WhatsAppMount | None:
-    """Mount the webhook and the invitation route, or return ``None`` when not configured."""
+    """Mount the webhook, the invitation route and the confirm redeem route, or return ``None``
+    when not configured."""
     if not settings.whatsapp_configured:
         return None
     assert settings.whatsapp_token and settings.whatsapp_app_secret
@@ -225,10 +283,16 @@ def mount_whatsapp(
         verify_token=settings.whatsapp_verify_token,
     )
     path: Path = settings.catalog_file
-    bindings = Bindings(SqlBindingStore(store))
-    channel = WhatsAppChannel(config, WhatsAppClient(config, http=http), bindings)
+    bindings = Bindings(SqlBindingStore(store), clock=wall)
+    channel = WhatsAppChannel(config, WhatsAppClient(config, http=http), bindings, wall=wall)
     mount = WhatsAppMount(
-        channel, bindings, hosts, load_catalog(path), load_doors(path), settings.confirm_link_base
+        channel,
+        bindings,
+        hosts,
+        load_catalog(path),
+        load_doors(path),
+        settings.effective_confirm_base,
+        clock=clock,
     )
     app.include_router(create_router(channel, mount.on_ingest))
 
@@ -239,6 +303,14 @@ def mount_whatsapp(
         if host is None or body.participant not in host.state.members or SEP in body.coalition:
             raise HTTPException(404)
         return {"code": bindings.invite(viewer_key(body.coalition, body.participant))}
+
+    @app.post("/v1/confirm/redeem")
+    def redeem(request: Request, body: RedeemBody) -> dict[str, Any]:  # pyright: ignore[reportUnusedFunction]
+        token = request.headers.get("authorization", "").removeprefix("Bearer ")
+        row = lookup(token) if token else None
+        if row is None:
+            raise HTTPException(401, "unauthenticated")
+        return mount.redeem(str(row["coalition"]), str(row["participant"]), body.code)
 
     app.state.whatsapp = mount
     return mount

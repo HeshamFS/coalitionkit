@@ -41,6 +41,10 @@ class BindingStore(Protocol):
 
     def viewer_of(self, wa_id: str) -> str | None: ...
     def wa_id_of(self, viewer: str) -> str | None: ...
+    def viewers(self) -> list[str]:
+        """Every linked viewer."""
+        ...
+
     def note_failure(self, wa_id: str, at: float) -> None: ...
     def failures_since(self, wa_id: str, since: float) -> int: ...
 
@@ -78,6 +82,10 @@ class MemoryStore:
     def wa_id_of(self, viewer: str) -> str | None:
         with self._lock:
             return self._by_viewer.get(viewer)
+
+    def viewers(self) -> list[str]:
+        with self._lock:
+            return sorted(self._by_viewer)
 
     def note_failure(self, wa_id: str, at: float) -> None:
         with self._lock:
@@ -151,3 +159,6 @@ class Bindings:
 
     def wa_id_of(self, viewer: str) -> str | None:
         return self.store.wa_id_of(viewer)
+
+    def viewers(self) -> list[str]:
+        return self.store.viewers()

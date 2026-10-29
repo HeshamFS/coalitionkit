@@ -127,7 +127,15 @@ class WhatsAppChannel:
         result = Ingest()
         now = self._wall()
         with self._lock:
-            if not self._seen.has_room(sum(m[1] not in self._seen for m in found)):
+            # Reserve for the distinct, currently acceptable ids not yet remembered: a repeated
+            # id in one batch, a duplicate and a stale message take no room.
+            fresh = {
+                m[1]
+                for m in found
+                if -FUTURE_SLACK <= now - m[2] <= self.config.max_webhook_age
+                and m[1] not in self._seen
+            }
+            if not self._seen.has_room(len(fresh)):
                 raise CapacityExhausted
             for wa_id, message_id, stamp, body in found:
                 if not -FUTURE_SLACK <= now - stamp <= self.config.max_webhook_age:
