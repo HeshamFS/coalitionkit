@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -190,3 +191,13 @@ def test_provable_conversions_still_pass() -> None:
     check_not_wider(Scope(audience="coalition"), Scope(audience="self"))
     check_not_wider(Scope(audience="roles", roles=["a"]), Scope(audience="host"))
     check_not_wider(Scope(audience="self"), Scope(audience="self"))
+
+
+def test_hard_link_to_a_file_outside_the_pack_is_refused(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    outside = tmp_path / "outside-secret.yaml"
+    outside.write_text("secret: value", encoding="utf-8")
+    os.link(outside, root / "extra.yaml")
+    with pytest.raises(PackError) as caught:
+        inspect_pack(root, core_catalog=core_catalog(), core_version=CORE_VERSION)
+    assert caught.value.rules() == {"path_escape"}

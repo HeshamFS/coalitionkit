@@ -134,6 +134,10 @@ def take_snapshot(root: Path | str) -> Snapshot:
             if len(files) >= MAX_FILES:
                 raise PackError([Problem("file_too_large", rel, f"over {MAX_FILES} files")])
             with entry.open("rb") as handle:
+                # A hard link is a regular file with a second name, possibly outside the pack;
+                # checked on the open handle so the file cannot be swapped after the check.
+                if os.fstat(handle.fileno()).st_nlink > 1:
+                    raise _refuse(rel, "hard links are refused")
                 data = handle.read(MAX_FILE_BYTES + 1)
             total += len(data)
             if len(data) > MAX_FILE_BYTES or total > MAX_TOTAL_BYTES:
