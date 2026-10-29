@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 MAX_TOKENS = 2000
@@ -29,10 +30,12 @@ class ModelUse:
     reasoning_tokens: int = 0
 
 
+type UseSink = Callable[[ModelUse], None]
+
+
 @dataclass
 class BrainResult:
     text: str
-    uses: list[ModelUse] = field(default_factory=lambda: [])
 
 
 class Toolbox(Protocol):
@@ -49,7 +52,10 @@ class Brain(Protocol):
     framework: str
     model: str
 
-    async def run(self, instruction: str, tools: Toolbox) -> BrainResult: ...
+    async def run(self, instruction: str, tools: Toolbox, on_use: UseSink) -> BrainResult:
+        """Run one turn. Call ``on_use`` for each model call as soon as it returns, so a turn
+        that fails later still counts the calls it made."""
+        ...
 
 
 def offers_instruction(member: str, tasks: list[dict[str, Any]]) -> str:

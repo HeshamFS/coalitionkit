@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import secrets
 from contextlib import ExitStack, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -20,6 +21,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from members.kit.core import Invitation, MemberCore
 from members.kit.identity import MemberIdentity
 from members.kit.policy import AutoOwner
+from members.kit.redact import scrub
 from members.kit.server import create_member_app
 
 from coalitionkit_contracts import new_ulid
@@ -141,12 +143,14 @@ class InteropCoalition:
             number = free_port()
             identity = MemberIdentity(spec.name, f"http://127.0.0.1:{number}")
             built = build_brain(spec, self.mode, self.coalition_id)
-            token_in, token_out = f"to-host-{spec.name}", f"from-host-{spec.name}"
+            token_in, token_out = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
             member_tokens.add(token_in, identity.card_url)
             invitation = Invitation(
                 self.coalition_id, signer.card_url, host_key.public_key(), HOST_KID, token_in
             )
-            core = MemberCore(identity, invitation, built.brain, vault_for(spec.name), AutoOwner())
+            vault = vault_for(spec.name)
+            owner = AutoOwner(terms=vault.terms)
+            core = MemberCore(identity, invitation, built.brain, vault, owner)
             host_tokens = CredentialRegistry()
             host_tokens.add(token_out, signer.card_url)
             card = identity.build_card(built.brain.framework, built.brain.model)
@@ -283,7 +287,7 @@ class InteropCoalition:
         try:
             await member.delivery.deliver(envelope)
         except DeliveryError as exc:
-            outcome.delivery_failures.append(f"{member.spec.name}: {str(exc)[:160]}")
+            outcome.delivery_failures.append(f"{member.spec.name}: {scrub(str(exc)[:160])}")
             return False
         outcome.deliveries += 1
         return True

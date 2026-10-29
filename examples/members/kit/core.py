@@ -20,6 +20,7 @@ import httpx
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from coalitionkit_contracts import (
+    HOST_ONLY_TYPES,
     SchemaValidationError,
     SignatureError,
     new_ulid,
@@ -36,6 +37,7 @@ from .brain import Brain, offers_instruction, work_instruction
 from .identity import MemberIdentity
 from .policy import OwnerCallback, VaultPolicy
 from .records import MemberLog, Sent, Turn
+from .redact import describe
 
 HOST_ONLY: dict[str, Any] = {"audience": "host"}
 COALITION: dict[str, Any] = {"audience": "coalition"}
@@ -91,6 +93,8 @@ class MemberCore:
         self.offers_started = False
         self.joined = False
         self.accepted_revision = 0
+        self.approved: set[str] = set()
+        self.policy_refusals: list[str] = []
         self._seen: set[str] = set()
         self._lock = asyncio.Lock()
         self._http: httpx.AsyncClient | None = None
@@ -118,12 +122,15 @@ class MemberCore:
 
     def _open(self, envelope: dict[str, Any]) -> tuple[str, str, dict[str, Any], str]:
         """Validate and authenticate a delivery; return (type, on_behalf_of, payload, event_id)."""
+        host = self.invitation
+        if envelope.get("coalition_id") != host.coalition_id:
+            self.log.received_invalid += 1
+            raise DeliveryRefused("wrong_coalition", "not the Coalition this member was invited to")
         try:
             validate_envelope(envelope)
         except SchemaValidationError as exc:
             self.log.received_invalid += 1
             raise DeliveryRefused("schema_invalid", str(exc)[:200]) from exc
-        host = self.invitation
         try:
             if envelope["type"] == "coalition.projection":
                 verify_projection(envelope, host.host_key, expected_kid=host.host_kid)
@@ -134,11 +141,17 @@ class MemberCore:
                     envelope["payload"]["payload"],
                     source["event_id"],
                 )
-            if envelope["sender"] == host.host_card_url:
+            host_only = envelope["type"] in HOST_ONLY_TYPES | {"coalition.error"}
+            from_host = envelope["sender"] == host.host_card_url
+            if host_only or from_host:
+                # Anything the host originates (and every receipt or error) must carry the host
+                # key's signature; nobody else may send these types.
+                if not from_host or envelope["on_behalf_of"] != "host":
+                    raise DeliveryRefused("not_authorized", "host-only type from another sender")
                 verify_envelope(envelope, host.host_key, expected_kid=host.host_kid)
             else:
-                # An original from another member: its card is not ours to pin, so the schema
-                # is all a member can check (see NOTES-interop.md).
+                # An original from another member: its card is not ours to pin, so only the
+                # schema, the Coalition and the host-authenticated channel vouch for it.
                 self.log.unverified_peer_originals += 1
         except SignatureError as exc:
             raise DeliveryRefused("bad_signature", str(exc)[:200]) from exc
@@ -264,13 +277,12 @@ class MemberCore:
             return
         self.log.prompts.append(instruction)
         started = time.perf_counter()
-        calls = 0
+        before = len(self.log.uses)
         try:
-            result = await self.brain.run(instruction, _Tools(self))
-            self.log.uses.extend(result.uses)
-            calls = len(result.uses)
+            await self.brain.run(instruction, _Tools(self), self.log.uses.append)
         except Exception as exc:
-            self.log.turn_errors.append(f"{kind}: {type(exc).__name__}: {str(exc)[:200]}")
+            self.log.turn_errors.append(f"{kind}: {describe(exc)}")
+        calls = len(self.log.uses) - before
         elapsed = time.perf_counter() - started
         self.log.turns.append(Turn(kind, elapsed, elapsed, calls))
 
@@ -290,6 +302,11 @@ class MemberCore:
             await self._client.close()
         if self._http is not None:
             await self._http.aclose()
+
+    def policy_refusal(self, reason: str) -> str:
+        """Record an action the owner's policy stopped before anything was signed or sent."""
+        self.policy_refusals.append(reason)
+        return f"refused: {reason}"
 
     async def send(self, kind: str, body: dict[str, Any], scope: dict[str, Any]) -> str:
         """Sign and send one envelope; return ``accepted`` or the refusal code."""
@@ -320,7 +337,7 @@ class MemberCore:
         except ReceivedError as exc:
             outcome = exc.code
         except EdgeCallError as exc:
-            outcome = f"transport:{str(exc)[:80]}"
+            outcome = f"transport:{type(exc).__name__}"
         elapsed = time.perf_counter() - started
         self.log.sent.append(
             Sent(envelope["type"], envelope["event_id"], not errors, errors, outcome, elapsed)
@@ -359,6 +376,15 @@ class _Tools:
         label = core.needs.get(need_id)
         if label is None:
             return "refused: unknown need_id"
+        # The owner's policy, not the model, decides what may be offered.
+        allowed = await core.owner.offer_terms(label)
+        if core.queried.get(need_id) != "yes" or allowed is None:
+            return core.policy_refusal(f"offer for {label} is not allowed by the owner")
+        if (minutes, money, effort) != (allowed.minutes, allowed.money, allowed.effort):
+            return core.policy_refusal(
+                f"terms for {label} are fixed by the owner: minutes {allowed.minutes}, "
+                f"money {allowed.money}, effort {allowed.effort}"
+            )
         body: dict[str, Any] = {
             "offer_id": f"{core.name}-{label}",
             "target": {"kind": "need", "id": need_id},
@@ -373,6 +399,8 @@ class _Tools:
 
     async def commit_to_task(self, task_id: str) -> str:
         core = self._core
+        if task_id not in core.plan_tasks.get(core.decided_plan or "", []):
+            return core.policy_refusal("that task is not assigned to you by the decided plan")
         commitment = new_ulid()
         body = {"commitment_id": commitment, "task_id": task_id, "status": "pending"}
         outcome = await core.send("commit", body, HOST_ONLY)
@@ -383,10 +411,13 @@ class _Tools:
         approval = await core.decide("commitment", commitment, 1, True)
         if approval != "accepted":
             return f"refused: {approval}"
+        core.approved.add(task_id)
         return f"approved: the owner approved the commitment for {core.needs.get(task_id, task_id)}"
 
     async def report_done(self, task_id: str, evidence_ref: str) -> str:
         core = self._core
+        if task_id not in core.approved:
+            return core.policy_refusal("that task has no commitment approved by your owner")
         body = {
             "task_id": task_id,
             "evidence": [{"kind": "result", "ref": evidence_ref, "verified_by": core.name}],

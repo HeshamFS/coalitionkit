@@ -17,7 +17,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from members.kit.brain import SYSTEM_PROMPT, BrainResult, ModelUse, Toolbox
+from members.kit.brain import SYSTEM_PROMPT, BrainResult, ModelUse, Toolbox, UseSink
 
 APP_NAME = "coalition-member"
 MAX_LLM_CALLS = 14
@@ -47,7 +47,7 @@ class AdkBrain:
 
         return OpenAIGenerateContentConfig(effort=self._effort)  # type: ignore[arg-type]
 
-    async def run(self, instruction: str, tools: Toolbox) -> BrainResult:
+    async def run(self, instruction: str, tools: Toolbox, on_use: UseSink) -> BrainResult:
         async def make_offer(need_id: str, minutes: int, money: int, effort: str) -> str:
             """Offer to do one published task. effort is one of low, medium, high."""
             return await tools.make_offer(need_id, minutes, money, effort)
@@ -73,7 +73,6 @@ class AdkBrain:
             app_name=APP_NAME, user_id=user, session_id=f"turn-{next(self._counter)}"
         )
         message = types.Content(role="user", parts=[types.Part(text=instruction)])
-        uses: list[ModelUse] = []
         text = ""
         async for event in runner.run_async(
             user_id=user,
@@ -83,7 +82,7 @@ class AdkBrain:
         ):
             usage = event.usage_metadata
             if usage is not None and not event.partial:
-                uses.append(
+                on_use(
                     ModelUse(
                         usage.prompt_token_count or 0,
                         usage.candidates_token_count or 0,
@@ -94,7 +93,7 @@ class AdkBrain:
             if event.content and event.content.parts and event.is_final_response():
                 text = "".join(p.text or "" for p in event.content.parts)
         await runner.close()
-        return BrainResult(text, uses)
+        return BrainResult(text)
 
 
 __all__ = ["AdkBrain", "meta_model"]

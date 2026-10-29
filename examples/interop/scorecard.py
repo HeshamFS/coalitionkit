@@ -193,7 +193,14 @@ def build_scorecard(outcome: Outcome, mode_label: str, run_number: int = 1) -> d
             if mode_label == "live"
             else 0.0,
         },
-        "passed": goal["reached"] and valid == total and log["signatures_ok"] and log["chain_ok"],
+        "passed": (
+            goal["reached"]
+            and valid == total
+            and log["signatures_ok"]
+            and log["chain_ok"]
+            and leaks == 0
+            and not outcome.delivery_failures
+        ),
     }
 
 

@@ -12,12 +12,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
 
+from members.kit.redact import scrub
+
 from .coalition import InteropCoalition
-from .rig import Mode
+from .rig import KEY_VARIABLE, Mode
 from .scorecard import build_scorecard
 
 TIME_LIMIT_S = 600.0
@@ -28,7 +31,10 @@ async def run_once(
 ) -> dict[str, Any]:
     coalition = InteropCoalition(mode)
     outcome = await coalition.run(time_limit_s)
-    return build_scorecard(outcome, mode.label, run_number)
+    card = build_scorecard(outcome, mode.label, run_number)
+    # Whatever a framework or server echoed, the key itself never reaches a scorecard.
+    key = os.environ.get(KEY_VARIABLE, "")
+    return json.loads(scrub(json.dumps(card), [key], patterns=False))
 
 
 def main(argv: list[str] | None = None) -> int:

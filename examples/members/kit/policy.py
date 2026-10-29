@@ -48,12 +48,17 @@ class OwnerCallback(Protocol):
 
     async def approve_commitment(self, task_id: str) -> bool: ...
 
+    async def offer_terms(self, label: str) -> Terms | None:
+        """The only terms the agent may offer for this task, or None when it may not offer."""
+        ...
+
 
 @dataclass
 class AutoOwner:
     """An automatic owner policy for tests and unattended runs: accept a fair share."""
 
     max_tasks: int = 1
+    terms: dict[str, Terms] = field(default_factory=lambda: {})
     asked: list[str] = field(default_factory=lambda: [])
 
     async def accept_charter(self, charter: dict[str, Any]) -> bool:
@@ -67,3 +72,7 @@ class AutoOwner:
     async def approve_commitment(self, task_id: str) -> bool:
         self.asked.append("commitment")
         return True
+
+    async def offer_terms(self, label: str) -> Terms | None:
+        self.asked.append("offer")
+        return self.terms.get(label)

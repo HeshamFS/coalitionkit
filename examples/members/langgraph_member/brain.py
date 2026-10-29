@@ -15,7 +15,7 @@ from langchain_core.tools import StructuredTool
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from members.kit.brain import SYSTEM_PROMPT, BrainResult, ModelUse, Toolbox
+from members.kit.brain import SYSTEM_PROMPT, BrainResult, ModelUse, Toolbox, UseSink
 
 RECURSION_LIMIT = 30
 
@@ -69,10 +69,9 @@ class LangGraphBrain:
         self.chat = chat
         self.model = model_name
 
-    async def run(self, instruction: str, tools: Toolbox) -> BrainResult:
+    async def run(self, instruction: str, tools: Toolbox, on_use: UseSink) -> BrainResult:
         listed = _tools(tools)
         bound = self.chat.bind_tools(listed)
-        uses: list[ModelUse] = []
 
         async def call_model(state: MessagesState) -> dict[str, list[BaseMessage]]:
             reply = await bound.ainvoke(state["messages"])
@@ -80,7 +79,7 @@ class LangGraphBrain:
             if meta:
                 details: dict[str, int] = meta.get("output_token_details") or {}
                 cached: dict[str, int] = meta.get("input_token_details") or {}
-                uses.append(
+                on_use(
                     ModelUse(
                         meta.get("input_tokens", 0),
                         meta.get("output_tokens", 0),
@@ -107,4 +106,4 @@ class LangGraphBrain:
         )
         last = result["messages"][-1]
         text = last.content if isinstance(last.content, str) else str(last.content)
-        return BrainResult(text, uses)
+        return BrainResult(text)

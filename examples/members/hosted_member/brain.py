@@ -23,6 +23,7 @@ from members.kit.brain import (
     ModelUse,
     Seen,
     Toolbox,
+    UseSink,
     scripted_next,
 )
 
@@ -75,12 +76,11 @@ class HostedBrain:
         self._participant = participant
         self.model = gateway.settings.route("hosted_agent").model
 
-    async def run(self, instruction: str, tools: Toolbox) -> BrainResult:
+    async def run(self, instruction: str, tools: Toolbox, on_use: UseSink) -> BrainResult:
         messages: list[ChatMessage] = [
             {"role": "system", "content": f"{SYSTEM_PROMPT}\n{FORMAT_PROMPT}"},
             {"role": "user", "content": instruction},
         ]
-        uses: list[ModelUse] = []
         text = ""
         for _ in range(MAX_ROUNDS):
             done = await self._gateway.complete(
@@ -93,7 +93,7 @@ class HostedBrain:
                 response_format=RESPONSE_FORMAT,
             )
             usage = done.usage
-            uses.append(ModelUse(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens))
+            on_use(ModelUse(usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens))
             text = done.text
             calls = _parse(done.text)
             if not calls:
@@ -105,7 +105,7 @@ class HostedBrain:
             messages.append({"role": "assistant", "content": done.text})
             results.append(NEXT_HINT)
             messages.append({"role": "user", "content": "\n".join(results)})
-        return BrainResult(text, uses)
+        return BrainResult(text)
 
 
 def _parse(text: str) -> list[tuple[str, dict[str, Any]]]:
