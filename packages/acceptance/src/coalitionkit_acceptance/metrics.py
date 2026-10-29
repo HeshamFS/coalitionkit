@@ -65,6 +65,7 @@ class Recorder:
             summary = {
                 key: {
                     "n": len(data),
+                    "min_s": round(min(data), 6),
                     "p50_s": round(percentile(data, 0.5), 6),
                     "p95_s": round(percentile(data, 0.95), 6),
                     "max_s": round(max(data), 6),

@@ -22,8 +22,8 @@ Problems found in other packages. Nothing here was changed; each entry gives the
    Seen in `chaos.concurrent_deciders` (28 to 32 of 40 duplicate answers per run) and over A2A in
    `wire.run_wire`. The outcome is right (one decision per revision); the code may surprise
    clients that retry.
-5. Not exercised: `PostgresStore`. `chaos.kill_and_restart` accepts `COALITIONKIT_TEST_DATABASE_URL`
-   but no database was available here, so only SQLite runs were measured.
+5. `PostgresStore` is exercised by `chaos_server` on `postgres:18` in Docker (see NOTES-proof.md
+   at the repo root for what it found).
 6. The cost fixture (`fixtures/usage.json`) is in the shape of a provider usage export with
    charges computed by exact decimal arithmetic; it is not a download from a provider. Point
    `COALITIONKIT_ACCEPTANCE_USAGE_FILE` at a real export in the same shape for the live check.
