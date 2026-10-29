@@ -71,8 +71,21 @@ export function FeedProvider({
   signedOut.current = onSignedOut;
   const expired = useCallback(() => signedOut.current?.("expired"), []);
 
+  // An answer belongs to the session that sent it: a late reply from an earlier session (or
+  // after this provider unmounted) must never sign out the session that replaced it.
+  const live = useRef({ config, mounted: true });
+  live.current.config = config;
+  useEffect(() => {
+    live.current.mounted = true;
+    return () => {
+      live.current.mounted = false;
+    };
+  }, []);
+
   answerRef.current = async (a) => {
-    const result = await postAnswer(config, a, fetchFn);
+    const session = config;
+    const result = await postAnswer(session, a, fetchFn);
+    if (!live.current.mounted || live.current.config !== session) return;
     if (!result.ok && result.auth) {
       expired();
       return;
