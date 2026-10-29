@@ -134,6 +134,15 @@ def build(folder: Path, proof_token: str) -> MCPServer:
             }
             if set(arguments) - allowed.get(tool, set()):
                 raise Refusal("unexpected arguments")
+            # A missing argument is a policy refusal too, never the MCP library's validation text.
+            required = {
+                "hold_slot": {"start", "end", "prerequisites"},
+                "hold_challenge": {"start", "end", "prerequisites"},
+                "confirm": allowed["confirm"],
+                "cancel": allowed["cancel"],
+            }
+            if required.get(tool, set()) - set(arguments):
+                raise Refusal("missing arguments")
             if tool == "hold_slot" and any(
                 type(arguments.get(k)) is not int for k in ("start", "end")
             ):

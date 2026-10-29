@@ -76,3 +76,39 @@ def test_only_a_plain_read_is_not_an_attack(config: dict[str, Any]) -> None:
         assert not not_an_attack(model, tool, {"extra": 1})
     for tool in ("hold_slot", "confirm", "cancel", "write", "read_unknown_field"):
         assert not not_an_attack(model, tool, {})
+
+
+@pytest.mark.parametrize("config", ["resource"], indirect=True)
+async def test_a_call_missing_arguments_is_a_policy_refusal(
+    tmp_path: Path, config: dict[str, Any]
+) -> None:
+    # A model-written attack such as `confirm {}` must meet a registered refusal code, not the
+    # MCP library's validation text, or the attack suite cannot count it as refused.
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from coalitionkit_mint.artifact import connect, generate
+    from coalitionkit_mint.process import Sandbox
+    from coalitionkit_mint.schema import ResourceConfig
+
+    folder = tmp_path / "artifact"
+    generate(
+        folder,
+        ResourceConfig.model_validate(config),
+        Ed25519PrivateKey.generate().public_key(),
+        "owner",
+    )
+    with connect(folder) as db:
+        db.execute("UPDATE lifecycle SET state='proving'")
+    sandbox = Sandbox(folder)
+    try:
+        await sandbox.start()
+        async with sandbox.client(proving=True) as client:
+            for tool, arguments in (
+                ("confirm", {}),
+                ("cancel", {"id": "x"}),
+                ("hold_slot", {"start": 540}),
+                ("hold_challenge", {}),
+            ):
+                assert await rejected(client, tool, arguments, STEWARD_CASE_CODES), tool
+    finally:
+        sandbox.stop()

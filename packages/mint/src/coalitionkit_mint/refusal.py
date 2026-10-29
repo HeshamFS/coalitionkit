@@ -12,6 +12,7 @@ POLICY_CODES = frozenset(
         "invalid fields",
         "invalid identifier",
         "limit reached",
+        "missing arguments",
         "missing prerequisites",
         "occupied",
         "off_grid",
