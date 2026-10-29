@@ -57,6 +57,9 @@ extend-exclude = [".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
+# The contracts tests import a helper module named "examples"; the top-level examples/ folder
+# must not turn it into a first-party import.
+known-third-party = ["examples"]
 known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs"]
 
 [tool.pyright]
