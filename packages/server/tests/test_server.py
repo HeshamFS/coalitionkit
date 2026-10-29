@@ -262,3 +262,59 @@ async def test_restart_preserves_members_log_and_credentials(settings: Settings)
             ),
         )
         assert len(second.state.store.read(host.coalition_id)) == len(before) + 1
+
+
+def _adapter(members: frozenset[str] | None) -> tuple[Any, Any, Any]:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from coalitionkit_models import FakeModel, ModelGateway, ScriptedResponse, Settings
+    from coalitionkit_server.audit import AuditLoop, StewardAdapter
+    from coalitionkit_steward import Steward
+
+    allow = '{"action": "allow", "policy_id": null, "reason": "ok", "redact": []}'
+    fake = FakeModel([ScriptedResponse(allow)] * 4)
+    gateway = ModelGateway(Settings(_env_file=None), transport=fake)  # pyright: ignore[reportCallIssue]
+    steward = Steward(gateway, signing_key=Ed25519PrivateKey.generate(), kid="host")
+    runner = AuditLoop()
+    adapter = StewardAdapter(steward, runner, None if members is None else lambda _: members)
+    return adapter, fake, runner
+
+
+def _proposal() -> dict[str, Any]:
+    canary = "zq7canary-p3-only"
+    tasks = ["01M4XRC2A00000000000000002", "01M4XRC2A00000000000000003"]
+    assignments = [{"task_id": tasks[0], "assignee": "p1"}, {"task_id": tasks[1], "assignee": "p3"}]
+    assignments[1]["note"] = canary
+    plan = {"plan_id": "01M4XRC0Z8185GR38E1W8124GK", "revision": 1, "assignments": assignments}
+    return {
+        "ext_version": "0.1",
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "event_id": "01M4XRC0Z8185GR38E1W8124GK",
+        "type": "coalition.propose",
+        "sender": "https://agents.example.org/p1/card.json",
+        "on_behalf_of": "p1",
+        "scope": {"audience": "coalition"},
+        "payload": {"proposal_set_id": "s", "plans": [{**plan, "objective_scores": {}}]},
+        "sig": "x",
+    }
+
+
+def test_steward_adapter_with_members_never_sends_a_non_member_assignment_to_the_model() -> None:
+    adapter, fake, runner = _adapter(frozenset({"p1", "p2"}))
+    try:
+        verdict = adapter.review(_proposal())
+    finally:
+        runner.close()
+    sent = json.dumps([messages for _, messages, _ in fake.calls])
+    assert fake.calls and "zq7canary-p3-only" not in sent
+    assert verdict.action == "allow"
+
+
+def test_steward_adapter_without_members_fails_closed_and_sends_nothing() -> None:
+    adapter, fake, runner = _adapter(None)
+    try:
+        verdict = adapter.review(_proposal())
+    finally:
+        runner.close()
+    assert fake.calls == []
+    assert (verdict.action, verdict.policy_id) == ("escalate", "steward-members-unknown")

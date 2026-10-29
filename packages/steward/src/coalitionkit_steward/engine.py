@@ -41,6 +41,7 @@ from .verdict import SignedVerdict, VerdictBody, sign_verdict
 MODEL_POLICY_ID = "steward-model-audit"
 MODEL_MALFORMED_ID = MODEL_POLICY_ID
 MODEL_UNAVAILABLE_ID = MODEL_POLICY_ID
+MODEL_MEMBERS_ID = "steward-members-unknown"
 MAX_AUDIT_CHARS = 8_000
 
 AUDIT_SYSTEM_PROMPT = (
@@ -128,7 +129,13 @@ def _stricter(first: _Outcome, second: _Outcome) -> _Outcome:
     winner = second if SEVERITY[second.action] > SEVERITY[first.action] else first
     paths = tuple(dict.fromkeys((*first.redact, *second.redact)))
     keep = paths if winner.action in ("redact", "escalate") else ()
-    return _Outcome(winner.action, winner.policy_id, winner.explain, keep, True)
+    return _Outcome(
+        winner.action,
+        winner.policy_id,
+        winner.explain,
+        keep,
+        first.model_audited or second.model_audited,
+    )
 
 
 class Steward:
@@ -212,10 +219,20 @@ class Steward:
         The deterministic policies and redaction have run already, so the model sees only
         projections: never the original payload and never a field redacted for a recipient.
         """
+        views = recipient_projections(subject, redact, context.members if context else None)
+        if views is None:  # who receives this is unknown: send nothing to a model, fail closed
+            return _Outcome(
+                "escalate",
+                MODEL_MEMBERS_ID,
+                "The recipients could not be determined, so no model audit ran.",
+            )
         best: _Outcome | None = None
         best_reason = ""
-        for view in recipient_projections(subject, redact, context.members if context else None):
+        paths: list[str] = []
+        for view in views:
             outcome, reason = await self._audit_view(subject, view)
+            if outcome.action in ("redact", "escalate"):
+                paths.extend(outcome.redact)  # every projection's redactions are required
             if best is None or SEVERITY[outcome.action] > SEVERITY[best.action]:
                 best, best_reason = outcome, reason
         if best is None:  # recipient_projections always yields a view
@@ -224,7 +241,8 @@ class Steward:
             self._audit_reasons[(subject.coalition_id, subject.event_id, subject.revision)] = (
                 best_reason
             )
-        return best
+        keep = tuple(dict.fromkeys(paths)) if best.action in ("redact", "escalate") else ()
+        return _Outcome(best.action, best.policy_id, best.explain, keep, True)
 
     async def _audit_view(self, subject: Subject, view: Payload) -> tuple[_Outcome, str]:
         try:

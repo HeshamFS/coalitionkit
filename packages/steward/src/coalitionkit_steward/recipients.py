@@ -76,7 +76,7 @@ def _recipients(subject: Subject, body: Payload, members: frozenset[str] | None)
     else:
         found = (_assignee(i) for plan in _plans(body) for i in _assignments(plan))
         named = [a for a in found if a]
-    if members is not None:
+    if members is not None:  # only authorized delivery recipients get a view
         named = [n for n in named if n in members]
     return sorted({*named, subject.on_behalf_of})
 
@@ -86,15 +86,32 @@ def projection_hash(payload: Payload) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def needs_members(subject: Subject) -> bool:
+    """Whether the views depend on who the Coalition's members are.
+
+    A proposal set reaching a whole Coalition or a role is shown differently to each member,
+    and only the member list says who they are. A named participant list says it itself.
+    """
+    return (
+        subject.type == "coalition.propose"
+        and bool(_plans(subject.payload))
+        and subject.scope.audience != "participants"
+    )
+
+
 def recipient_projections(
     subject: Subject, redact: Iterable[str], members: frozenset[str] | None = None
-) -> list[Payload]:
+) -> list[Payload] | None:
     """The distinct payloads recipients get, deduplicated by hash, in a stable order.
 
     A member who holds no assignment sees a subset of every other view, so no view is made
     for them. ``redact`` is the scope's redaction list united with the Steward's own deterministic
     redactions. Recipients with the same view share one entry, so each view is audited once.
+    Returns None when the recipients cannot be decided (``needs_members`` and no ``members``):
+    the caller must not send the content to a model.
     """
+    if members is None and needs_members(subject):
+        return None
     body = redacted_payload(subject.payload, [*(subject.scope.redact or []), *redact])
     if subject.type != "coalition.propose" or not _plans(body):
         return [body]

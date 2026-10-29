@@ -50,7 +50,9 @@ class Server:
         self.gateway = gateway()
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
-            Steward(self.gateway, signing_key=self.key, kid="host"), self.runner
+            Steward(self.gateway, signing_key=self.key, kid="host"),
+            self.runner,
+            self._members_of,
         )
         self.signer = HostSigner(
             settings.public_base_url + "/.well-known/agent-card.json", self.key, "host"
@@ -66,6 +68,14 @@ class Server:
                 raise ValueError("public base URL differs from the stored host identity")
             self.attach(coalition)
         self.registry.restore(self.ports)
+
+    def _members_of(self, coalition: str) -> frozenset[str] | None:
+        host = self.hosts.get(coalition)
+        if host is None:
+            return None
+        # Called inside the host's own write transaction, so read the folded state it just
+        # refreshed (the public ``state`` property would open a second transaction).
+        return frozenset(host._cache.state.members)  # pyright: ignore[reportPrivateUsage]
 
     def attach(self, coalition: str) -> CoalitionHost:
         host = CoalitionHost(

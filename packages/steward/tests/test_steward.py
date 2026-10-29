@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -40,6 +41,7 @@ EVENT = "01M4XRC0Z8185GR38E1W8124GK"
 OTHER_EVENT = "01M4XRC1J00000000000000000"
 TASKS = ["01M4XRC2A00000000000000002", "01M4XRC2A00000000000000003", "01M4XRC2A00000000000000004"]
 KEY = Ed25519PrivateKey.generate()
+MEMBERS = StewardContext(members=frozenset({"p1", "p2", "p3"}))
 ALLOW = json.dumps({"action": "allow", "policy_id": None, "reason": "fine", "redact": []})
 
 
@@ -203,7 +205,8 @@ async def test_core_policies_positive_and_negative(
     policy: str,
 ) -> None:
     steward, _, _ = make([reply(ALLOW)] * 4)
-    signed = await steward.review(envelope(type_, payload, scope), context=ctx, flagged=False)
+    context = replace(ctx, members=MEMBERS.members) if ctx else MEMBERS
+    signed = await steward.review(envelope(type_, payload, scope), context=context, flagged=False)
     assert signed.body.action == action
     if action != "allow":
         assert signed.body.policy_id == policy
@@ -296,7 +299,9 @@ def test_engine_refuses_pack_policy_with_core_only_action() -> None:
 )
 async def test_malformed_model_verdict_becomes_escalate(answer: str) -> None:
     steward, fake, _ = make([reply(answer)])
-    signed = await steward.review(envelope("coalition.propose", plan_payload("p1")))
+    signed = await steward.review(
+        envelope("coalition.propose", plan_payload("p1")), context=MEMBERS
+    )
     assert signed.body.action == "escalate"
     assert signed.body.policy_id == "steward-model-audit"
     assert len(fake.calls) == 1
@@ -305,13 +310,13 @@ async def test_malformed_model_verdict_becomes_escalate(answer: str) -> None:
 async def test_model_failure_and_spent_budget_escalate() -> None:
     steward, _, _ = make([RuntimeError("boom")])
     propose = envelope("coalition.propose", plan_payload("p1"))
-    signed = await steward.review(propose)
+    signed = await steward.review(propose, context=MEMBERS)
     assert (signed.body.action, signed.body.policy_id) == ("escalate", "steward-model-audit")
 
     steward2, fake2, meter2 = make([reply(ALLOW)])
     meter2.set_budget(COALITION, 1)
     meter2.record(COALITION, "p1", "muse-spark-1.3", prompt_tokens=10, completion_tokens=0)
-    signed2 = await steward2.review(propose)
+    signed2 = await steward2.review(propose, context=MEMBERS)
     assert (signed2.body.action, signed2.body.policy_id) == (
         "escalate",
         "steward-model-audit",
@@ -323,14 +328,16 @@ async def test_valid_model_verdict_can_tighten_but_never_loosen() -> None:
     block = json.dumps({"action": "block", "policy_id": "x-1", "reason": "bad", "redact": []})
     steward, _, _ = make([reply(block), reply(ALLOW)])
     propose = envelope("coalition.propose", plan_payload("p1"))
-    first = await steward.review(propose)
+    first = await steward.review(propose, context=MEMBERS)
     assert (first.body.action, first.body.policy_id, first.body.model_audited) == (
         "block",
         "steward-model-audit",
         True,
     )
     unfair = envelope("coalition.propose", plan_payload("p1", "p1", "p2"))
-    second = await steward.review(unfair)  # the model says allow; the policy's escalate stands
+    second = await steward.review(
+        unfair, context=MEMBERS
+    )  # the model says allow; the policy's escalate stands
     assert (second.body.action, second.body.policy_id) == ("escalate", "fairness-cap-exceeded")
 
 
@@ -346,7 +353,7 @@ async def test_model_is_called_only_for_proposals_artifacts_and_flagged_messages
     assert (await steward.review(blocked)).body.action == "block"
     assert fake.calls == []
     # A proposal set.
-    await steward.review(envelope("coalition.propose", plan_payload("p1")))
+    await steward.review(envelope("coalition.propose", plan_payload("p1")), context=MEMBERS)
     assert len(fake.calls) == 1
     # A flagged message: caller flag, and a policy match.
     await steward.review(plain, flagged=True)
@@ -631,3 +638,42 @@ async def test_live_baseten_audits_a_clean_and_an_unsafe_projection() -> None:
         )
     assert rows["clean"][0] == "allow"
     assert rows["unsafe"][0] != "allow"
+
+
+def _p3_noted_plan() -> dict[str, Any]:
+    payload = plan_payload("p1", "p2", "p3")
+    payload["plans"][0]["assignments"][2]["note"] = CANARY  # only in p3's assignment
+    return payload
+
+
+async def test_priv4_without_members_a_coalition_wide_proposal_fails_closed() -> None:
+    steward, fake, _ = make([reply(ALLOW)] * 3)
+    signed = await steward.review(envelope("coalition.propose", _p3_noted_plan()))
+    assert fake.calls == [], "nothing is sent to a model when recipients are unknown"
+    assert (signed.body.action, signed.body.policy_id) == ("escalate", "steward-members-unknown")
+    assert signed.body.model_audited is False
+    assert CANARY not in signed.model_dump_json()
+
+
+async def test_priv4_an_assignment_to_a_non_member_never_reaches_the_model() -> None:
+    steward, fake, _ = make([reply(ALLOW)] * 3)
+    members = StewardContext(members=frozenset({"p1", "p2"}))
+    signed = await steward.review(envelope("coalition.propose", _p3_noted_plan()), context=members)
+    assert fake.calls, "the audit still runs, on the members' views"
+    assert CANARY not in _requests(fake)
+    assert signed.body.action == "allow"
+
+
+async def test_redactions_from_every_projection_verdict_are_kept() -> None:
+    def redact(path: str) -> ScriptedResponse:
+        answer = {"action": "redact", "policy_id": None, "reason": "r-" + path, "redact": [path]}
+        return reply(json.dumps(answer))
+
+    steward, fake, _ = make([redact("payload.a"), redact("payload.b")])
+    scope = Scope(audience="participants", participants=["p1", "p2"])
+    signed = await steward.review(envelope("coalition.propose", plan_payload("p1", "p2"), scope))
+    assert len(fake.calls) == 2
+    assert signed.body.action == "redact"
+    assert sorted(signed.body.redact) == ["payload.a", "payload.b"]
+    assert "r-payload" not in signed.model_dump_json()
+    assert (steward.audit_reason(COALITION, EVENT) or "").startswith("r-payload.")
