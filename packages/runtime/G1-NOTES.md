@@ -2,9 +2,15 @@
 
 ## Implemented
 
-- The runtime supplies membership, consent and resolved recipients inside its write
-  transaction. The server forwards these facts to the Steward without reading the host's
-  private cache or opening a nested transaction.
+- The runtime supplies membership and resolved recipients inside its write transaction. The
+  server forwards these facts to the Steward without reading the host's private cache or
+  opening a nested transaction.
+- Consent to contact is membership: a participant consents by joining under the charter, so
+  `consented` is the member set. `scope_check` already refuses a `participants` entry that is
+  not a member, so the Steward's `no-contact-before-consent` policy cannot fire through the
+  host today; it stays as defence in depth. Before this change `consented` was empty and the
+  policy blocked every participants-scoped observe, offer and ripple. A separate contact
+  consent (a member who may be addressed only after opting in) would need its own ledger.
 - Feed connections retain an incremental projection and generate event-level RFC 6902
   additions. Membership changes rebuild the projection, including removals. Bus callbacks
   wake streams immediately; reads and folds run in worker threads. The timer remains for

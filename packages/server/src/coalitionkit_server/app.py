@@ -22,7 +22,7 @@ from coalitionkit_models import ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_runtime import Acknowledgement, CoalitionHost, PostgresStore, SQLiteStore
 from coalitionkit_runtime.host import utc_now
-from coalitionkit_runtime.pool import StoreUnavailable
+from coalitionkit_runtime.pool import PoolBusy, StoreUnavailable
 from coalitionkit_steward import Steward
 from coalitionkit_surfaces import SurfaceHub
 from coalitionkit_surfaces.app import create_app as surfaces_app
@@ -242,6 +242,8 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
         try:
             with server.store.transaction("") as tx:
                 tx.execute("SELECT 1")
+        except PoolBusy:
+            return JSONResponse({"status": "unavailable", "store": "busy"}, status_code=503)
         except StoreUnavailable:
             return JSONResponse({"status": "unavailable", "store": "down"}, status_code=503)
         routes: dict[str, str] = {}

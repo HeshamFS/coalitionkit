@@ -146,3 +146,22 @@ def test_c09_sqlite_file_reopen_and_independent_connections(world: World) -> Non
         finally:
             reopened.close()
             second_store.close()
+
+
+def test_a_subscriber_whose_loop_closed_neither_breaks_publish_nor_starves_the_others() -> None:
+    import asyncio
+
+    from coalitionkit_runtime.bus import Bus
+
+    bus = Bus()
+    loop = asyncio.new_event_loop()
+    loop.close()
+
+    def notify() -> None:
+        loop.call_soon_threadsafe(lambda: None)
+
+    dead = bus.subscribe("c", 0, notify)
+    others = [bus.subscribe("c", 0) for _ in range(20)]
+    bus.publish("c", 1)  # the event is stored already: publishing must not raise
+    assert all(s.wake.is_set() for s in others)
+    assert dead.dropped

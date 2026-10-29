@@ -28,6 +28,7 @@ from . import chaos, chaos_server
 from .config import database_url, full_run, scale_size
 from .cost import default_usage_file, run_cost
 from .cost_live import export_comparison, reconcile, run_live_cost
+from .doors_message import run_message_door
 from .ledger import record_run
 from .live import close_kit, live_enabled, live_kit, live_skip_reason
 from .metrics import Recorder, percentile
@@ -107,6 +108,91 @@ async def run_2() -> Row:
     row.measured["totals"] = totals(outcomes)["scanned"]
     row.status = "measured"
     row.parts = ["scripted adversaries (the live adversary is tests/test_privacy_live.py)"]
+    return row
+
+
+def _paint_report() -> dict[str, Any]:
+    """The doors test: the room, the lens and the MCP App view paint one accepted change."""
+    npm = shutil.which("npm")
+    web = REPO / "apps" / "web"
+    if npm is None or not (web / "node_modules").is_dir():
+        raise NotRun("npm or the web dependencies are missing (npm ci in apps/web)")
+    report = web / "test-results" / "doors-latency.json"
+    report.unlink(missing_ok=True)
+    done = subprocess.run(
+        [npm, "--prefix", str(web), "run", "test:doors"],
+        capture_output=True,
+        text=True,
+        timeout=900,
+        check=False,
+    )
+    if not report.is_file():
+        tail = done.stdout.strip().splitlines()[-1:] or ["no output"]
+        raise NotRun(f"the doors test wrote no report (exit {done.returncode}): {tail[0][:200]}")
+    return {**json.loads(report.read_text(encoding="utf-8")), "exit": done.returncode}
+
+
+async def run_3() -> Row:
+    row = Row(3, "Generative UI: change to paint on every surface")
+    paint = await asyncio.to_thread(_paint_report)
+    door = await asyncio.to_thread(run_message_door)
+    delivery = door.recorder.result()["timings"]["delivery_s"]
+    surfaces = ("web", "lens", "mcp")
+    row.measured = {
+        **{f"{s}_p95_ms": round(paint[s]["p95"], 1) for s in surfaces},
+        **{f"{s}_min_ms": round(paint[s]["min"], 1) for s in surfaces},
+        "samples_per_surface": paint["samplesPerSurface"],
+        "message_delivery_p95_ms": round(delivery["p95_s"] * 1000, 1),
+        "message_scope_leaks": len(door.leaks),
+        "message_replies_that_signed": door.decisions_from_replies,
+    }
+    under = all(paint[s]["p95"] < paint["passMarkP95Ms"] for s in surfaces)
+    clean = paint["exit"] == 0 and not door.leaks and door.decisions_from_replies == 0
+    row.status = "measured" if under and clean else "failed"
+    row.parts = [
+        "web, lens and MCP App in Chromium against a real server (the MCP App in the test host, "
+        "not a commercial host); message door in process",
+        "a negative minimum is clock resolution between the host stamp and the browser",
+    ]
+    return row
+
+
+def _mint_cards(stdout: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    for line in stdout.splitlines():
+        start = line.find("{")  # pytest may print its progress mark on the same line
+        if start >= 0 and '"attacks"' in line:
+            cards.append(json.loads(line[start:]))
+    return cards
+
+
+async def run_6() -> Row:
+    row = Row(6, "Mint: upload to pending, attacks, cost")
+    if not live_enabled():
+        raise NotRun(live_skip_reason() + "; the Mint runs on the live models only")
+    uv = shutil.which("uv") or str(Path.home() / ".local" / "bin" / "uv.exe")
+    with tempfile.TemporaryDirectory() as directory:
+        command = [uv, "--directory", str(REPO), "run", "pytest", "-m", "live", "-s", "-q"]
+        command += ["packages/mint/tests/test_live.py", "--basetemp", directory]
+        command += ["-k", "test_live_mint", "-p", "no:cacheprovider"]
+        done = await asyncio.to_thread(
+            subprocess.run, command, capture_output=True, text=True, timeout=1500, check=False
+        )
+    cards = _mint_cards(done.stdout)
+    if not cards:
+        tail = done.stdout.strip().splitlines()[-1:] or ["no output"]
+        raise NotRun(f"the Mint run printed no scorecard (exit {done.returncode}): {tail[0][:200]}")
+    row.measured = {
+        "templates": len(cards),
+        "passed": sum(1 for c in cards if c["passed"]),
+        "max_elapsed_s": max(c["elapsed_seconds"] for c in cards),
+        "attacks": sum(len(c["attacks"]) for c in cards),
+        "attacks_passed": sum(1 for c in cards for a in c["attacks"] if a["passed"]),
+        "cost_micro_usd": sum(c["cost_micro_usd"] for c in cards),
+    }
+    passed = done.returncode == 0 and all(c["passed"] for c in cards)
+    row.status = "measured" if passed else "failed"
+    row.parts = ["live: resource and device templates, synthetic video and Windows speech"]
     return row
 
 
@@ -300,10 +386,10 @@ async def collect() -> list[Row]:
     plan: list[tuple[int, str, Callable[[], Awaitable[Row]] | None, str]] = [
         (1, "Interop: three stacks over A2A", run_1, ""),
         (2, "Privacy canaries", run_2, ""),
-        (3, "(no runner yet)", None, "no runner exists yet"),
+        (3, "Generative UI: change to paint on every surface", run_3, ""),
         (4, "Ripple over the real server", run_4, ""),
         (5, "Scale over the real server", run_5, ""),
-        (6, "(no runner yet)", None, "no runner exists yet"),
+        (6, "Mint: upload to pending, attacks, cost", run_6, ""),
         (7, "Chaos", run_7, ""),
         (8, "Cost against the provider", run_8, ""),
     ]

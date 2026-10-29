@@ -382,6 +382,21 @@ def test_health_reports_store_failure(settings: Settings) -> None:
         assert client.get("/healthz").json()["store"] == "ok"
 
 
+def test_health_reports_a_saturated_pool_as_busy_not_down(settings: Settings) -> None:
+    from unittest.mock import patch
+
+    from fastapi.testclient import TestClient
+
+    from coalitionkit_runtime.pool import PoolBusy
+
+    app = create_server(settings)
+    store = app.state.server.store
+    with TestClient(app) as client, patch.object(store, "transaction", side_effect=PoolBusy):
+        response = client.get("/healthz")
+        assert response.status_code == 503
+        assert response.json()["store"] == "busy"
+
+
 async def test_interrupted_append_is_retryable_over_a2a(running: Running) -> None:
     from unittest.mock import patch
 

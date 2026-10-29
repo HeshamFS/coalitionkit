@@ -61,4 +61,8 @@ class Bus:
                         self._subscriptions.remove(sub)
                     sub.wake.set()
                     if sub.notify is not None:
-                        sub.notify()
+                        try:
+                            sub.notify()
+                        except RuntimeError:  # its event loop is closed: the stream is gone
+                            sub.dropped = True
+                            self._subscriptions.discard(sub)

@@ -18,8 +18,17 @@ class StoreUnavailable(Exception):
     """Retry the same submission bytes and event ID after a transport failure."""
 
 
+class PoolBusy(StoreUnavailable):
+    """Every connection is checked out: the store is healthy, the host is saturated."""
+
+
+#: The Steward's model audit runs inside the write transaction and can hold a connection for
+#: seconds, so the pool is sized for several audits in flight at once.
+POOL_SIZE = 16
+
+
 class ConnectionPool:
-    def __init__(self, url: str, size: int = 4) -> None:
+    def __init__(self, url: str, size: int = POOL_SIZE) -> None:
         self.url = url
         self._slots: LifoQueue[psycopg.Connection | None] = LifoQueue(size)
         for _ in range(size):
@@ -51,7 +60,7 @@ class ConnectionPool:
         try:
             connection = self._slots.get(timeout=2)
         except Empty as exc:
-            raise StoreUnavailable("store pool busy") from exc
+            raise PoolBusy("store pool busy") from exc
         try:
             if self._closed:
                 raise StoreUnavailable("store pool closed")
