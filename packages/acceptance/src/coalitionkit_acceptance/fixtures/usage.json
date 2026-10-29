@@ -11,7 +11,7 @@
    "output": "4.25",
    "cached_input": "0.15"
   },
-  "meta-models/muse-spark-open-1026": {
+  "meta-models/muse-spark-open": {
    "input": "1.25",
    "output": "4.25",
    "cached_input": "0.15"
@@ -40,7 +40,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 8342,
    "completion_tokens": 1578,
    "cached_tokens": 0
@@ -58,7 +58,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 488,
    "completion_tokens": 1708,
    "cached_tokens": 456
@@ -67,7 +67,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p0",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 5448,
    "completion_tokens": 470,
    "cached_tokens": 0
@@ -112,7 +112,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p0",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7217,
    "completion_tokens": 225,
    "cached_tokens": 3266
@@ -121,7 +121,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 2207,
    "completion_tokens": 911,
    "cached_tokens": 2074
@@ -130,7 +130,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 6823,
    "completion_tokens": 1114,
    "cached_tokens": 0
@@ -139,7 +139,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p3",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 8704,
    "completion_tokens": 1100,
    "cached_tokens": 415
@@ -175,7 +175,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 4412,
    "completion_tokens": 1186,
    "cached_tokens": 3293
@@ -193,7 +193,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 3618,
    "completion_tokens": 642,
    "cached_tokens": 0
@@ -211,7 +211,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 8867,
    "completion_tokens": 1042,
    "cached_tokens": 0
@@ -238,7 +238,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 8740,
    "completion_tokens": 570,
    "cached_tokens": 0
@@ -247,7 +247,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p0",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 8150,
    "completion_tokens": 171,
    "cached_tokens": 0
@@ -256,7 +256,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 6364,
    "completion_tokens": 237,
    "cached_tokens": 1594
@@ -265,7 +265,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 2697,
    "completion_tokens": 960,
    "cached_tokens": 0
@@ -301,7 +301,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 2509,
    "completion_tokens": 1157,
    "cached_tokens": 0
@@ -328,7 +328,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 6696,
    "completion_tokens": 1694,
    "cached_tokens": 1216
@@ -373,7 +373,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7944,
    "completion_tokens": 1210,
    "cached_tokens": 0
@@ -445,7 +445,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 1588,
    "completion_tokens": 824,
    "cached_tokens": 0
@@ -463,7 +463,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 5013,
    "completion_tokens": 997,
    "cached_tokens": 0
@@ -472,7 +472,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p0",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7584,
    "completion_tokens": 285,
    "cached_tokens": 4319
@@ -499,7 +499,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p3",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 3289,
    "completion_tokens": 95,
    "cached_tokens": 0
@@ -535,7 +535,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p2",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 3106,
    "completion_tokens": 257,
    "cached_tokens": 0
@@ -616,7 +616,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7281,
    "completion_tokens": 1424,
    "cached_tokens": 0
@@ -643,7 +643,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH01",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 687,
    "completion_tokens": 616,
    "cached_tokens": 0
@@ -706,7 +706,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 3897,
    "completion_tokens": 1627,
    "cached_tokens": 0
@@ -733,7 +733,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH02",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7146,
    "completion_tokens": 580,
    "cached_tokens": 0
@@ -796,7 +796,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p1",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 7796,
    "completion_tokens": 1163,
    "cached_tokens": 0
@@ -823,7 +823,7 @@
    "coalition": "01M626PKF7EYEKVSRAW46RBH03",
    "participant": "p4",
    "role": "steward",
-   "model": "meta-models/muse-spark-open-1026",
+   "model": "meta-models/muse-spark-open",
    "prompt_tokens": 914,
    "completion_tokens": 1348,
    "cached_tokens": 0

@@ -2,7 +2,10 @@
 """The Steward: deterministic policies on every message, then a model audit where required.
 
 The model audit runs on every proposal set, every minted artifact and every flagged message
-(a message a policy matched without blocking it, or one the caller flags). A model answer that
+(a message a policy matched without blocking it, or one the caller flags), when the message
+reaches someone besides its sender. It sees only what each recipient will be shown (the
+payload after redaction, and each member's own assignments), never the original text, and
+each distinct projection is audited once. A model answer that
 is not strict JSON in the verdict schema becomes ``escalate``, never ``allow``; so does a model
 that cannot be reached or a budget that is spent. The final action is the strictest of the
 deterministic result and the model's.
@@ -12,6 +15,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -21,14 +25,23 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError, 
 from coalitionkit_contracts import Envelope, Scope
 from coalitionkit_models import ChatMessage, Completer
 
-from .conditions import Match, StewardContext, Subject, evaluate_all, subject_text
+from .conditions import (
+    INTERNAL_AUDIENCES,
+    Match,
+    StewardContext,
+    Subject,
+    evaluate_all,
+    subject_text,
+)
 from .policy import PACK_ACTIONS, SEVERITY, Action, Policy, PolicySet, core_policies
+from .recipients import Payload, recipient_projections
 from .selftest import run_selftest
 from .verdict import SignedVerdict, VerdictBody, sign_verdict
 
 MODEL_POLICY_ID = "steward-model-audit"
 MODEL_MALFORMED_ID = MODEL_POLICY_ID
 MODEL_UNAVAILABLE_ID = MODEL_POLICY_ID
+MODEL_MEMBERS_ID = "steward-members-unknown"
 MAX_AUDIT_CHARS = 8_000
 
 AUDIT_SYSTEM_PROMPT = (
@@ -116,7 +129,13 @@ def _stricter(first: _Outcome, second: _Outcome) -> _Outcome:
     winner = second if SEVERITY[second.action] > SEVERITY[first.action] else first
     paths = tuple(dict.fromkeys((*first.redact, *second.redact)))
     keep = paths if winner.action in ("redact", "escalate") else ()
-    return _Outcome(winner.action, winner.policy_id, winner.explain, keep, True)
+    return _Outcome(
+        winner.action,
+        winner.policy_id,
+        winner.explain,
+        keep,
+        first.model_audited or second.model_audited,
+    )
 
 
 class Steward:
@@ -185,46 +204,80 @@ class Steward:
             or flagged
             or outcome.action != "allow"
         )
-        if needs_audit and not final_for_core:
-            outcome = _stricter(outcome, await self._audit(subject))
+        # Audiences ``self`` and ``host`` reach no other recipient, so there is no projection
+        # for a model to judge: the deterministic result stands and nothing leaves the host.
+        reaches_others = subject.scope.audience not in INTERNAL_AUDIENCES
+        if needs_audit and reaches_others and not final_for_core:
+            outcome = _stricter(outcome, await self._audit(subject, outcome.redact, context))
         return self._sign(subject, outcome)
 
-    async def _audit(self, subject: Subject) -> _Outcome:
+    async def _audit(
+        self, subject: Subject, redact: Sequence[str], context: StewardContext | None
+    ) -> _Outcome:
+        """Audit every distinct view a recipient gets; the strictest answer wins.
+
+        The deterministic policies and redaction have run already, so the model sees only
+        projections: never the original payload and never a field redacted for a recipient.
+        """
+        views = recipient_projections(subject, redact, context.members if context else None)
+        if views is None:  # who receives this is unknown: send nothing to a model, fail closed
+            return _Outcome(
+                "escalate",
+                MODEL_MEMBERS_ID,
+                "The recipients could not be determined, so no model audit ran.",
+            )
+        best: _Outcome | None = None
+        best_reason = ""
+        paths: list[str] = []
+        for view in views:
+            outcome, reason = await self._audit_view(subject, view)
+            if outcome.action in ("redact", "escalate"):
+                paths.extend(outcome.redact)  # every projection's redactions are required
+            if best is None or SEVERITY[outcome.action] > SEVERITY[best.action]:
+                best, best_reason = outcome, reason
+        if best is None:  # recipient_projections always yields a view
+            raise AssertionError("no view to audit")
+        if best_reason:
+            self._audit_reasons[(subject.coalition_id, subject.event_id, subject.revision)] = (
+                best_reason
+            )
+        keep = tuple(dict.fromkeys(paths)) if best.action in ("redact", "escalate") else ()
+        return _Outcome(best.action, best.policy_id, best.explain, keep, True)
+
+    async def _audit_view(self, subject: Subject, view: Payload) -> tuple[_Outcome, str]:
         try:
             result = await self._gateway.complete(
                 "steward",
-                self._audit_messages(subject),
+                self._audit_messages(replace(subject, payload=view)),
                 coalition_id=subject.coalition_id,
                 participant=subject.on_behalf_of,
                 temperature=0,
                 max_tokens=400,
             )
         except Exception:  # fail closed: any gateway failure means a human looks
-            return _Outcome(
-                "escalate",
-                MODEL_UNAVAILABLE_ID,
-                "The model audit could not run.",
-                model_audited=True,
+            unavailable = _Outcome(
+                "escalate", MODEL_UNAVAILABLE_ID, "The model audit could not run.", (), True
             )
+            return unavailable, ""
         verdict = parse_model_verdict(result.text)
         if verdict is None:
-            return _Outcome(
+            malformed = _Outcome(
                 "escalate",
                 MODEL_MALFORMED_ID,
                 "The model audit gave an answer outside the verdict schema.",
-                model_audited=True,
+                (),
+                True,
             )
-        self._audit_reasons[(subject.coalition_id, subject.event_id, subject.revision)] = (
-            verdict.reason
-        )
+            return malformed, ""
         policy = self.policies.get(verdict.policy_id or "")
-        return _Outcome(
+        known = _Outcome(
             verdict.action,
             policy.id if policy else MODEL_POLICY_ID,
             policy.explain if policy else "The model audit identified a finding for review.",
             tuple(verdict.redact),
-            model_audited=True,
+            True,
         )
+        return known, verdict.reason
 
     @staticmethod
     def _audit_messages(subject: Subject) -> list[ChatMessage]:

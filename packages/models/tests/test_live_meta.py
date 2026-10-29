@@ -122,7 +122,7 @@ async def test_chat_muse_wonder_through_the_gateway(
 async def test_steward_route_on_the_meta_key(
     live_rows: list[dict[str, object]], make_gateway: Callable[..., Any]
 ) -> None:
-    gateway, meter = make_gateway()
+    gateway, meter = make_gateway(steward_provider="meta")
     started = time.perf_counter()
     result = await gateway.complete("steward", USER, coalition_id=CO, temperature=0, max_tokens=400)
     assert result.model == "muse-spark-1.3"
