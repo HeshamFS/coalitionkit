@@ -327,3 +327,20 @@ def test_the_reconcile_command_fails_on_a_usd_spend_mismatch(
 
     monkeypatch.setattr(command, "entries", no_entries)
     assert command.main(["--export", str(tmp_path / "x.csv")]) == 1
+
+
+def test_the_live_kit_prices_every_model_a_live_run_reaches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # An unpriced Steward model fails the audit closed and blocks every plan in a live run.
+    from coalitionkit_acceptance.live import close_kit, live_kit
+
+    monkeypatch.setenv("COALITIONKIT_META_API_KEY", "test-meta-key")
+    monkeypatch.setenv("COALITIONKIT_BASETEN_API_KEY", "test-baseten-key")
+    kit = live_kit()
+    try:
+        settings = kit.gateway.settings
+        for model in (CONTRIBUTOR, settings.steward_model, settings.steward_baseten_model):
+            kit.meter.prices.price(model)
+    finally:
+        asyncio.run(close_kit(kit))

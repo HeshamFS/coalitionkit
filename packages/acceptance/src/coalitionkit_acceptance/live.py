@@ -13,10 +13,11 @@ import os
 from pydantic import SecretStr
 
 from coalitionkit_models import ModelGateway
+from coalitionkit_models.prices import load_price_table
 
 from .gateways import Kit
 from .ledger import KEY_VAR, StampedMeter, dedicated_key_set
-from .privacy_live import CONTRIBUTOR, CONTRIBUTOR_PRICES, LiveTransport, live_settings
+from .privacy_live import CONTRIBUTOR, LiveTransport, live_settings
 from .privacy_live import KEY_VAR as API_KEY_VAR
 
 __all__ = ["CONTRIBUTOR", "close_kit", "live_enabled", "live_kit", "live_skip_reason"]
@@ -35,15 +36,16 @@ def live_skip_reason() -> str:
 
 
 def live_kit() -> Kit:
-    """Two live gateways (server and agents) feeding one meter priced for the contributor tier."""
+    """Two live gateways (server and agents) feeding one meter.
+
+    The meter uses the shipped price table, so every model a live run reaches is priced: the
+    contributor tier for agents and the Steward's own host (Baseten) when its key is set.
+    """
     settings = live_settings().model_copy(update={"steward_model": CONTRIBUTOR})
     if dedicated_key_set():  # runs made with this key are the ones the export is filtered to
         key = SecretStr(os.environ[KEY_VAR].strip())
         settings = settings.model_copy(update={"meta_api_key": key})
-    if dedicated_key_set():  # runs made with this key are the ones the export is filtered to
-        key = SecretStr(os.environ[KEY_VAR].strip())
-        settings = settings.model_copy(update={"meta_api_key": key})
-    meter = StampedMeter(CONTRIBUTOR_PRICES)
+    meter = StampedMeter(load_price_table())
     server_side, agent_side = LiveTransport(settings), LiveTransport(settings)
     return Kit(
         ModelGateway(settings, transport=server_side, meter=meter),

@@ -65,7 +65,7 @@ async def run_1() -> Row:
     if not Path(uv).exists() and shutil.which("uv") is None:
         raise NotRun("uv was not found to run the examples project")
     command = [uv, "--directory", str(REPO / "examples"), "run"]
-    command += ["python", "-m", "interop.run", "--scripted"]
+    command += ["python", "-m", "interop.run", "--live" if live_enabled() else "--scripted"]
     done = await asyncio.to_thread(
         subprocess.run, command, capture_output=True, text=True, timeout=1500, check=False
     )
@@ -86,7 +86,7 @@ async def run_1() -> Row:
         "members": len(card["members"]),
     }
     row.status = "measured"
-    row.parts = ["scripted (the live variant is run by examples/tests, pytest -m live)"]
+    row.parts = ["live: three stacks on Muse Spark" if live_enabled() else "scripted"]
     return row
 
 

@@ -175,8 +175,12 @@ async def run_cohort(
             recorder.count("propose_attempts")
             if event is not None:
                 break
-            code = cast(Document, reply)["payload"]["code"]
-            recorder.count(f"propose_refused_{code}")
+            payload = cast(Document, reply)["payload"]
+            recorder.count(f"propose_refused_{payload['code']}")
+            detail = cast(Document, payload.get("detail") or {})
+            policy = detail.get("policy_id")
+            if policy:
+                recorder.count(f"propose_refused_by_{policy}")
         if event is not None:
             plan = str(event["payload"]["plans"][0]["plan_id"])
             for name in cohort.names[:2]:
