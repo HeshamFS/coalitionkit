@@ -21,6 +21,7 @@ dev = [
     "coalitionkit-surfaces",
     "coalitionkit-server",
     "coalitionkit-packs",
+    "coalitionkit-channels",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -49,6 +50,7 @@ coalitionkit-acceptance = { workspace = true }
 coalitionkit-surfaces = { workspace = true }
 coalitionkit-server = { workspace = true }
 coalitionkit-packs = { workspace = true }
+coalitionkit-channels = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -62,17 +64,17 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 # The contracts tests import a helper module named "examples"; the top-level examples/ folder
 # must not turn it into a first-party import.
 known-third-party = ["examples"]
-known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "tools"]
+include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
-extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests"]
+extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -123,11 +125,11 @@ forbidden_modules = [
 [tool.pytest.ini_options]
 testpaths = ["packages"]
 addopts = "--import-mode=importlib"
-pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests"]
+pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
-markers = ["live: calls the real Meta Model API; runs only with COALITIONKIT_LIVE=1 and COALITIONKIT_META_API_KEY set"]
+markers = ["live: calls the real Meta Model API; runs only with COALITIONKIT_LIVE=1 and the provider keys set (COALITIONKIT_META_API_KEY; WhatsApp: token, phone number id, test recipient)"]
 
 [[tool.importlinter.contracts]]
 name = "runtime uses contracts only"
@@ -227,3 +229,20 @@ forbidden_modules = ["coalitionkit_mint"]
 
 # Template imports use the fail-closed AST allowlist in coalitionkit_mint.scan.
 # test_template_scan enforces it; a forbidden-import list cannot cover new network clients.
+
+[[tool.importlinter.contracts]]
+name = "channels import only contracts and surfaces directly (runtime only via surfaces)"
+type = "forbidden"
+source_modules = ["coalitionkit_channels"]
+forbidden_modules = [
+    "coalitionkit", "coalitionkit_acceptance", "coalitionkit_conformance", "coalitionkit_edge",
+    "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_host", "coalitionkit_mcp",
+    "coalitionkit_models", "coalitionkit_packs", "coalitionkit_psi",
+    "coalitionkit_steward", "coalitionkit_vault", "coalitionkit_server", "coalitionkit_mint",
+]
+
+[[tool.importlinter.contracts]]
+name = "core packages never import channels"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_mcp", "coalitionkit_surfaces", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_vault", "coalitionkit_packs", "coalitionkit_mint"]
+forbidden_modules = ["coalitionkit_channels"]

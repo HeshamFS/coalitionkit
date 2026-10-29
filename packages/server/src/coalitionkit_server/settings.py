@@ -17,7 +17,9 @@ def data_dir() -> Path:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="COALITIONKIT_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="COALITIONKIT_", extra="ignore", hide_input_in_errors=True
+    )
 
     store: SecretStr = Field(
         default_factory=lambda: SecretStr(f"sqlite:///{data_dir() / 'host.db'}")
@@ -28,6 +30,30 @@ class Settings(BaseSettings):
     bind_port: int = Field(default=8000, ge=1, le=65535)
     surfaces: set[Literal["mcp", "feed", "agent"]] = {"mcp", "feed", "agent"}
     admin_token: SecretStr | None = None
+    # WhatsApp message door: mounted only when all four are set.
+    whatsapp_token: SecretStr | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_app_secret: SecretStr | None = None
+    whatsapp_verify_token: SecretStr | None = None
+    # Where the message door's confirm link points: the web app's /confirm/<code> route.
+    # Unset: the server's own public origin (the web app is served from there).
+    confirm_link_base: str | None = None
+    catalog_file: Path = (
+        Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
+    )
+
+    @property
+    def effective_confirm_base(self) -> str:
+        return (self.confirm_link_base or self.public_base_url + "/confirm").rstrip("/")
+
+    @property
+    def whatsapp_configured(self) -> bool:
+        return None not in (
+            self.whatsapp_token,
+            self.whatsapp_phone_number_id,
+            self.whatsapp_app_secret,
+            self.whatsapp_verify_token,
+        )
 
     @field_validator("public_base_url")
     @classmethod

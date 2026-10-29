@@ -84,7 +84,7 @@ export class AgentStore {
   }
 }
 
-function toRequest(raw: Record<string, unknown>): OpenRequest {
+export function toRequest(raw: Record<string, unknown>): OpenRequest {
   const meta = (raw.metadata ?? {}) as {
     subject?: { kind?: string; id?: string; revision?: number };
   };
