@@ -6,7 +6,7 @@ https://dev.meta.ai/docs/api-reference has none; pricing is at
 https://dev.meta.ai/docs/pricing-rate-limits). What this module establishes:
 
 * every response carries the provider's own ``usage`` (prompt, cached and completion tokens); the
-  meter records are re-priced here from those counts at the published contributor rates with exact
+  meter records are re-priced here from those counts at each model's published rates with exact
   decimal arithmetic and compared with the meter. This checks the meter arithmetic on provider
   counts; it does not establish what the provider billed.
 * a live run only collects each response, stamped with its UTC time, into the ledger. The usage
@@ -36,6 +36,17 @@ MICRO = Decimal(1_000_000)
 CENT = Decimal("0.01")
 #: dev.meta.ai pricing, contributor tier, USD per 1M tokens (measured 2026-10-28).
 RATES = {"input": Decimal("0.10"), "cached_input": Decimal("0.002"), "output": Decimal("0.20")}
+#: Published rates per model, USD per 1M tokens, written out here and not read from the meter's
+#: table so the check is independent of it. The Steward's audit model runs on Baseten
+#: (baseten.co/library/muse-spark-open, 2026-10-29; reasoning tokens count as output).
+PUBLISHED_RATES = {
+    CONTRIBUTOR: RATES,
+    "meta-models/muse-spark-open": {
+        "input": Decimal("1.25"),
+        "cached_input": Decimal("0.15"),
+        "output": Decimal("4.25"),
+    },
+}
 
 
 def exact_usd(meter: CostMeter, coalitions: set[str] | None = None) -> Decimal:
@@ -44,11 +55,12 @@ def exact_usd(meter: CostMeter, coalitions: set[str] | None = None) -> Decimal:
     for record in meter.records:
         if coalitions is not None and record.coalition_id not in coalitions:
             continue
+        rates = PUBLISHED_RATES[record.model]  # an unknown model is an error, never a guess
         cached = min(record.cached_tokens, record.prompt_tokens)
         total += (
-            (record.prompt_tokens - cached) * RATES["input"]
-            + cached * RATES["cached_input"]
-            + record.completion_tokens * RATES["output"]
+            (record.prompt_tokens - cached) * rates["input"]
+            + cached * rates["cached_input"]
+            + record.completion_tokens * rates["output"]
         ) / MICRO
     return total
 

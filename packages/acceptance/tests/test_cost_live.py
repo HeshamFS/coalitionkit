@@ -344,3 +344,29 @@ def test_the_live_kit_prices_every_model_a_live_run_reaches(
             kit.meter.prices.price(model)
     finally:
         asyncio.run(close_kit(kit))
+
+
+def test_a_steward_response_on_baseten_is_repriced_at_its_own_rate() -> None:
+    from coalitionkit_models.prices import load_price_table
+
+    meter = CostMeter(load_price_table())
+    meter.record(
+        "c", "p", CONTRIBUTOR, prompt_tokens=1000, completion_tokens=500, cached_tokens=200
+    )
+    meter.record(
+        "c",
+        "host",
+        "meta-models/muse-spark-open",
+        prompt_tokens=1000,
+        completion_tokens=500,
+        cached_tokens=200,
+    )
+    # contributor 0.0001804, plus (800 * 1.25 + 200 * 0.15 + 500 * 4.25) per million tokens
+    assert str(exact_usd(meter)) == "0.0033354"
+    assert abs(meter.total("c") - 3335.4) <= 1  # each response rounds up once
+
+
+def test_steward_calls_billed_by_baseten_are_not_compared_with_the_meta_export() -> None:
+    baseten = {**row(DAY1, 10**9, 0, 10**9), "model": "meta-models/muse-spark-open"}
+    with_steward = reconcile(FIXTURE, [*matching(), baseten], key_set=True, until=THROUGH)
+    assert with_steward == reconcile(FIXTURE, matching(), key_set=True, until=THROUGH)

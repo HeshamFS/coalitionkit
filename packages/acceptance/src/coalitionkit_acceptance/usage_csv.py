@@ -165,6 +165,10 @@ def spend_report(
     return report
 
 
+#: Models another provider bills (the Steward's audit model on Baseten): never in Meta's export.
+NOT_IN_META_EXPORT = frozenset({"meta-models/muse-spark-open"})
+
+
 def reconcile(
     export: Path | None,
     ledger_rows: list[dict[str, Any]] | None = None,
@@ -180,6 +184,7 @@ def reconcile(
     the window the export covers are reported as not run, never compared.
     """
     every = entries() if ledger_rows is None else ledger_rows
+    every = [r for r in every if r.get("model") not in NOT_IN_META_EXPORT]
     exact = dedicated_key_set() if key_set is None else key_set
     rows = [r for r in every if r.get("dedicated")] if exact else every
     if export is None or not export.is_file():
