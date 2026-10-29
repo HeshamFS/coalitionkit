@@ -17,7 +17,9 @@ def data_dir() -> Path:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="COALITIONKIT_", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="COALITIONKIT_", extra="ignore", hide_input_in_errors=True
+    )
 
     store: SecretStr = Field(
         default_factory=lambda: SecretStr(f"sqlite:///{data_dir() / 'host.db'}")
@@ -33,6 +35,12 @@ class Settings(BaseSettings):
     whatsapp_phone_number_id: str | None = None
     whatsapp_app_secret: SecretStr | None = None
     whatsapp_verify_token: SecretStr | None = None
+    # Where the message door's confirm link points: the trusted confirm page of the web app
+    # (for example https://app.example/confirm). Empty: the message gives the code only.
+    confirm_link_base: str | None = None
+    catalog_file: Path = (
+        Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
+    )
 
     @property
     def whatsapp_configured(self) -> bool:

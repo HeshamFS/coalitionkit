@@ -12,6 +12,7 @@ from wa_support import APP_SECRET, NOW, OTHER_WA, VERIFY, WA_ID, Rig, rig, signe
 
 from coalitionkit_channels.whatsapp import (
     LINKED_LINE,
+    LOCKED_LINE,
     UNKNOWN_LINE,
     Ingest,
     create_router,
@@ -130,14 +131,17 @@ def test_unknown_sender_gets_one_fixed_line_and_nothing_else() -> None:
     assert r.fake.bodies()[0]["to"] == OTHER_WA
 
 
-def test_invitation_code_binds_once_and_only_by_first_message() -> None:
+def test_invitation_code_binds_once_from_any_message() -> None:
     r = rig(bound=False, window_open=False)
     code = r.bindings.invite("p2")
-    c = client_for(r)
     seen: list[Ingest] = []
     c = client_for(r, seen)
-    assert post(c, text_payload(OTHER_WA, code, "m5")).status_code == 200
-    assert r.bindings.viewer_of(OTHER_WA) == "p2" and seen[0].bound == ["p2"]
+    # An invalid first message fails; a later message carrying the code, in a sentence, binds.
+    assert post(c, text_payload(OTHER_WA, "hello", "m4a")).status_code == 200
+    assert r.fake.bodies()[-1]["text"]["body"] == UNKNOWN_LINE
+    assert r.bindings.viewer_of(OTHER_WA) is None
+    assert post(c, text_payload(OTHER_WA, f"my code is {code}.", "m5")).status_code == 200
+    assert r.bindings.viewer_of(OTHER_WA) == "p2" and seen[-1].bound == ["p2"]
     assert r.fake.bodies()[-1]["text"]["body"] == LINKED_LINE
     # The code is burned: a second phone cannot reuse it.
     assert post(c, text_payload(WA_ID, code, "m6")).status_code == 200
@@ -148,10 +152,50 @@ def test_invitation_code_binds_once_and_only_by_first_message() -> None:
     assert [(x.viewer, x.text) for x in r.channel.receive()] == [("p2", "1")]
 
 
+def test_fourth_bad_attempt_is_refused_even_with_a_valid_code_then_silence() -> None:
+    r = rig(bound=False, window_open=False)
+    code = r.bindings.invite("p2")
+    c = client_for(r)
+    for n in range(3):
+        post(c, text_payload(OTHER_WA, f"nope {n}", f"b{n}"))
+    sent = len(r.fake.requests)
+    post(c, text_payload(OTHER_WA, code, "b3"))  # valid code, but the limit is reached
+    assert r.bindings.viewer_of(OTHER_WA) is None
+    assert r.fake.bodies()[-1]["text"]["body"] == LOCKED_LINE
+    assert len(r.fake.requests) == sent + 1
+    post(c, text_payload(OTHER_WA, code, "b4"))  # silence now
+    post(c, text_payload(OTHER_WA, "x", "b5"))
+    assert len(r.fake.requests) == sent + 1 and r.bindings.viewer_of(OTHER_WA) is None
+    # After the hour the sender may try again, and the (still unused) code works.
+    r.clock.now += 3601
+    post(c, text_payload(OTHER_WA, code, "b6", r.clock.now))
+    assert r.bindings.viewer_of(OTHER_WA) == "p2"
+
+
 def test_expired_invitation_does_not_bind() -> None:
     r = rig(bound=False, window_open=False)
-    now = [0.0]
-    r.bindings._clock = lambda: now[0]  # pyright: ignore[reportPrivateUsage]
     code = r.bindings.invite("p2")
-    now[0] = 10**7
-    assert r.bindings.redeem(OTHER_WA, code) is None
+    r.clock.now += 25 * 3600
+    assert r.bindings.redeem(OTHER_WA, code).status == "rejected"
+    assert r.bindings.viewer_of(OTHER_WA) is None
+
+
+def test_signed_payload_for_another_business_number_produces_no_reply() -> None:
+    r = rig()
+    c = client_for(r)
+    other = text_payload(WA_ID, "1", "m-other", phone_id="999999999")
+    assert post(c, other).status_code == 200
+    assert r.channel.receive() == [] and r.fake.requests == []
+    wrong_object = text_payload(WA_ID, "1", "m-obj")
+    wrong_object["object"] = "page"
+    assert post(c, wrong_object).status_code == 200
+    wrong_product = text_payload(WA_ID, "1", "m-prod")
+    wrong_product["entry"][0]["changes"][0]["value"]["messaging_product"] = "other"
+    assert post(c, wrong_product).status_code == 200
+    no_meta = text_payload(WA_ID, "1", "m-meta")
+    del no_meta["entry"][0]["changes"][0]["value"]["metadata"]
+    assert post(c, no_meta).status_code == 200
+    assert r.channel.receive() == []
+    # The same message addressed to this number is accepted.
+    assert post(c, text_payload(WA_ID, "1", "m-ok")).status_code == 200
+    assert [x.text for x in r.channel.receive()] == ["1"]

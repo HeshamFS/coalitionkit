@@ -87,7 +87,7 @@ def rig(*, bound: bool = True, window_open: bool = True, **extra: Any) -> Rig:
     client = WhatsAppClient(
         cfg, http=httpx.Client(transport=httpx.MockTransport(fake)), sleep=sleeps.append
     )
-    bindings = Bindings()
+    bindings = Bindings(clock=clock)
     channel = WhatsAppChannel(cfg, client, bindings, wall=clock, mono=clock)
     if bound:
         bindings.redeem(WA_ID, bindings.invite("p1"))
@@ -96,7 +96,9 @@ def rig(*, bound: bool = True, window_open: bool = True, **extra: Any) -> Rig:
     return Rig(channel, fake, clock, bindings, sleeps)
 
 
-def text_payload(sender: str, body: str, message_id: str, stamp: float = NOW) -> dict[str, Any]:
+def text_payload(
+    sender: str, body: str, message_id: str, stamp: float = NOW, phone_id: str = PHONE_ID
+) -> dict[str, Any]:
     message = {
         "from": sender,
         "id": message_id,
@@ -104,7 +106,13 @@ def text_payload(sender: str, body: str, message_id: str, stamp: float = NOW) ->
         "type": "text",
         "text": {"body": body},
     }
-    value = {"messaging_product": "whatsapp", "messages": [message]}
+    metadata = {"display_phone_number": "15550001111", "phone_number_id": phone_id}
+    value = {
+        "messaging_product": "whatsapp",
+        "metadata": metadata,
+        "contacts": [{"profile": {"name": "Sender"}, "wa_id": sender}],
+        "messages": [message],
+    }
     return {
         "object": "whatsapp_business_account",
         "entry": [{"id": "1", "changes": [{"field": "messages", "value": value}]}],

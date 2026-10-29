@@ -14,6 +14,8 @@ from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 from . import signature
 from .channel import Ingest, StaleWebhook, WhatsAppChannel
+from .logs import install_log_redaction
+from .memory import CapacityExhausted
 
 PATH = "/webhooks/whatsapp"
 MAX_BODY = 1_000_000
@@ -22,6 +24,7 @@ MAX_BODY = 1_000_000
 def create_router(
     channel: WhatsAppChannel, on_ingest: Callable[[Ingest], None] | None = None
 ) -> APIRouter:
+    install_log_redaction()
     router = APIRouter()
     config = channel.config
 
@@ -52,6 +55,8 @@ def create_router(
             return JSONResponse({"detail": "bad body"}, 400)
         try:
             result = await asyncio.to_thread(channel.ingest, payload)  # pyright: ignore[reportUnknownArgumentType]
+        except CapacityExhausted:
+            return JSONResponse({"detail": "busy"}, 503)
         except StaleWebhook:
             return JSONResponse({"detail": "stale"}, 400)
         if on_ingest is not None:

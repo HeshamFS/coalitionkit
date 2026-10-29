@@ -9,9 +9,10 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr, ValidationError
 from wa_support import CANARIES, WA_ID, config, rig, signed, text_payload
 
-from coalitionkit_channels.whatsapp import WhatsAppError, create_router
+from coalitionkit_channels.whatsapp import ConfigError, WhatsAppConfig, WhatsAppError, create_router
 
 
 def clean(text: str) -> bool:
@@ -67,3 +68,51 @@ def test_transport_error_hides_url_and_headers() -> None:
     with pytest.raises(WhatsAppError) as caught:
         r.channel.send("p1", "hi")
     assert clean(str(caught.value)) and "graph.facebook" not in str(caught.value)
+
+
+def test_invalid_config_error_never_echoes_a_value() -> None:
+    for bad in ({"max_attempts": CANARIES[0]}, {"unexpected": CANARIES[1]}, {"token": 5}):
+        values = {
+            "token": SecretStr(CANARIES[0]),
+            "phone_number_id": "1",
+            "app_secret": SecretStr(CANARIES[1]),
+            "verify_token": SecretStr(CANARIES[2]),
+            **bad,
+        }
+        with pytest.raises(ValidationError) as caught:
+            WhatsAppConfig(**values)  # pyright: ignore[reportArgumentType]
+        assert clean(str(caught.value)) and clean(repr(caught.value))
+        with pytest.raises(ConfigError) as clean_error:
+            WhatsAppConfig.load(**values)
+        assert clean(str(clean_error.value)) and clean_error.value.__cause__ is None
+        assert clean_error.value.__context__ is None
+
+
+def test_handshake_logs_never_contain_the_verify_token(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG)
+    r = rig()
+    app = FastAPI()
+    app.include_router(create_router(r.channel))
+    params = {"hub.mode": "subscribe", "hub.verify_token": CANARIES[2], "hub.challenge": "7"}
+    assert TestClient(app).get("/webhooks/whatsapp", params=params).text == "7"
+    # What uvicorn's access log would print for the same request. Capture on that logger itself,
+    # since other tests may have switched off its propagation.
+    seen: list[logging.LogRecord] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            seen.append(record)
+
+    access = logging.getLogger("uvicorn.access")
+    grab, old = Grab(), access.level
+    access.addHandler(grab)
+    access.setLevel(logging.INFO)
+    url = f"/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token={CANARIES[2]}&hub.challenge=7"
+    try:
+        access.info('%s - "%s %s HTTP/%s" %d', "127.0.0.1:5", "GET", url, "1.1", 200)
+    finally:
+        access.removeHandler(grab)
+        access.setLevel(old)
+    assert len(seen) == 1 and "hub.verify_token=[redacted]" in seen[0].getMessage()
+    for record in [*caplog.records, *seen]:
+        assert clean(record.getMessage()) and clean(str(record.args))

@@ -17,6 +17,8 @@ class RateLimiter:
 
     def allow(self, recipient: str) -> bool:
         now = self._clock()
+        if len(self._hits) > 1000:
+            self._hits = {k: v for k, v in self._hits.items() if v and now - v[-1] < 60.0}
         hits = self._hits.setdefault(recipient, deque())
         while hits and now - hits[0] >= 60.0:
             hits.popleft()
