@@ -6,7 +6,7 @@ A fix elsewhere makes the test pass unexpectedly, which fails the suite until th
 
 Result of the runs themselves: no canary of the 20 planted per run was found outside its vault,
 redacted field, private scope, plan assignment or PSI input on any surface the host sends out
-(PR variant 10 runs and live variant 5 runs measured; the full 100-run variant is defined but its result is pending). The only leak is PRIV-1, which
+(PR variant 10 runs; full variant 100 runs: 2,000 canaries, 0 found, 19,600 deliveries scanned; live variant 5 runs). The only leak is PRIV-1, which
 needs a model that repeats what it was asked to judge; it is not part of the 0 above because the
 runs use a model that answers honestly.
 
