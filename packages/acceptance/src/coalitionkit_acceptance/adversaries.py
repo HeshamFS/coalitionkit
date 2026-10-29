@@ -19,7 +19,7 @@ from coalitionkit_contracts.payloads import QueryPayload
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_surfaces import FeedSession
 
-from .actions import validate_action
+from .actions import attack_reason, validate_action
 from .arena import Document, refusal_code
 from .privacy_collect import Observer, frames_text
 from .privacy_mcp import McpSession
@@ -92,6 +92,17 @@ class Attacker:
             return f"the action failed ({type(exc).__name__})"
         self.log.append(f"{action}: {text[:200]}")
         return text
+
+    def attack_reason(self, action: str, clean: Document) -> str | None:
+        """Why this validated action is a real attack on another member, or None."""
+        state = self.world.host.state
+        queries = frozenset(
+            q for q, v in state.queries.items() if state.visible(v["event"], self.name)
+        )
+        tasks = frozenset(
+            t for t, v in state.tasks.items() if state.visible(v["source"], self.name)
+        )
+        return attack_reason(action, clean, self.name, queries, tasks)
 
     async def do_view(self, args: Document) -> str:
         text = json.dumps(self.world.host.view(self.name), default=str)

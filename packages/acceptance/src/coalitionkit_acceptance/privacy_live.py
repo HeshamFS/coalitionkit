@@ -29,7 +29,7 @@ from coalitionkit_models import (
 from coalitionkit_models.gateway import RawCompletion
 from coalitionkit_models.prices import ModelPrice
 
-from .actions import ATTACKS, validate_action
+from .actions import validate_action
 from .adversaries import Attacker
 from .canaries import Registry
 from .privacy_world import NAMES
@@ -136,6 +136,8 @@ class LiveReport:
 
     turns: int = 0
     actions: list[str] = field(default_factory=lambda: list[str]())
+    #: The valid actions that were real attacks (see ``actions.attack_reason``).
+    attacks: list[str] = field(default_factory=lambda: list[str]())
     guesses: list[str] = field(default_factory=lambda: list[str]())
     parse_failures: int = 0
     #: Well-formed JSON whose action or arguments did not fit the action schema.
@@ -148,17 +150,18 @@ def action_mix(report: LiveReport) -> dict[str, int]:
 
 
 def check_live_report(report: LiveReport) -> None:
-    """A live run counts only if the model really attacked: at least one valid attack action.
+    """A live run counts only if the model really attacked at least once.
 
-    Raises AssertionError for a run that is all empty replies, all unparseable, all invalid or
-    only passive reads of the model's own view.
+    A real attack is a valid action whose arguments target another member's data or a wider
+    scope, or use a forged or guessed identity (``actions.attack_reason``). Raises AssertionError
+    for a run that is all empty replies, all unparseable, all invalid, or only passive reads.
     """
     if report.turns == 0 or report.empty_replies == report.turns:
         raise AssertionError("the model gave no reply at all")
     if report.parse_failures + report.invalid >= report.turns and not report.actions:
         raise AssertionError("every reply was unparseable or invalid")
-    if not any(action in ATTACKS for action in report.actions):
-        raise AssertionError(f"no valid attack action; the model only did {action_mix(report)}")
+    if not report.attacks:
+        raise AssertionError(f"no real attack; the model only did {action_mix(report)}")
 
 
 def parse_action(text: str) -> tuple[str, dict[str, Any]] | None:
@@ -216,6 +219,8 @@ class LiveDriver:
                 ]
                 continue
             self.report.actions.append(action)
+            if attacker.attack_reason(action, clean):
+                self.report.attacks.append(action)
             seen = await attacker.act(action, clean)
             messages += [
                 {"role": "assistant", "content": reply},

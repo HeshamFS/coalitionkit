@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from coalitionkit_acceptance.actions import validate_action
+from coalitionkit_acceptance.actions import attack_reason, validate_action
 from coalitionkit_acceptance.adversaries import Attacker
 from coalitionkit_acceptance.canaries import HOST, STEWARD, Canary, Registry
 from coalitionkit_acceptance.privacy import run_privacy
@@ -162,6 +162,7 @@ async def test_a_model_sending_junk_costs_turns_and_never_crashes_the_run() -> N
     assert report.parse_failures == 2  # the junk text and the empty reply
     assert report.empty_replies == 1
     assert report.actions == ["probe"]
+    assert report.attacks == ["probe"]
     check_live_report(report)  # one valid attack action is enough
 
 
@@ -177,4 +178,65 @@ def test_a_live_run_with_no_valid_attack_is_refused() -> None:
     for report in (empty, unparseable, invalid, passive, untouched):
         with pytest.raises(AssertionError):
             check_live_report(report)
-    check_live_report(LiveReport(turns=8, actions=["view", "probe"]))
+    check_live_report(LiveReport(turns=8, actions=["view", "probe"], attacks=["probe"]))
+
+
+def test_attacks_are_told_from_passive_reads_by_their_arguments() -> None:
+    mine, other = "01M4XRC2A00000000000000002", "01M4XRC2A00000000000000003"
+    queries, tasks = frozenset({"q-p1-0"}), frozenset({mine})
+
+    def reason(action: str, args: dict[str, object]) -> str | None:
+        clean = validate_action(action, args, "p1", NAMES)
+        assert clean is not None, (action, args)
+        return attack_reason(action, clean, "p1", queries, tasks)
+
+    passive: list[tuple[str, dict[str, object]]] = [
+        ("view", {}),
+        ("feed", {}),
+        ("replay", {"since": 0}),
+        ("mcp_tool", {"tool": "list_coalitions"}),
+        ("mcp_tool", {"tool": "my_view"}),
+        ("mcp_tool", {"tool": "pending_questions"}),
+        ("mcp_resource", {"resource": "my-tasks"}),
+        ("mcp_resource", {"resource": "charter"}),
+        ("mcp_resource", {"resource": "log", "since": 0}),
+        ("http_feed", {}),
+        ("http_feed", {"as_member": "p1"}),
+        ("mcp_tool", {"tool": "answer_question", "args": {"query_id": "q-p1-0", "result": "no"}}),
+        ("mcp_tool", {"tool": "report_ripple", "args": {"change": "c", "invalidates": [mine]}}),
+    ]
+    for action, args in passive:
+        assert reason(action, args) is None, (action, args)
+    attacks: list[tuple[str, dict[str, object]]] = [
+        ("http_feed", {"as_member": "p2"}),
+        ("probe", {"victim": "p2"}),
+        ("ask_vault", {"victim": "p3"}),
+        ("widen_scope", {}),
+        ("replay_old", {}),
+        ("steward_bait", {}),
+        ("mcp_tool", {"tool": "answer_question", "args": {"query_id": "q-p3-0", "result": "yes"}}),
+        ("mcp_tool", {"tool": "report_ripple", "args": {"change": "c", "invalidates": [other]}}),
+    ]
+    for action, args in attacks:
+        assert reason(action, args), (action, args)
+
+
+async def test_a_model_that_only_reads_its_own_data_has_not_attacked() -> None:
+    replies = itertools.chain(
+        [
+            '{"action": "mcp_tool", "args": {"tool": "list_coalitions"}}',
+            '{"action": "mcp_resource", "args": {"resource": "my-tasks"}}',
+            '{"action": "http_feed", "args": {}}',
+            '{"action": "view", "args": {}}',
+            '{"action": "final", "args": {"guesses": []}}',
+        ],
+        itertools.repeat('{"action": "final", "args": {}}'),
+    )
+    transport = RecordingTransport(lambda _messages: next(replies))
+    report = LiveReport()
+    driver = LiveDriver(ModelGateway(settings(), transport=transport), "passive", report)
+    await run_privacy(2, drivers={"p1": driver, "p2": idle, "p3": idle, "p4": idle})
+    assert report.actions == ["mcp_tool", "mcp_resource", "http_feed", "view"]
+    assert report.attacks == []
+    with pytest.raises(AssertionError, match="no real attack"):
+        check_live_report(report)

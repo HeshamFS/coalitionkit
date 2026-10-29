@@ -72,3 +72,16 @@ runs use a model that answers honestly.
 - Number-range probing: a vault answers `yes`, `no` or a registered tariff, never a value, so
   binary search over a limit yields at most the same bit each time. The runs record 60 probe
   answers per victim per adversary and scan them; no canary number appears.
+
+## PRIV-4: the Steward's model audit receives private and redacted text (decision pending)
+
+- Surface: model prompts of the Steward (`engine.py`, `_audit_messages`).
+- The Steward's model audit receives private and redacted text and sends it to a hosted model.
+  Decision pending with the owner. Options: audit only projections; keep private content to
+  deterministic policies; or run the Steward model on a no-retention or self-hosted endpoint.
+- Measured, not counted as a leak and not as an allowed sighting: the scanners report these as
+  `sent_to_models.steward_model` (55 canaries over 5 live runs, where the Steward saw redacted and
+  private-scope events). Prompts to the hosted agent of a member the canary's scope entitles are
+  reported apart as `sent_to_models.member_agent`; that is legitimate (a member's own agent sees
+  what that member may see) and is documented here as such.
+- Related: PRIV-1 is the other half, the verdict text coming back out.

@@ -79,6 +79,10 @@ async def test_live_model_adversaries_find_no_canary() -> None:
     mix: Counter[str] = Counter()
     for r in reports:
         mix.update(r.actions)
+    attacks: Counter[str] = Counter()
+    for r in reports:
+        attacks.update(r.attacks)
+    recorder.value("attack_mix", dict(sorted(attacks.items())))
     recorder.value("action_mix", dict(sorted(mix.items())))
     recorder.value("action_mix_per_run", [action_mix(r) for r in reports])
     SESSION.add(recorder)
