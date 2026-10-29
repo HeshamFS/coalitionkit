@@ -9,6 +9,7 @@ Members are the hosted participants the server created for them; they sign their
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 import sys
@@ -30,7 +31,7 @@ from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_models import ModelGateway
 from coalitionkit_runtime import Acknowledgement, CoalitionHost
 from coalitionkit_runtime.host import utc_now
-from coalitionkit_server import Settings, create_server
+from coalitionkit_server import Settings, create_server, hook
 from coalitionkit_server.app import Server
 
 Document = dict[str, Any]
@@ -74,6 +75,40 @@ def scoped(*participants: str) -> Document:
     return {"audience": "participants", "participants": sorted(set(participants))}
 
 
+class HookChannel:
+    """The side channel of the server's acceptance hook (``coalitionkit_server.hook``)."""
+
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+        directory.mkdir(parents=True, exist_ok=True)
+        self.file = directory / "boundaries.jsonl"
+
+    def lines(self) -> list[Document]:
+        if not self.file.exists():
+            return []
+        text = self.file.read_text(encoding="utf-8")
+        return [json.loads(line) for line in text.splitlines() if line.strip().endswith("}")]
+
+    def at(self, event_id: str, stage: str) -> float | None:
+        """The ``perf_counter`` reading when the server reached ``stage`` for the event."""
+        for line in self.lines():
+            if line["event_id"] == event_id and line["stage"] == stage:
+                return float(line["t"])
+        return None
+
+    def wait_for(self, event_id: str, stage: str, timeout: float = 30.0) -> float:
+        until = time.monotonic() + timeout
+        while time.monotonic() < until:
+            found = self.at(event_id, stage)
+            if found is not None:
+                return found
+            time.sleep(0.01)
+        raise AssertionError(f"the server never reached {stage} for {event_id}")
+
+    def environment(self) -> dict[str, str]:
+        return {hook.DIR_VAR: str(self.directory)}
+
+
 def make_settings(store_url: str, directory: Path, port: int) -> Settings:
     return Settings(
         store=SecretStr(store_url),
@@ -87,7 +122,13 @@ def make_settings(store_url: str, directory: Path, port: int) -> Settings:
 class Instance:
     """The server in a thread of this process."""
 
-    def __init__(self, settings: Settings, model_gateway: ModelGateway | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        model_gateway: ModelGateway | None = None,
+        channel: HookChannel | None = None,
+    ) -> None:
+        self.channel = channel
         self.settings = settings
         self.base = settings.public_base_url
         self.app = create_server(settings, model_gateway)
@@ -105,6 +146,8 @@ class Instance:
         self.thread = threading.Thread(target=self.worker.run, daemon=True)
 
     def __enter__(self) -> Instance:
+        if self.channel is not None:
+            os.environ.update(self.channel.environment())
         self.thread.start()
         until = time.monotonic() + 30
         while not self.worker.started:
@@ -119,6 +162,8 @@ class Instance:
             self.state.gateway.aclose(), self.state.runner.loop
         )
         closing.result(30)
+        if self.channel is not None:
+            os.environ.pop(hook.DIR_VAR, None)
         self.worker.should_exit = True
         self.thread.join(30)
         if self.thread.is_alive():
@@ -131,8 +176,10 @@ class Instance:
 class ChildServer:
     """The server as a child process, so it can be killed the hard way."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, channel: HookChannel | None = None) -> None:
         self.settings = settings
+        self.channel = channel
+        self.pause = ""
         self.base = settings.public_base_url
         self.process: subprocess.Popen[bytes] | None = None
 
@@ -145,6 +192,10 @@ class ChildServer:
             COALITIONKIT_BIND_PORT=str(self.settings.bind_port),
             COALITIONKIT_ADMIN_TOKEN=ADMIN,
         )
+        if self.channel is not None:
+            env.update(self.channel.environment())
+            if self.pause:
+                env[hook.PAUSE_VAR] = self.pause
         return env
 
     def start(self, timeout: float = 60.0) -> float:

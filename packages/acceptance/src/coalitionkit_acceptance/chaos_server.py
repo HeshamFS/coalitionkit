@@ -39,6 +39,7 @@ from .harness import (
     FAR,
     ChildServer,
     Document,
+    HookChannel,
     Instance,
     Member,
     emit,
@@ -69,7 +70,8 @@ class Rig:
         self.plan = ""
         self.task = ""
         self.acknowledged: set[str] = set()
-        self.child = ChildServer(self.settings)
+        self.channel = HookChannel(directory / "hook")
+        self.child = ChildServer(self.settings, self.channel)
         self.state: Any = None
         self.pool = ViewerPool()
 
@@ -155,22 +157,35 @@ def _decided(host: CoalitionHost, plan: str) -> bool:
     return host.state.subject("plan", plan).get("status") == "decided"
 
 
-async def send_while_killing(rig: Rig, name: str, envelope: Document) -> bool:
-    """Start a send, then kill the child before the reply can arrive."""
+async def send_and_kill_at(rig: Rig, name: str, envelope: Document, stage: str) -> bool:
+    """Send; kill the child once the server has reached ``stage`` for this envelope.
+
+    The child hangs at the stage (``ChildServer.pause``), so the kill lands exactly there. Returns
+    whether the sender got a reply (it must not).
+    """
     send = asyncio.create_task(rig.send(name, envelope))
-    await asyncio.sleep(0)
+    await asyncio.to_thread(rig.channel.wait_for, envelope["event_id"], stage)
     rig.child.kill()
     return await send
 
 
 async def kill_server(
-    directory: Path, store_url: str, label: str, kit: Kit | None = None
+    directory: Path,
+    store_url: str,
+    label: str,
+    kit: Kit | None = None,
+    boundary: str = "persisted",
 ) -> Recorder:
-    """Kill the server mid-negotiation (one decider answered, one in flight); restart it."""
-    recorder = Recorder(f"chaos_server_kill_{label}")
+    """Kill the server mid-negotiation at a defined boundary of one decision; restart it.
+
+    ``boundary="persisted"``: the decision is stored, the reply is not sent. ``"received"``: the
+    decision reached the host and nothing is stored. The client retries the same envelope.
+    """
+    recorder = Recorder(f"chaos_server_kill_{label}_{boundary}")
     rig = Rig(directory, store_url, kit)
     try:
         await rig.seed()
+        rig.child.pause = f"{boundary}:p2"
         recorder.sample("start_s", rig.child.start())
         async with httpx.AsyncClient(timeout=30) as http:
             await rig.connect(http)
@@ -178,9 +193,15 @@ async def kill_server(
             assert await rig.send("p1", rig.members["p1"].decision_envelope("plan", rig.plan, 1))
             second = rig.members["p2"].decision_envelope("plan", rig.plan, 1)
             killed_at = time.perf_counter()
-            reached = await send_while_killing(rig, "p2", second)
+            reached = await send_and_kill_at(rig, "p2", second, boundary)
+            recorder.count(
+                "boundary_reached", int(rig.channel.at(second["event_id"], boundary) is not None)
+            )
             recorder.count("in_flight_acknowledged", int(reached))
             recorder.count("in_flight_lost_reply", int(not reached))
+            stored = {e["event_id"] for e in _read(rig)}
+            recorder.count("persisted_before_retry", int(second["event_id"] in stored))
+            rig.child.pause = ""
             recorder.sample("restart_s", rig.child.start())
         async with httpx.AsyncClient(timeout=30) as http:
             await rig.connect(http, ["p2"])
@@ -195,6 +216,16 @@ async def kill_server(
         return recorder
     finally:
         rig.close()
+
+
+def _read(rig: Rig) -> list[Document]:
+    store = rig.store()
+    try:
+        return store.read(rig.coalition)
+    finally:
+        close = getattr(store, "close", None)
+        if callable(close):
+            close()
 
 
 async def _wait_for(check: Any, timeout: float) -> bool:

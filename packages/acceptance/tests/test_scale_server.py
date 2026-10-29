@@ -9,6 +9,7 @@ import pytest
 
 from coalitionkit_acceptance.config import scale_size
 from coalitionkit_acceptance.cost_live import reconcile
+from coalitionkit_acceptance.ledger import record_run
 from coalitionkit_acceptance.live import close_kit, live_enabled, live_kit, live_skip_reason
 from coalitionkit_acceptance.metrics import SESSION, Recorder
 from coalitionkit_acceptance.scale_server import run_scale_server
@@ -38,6 +39,10 @@ async def test_no_event_is_lost_over_the_real_server_and_cost_is_recorded(tmp_pa
     assert counts["viewers"] == 10 + 2 * size.coalitions
     assert result["timings"]["send_s"]["n"] > 0
     assert result["timings"]["send_s"]["p95_s"] > 0
+    # Acceptance (the server's stamp) to the delta at the sampled viewers; never negative.
+    assert result["timings"]["accept_to_delta_s"]["n"] > 0
+    assert result["timings"]["accept_to_delta_s"]["min_s"] >= 0
+    assert counts.get("negative_latencies", 0) == 0
     # Each agent asks the model once per offer, and the Steward audits each plan.
     assert counts["model_calls"] >= counts["agents_total"] * 2
     assert result["values"]["cost_micro_usd_metered"] > 0
@@ -67,6 +72,7 @@ async def test_twenty_live_model_agents_among_scripted_ones(tmp_path: Path) -> N
     recorder = Recorder("scale_live")
     row = reconcile(kit.meter, recorder)
     recorder.value("scale", result)
+    record_run("scale_live", kit.meter)
     recorder.value("live_cost_micro_usd", row["meter_micro_usd"])
     recorder.value("cost_micro_usd_metered", row["meter_micro_usd"])
     latencies = [x for t in kit.transports for x in t.latencies]

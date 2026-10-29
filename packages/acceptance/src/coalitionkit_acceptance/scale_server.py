@@ -32,6 +32,7 @@ from .harness import (
     FAR,
     PUBLIC,
     Document,
+    HookChannel,
     Instance,
     Member,
     emitted,
@@ -41,6 +42,7 @@ from .harness import (
 )
 from .metrics import Recorder
 from .ripple import problem_from_state
+from .ripple_server import arrivals_by_event
 from .sse import ViewerPool
 
 OFFERS_PER_AGENT = 2
@@ -211,6 +213,21 @@ async def _finish(
     result.model_calls = sum(1 for r in meter.records if r.coalition_id == cohort.coalition)
 
 
+def delta_latencies(pool: ViewerPool, channel: HookChannel, recorder: Recorder) -> None:
+    """Server acceptance (its own stamp) to the delta that reached each sampled viewer."""
+    stamps = {
+        line["event_id"]: float(line["t"])
+        for line in channel.lines()
+        if line["stage"] == "persisted"
+    }
+    for viewer in pool.viewers.values():
+        for event_id, arrived in arrivals_by_event(viewer).items():
+            if event_id in stamps:
+                took = arrived - stamps[event_id]
+                recorder.sample("accept_to_delta_s", took)
+                recorder.count("negative_latencies", int(took < 0))
+
+
 def summarise(name: str, outcomes: list[CohortResult], recorder: Recorder) -> dict[str, Any]:
     recorder.count("coalitions", len(outcomes))
     recorder.count("agents_total", sum(o.agents for o in outcomes))
@@ -257,7 +274,8 @@ async def run_scale_server(
         Recorder("scale_concurrent"),
         Recorder("scale"),
     )
-    with Instance(settings, kit.gateway) as server, httpx.Client(timeout=120) as admin:
+    channel = HookChannel(directory / "hook")
+    with Instance(settings, kit.gateway, channel) as server, httpx.Client(timeout=120) as admin:
         try:
             big = prepare(server, agents, admin)
             smalls = [prepare(server, coalition_agents, admin) for _ in range(coalitions)]
@@ -290,6 +308,7 @@ async def run_scale_server(
         finally:
             pool.close()
     outcomes = [first, *rest]
+    delta_latencies(pool, channel, total)
     for seconds in big_rec.series("send_s") + small_rec.series("send_s"):
         total.sample("send_s", seconds)
     result = summarise("scale", outcomes, total)

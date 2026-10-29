@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from coalitionkit_acceptance import chaos_server as chaos
+from coalitionkit_acceptance.ledger import record_run
 from coalitionkit_acceptance.live import close_kit, live_enabled, live_kit, live_skip_reason
 from coalitionkit_acceptance.metrics import SESSION, Recorder
 from coalitionkit_acceptance.postgres import PostgresContainer, docker_missing_reason
@@ -31,14 +32,27 @@ def check_recovery(recorder: Recorder) -> None:
     assert 0 < recovery < RECOVERY_LIMIT_S
 
 
-async def test_kill_the_server_mid_negotiation_and_restart_on_sqlite(tmp_path: Path) -> None:
-    recorder = await chaos.kill_server(tmp_path, f"sqlite:///{tmp_path / 'host.db'}", "sqlite")
+def check_boundary(recorder: Recorder, *, stored: bool) -> None:
+    """The kill landed at the defined boundary, and the client never got a reply."""
     check_recovery(recorder)
+    assert recorder.counter("boundary_reached") == 1
+    assert recorder.counter("in_flight_acknowledged") == 0
+    assert recorder.counter("in_flight_lost_reply") == 1
+    assert recorder.counter("persisted_before_retry") == int(stored)
     assert recorder.counter("viewer_missing_events") == 0
-    in_flight = recorder.counter("in_flight_acknowledged") + recorder.counter(
-        "in_flight_lost_reply"
-    )
-    assert in_flight == 1
+
+
+async def test_kill_after_the_decision_is_stored_and_before_the_reply(tmp_path: Path) -> None:
+    """Persistence-before-reply: the event is in the store though the client heard nothing."""
+    url = f"sqlite:///{tmp_path / 'host.db'}"
+    recorder = await chaos.kill_server(tmp_path, url, "sqlite", boundary="persisted")
+    check_boundary(recorder, stored=True)
+
+
+async def test_kill_before_the_decision_is_stored(tmp_path: Path) -> None:
+    url = f"sqlite:///{tmp_path / 'host.db'}"
+    recorder = await chaos.kill_server(tmp_path, url, "sqlite", boundary="received")
+    check_boundary(recorder, stored=False)
 
 
 async def test_two_deciders_answering_at_once_decide_once_per_revision(tmp_path: Path) -> None:
@@ -73,7 +87,9 @@ def postgres() -> Iterator[PostgresContainer]:
 async def test_kill_the_server_and_restart_on_postgres(
     tmp_path: Path, postgres: PostgresContainer
 ) -> None:
-    check_recovery(await chaos.kill_server(tmp_path, postgres.new_database(), "postgres"))
+    url = postgres.new_database()
+    recorder = await chaos.kill_server(tmp_path, url, "postgres", boundary="persisted")
+    check_boundary(recorder, stored=True)
 
 
 async def test_kill_the_database_and_start_it_again(
@@ -104,6 +120,7 @@ async def test_kill_the_server_with_the_live_model_auditing_the_plan(tmp_path: P
         await close_kit(kit)
     recorder.value("live_cost_micro_usd", sum(r.cost_micro_usd for r in kit.meter.records))
     recorder.value("live_calls", len(kit.meter.records))
+    record_run("chaos_live", kit.meter)
     check_recovery(recorder)
     assert len(kit.meter.records) >= 1  # the Steward audited the plan with the real model
 

@@ -34,6 +34,7 @@ from .harness import (
     FAR,
     HOST_ONLY,
     Document,
+    HookChannel,
     Instance,
     Member,
     emit,
@@ -66,7 +67,7 @@ class Mark:
     """An accepted event and the moment the host accepted it."""
 
     event_id: str
-    at: float
+    at: float | None
     kind: str
 
 
@@ -87,6 +88,17 @@ class RippleServerResult:
     samples: int
     viewers: int
     metrics: dict[str, Any] = field(default_factory=lambda: dict[str, Any]())
+
+
+def acceptance_times(server: Instance, marks: list[Mark]) -> dict[str, float]:
+    """When the host accepted each event: the server's own stamp at its persist boundary."""
+    assert server.channel is not None
+    found: dict[str, float] = {}
+    for mark in marks:
+        at = mark.at if mark.at is not None else server.channel.at(mark.event_id, "persisted")
+        assert at is not None, f"no acceptance stamp for {mark.kind} {mark.event_id}"
+        found[mark.event_id] = at
+    return found
 
 
 def arrivals_by_event(viewer: FeedViewer) -> dict[str, float]:
@@ -127,7 +139,8 @@ async def run_ripple_server(directory: Path) -> RippleServerResult:
     settings = make_settings(f"sqlite:///{directory / 'host.db'}", directory, free_port())
     gateway, _ = scripted_gateway(new_meter())
     pool = ViewerPool()
-    with Instance(settings, gateway) as server, httpx.Client(timeout=60) as admin:
+    channel = HookChannel(directory / "hook")
+    with Instance(settings, gateway, channel) as server, httpx.Client(timeout=60) as admin:
         try:
             coalition, members = provision(server.base, server.state, NAMES, DECIDERS, admin)
             host = server.host(coalition)
@@ -186,12 +199,12 @@ async def renegotiate(
         await reporter.send(envelope)
     except ReceivedError as error:
         raise AssertionError(f"ripple refused: {error.code} {error.detail}") from error
-    marks.append(Mark(envelope["event_id"], time.perf_counter(), "ripple"))
+    marks.append(Mark(envelope["event_id"], None, "ripple"))
     for name in sorted(holders):
         for task in sorted(t for t in affected if current[t] == name):
             offer = members[name].offer_envelope(task, 120, 90, f"{name}-{task}", HOST_ONLY)
             await members[name].send(offer)
-            marks.append(Mark(offer["event_id"], time.perf_counter(), "offer"))
+            marks.append(Mark(offer["event_id"], None, "offer"))
     result = replan(problem_from_state(host.state), current, affected)
     assert not result.unresolved
     mine = {t: a for t, a in result.assignments.items() if t in result.replanned}
@@ -206,13 +219,16 @@ async def renegotiate(
             }
         ],
     }
+    # A host publication has no server-side stamp; the call is timed from before it starts, so
+    # the figure can only be too large.
+    proposing = time.perf_counter()
     event = emit(host, "propose", body, scoped(*audience))
-    marks.append(Mark(event["event_id"], time.perf_counter(), "propose"))
+    marks.append(Mark(event["event_id"], proposing, "propose"))
     plan = str(event["payload"]["plans"][0]["plan_id"])
     for name in DECIDERS:
         decision = members[name].decision_envelope("plan", plan, 1, scope=scoped(*audience))
         await members[name].send(decision)
-        marks.append(Mark(decision["event_id"], time.perf_counter(), "decide"))
+        marks.append(Mark(decision["event_id"], None, "decide"))
     await settle(pool, server, coalition, 20.0)
 
     after = host.state
@@ -220,6 +236,7 @@ async def renegotiate(
     new_ids = {e["event_id"] for e in events[head:]}
     unaffected = set(NAMES) - audience
     lost = extra = samples = unaffected_deltas = unaffected_saw = 0
+    stamped = acceptance_times(server, marks)
     for name, viewer in pool.viewers.items():
         truth = set(host.view(name)["events"])
         lost += len(truth - viewer.event_ids())
@@ -232,8 +249,10 @@ async def renegotiate(
             unaffected_saw += len(viewer.event_ids() & new_ids)
         for mark in marks:
             if mark.event_id in truth and mark.event_id in arrived:
-                recorder.sample("accept_to_delta_s", arrived[mark.event_id] - mark.at)
-                recorder.sample(f"{mark.kind}_to_delta_s", arrived[mark.event_id] - mark.at)
+                took = arrived[mark.event_id] - stamped[mark.event_id]
+                recorder.sample("accept_to_delta_s", took)
+                recorder.sample(f"{mark.kind}_to_delta_s", took)
+                recorder.count("negative_latencies", int(took < 0))
                 samples += 1
     recorder.count("viewers", len(pool.viewers))
     recorder.count("audience", len(audience))

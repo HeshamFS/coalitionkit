@@ -12,6 +12,8 @@ from coalitionkit_contracts import is_ulid, new_ulid
 from coalitionkit_edges.a2a.identity import CardRegistry
 from coalitionkit_runtime import Acknowledgement, AuthenticatedSender, CoalitionHost
 
+from . import hook
+
 Document = dict[str, Any]
 logger = logging.getLogger("coalitionkit.server")
 
@@ -20,6 +22,7 @@ class HostPort:
     def __init__(self, host: CoalitionHost) -> None:
         self.host = host
         self.cards = CardRegistry(host.coalition_id)
+        hook.watch(host.bus)
 
     def invite(self, participant: str, card_url: str, card: AgentCard) -> None:
         pin = self.cards.admit(card_url, card)
@@ -39,7 +42,10 @@ class HostPort:
                 }
             }
         sender = AuthenticatedSender(authenticated_sender, pin.participant)
+        await hook.reached("received", envelope_json)
         reply = await asyncio.to_thread(self.host.accept, envelope_json, sender)
+        if isinstance(reply, Acknowledgement):
+            await hook.reached("persisted", envelope_json, reply.receipt["payload"]["seq"])
         if isinstance(reply, Acknowledgement):
             payload = reply.receipt["payload"]
             logger.info(

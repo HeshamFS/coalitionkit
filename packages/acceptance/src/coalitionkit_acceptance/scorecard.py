@@ -27,7 +27,8 @@ from typing import Any
 from . import chaos, chaos_server
 from .config import database_url, full_run, scale_size
 from .cost import default_usage_file, run_cost
-from .cost_live import compare_export, reconcile, run_live_cost
+from .cost_live import export_comparison, reconcile, run_live_cost
+from .ledger import record_run
 from .live import close_kit, live_enabled, live_kit, live_skip_reason
 from .metrics import Recorder, percentile
 from .postgres import PostgresContainer, docker_missing_reason
@@ -177,6 +178,7 @@ async def _scale_live(agents: int, coalition_agents: int, tasks: int) -> dict[st
             await close_kit(kit)
     recorder = Recorder("scale_live")
     reconciled = reconcile(kit.meter, recorder)
+    record_run("scale_live", kit.meter)
     latencies = sorted(x for t in kit.transports for x in t.latencies)
     return {
         "lost_events": result["counts"]["lost_events"],
@@ -196,8 +198,11 @@ async def run_7() -> Row:
     with tempfile.TemporaryDirectory() as directory:
         base = Path(directory)
         runs: dict[str, Callable[[Path], Awaitable[Recorder]]] = {
-            "kill_server_sqlite": lambda d: chaos_server.kill_server(
-                d, f"sqlite:///{d / 'host.db'}", "sqlite"
+            "kill_server_sqlite_persisted": lambda d: chaos_server.kill_server(
+                d, f"sqlite:///{d / 'host.db'}", "sqlite", boundary="persisted"
+            ),
+            "kill_server_sqlite_received": lambda d: chaos_server.kill_server(
+                d, f"sqlite:///{d / 'host.db'}", "sqlite", boundary="received"
             ),
             "concurrent_deciders": chaos_server.concurrent_deciders,
             "viewer_disconnect": chaos_server.viewer_disconnect,
@@ -231,7 +236,10 @@ async def run_7() -> Row:
 
 def summary(recorder: Recorder) -> dict[str, Any]:
     result = recorder.result()
-    keep = ("lost_events", "duplicate_events", "max_decisions_per_revision", "plan_decided")
+    keep = (
+        "lost_events", "duplicate_events", "max_decisions_per_revision", "plan_decided",
+        "boundary_reached", "persisted_before_retry",
+    )  # fmt: skip
     out: dict[str, Any] = {k: v for k, v in result["counts"].items() if k in keep}
     for name in ("recovery_s", "restart_s", "database_restart_s"):
         if name in result["timings"]:
@@ -256,28 +264,31 @@ async def run_8() -> Row:
     }
     row.status = "measured"
     row.parts = ["fixture replay"]
-    if live_enabled():
-        live = await run_live_cost(12)
-        values = live.result()["values"]
-        row.measured["live"] = {
-            "reconciliation": values["reconciliation"],
-            "provider_export": values["provider_export"],
-        }
-        row.parts.append("live reconciliation against provider-reported usage")
-        if not values["provider_export"]["ran"]:
-            row.parts.append("provider export: not run (Meta documents no usage endpoint)")
-    else:
-        compare = compare_export(live_empty_meter(), Recorder("cost"))
-        row.parts.append(f"live: not run ({live_skip_reason()}); export: {compare['reason']}")
+    if not live_enabled():
+        # No live run happened, so there is nothing to compare with the provider.
+        row.parts.append(f"live: not run ({live_skip_reason()}); provider export: not run")
+        return row
+    live = await run_live_cost(12)
+    row.measured["live"] = {"reconciliation": live.result()["values"]["reconciliation"]}
+    row.parts.append("live reconciliation against provider-reported usage")
+    add_export(row, export_comparison(Recorder("cost_export")))
     return row
 
 
-def live_empty_meter() -> Any:
-    from coalitionkit_models import CostMeter
-
-    from .privacy_live import CONTRIBUTOR_PRICES
-
-    return CostMeter(CONTRIBUTOR_PRICES)
+def add_export(row: Row, export: dict[str, Any]) -> None:
+    """Put the provider-export result on the row; a result that ran has no reason."""
+    if export.get("ran"):
+        row.measured["provider_export"] = {
+            k: v for k, v in export.items() if k not in ("comparisons", "reason")
+        }
+        row.parts.append(
+            f"provider export: {export.get('mode', 'checked')} check per day and metric"
+        )
+        if export.get("mode") != "exact":
+            row.parts.append(str(export.get("exact_match", "exact match not run")))
+    else:
+        row.parts.append(f"provider export: {export.get('reason', 'not run')}")
+    row.measured["provider_export_comparisons"] = export.get("comparisons", [])
 
 
 def not_run(number: int, name: str, reason: str) -> Row:

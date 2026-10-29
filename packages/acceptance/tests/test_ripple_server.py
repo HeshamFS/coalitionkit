@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import pytest
+
+from coalitionkit_acceptance.harness import HookChannel
 from coalitionkit_acceptance.metrics import SESSION
-from coalitionkit_acceptance.ripple_server import run_ripple_server
+from coalitionkit_acceptance.ripple_server import Mark, acceptance_times, run_ripple_server
 from coalitionkit_acceptance.sse import FeedViewer
 
 
@@ -36,6 +40,18 @@ async def test_only_the_ripple_is_renegotiated_and_surfaces_follow_within_two_se
     assert timings["accept_to_delta_s"]["n"] == result.samples
     assert result.samples >= 3 * len(result.audience)
     assert timings["accept_to_delta_s"]["p95_s"] < 2.0
+    # Timed from the server's own acceptance stamp, so no duration can be negative.
+    assert result.metrics["counts"].get("negative_latencies", 0) == 0
+    for key in (
+        "accept_to_delta_s",
+        "ripple_to_delta_s",
+        "propose_to_delta_s",
+        "decide_to_delta_s",
+    ):
+        if key in timings:
+            assert timings[key]["min_s"] >= 0, key
+    assert timings["propose_to_delta_s"]["n"] > 0
+    assert timings["decide_to_delta_s"]["n"] > 0
 
 
 def test_a_viewer_that_missed_a_delta_is_counted_as_lost() -> None:
@@ -45,3 +61,21 @@ def test_a_viewer_that_missed_a_delta_is_counted_as_lost() -> None:
     assert viewer.event_ids() == {"a", "b"}
     truth = {"a", "b", "c"}
     assert len(truth - viewer.event_ids()) == 1
+
+
+def test_a_missing_acceptance_stamp_is_an_error(tmp_path: Path) -> None:
+    """Latency is never taken from the reply: no server stamp means no measurement."""
+    channel = HookChannel(tmp_path)
+    channel.file.write_text(
+        json.dumps({"event_id": "e1", "stage": "persisted", "participant": "p1", "t": 5.0}) + "\n",
+        encoding="utf-8",
+    )
+
+    class Stub:
+        pass
+
+    server = Stub()
+    server.channel = channel  # pyright: ignore[reportAttributeAccessIssue]
+    assert acceptance_times(server, [Mark("e1", None, "offer")]) == {"e1": 5.0}  # pyright: ignore[reportArgumentType]
+    with pytest.raises(AssertionError, match="no acceptance stamp"):
+        acceptance_times(server, [Mark("e2", None, "offer")])  # pyright: ignore[reportArgumentType]
