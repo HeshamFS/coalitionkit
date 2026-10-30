@@ -50,7 +50,7 @@ function SeatGlyph({
         </text>
       )}
       <text
-        x={i === 1 ? 4 : i === 2 ? 6 : x + 14}
+        x={i === 0 ? 148 : i === 1 ? 4 : i === 2 ? 6 : x + 14}
         y={i === 0 ? 22 : i === 1 ? 20 : i === 2 ? 128 : y + 4}
         fontSize="9"
         fill="var(--ink-2)"
@@ -143,7 +143,8 @@ export function SeatRing({ p, send }: Props) {
 export function ActsForGraph({ p, send }: Props) {
   const people = rows(p.people),
     agents = rows(p.agents),
-    height = Math.max(230, agents.length * 44 + 40, people.length * 62 + 40);
+    height = Math.max(230, agents.length * 46 + 28, people.length * 62 + 40);
+  const agentY = (i: number) => (i === 0 ? 28 : 24 + i * 46);
   return (
     <Frame name="ActsForGraph">
       <svg
@@ -170,17 +171,18 @@ export function ActsForGraph({ p, send }: Props) {
               fill="none"
               stroke={p.acting === agent.card ? "var(--blue)" : "var(--line-strong)"}
               strokeWidth={p.acting === agent.card ? 2 : 1.5}
+              strokeDasharray={p.acting === agent.card ? "3 8" : undefined}
             >
               {owners.map((owner) => {
                 const index = people.findIndex((person) => person.participant === owner);
                 return index < 0 ? null : (
                   <path
                     key={str(owner)}
-                    d={`M190 ${52 + index * 62} C220 ${52 + index * 62},220 ${45 + i * 44},250 ${45 + i * 44}`}
+                    d={`M190 ${52 + index * 62} C220 ${52 + index * 62},220 ${agentY(i) + 17},250 ${agentY(i) + 17}`}
                   />
                 );
               })}
-              <path d={`M430 ${45 + i * 44} H472`} />
+              <path d={`M430 ${agentY(i) + 17} H472`} />
             </g>
           );
         })}
@@ -209,7 +211,7 @@ export function ActsForGraph({ p, send }: Props) {
         ))}
         {agents.map((agent, i) => (
           <g key={str(agent.card)}>
-            <foreignObject x="250" y={28 + i * 44} width="180" height="34">
+            <foreignObject x="250" y={agentY(i)} width="180" height="34">
               <button
                 type="button"
                 className={`f05-agent ${agent.card === p.acting ? "acting" : ""}`}
@@ -218,13 +220,19 @@ export function ActsForGraph({ p, send }: Props) {
                 {str(agent.card)}
               </button>
             </foreignObject>
-            <text x="480" y={49 + i * 44} fill="var(--ink-2)" fontSize="11">
-              {str(agent.vendor)} · {str(agent.runtime)}
+            <text x="480" y={agentY(i) + 21} fill="var(--ink-2)" fontSize="11">
+              {[str(agent.vendor), str(agent.runtime)]
+                .filter(Boolean)
+                .join(agent.vendor === "hosted" ? " " : " · ")}
             </text>
           </g>
         ))}
       </svg>
-      <p className="small">
+      <p className="row small">
+        <svg className="ico ico-sm" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="8" cy="15" r="4" />
+          <path d="M11 12l9-9M17 6l3 3" />
+        </svg>
         Agents act; only owner keys decide. One person may run several agents; an owner key belongs
         to one person.
       </p>

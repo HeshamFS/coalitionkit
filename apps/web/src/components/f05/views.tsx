@@ -1,45 +1,78 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useState } from "react";
-import {
-  Action,
-  Frame,
-  list,
-  Mark,
-  Meter,
-  num,
-  obj,
-  Person,
-  type Props,
-  rows,
-  str,
-  texts,
-} from "./shared";
+import { Frame, list, num, obj, type Props, rows, str, texts } from "./shared";
 import "../../styles/f05.css";
+import "./fonts.css";
 export function CoalitionHeader({ p, send }: Props) {
   const counts = obj(p.counts),
     budget = obj(p.budget);
   return (
-    <Frame name="CoalitionHeader" className="f05-header">
-      <div className="row sp">
-        <h2>{str(p.title)}</h2>
-        <Mark state={p.yourState} />
-      </div>
-      <p>{str(p.goal)}</p>
-      <div className="row wrap">
-        {Object.entries(counts).map(([k, v]) => (
-          <span key={k}>
-            {str(v)} {k}
+    <Frame name="CoalitionHeader" className="card f05-header">
+      <div className="row f05-header-top">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="24" cy="20" r="5" fill="var(--blue)" />
+          {[
+            [14, 9, 3],
+            [9, 17, 1],
+            [9, 25, 5],
+            [14, 32, 0],
+            [22, 35, 0],
+            [22, 5, -1],
+          ].map(([x, y, seat]) => (
+            <circle
+              key={`${x}-${y}`}
+              cx={x}
+              cy={y}
+              r="3"
+              fill={
+                seat === 0
+                  ? "var(--line-strong)"
+                  : seat === -1
+                    ? "var(--ink)"
+                    : `var(--seat-${seat})`
+              }
+            />
+          ))}
+        </svg>
+        <div className="col grow">
+          <span className="eyebrow">Coalition · pack: {str(p.pack)}</span>
+          <h2>{str(p.title)}</h2>
+          <span className="small">{str(p.goal)}</span>
+        </div>
+        <div className="col f05-header-state">
+          <span
+            className={`tag ${p.yourState === "needs-you" ? "t-needs" : p.yourState === "agreed" ? "t-agreed" : p.yourState === "changed" ? "t-changed" : p.yourState === "blocked" ? "t-blocked" : "t-private"}`}
+          >
+            {str(p.yourState)
+              .split("-")
+              .map((word, i) => (i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+              .join(" ")}
           </span>
-        ))}
+          {Boolean(counts.days) && (
+            <span className="st">
+              day {str(obj(counts.days).elapsed)} of {str(obj(counts.days).total)}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="row sp">
-        <span>{str(p.pack)}</span>
-        <Action onClick={() => send("charter.open")}>Charter r{str(p.revision)}</Action>
-        <span>
-          Budget {str(budget.used)} / {str(budget.cap)}
+      <div className="row wrap f05-header-counts">
+        <span className="small">
+          <b>{str(counts.people)}</b> members · <b>{str(counts.agents)}</b> agents ·{" "}
+          <b>{str(counts.watchers)}</b> watcher
         </span>
+        <span className="small">
+          <b>{str(counts.tasks)}</b> tasks · <b>{str(counts.plans)}</b> plans
+        </span>
+        <span className="small">
+          budget <b>€{str(budget.used)}</b> of €{str(budget.cap)}
+        </span>
+        <button
+          type="button"
+          className="f05-text-action h-right"
+          onClick={() => send("charter.open")}
+        >
+          Charter r{str(p.revision)}
+        </button>
       </div>
-      <Meter label="Budget used" value={(100 * num(budget.used)) / Math.max(1, num(budget.cap))} />
     </Frame>
   );
 }
@@ -63,8 +96,13 @@ export function StageTrack({ p }: Props) {
                   }}
                 />
               </span>
-              <span>{label}</span>
-              {active && <small>{str(p.progress)} answered</small>}
+              <span className="st">
+                {label}
+                {active &&
+                  (r.deciders
+                    ? ` ${str(p.progress)}/${str(r.deciders)}`
+                    : ` ${str(p.progress)} answered`)}
+              </span>
             </li>
           );
         })}
@@ -135,6 +173,11 @@ export function VendorBadge({ p }: Props) {
   return (
     <Frame name="VendorBadge">
       <span className="badge b-estimate">
+        {p.framework === "ADK" && (
+          <svg className="ico f05-vendor-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+          </svg>
+        )}
         {str(p.transport)} · {str(p.framework)}
       </span>
     </Frame>
@@ -144,12 +187,21 @@ export function AgentPresence({ p }: Props) {
   return (
     <Frame name="AgentPresence" state={str(p.state)}>
       <div className="row">
-        <span className={`f05-presence ${str(p.state)}`} />
-        <div>
-          <b>{str(p.agent)}</b>
-          <div className="small">
+        <span
+          className={`av av-sq presence ${p.state === "idle" ? "s3 presence-away" : p.state === "offline" ? "s5 presence-off" : "s1"}`}
+        >
+          {str(p.agent).split(" · ")[0]?.slice(-1)}
+        </span>
+        <div className="col f05-agent-details">
+          <span className="lbl">{str(p.agent)}</span>
+          <div className="st">
             {str(p.state)}
-            {p.latencyMs ? ` · ${str(p.latencyMs)} ms` : ""} · card pinned {str(p.pinnedKid)}
+            {p.latencyMs ? ` · ${str(p.latencyMs)} ms` : ""}
+            {p.pinnedKid
+              ? ` · card pinned ${str(p.pinnedKid)}`
+              : p.state === "offline"
+                ? " · answers queue"
+                : ""}
           </div>
         </div>
       </div>
@@ -213,7 +265,9 @@ export function RoleMatrix({ p }: Props) {
             <tr>
               <th>Can</th>
               {list(p.roles).map((r) => (
-                <th key={str(r)}>{str(r)}</th>
+                <th key={str(r)}>
+                  {{ organizer: "Org", member: "Member", watcher: "Watch" }[str(r)] ?? str(r)}
+                </th>
               ))}
             </tr>
           </thead>
@@ -222,7 +276,17 @@ export function RoleMatrix({ p }: Props) {
               <tr key={str(r.action)}>
                 <td>{str(r.action)}</td>
                 {list(p.roles).map((role) => (
-                  <td key={str(role)}>{str(obj(r.rights)[str(role)]) || "–"}</td>
+                  <td
+                    key={str(role)}
+                    className={
+                      str(obj(r.rights)[str(role)]) === "✓" ||
+                      str(obj(r.rights)[str(role)]) === "propose"
+                        ? undefined
+                        : "mut3"
+                    }
+                  >
+                    {str(obj(r.rights)[str(role)]) || "–"}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -232,126 +296,5 @@ export function RoleMatrix({ p }: Props) {
     </Frame>
   );
 }
-export function Roster({ p, send }: Props) {
-  return (
-    <Frame name="Roster">
-      <div className="f05-scroll">
-        <table className="tbl">
-          <thead>
-            <tr>
-              {["Member", "Roles", "Agents", "Accepted charter", "Hours held", "State"].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows(p.members).map((r, i) => (
-              <tr key={str(r.participant)}>
-                <td>
-                  <Person name={r.participant} seat={i + 1} />
-                </td>
-                <td>{texts(r.roles)}</td>
-                <td>{str(r.agents)}</td>
-                <td>r{str(r.acceptedRevision)}</td>
-                <td>{str(r.load)} h</td>
-                <td>
-                  <Mark state={r.state} />
-                  {r.state === "owes" && (
-                    <Action onClick={() => send("member.remind", { participant: r.participant })}>
-                      Remind {str(r.participant)}
-                    </Action>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Frame>
-  );
-}
-export function PackChip({ p, send }: Props) {
-  const pack = obj(p.pack);
-  return (
-    <Frame name="PackChip">
-      <Action onClick={() => send("pack.open", { pack: pack.id })}>{str(pack.name)}</Action>
-      <article className="card">
-        <div className="row sp">
-          <b>{str(pack.name)}</b>
-          <small>v{str(pack.version)}</small>
-        </div>
-        <dl className="kv">
-          <dt>Views</dt>
-          <dd>{list(pack.views).length}</dd>
-          <dt>Policies</dt>
-          <dd>{list(pack.policies).length} (allow, redact only)</dd>
-          <dt>Signed by</dt>
-          <dd>{str(pack.authorKid)}</dd>
-        </dl>
-      </article>
-    </Frame>
-  );
-}
-export function LeaveControl({ p, send }: Props) {
-  const [confirm, setConfirm] = useState(false);
-  return (
-    <Frame name="LeaveControl" state={confirm ? "confirming" : "ready"}>
-      <article className="card">
-        <b>Leave the coalition</b>
-        <ul>
-          {list(p.consequences).map((c) => (
-            <li key={str(c)}>{str(c)}</li>
-          ))}
-        </ul>
-        <Action onClick={() => setConfirm(true)}>Leave…</Action>
-        {confirm && (
-          <div role="dialog" aria-modal="true" aria-label="Confirm leaving">
-            <p>Leave permanently? You cannot rejoin.</p>
-            <Action onClick={() => setConfirm(false)}>Cancel</Action>
-            <Action
-              onClick={() => {
-                send("coalition.leave");
-                setConfirm(false);
-              }}
-            >
-              Confirm leave
-            </Action>
-          </div>
-        )}
-      </article>
-      <p className="small">
-        Members cannot remove each other. A new charter requires each member's acceptance.
-      </p>
-    </Frame>
-  );
-}
-export function InviteList({ p, send }: Props) {
-  return (
-    <Frame name="InviteList">
-      {rows(p.invitations).map((r) => (
-        <div className="f05-invite" key={str(r.participant)}>
-          <Person name={r.participant} />
-          <span>
-            {str(r.role)}
-            <small>
-              {str(r.channel)} · {str(r.sentAt)} · expires {str(r.expires)}
-            </small>
-          </span>
-          <Mark state={r.state} />
-          {r.state === "invited" && (
-            <Action onClick={() => send("invite.revoke", { participant: r.participant })}>
-              Revoke
-            </Action>
-          )}
-        </div>
-      ))}
-      {list(p.openSeats).map((r) => (
-        <div className="f05-invite" key={str(r)}>
-          <span>Open seat · {str(r)}</span>
-          <Action onClick={() => send("invite.send", { role: r })}>Invite</Action>
-        </div>
-      ))}
-    </Frame>
-  );
-}
 export { ActsForGraph, SeatRing } from "./graphs";
+export { InviteList, LeaveControl, PackChip, Roster } from "./membership";

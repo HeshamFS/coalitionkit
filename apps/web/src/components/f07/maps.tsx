@@ -1,11 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useState } from "react";
-import { Action, Frame, list, num, obj, type Props, rows, str } from "../f05/shared";
+import { Frame, list, num, obj, type Props, rows, str } from "../f05/shared";
 
 const xy = (v: unknown) => {
   const r = obj(v);
   return `${num(r.x ?? r.lng)},${num(r.y ?? r.lat)}`;
 };
+const routePath = (path: unknown) =>
+  rows(path)
+    .map((point, index) =>
+      index === 0
+        ? `M${xy(point)}`
+        : point.control1 && point.control2
+          ? `C${xy(point.control1)} ${xy(point.control2)} ${xy(point)}`
+          : `L${xy(point)}`,
+    )
+    .join(" ");
 function MapPoints({
   points,
   selected,
@@ -23,7 +33,11 @@ function MapPoints({
             <circle r="11" fill="var(--ink)" />
           ) : (
             <path
-              d="M-12 0a12 12 0 1 1 24 0c0 9-12 20-12 20S-12 9-12 0"
+              d={
+                r.id === selected
+                  ? "M-12 0a12 12 0 1 1 24 0c0 9-12 20-12 20S-12 9-12 0"
+                  : "M-10 0a10 10 0 1 1 20 0c0 8-10 17-10 17S-10 9-10 0"
+              }
               fill={r.id === selected ? "var(--blue)" : "var(--ink-3)"}
             />
           )}
@@ -62,6 +76,107 @@ function MapPoints({
     </>
   );
 }
+function MapAreas({ p, send }: Props) {
+  return (
+    <>
+      {rows(p.areas).map((a) => (
+        <g key={str(a.label)}>
+          <polygon
+            key={str(a.label)}
+            points={list(a.polygon).map(xy).join(" ")}
+            fill="var(--blue)"
+            fillOpacity=".1"
+            stroke="var(--blue)"
+            strokeDasharray="4 3"
+          />
+          <foreignObject
+            x={num(obj(list(a.polygon)[0]).x) + 8}
+            y={num(obj(list(a.polygon)[0]).y) + 8}
+            width="120"
+            height="20"
+          >
+            <button
+              type="button"
+              className="f07-map-label"
+              onClick={() => send("map.area", { polygon: a.polygon })}
+            >
+              {str(a.label)}
+            </button>
+          </foreignObject>
+        </g>
+      ))}
+    </>
+  );
+}
+function MapCanvas({ p, send, zoom }: Props & { zoom: number }) {
+  const points = rows(p.points);
+  return (
+    <svg
+      style={{ display: "block", width: "100%", height: "100%" }}
+      viewBox={`0 0 ${600 / zoom} ${330 / zoom}`}
+      role="img"
+      aria-label="Places and routes"
+    >
+      <rect width="600" height="330" fill="var(--f07-map)" />
+      <path d="M0 250 C120 230 200 280 330 240 S520 200 600 220 V330 H0Z" fill="var(--f07-water)" />
+      <g stroke="var(--surface)" strokeWidth="9" fill="none" strokeLinecap="round">
+        <path d="M-10 120 L610 160 M180 -10 L230 340 M420 -10 C400 120 470 200 440 340" />
+      </g>
+      <g stroke="var(--surface)" strokeWidth="4">
+        <path d="M0 60 L600 90 M60 0 L110 330 M300 0 L320 330 M520 0 L560 330 M0 200 L600 230" />
+      </g>
+      {points
+        .filter((point) => point.kind === "origin")
+        .map((point) => (
+          <g key={str(point.id)}>
+            <rect
+              x={num(point.lng) - 80}
+              y={num(point.lat) - 50}
+              width="120"
+              height="80"
+              rx="6"
+              fill="var(--f07-landmark)"
+            />
+            <text x={num(point.lng) - 68} y={num(point.lat) - 30} fontSize="10" fill="var(--ink-3)">
+              {str(point.label)}
+            </text>
+          </g>
+        ))}
+      <MapAreas p={p} send={send} />
+      {rows(p.routes).map((r) => (
+        <g key={str(r.mode)} fill="none" strokeLinecap="round">
+          <path d={routePath(r.path)} stroke="var(--blue)" strokeWidth="4" />
+          <path
+            d={routePath(r.path)}
+            stroke="var(--surface)"
+            strokeWidth="2"
+            strokeDasharray="3 8"
+          />
+        </g>
+      ))}
+      <MapPoints points={points} selected={p.selected} send={send} />
+      {Boolean(p.you) && (
+        <g>
+          <circle
+            cx={num(obj(obj(p.you).position).lng)}
+            cy={num(obj(obj(p.you).position).lat)}
+            r="22"
+            fill="var(--blue)"
+            opacity=".14"
+          />
+          <circle
+            cx={num(obj(obj(p.you).position).lng)}
+            cy={num(obj(obj(p.you).position).lat)}
+            r="6"
+            fill="var(--blue)"
+            stroke="var(--surface)"
+            strokeWidth="2"
+          />
+        </g>
+      )}
+    </svg>
+  );
+}
 export function MapView({ p, send }: Props) {
   const points = rows(p.points),
     [zoom, setZoom] = useState(1),
@@ -69,80 +184,30 @@ export function MapView({ p, send }: Props) {
   return (
     <Frame name="MapView" state={state}>
       <div className="f07-map">
-        <svg viewBox={`0 0 ${600 / zoom} ${330 / zoom}`} role="img" aria-label="Places and routes">
-          <rect width="600" height="330" fill="var(--f07-map)" />
-          <path
-            d="M0 250 C120 230 200 280 330 240 S520 200 600 220 V330 H0Z"
-            fill="var(--f07-water)"
-          />
-          <g stroke="var(--surface)" strokeWidth="9" fill="none" strokeLinecap="round">
-            <path d="M-10 120 L610 160 M180 -10 L230 340 M420 -10 C400 120 470 200 440 340" />
-          </g>
-          <g stroke="var(--surface)" strokeWidth="4">
-            <path d="M0 60 L600 90 M60 0 L110 330 M300 0 L320 330 M520 0 L560 330 M0 200 L600 230" />
-          </g>
-          {rows(p.areas).map((a) => (
-            <g key={str(a.label)}>
-              <polygon
-                key={str(a.label)}
-                points={list(a.polygon).map(xy).join(" ")}
-                fill="var(--blue-tint)"
-                stroke="var(--blue)"
-                strokeDasharray="4 3"
-              />
-              <foreignObject
-                x={num(obj(list(a.polygon)[0]).x) + 8}
-                y={num(obj(list(a.polygon)[0]).y) + 8}
-                width="120"
-                height="20"
-              >
-                <button
-                  type="button"
-                  className="f07-map-label"
-                  onClick={() => send("map.area", { polygon: a.polygon })}
-                >
-                  {str(a.label)}
-                </button>
-              </foreignObject>
-            </g>
-          ))}
-          {rows(p.routes).map((r) => (
-            <polyline
-              key={str(r.mode)}
-              points={list(r.path).map(xy).join(" ")}
-              fill="none"
-              stroke="var(--blue)"
-              strokeWidth="4"
-            />
-          ))}
-          <MapPoints points={points} selected={p.selected} send={send} />
-          {Boolean(p.you) && (
-            <g>
-              <circle
-                cx={num(obj(obj(p.you).position).lng)}
-                cy={num(obj(obj(p.you).position).lat)}
-                r="22"
-                fill="var(--blue)"
-                opacity=".14"
-              />
-              <circle
-                cx={num(obj(obj(p.you).position).lng)}
-                cy={num(obj(obj(p.you).position).lat)}
-                r="6"
-                fill="var(--blue)"
-                stroke="var(--surface)"
-                strokeWidth="2"
-              />
-            </g>
-          )}
-        </svg>
+        <MapCanvas p={p} send={send} zoom={zoom} />
         <div className="f07-map-legend row">
-          <span className="dock">origin</span>
-          <span className="dock">in plan</span>
-          <span className="dock">other offers</span>
-          <span className="dock">you</span>
+          <span className="dock">
+            <span className="pin f07-origin-pin" />
+            origin
+          </span>
+          <span className="dock">
+            <span className="pin f07-plan-pin" />
+            in plan
+          </span>
+          <span className="dock">
+            <span className="pin f07-other-pin" />
+            other offers
+          </span>
+          <span className="dock">
+            <span className="pin f07-you-pin" />
+            you{obj(p.you).accuracy ? `, ±${str(obj(p.you).accuracy)} m` : ""}
+          </span>
         </div>
-        <div className="f07-map-controls">
+        <span className="st f07-map-credit">illustrative · tiles by the map provider</span>
+        <div
+          className="f07-map-controls col"
+          style={{ position: "absolute", right: 8, top: 8, gap: 2 }}
+        >
           <button
             type="button"
             className="icon-btn"
@@ -158,6 +223,17 @@ export function MapView({ p, send }: Props) {
             onClick={() => setZoom(Math.max(1, zoom - 0.25))}
           >
             −
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Reset map view"
+            onClick={() => setZoom(1)}
+          >
+            <svg className="ico ico-sm" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+            </svg>
           </button>
         </div>
       </div>
@@ -189,16 +265,46 @@ export function IndoorMap({ p, send }: Props) {
                 width={num(r.width, 60)}
                 height={num(r.height, 38)}
                 rx="4"
-                fill="var(--surface-3)"
+                fill={
+                  r.kind === "exit"
+                    ? "var(--ink)"
+                    : r.kind === "queue"
+                      ? "var(--warn-bg)"
+                      : "var(--f07-room)"
+                }
+                stroke={r.selected ? "var(--blue)" : "none"}
+                strokeWidth={r.selected ? 2 : undefined}
               />
               <text
                 x={num(r.x, 24 + i * 68) + 8}
-                y={num(r.y, 34) + 22}
-                fill="var(--ink-2)"
+                y={num(r.y, 34) + num(r.height, 38) / 2 + 3}
+                fill={
+                  r.kind === "exit"
+                    ? "var(--on-fill)"
+                    : r.kind === "queue"
+                      ? "var(--warn-fg)"
+                      : r.selected
+                        ? "var(--blue-text)"
+                        : "var(--ink-2)"
+                }
                 fontSize="9"
+                fontWeight={r.selected ? 600 : undefined}
               >
                 {str(r.label)}
               </text>
+              <foreignObject
+                x={num(r.x, 24 + i * 68)}
+                y={num(r.y, 34)}
+                width={num(r.width, 60)}
+                height={num(r.height, 38)}
+              >
+                <button
+                  type="button"
+                  className="f07-map-hit"
+                  aria-label={str(r.label)}
+                  onClick={() => send("map.select", { room: r.id })}
+                />
+              </foreignObject>
             </g>
           ))}
           <polyline
@@ -207,23 +313,26 @@ export function IndoorMap({ p, send }: Props) {
             stroke="var(--blue)"
             strokeWidth="3"
             strokeDasharray="6 4"
+            strokeLinecap="round"
           />
           {Boolean(p.you) && (
-            <circle cx={num(obj(p.you).x)} cy={num(obj(p.you).y)} r="5" fill="var(--blue)" />
+            <circle
+              cx={num(obj(p.you).x)}
+              cy={num(obj(p.you).y)}
+              r="5"
+              fill="var(--blue)"
+              stroke="var(--surface)"
+              strokeWidth="2"
+            />
           )}
         </svg>
       </div>
-      <div className="row wrap">
-        {rows(p.rooms).map((r) => (
-          <Action key={str(r.id)} onClick={() => send("map.select", { room: r.id })}>
-            {str(r.label)}
-          </Action>
-        ))}
-      </div>
       {rows(p.liveLayers).map((r) => (
-        <small key={str(r.label)}>
-          {str(r.label)} · {str(r.value)} · {str(r.source)}
-        </small>
+        <div className="row small" key={str(r.label)}>
+          <span className="num">{str(r.value)} min</span>
+          <span>{str(r.label)}</span>
+          <span className="h-right badge b-measured">{str(r.source)}</span>
+        </div>
       ))}
     </Frame>
   );
@@ -291,10 +400,14 @@ export function PlacePicker({ p, send }: Props) {
               return (
                 <g key={str(r.place)} transform={`translate(${x} ${y})`}>
                   <path
-                    d="M-12 0a12 12 0 1 1 24 0c0 9-12 20-12 20S-12 9-12 0"
+                    d={
+                      picked === r.place
+                        ? "M-14 0a14 14 0 1 1 28 0c0 11-14 24-14 24S-14 13-14 0"
+                        : "M-9 0a9 9 0 1 1 18 0c0 7-9 15-9 15S-9 8-9 0"
+                    }
                     fill={picked === r.place ? "var(--blue)" : "var(--ink-3)"}
                   />
-                  <circle r="4" fill="var(--on-blue)" />
+                  {picked === r.place && <circle r="5" fill="var(--on-blue)" />}
                 </g>
               );
             })}

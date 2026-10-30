@@ -21,12 +21,14 @@ export function Panel({
   title,
   summary,
   span,
+  events,
   children,
 }: {
   name: string;
   title: string;
   summary: string;
   span?: boolean;
+  events?: string;
   children: ReactNode;
 }) {
   return (
@@ -46,6 +48,7 @@ export function Panel({
       </div>
       <div className={`demo panel-${name}`}>{children}</div>
       <div className="props">{summary}</div>
+      {events && <div className="evts">{events}</div>}
     </div>
   );
 }
@@ -89,8 +92,10 @@ export function Sheet05() {
           }
           span
         >
-          <Demo name="CoalitionHeader" />
-          <Demo name="StageTrack" />
+          <div className="card f05-overview">
+            <Demo name="CoalitionHeader" />
+            <Demo name="StageTrack" />
+          </div>
         </Panel>
         <Panel
           name="SeatRing"
@@ -140,7 +145,17 @@ export function Sheet05() {
           }
         >
           <div className="f05-vendors">
-            <Demo name="VendorBadge" />
+            {[0, 2, 4].map((start) => (
+              <div className="row" key={start}>
+                {examples.VendorBadge?.slice(start, start + 2).map((example) => (
+                  <One
+                    key={String(example.props.framework)}
+                    component="VendorBadge"
+                    props={example.props}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
           <div className="hr" />
           <Demo name="AgentPresence" />
@@ -178,7 +193,7 @@ export function Sheet05() {
         </Panel>
         <Panel
           name="LeaveControl"
-          title="LeaveControl"
+          title="LeaveControl · RemoveRequest"
           summary={
             "consequences[] (computed by host) \u00b7 confirm via Modal \u00b7 \u2192 coalition.leave \u00b7 no rejoin"
           }
