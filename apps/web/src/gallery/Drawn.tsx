@@ -22,6 +22,10 @@ export function Drawn({
   data?: Record<string, unknown>;
   label?: string;
 }) {
+  // Sheets pass fresh literals on every render; keying on the content keeps one surface per
+  // example, so A2uiSurface subscribes once and draws its root.
+  const key = JSON.stringify([components, data]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the content key stands for both inputs
   const surface = useMemo(() => {
     next += 1;
     const id = `sheet-${next}`;
@@ -32,7 +36,7 @@ export function Drawn({
       { version: "v0.9", updateDataModel: { surfaceId: id, path: "/", value: data } },
     ]);
     return book.list()[0];
-  }, [components, data]);
+  }, [key]);
   if (!surface) return null;
   return (
     <div className="drawn" data-fallback={surface.fallback || undefined} data-label={label}>
@@ -53,6 +57,6 @@ export function One({
   data?: Record<string, unknown>;
   label?: string;
 }) {
-  const components = useMemo(() => [{ id: "root", component, ...props }], [component, props]);
+  const components = [{ id: "root", component, ...props }];
   return <Drawn components={components} data={data} label={label} />;
 }

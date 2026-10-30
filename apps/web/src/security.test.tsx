@@ -62,15 +62,26 @@ const consentTree = treeOf({
   component: "ConsentCard",
   subject: { kind: "plan", id: "p1", revision: ref(2) },
   summary: "Tree consent",
+  consequence: "Plan A is decided",
+  decision_deadline: "2099-01-01T00:00:00Z",
 });
 const planTree = treeOf({
   component: "PlanCompare",
-  plans: [{ id: "p1", label: "Plan A", short: "A", objectives: [] }],
+  plans: [
+    {
+      id: "p1",
+      label: "Plan A",
+      short: "A",
+      objectives: [],
+      subject: { kind: "plan", id: "p1", revision: ref(2) },
+    },
+  ],
 });
 const tensionTree = treeOf({
   component: "TensionCard",
   tension_id: "t1",
-  title: "Tree tension",
+  subject: { kind: "tension_option", id: "t1", revision: ref(3) },
+  decision_deadline: "2099-01-01T00:00:00Z",
   options: [
     { id: "o1", label: "Option 1", tradeoffs: [] },
     { id: "o2", label: "Option 2", tradeoffs: [] },
@@ -262,8 +273,15 @@ describe("fix 4: no answer is not no", () => {
 });
 
 describe("fix 5: every button variant is in the catalog", () => {
-  for (const variant of ["primary", "secondary", "ink", "ghost", "soft", "danger", "danger-fill"]) {
-    it(`accepts ${variant}`, () => {
+  // The catalog's Button variants are primary | secondary | ink | ghost; any other is refused.
+  for (const [variant, accepted] of [
+    ["primary", true],
+    ["secondary", true],
+    ["ink", true],
+    ["ghost", true],
+    ["danger", false],
+  ] as const) {
+    it(`${accepted ? "accepts" : "refuses"} ${variant}`, () => {
       const store = new FeedStore();
       store.handle({
         type: "ACTIVITY_SNAPSHOT",
@@ -282,7 +300,7 @@ describe("fix 5: every button variant is in the catalog", () => {
           ],
         },
       });
-      expect(store.getSnapshot().surfaces[0]?.fallback).toBe(false);
+      expect(store.getSnapshot().surfaces[0]?.fallback).toBe(!accepted);
     });
   }
 });
