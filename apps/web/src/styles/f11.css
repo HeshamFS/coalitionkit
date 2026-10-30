@@ -1,0 +1,79 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "./f08.css";
+.f11-doors {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.f11-notification {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.f11-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.f11-quiet label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.f11-message {
+  background: var(--ok-bg);
+  padding: 12px;
+  border-radius: 10px;
+}
+.f11-scorecard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.f11-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+.f11-metric small {
+  font-size: 12px;
+  font-weight: 400;
+}
+.f11-archive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.f11-empty {
+  padding: 24px 12px;
+  text-align: center;
+}
+@media (max-width: 600px) {
+  .f11-doors,
+  .f11-scorecard {
+    grid-template-columns: 1fr;
+  }
+}

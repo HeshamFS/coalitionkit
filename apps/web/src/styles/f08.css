@@ -1,0 +1,117 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.family-card {
+  font-size: 12.5px;
+  gap: 8px;
+}
+.family-card button:focus-visible,
+.family-card input:focus-visible,
+.family-card select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.family-card .row {
+  flex-wrap: wrap;
+}
+.family-card .kv {
+  margin: 0;
+}
+.family-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.family-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.family-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.family-ok {
+  color: var(--ok-fg);
+}
+.family-bad {
+  color: var(--bad-fg);
+}
+.family-chart {
+  width: 100%;
+  height: 190px;
+}
+.f08-ladder {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.f08-ladder button {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.f08-overlap {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 24px;
+  padding: 10px 0;
+}
+.f08-public {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+.f08-decision {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  padding: 6px 0;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .f08-ladder,
+  .f08-overlap {
+    grid-template-columns: 1fr;
+  }
+}
+
+.family-card[data-state="stale"],
+.family-card[data-state="pending"] {
+  border-color: var(--warn-line);
+}
+.family-card[data-state="leak"],
+.family-card[data-state="failed"],
+.family-card[data-state="broken"] {
+  border-color: var(--bad-fg);
+}
+.family-card[data-state="withdrawn"],
+.family-card[data-state="expired"],
+.family-card[data-state="offline"] {
+  opacity: 0.65;
+}
+.family-card[data-state="suspended"] {
+  border-style: dashed;
+}
+.family-card[data-state="stale"] .family-chart {
+  opacity: 0.5;
+}
+.family-card[data-state="deviating"] .bar > span {
+  background: var(--warn-fg);
+}
+
+.family-extra {
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.family-extra summary {
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.family-extra[open] > .col {
+  margin-bottom: 8px;
+}
