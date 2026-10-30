@@ -120,14 +120,14 @@ function tableData(name: string, p: Props): Props {
           signed: true,
         },
         {
-          grantee: "Planner",
+          grantee: "Gardener",
           action: "run PSI on your calendar",
           scope: "tasks t3, t5",
           expires: "Fri 18:00",
           signed: true,
         },
         {
-          grantee: "Planner",
+          grantee: "Gardener",
           action: "transcribe calls you join",
           scope: "this coalition",
           expires: "each call asks",

@@ -69,10 +69,10 @@ export const examples: Record<string, Data> = {
   },
   Form: {
     title: "Your part of the task",
-    description: "Planner asks so it can plan. Fields marked private never leave your vault.",
+    description: "Gardener asks so it can plan. Fields marked private never leave your vault.",
     show_schema: true,
     scope: "task:t2",
-    submit_label: "Send to Planner",
+    submit_label: "Send to Gardener",
     fields: [
       { id: "finish_by", label: "Finish by", kind: "datetime", display_label: "Tomorrow 10:00" },
       {

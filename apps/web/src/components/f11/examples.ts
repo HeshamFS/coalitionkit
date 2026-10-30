@@ -126,7 +126,7 @@ const drawn: Example[] = [
           total: { value: 0.8, event_ref: "example:1" },
           rows: [
             {
-              role: "Planner",
+              role: "Gardener",
               model: "Model A",
               tokens: { value: 12400, event_ref: "example:1" },
               cost: { value: 0.24, event_ref: "example:1" },
@@ -147,7 +147,7 @@ const drawn: Example[] = [
           total: { value: 1, event_ref: "example:1" },
           rows: [
             {
-              role: "Planner",
+              role: "Gardener",
               model: "Model A",
               tokens: { value: 12400, event_ref: "example:1" },
               cost: { value: 0.24, event_ref: "example:1" },

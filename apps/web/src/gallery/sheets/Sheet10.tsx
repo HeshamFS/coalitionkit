@@ -125,10 +125,10 @@ export function Sheet10() {
       <div className="sheet-head">
         <div>
           <div className="eyebrow">coalitionkit/v0_9 · family 10 · example data</div>
-          <div className="sheet-title">Mint, devices and agents</div>
+          <div className="sheet-title">Mint, machines and science</div>
           <div className="sheet-sub">
-            Turning a device that has no API into an agent from a video and a voice note, and
-            watching that agent’s readings.
+            Turning a machine that has no API into an agent from a video and a voice note, watching
+            that agent's readings, and the science views a lab pack adds on top of the core.
           </div>
         </div>
         <div className="h-right">

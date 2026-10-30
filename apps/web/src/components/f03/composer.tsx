@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
-import { type Data, Frame, label, list, text, type View } from "../f02/ui";
+import { type Data, Frame, label, list, number, text, type View } from "../f02/ui";
 import "./composer.css";
 
 function ComposerIcon({ kind }: { kind: "attach" | "mic" }) {
@@ -90,18 +90,46 @@ function ComposerInput({
   );
 }
 
+function ComposerRecording({ seconds, stop }: { seconds: number; stop: () => void }) {
+  return (
+    <div className="f03-composer-recording">
+      <span className="f03-composer-record-dot" />
+      <div className="f03-composer-wave" aria-hidden="true">
+        <i style={{ height: 8 }} />
+        <i style={{ height: 14 }} />
+        <i style={{ height: 18 }} />
+        <i style={{ height: 10 }} />
+        <i style={{ height: 16 }} />
+        <i style={{ height: 6 }} />
+        <i style={{ height: 12 }} />
+        <i style={{ height: 4 }} />
+        <i style={{ height: 4 }} />
+        <i style={{ height: 4 }} />
+      </div>
+      <span className="f03-composer-time">
+        {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+      </span>
+      <button type="button" className="ck-action" onClick={stop}>
+        Stop
+      </button>
+    </div>
+  );
+}
+
 export function Composer({ p, send }: View) {
-  const [value, set] = useState("");
-  const [recording, record] = useState(false);
-  const [seconds, tick] = useState(0);
+  const [value, set] = useState(text(p.initialText));
+  const [recording, record] = useState(p.initialRecording === true);
+  const [liveRecording, setLiveRecording] = useState(false);
+  const [seconds, tick] = useState(number(p.initialElapsed, 0));
   const mention = /@[^\s]*$/.test(value);
   const command = value.startsWith("/");
   useEffect(() => {
-    if (!recording) return;
+    if (!recording || (p.initialRecording === true && !liveRecording)) return;
     const timer = setInterval(() => tick((previous) => previous + 1), 1000);
     return () => clearInterval(timer);
-  }, [recording]);
+  }, [recording, p.initialRecording, liveRecording]);
   const recordVoice = () => {
+    setLiveRecording(true);
     record(!recording);
     tick(0);
     send("voice.record");
@@ -130,27 +158,7 @@ export function Composer({ p, send }: View) {
         />
       )}
       {recording ? (
-        <div className="f03-composer-recording">
-          <span className="f03-composer-record-dot" />
-          <div className="f03-composer-wave" aria-hidden="true">
-            <i style={{ height: 8 }} />
-            <i style={{ height: 14 }} />
-            <i style={{ height: 18 }} />
-            <i style={{ height: 10 }} />
-            <i style={{ height: 16 }} />
-            <i style={{ height: 6 }} />
-            <i style={{ height: 12 }} />
-            <i style={{ height: 4 }} />
-            <i style={{ height: 4 }} />
-            <i style={{ height: 4 }} />
-          </div>
-          <span className="f03-composer-time">
-            {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
-          </span>
-          <button type="button" className="ck-action" onClick={recordVoice}>
-            Stop
-          </button>
-        </div>
+        <ComposerRecording seconds={seconds} stop={recordVoice} />
       ) : (
         <div className="f03-composer-editor">
           <ComposerInput value={value} change={set} mention={mention} />

@@ -78,6 +78,9 @@ export const apis = {
   Composer: {
     name: "Composer",
     schema: z.object({
+      initialText: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      initialRecording: z.union([z.boolean(), CommonSchemas.DataBinding]).optional(),
+      initialElapsed: z.union([Bound, CommonSchemas.DataBinding]).optional(),
       attachments: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       audience: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       commands: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),

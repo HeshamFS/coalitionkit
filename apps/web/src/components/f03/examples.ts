@@ -28,7 +28,7 @@ export const examples: Record<string, Data> = {
   CallInvite: {
     title: "Three-member sync",
     caller: "Member A",
-    listeners: ["Planner"],
+    listeners: ["Gardener"],
     consents: [
       { kind: "transcript", label: "Transcribe what I say" },
       { kind: "auto-post", label: "Let agents post items I said without asking me" },
@@ -82,7 +82,7 @@ export const examples: Record<string, Data> = {
       },
       {
         id: "m3",
-        author: { label: "Planner", initial: "G", kind: "agent", role: "planner", seat: "ink" },
+        author: { label: "Gardener", initial: "G", kind: "agent", role: "planner", seat: "ink" },
         text: "Drafting two plans from 7 offers",
         time: "now",
         streaming: true,
@@ -95,7 +95,7 @@ export const examples: Record<string, Data> = {
     mentions: [
       { label: "B's agent", handle: "B", initial: "B", seat: "seat-2" },
       { label: "C's agent", handle: "C", initial: "C", seat: "seat-3" },
-      { label: "Planner", handle: "Planner", initial: "G", seat: "ink", description: "planner" },
+      { label: "Gardener", handle: "Gardener", initial: "G", seat: "ink", description: "planner" },
     ],
     commands: [
       { label: "/need", description: "publish a need" },
@@ -149,7 +149,7 @@ export const examples: Record<string, Data> = {
   McpAppView: { resourceUri: "ui://coalitionkit/surface-v1.html", tree: ["content"] },
   Message: { text: "Resource 1 is ready.", state: "delivered" },
   NegotiationTheatre: {
-    speakers: ["Planner", "Agent B", "Agent C"],
+    speakers: ["Gardener", "Agent B", "Agent C"],
     events: [
       {
         event_ref: "example:38",
@@ -195,7 +195,7 @@ export const examples: Record<string, Data> = {
       { participant: "Member A", kind: "person", speaking: true },
       { participant: "Member B", kind: "person", muted: true },
       { participant: "Member C", kind: "screen", label: "Task scan 01 · shared" },
-      { participant: "Planner", kind: "agent", initial: "G" },
+      { participant: "Gardener", kind: "agent", initial: "G" },
     ],
     recording: "transcript",
     captions: true,
@@ -207,7 +207,7 @@ export const examples: Record<string, Data> = {
     participants: [
       { label: "Member A", initial: "A" },
       { label: "Member B", initial: "B" },
-      { label: "Planner", initial: "G", kind: "agent" },
+      { label: "Gardener", initial: "G", kind: "agent" },
     ],
     speaking: "Member A",
     caption: '"…only if the item arrives by Wednesday night."',

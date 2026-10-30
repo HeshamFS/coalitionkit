@@ -3112,6 +3112,9 @@
     "voice.record"
    ],
    "props": {
+        "initialText": {"type": "string", "doc": "Initial editable message text, including mention or slash prefix."},
+        "initialRecording": {"type": "boolean", "doc": "Initially show a voice recording; does not start microphone capture."},
+        "initialElapsed": {"type": "number", "doc": "Initial recording duration in seconds, with event provenance."},
     "attachments": {
      "type": "array",
      "doc": "→ vault"

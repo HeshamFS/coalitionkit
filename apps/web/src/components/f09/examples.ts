@@ -51,7 +51,7 @@ const drawn: Example[] = [
         state: "acting",
         props: {
           cursors: [
-            { actor: "Planner", kind: "agent", target: "Plan B", verb: "comparing" },
+            { actor: "Gardener", kind: "agent", target: "Plan B", verb: "comparing" },
             { actor: "Member A", kind: "person", target: "Task 3", verb: "editing" },
           ],
         },
@@ -203,7 +203,7 @@ const drawn: Example[] = [
       {
         state: "running",
         props: {
-          actor: "Planner",
+          actor: "Gardener",
           steps: [
             { name: "Read constraints", state: "done", took: { value: 2, event_ref: "example:1" } },
             { name: "Try candidates", state: "done", took: { value: 8, event_ref: "example:1" } },

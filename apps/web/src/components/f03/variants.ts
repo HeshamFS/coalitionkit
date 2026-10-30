@@ -13,8 +13,14 @@ export function variants(name: string): Data[] {
     ];
   if (name === "Composer")
     return [
-      { ...examples.Composer, audience: "coalition" },
-      { ...examples.Composer, audience: "coalition" },
+      { ...examples.Composer, audience: "coalition", initialText: "Can @B" },
+      {
+        ...examples.Composer,
+        audience: "coalition",
+        initialText: "/",
+        initialRecording: true,
+        initialElapsed: { value: 6, event_ref: "example:44" },
+      },
     ];
   if (name === "Message")
     return [
@@ -48,7 +54,7 @@ export function variants(name: string): Data[] {
         state: "running",
         summary: '"Is €96 within the most you’ll pay?"',
         args: { question: "Is €96 within the most you’ll pay?" },
-        provenance: "asked by Planner · only your vault sees the number",
+        provenance: "asked by Gardener · only your vault sees the number",
       },
       {
         tool: "psi.match",
@@ -64,7 +70,7 @@ export function variants(name: string): Data[] {
   if (name === "AgentStatus")
     return [
       { state: "listening", task: "watching 3 tasks for you" },
-      { state: "answering", task: "query q7 from Planner" },
+      { state: "answering", task: "query q7 from Gardener" },
       { state: "needs-you", task: 'can’t answer "share item?" alone' },
       { state: "paused", task: "you paused it at 21:58" },
       { state: "offline", task: "last seen 21:50 · retrying" },
