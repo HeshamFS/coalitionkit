@@ -170,6 +170,8 @@ export const examples: Record<string, { state: string; props: Record<string, unk
       state: "default",
       props: {
         mode: "Route to Place 1",
+        costPerMember: { value: 14, event_ref: "example:1" },
+        currency: "EUR",
         eta: "22:58",
         distance: { value: 7400, event_ref: "example:1" },
         progress: { value: 0.35, event_ref: "example:1" },
@@ -191,19 +193,18 @@ export const examples: Record<string, { state: string; props: Record<string, unk
           {
             place: "Place 1",
             distance: { value: 0.6, event_ref: "example:1" },
-            facts: ["Available"],
+            facts: ["Available 24 h"],
             limitCheck: "within your limit",
           },
           {
             place: "Place 2",
             distance: { value: 14, event_ref: "example:1" },
-            facts: ["Available"],
+            facts: ["Available until 01:00"],
             limitCheck: "over your limit",
           },
           {
             place: "Place 3",
-            distance: { value: 0, event_ref: "example:1" },
-            facts: ["Available"],
+            facts: ["in Place 1", "unavailable"],
             limitCheck: "no limit asked",
           },
         ],
@@ -253,7 +254,7 @@ export const examples: Record<string, { state: string; props: Record<string, unk
           },
           {
             kind: "task",
-            task: "Task 2",
+            task: "Task 2 · 16:00",
             state: "scheduled",
             start: "2031-06-04T15:00:00Z",
             end: "2031-06-04T16:45:00Z",

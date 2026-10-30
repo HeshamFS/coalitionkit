@@ -102,7 +102,15 @@ export const examples: Record<string, { state: string; props: Record<string, unk
             text: "Agent budget \u20ac3 for the coalition",
           },
         ],
-        roles: [{ name: "organizer" }, { name: "member" }, { name: "watcher" }],
+        roles: [
+          { name: "organizer" },
+          {
+            name: "member",
+            min: { value: 3, event_ref: "example:1" },
+            max: { value: 3, event_ref: "example:1" },
+          },
+          { name: "watcher" },
+        ],
         signedBy: ["p1", "p2", "p3"],
       },
     },
@@ -234,6 +242,7 @@ export const examples: Record<string, { state: string; props: Record<string, unk
       state: "idle",
       props: {
         agent: "A · Resource 1",
+        nextReadingAt: "2030-06-05T12:30:00Z",
         state: "idle",
       },
     },

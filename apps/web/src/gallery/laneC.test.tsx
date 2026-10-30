@@ -67,7 +67,12 @@ const cases: [string, string, string, Record<string, unknown>, Record<string, un
   ["PlacePicker", "Use Place 1", "place.pick", { ref: "Place 1" }],
   ["AgendaList", "Join", "item.action", { item: 3, action: "Join" }],
   ["CalendarWeek", "Export .ics", "calendar.export", { range: { start: "2031-06-03" } }],
-  ["CalendarWeek", "Task 2", "event.open", { event: expect.objectContaining({ task: "Task 2" }) }],
+  [
+    "CalendarWeek",
+    "Task 2 · 16:00",
+    "event.open",
+    { event: expect.objectContaining({ task: "Task 2 · 16:00" }) },
+  ],
 ];
 it.each(cases)("%s sends %s as %s", (name, label, event, data, override) => {
   const { dispatch } = surface(name, override);
