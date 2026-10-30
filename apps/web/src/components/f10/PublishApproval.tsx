@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import {
   Action,
-  Fields,
+  list,
   num,
   obj,
   type Props,
@@ -22,9 +22,29 @@ export function PublishApproval({ p, send }: { p: Props; send: Send }) {
       tests.state === "passed" || (num(tests.total) > 0 && num(tests.passed) === num(tests.total));
     return (
       <>
-        <b>Put this agent online?</b>
-        <Fields values={{ Reads: spec.reads, Acts: spec.acts, Never: spec.never }} />
-        <div className="row small">Joins: {text(p.coalitions)}</div>
+        <b className="f10-publish-title">
+          Put {spec.name ? `"${text(spec.name)}"` : "this agent"} online?
+        </b>
+        <div className="f10-capabilities">
+          {["reads", "acts", "never"].map((kind) => (
+            <div className="row small" key={kind}>
+              <span
+                className={`badge ${kind === "reads" ? "b-estimate" : kind === "never" ? "b-vault" : "f10-acts"}`}
+              >
+                {kind}
+              </span>
+              <span>{text(spec[kind])}</span>
+            </div>
+          ))}
+        </div>
+        <div className="row small">
+          <span>Joins:</span>
+          {list(p.coalitions).map((c) => (
+            <span className="chip" key={text(c)}>
+              {text(c)}
+            </span>
+          ))}
+        </div>
         <Action
           label="Approve and sign"
           event="publish"
@@ -33,10 +53,10 @@ export function PublishApproval({ p, send }: { p: Props; send: Send }) {
           disabled={!ready}
           primary
         />
-        <Action label="Decline" event="decline" send={send} />
+        {!ready && <Action label="Decline" event="decline" send={send} />}
         <span className="st">
           {ready
-            ? "Attack tests passed · you can take it offline any time"
+            ? `${text(tests.passed)} / ${text(tests.total)} attack tests passed · you can take it offline any time`
             : "Locked until all attack tests pass"}
         </span>
       </>

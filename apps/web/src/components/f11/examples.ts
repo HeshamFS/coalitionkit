@@ -35,9 +35,16 @@ const drawn: Example[] = [
         state: "default",
         props: {
           channels: [
-            { kind: "Push", level: "needs-you" },
-            { kind: "Message", level: "next-step" },
-            { kind: "Email", level: "everything" },
+            { kind: "Push", label: "Web and phone app", level: "everything" },
+            { kind: "Message", label: "WhatsApp", level: "needs-you" },
+            { kind: "Lens", label: "Glasses", level: "next-step" },
+            {
+              kind: "Email",
+              label: "Email digest",
+              level: "off",
+              offLabel: "daily 08:00",
+              enabledLevel: "digest",
+            },
           ],
           quiet: { from: "22:00", to: "07:00", tz: "Europe/Berlin" },
           overrides: [],
@@ -162,26 +169,35 @@ const drawn: Example[] = [
       {
         state: "default",
         props: {
-          goal: "Task 3 completed",
+          goal: "The three-member project reached its goal",
           outcome: "reached",
           counts: {
-            tasks: { value: 8, event_ref: "example:1" },
-            decisions: { value: 3, event_ref: "example:1" },
-            replans: { value: 2, event_ref: "example:1" },
+            tasks: { value: 6, event_ref: "example:1" },
+            total: { value: 6, event_ref: "example:1" },
+            ended: "Dissolved · Mon 9 Nov 12:40",
+            summary:
+              "Resource prepared, transferred, reviewed and processed; results shared Monday 11:52.",
+            decisions: { value: 4, event_ref: "example:1" },
+            replans: { value: 1, event_ref: "example:1" },
           },
           contributions: [
             {
               participant: "Member A",
-              tasks: { value: 3, event_ref: "example:1" },
-              hours: { value: 9, event_ref: "example:1" },
+              tasks: "prepare, process",
+              hours: { value: 14, event_ref: "example:1" },
             },
             {
               participant: "Member B",
-              tasks: { value: 5, event_ref: "example:1" },
-              hours: { value: 12, event_ref: "example:1" },
+              tasks: "transfer both ways, review",
+              hours: { value: 9, event_ref: "example:1" },
+            },
+            {
+              participant: "Member C",
+              tasks: "process results",
+              hours: { value: 11, event_ref: "example:1" },
             },
           ],
-          cost: "€158 total · €52.67 each",
+          cost: "€0.71",
           log: "sealed:88",
         },
       },
@@ -196,7 +212,31 @@ const drawn: Example[] = [
         state: "default",
         props: {
           target: "ConsentCard",
-          doors: ["wide", "compact", "message", "voice", "lens", "mcp-app"],
+          doors: [
+            {
+              kind: "wide",
+              title: "Decide · Plan A",
+              body: "Start Wed, results Mon · your part t2, t4, t5",
+            },
+            { kind: "compact", title: "Decide · Plan A", body: "Results Mon · 2 h left" },
+            {
+              kind: "message",
+              body: "Plan A: start Wed, results Mon. Your part: both transfers and the review.",
+              deadline: "decide by 14:00",
+            },
+            {
+              kind: "voice",
+              body: '"Plan A starts Wednesday and gets results Monday. Say accept, no, or tell me more."',
+              confirm: 'confirm: "Accept Plan A. Signing."',
+            },
+            {
+              kind: "lens",
+              title: "Plan A: results Monday",
+              body: "Pinch to accept on your phone",
+              deadline: "DECIDE · 2 H",
+            },
+            { kind: "mcp-app", title: "Accept Plan A, revision 2?" },
+          ],
         },
       },
     ],
@@ -210,9 +250,9 @@ const drawn: Example[] = [
         state: "default",
         props: {
           items: [
-            { kind: "Signed log", size: "42 KB", included: true },
-            { kind: "Receipts", size: "8 KB", included: true },
-            { kind: "Private vault", size: "12 KB", included: false },
+            { kind: "Sealed log (your projection) + receipts", size: "42 KB", included: true },
+            { kind: "Your vault answers", size: "8 KB", included: true },
+            { kind: "Call transcripts (yours only)", size: "12 KB", included: false },
           ],
         },
       },
@@ -258,8 +298,8 @@ const drawn: Example[] = [
       {
         state: "sent",
         props: {
-          template: "decision.request · v1",
-          params: ["Coalition 1", "Plan A needs your answer"],
+          template: "decision_needed · v3",
+          params: ["Coalition 1", "A decision needs you: Plan A, by 14:00 today."],
           quickReplies: { value: 3, event_ref: "example:1" },
         },
       },
@@ -311,20 +351,22 @@ const drawn: Example[] = [
         props: {
           tiles: [
             {
-              label: "Replan latency",
-              value: { value: 4.2, event_ref: "example:1" },
-              unit: "s",
-              context: "p95",
-              run: "run:1",
+              label: "privacy leaks",
+              value: { value: 0, event_ref: "example:1" },
+              context: "[RUNS] runs",
             },
             {
-              label: "Privacy leaks",
+              label: "lost events",
               value: { value: 0, event_ref: "example:1" },
-              unit: "",
-              context: "3 runs",
-              run: "run:2",
+              context: "3 208 events",
             },
-            { label: "Recovery time", unit: "s" },
+            { label: "change to paint p95", context: "target < 1 s" },
+            {
+              label: "ripple p95",
+              value: { value: 64, event_ref: "example:1" },
+              unit: "ms",
+              context: "20 tasks",
+            },
           ],
         },
       },
@@ -338,11 +380,16 @@ const drawn: Example[] = [
       {
         state: "draft",
         props: {
-          name: "Shared task coordination",
+          name: "Three-member task run",
           source: "Coalition 1",
           roles: ["Coordinator", "Member", "Reviewer"],
-          rules: ["Every member approves", "Private values stay local"],
-          templates: ["Plan", "Task", "Decision"],
+          rules: [
+            "with the transfer rule and a 4-hour decision window",
+            "Every member approves",
+            "Private values stay local",
+            "Review results",
+          ],
+          templates: ["Prepare", "transfer", "process", "review", "model", "share"],
         },
       },
     ],

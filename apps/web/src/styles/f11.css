@@ -5,19 +5,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
-.f11-notification {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  text-align: left;
-  font: inherit;
-  color: var(--ink);
-  background: var(--surface-2);
-  cursor: pointer;
-}
+
 .f11-quiet {
   display: flex;
   flex-wrap: wrap;
@@ -31,16 +19,7 @@
   flex-direction: column;
   gap: 4px;
 }
-.f11-message {
-  background: var(--ok-bg);
-  padding: 12px;
-  border-radius: 10px;
-}
-.f11-scorecard {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
+
 .f11-metric {
   display: flex;
   flex-direction: column;
@@ -70,12 +49,6 @@
 .f11-empty {
   padding: 24px 12px;
   text-align: center;
-}
-@media (max-width: 600px) {
-  .f11-doors,
-  .f11-scorecard {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Sheet framing is local to this family. */
@@ -191,4 +164,323 @@
 
 .f11-notification .sh {
   color: var(--on-ink);
+}
+
+.f11-control-title {
+  font-size: 13px;
+}
+.f11-export-items {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.f11-export-items .small {
+  color: var(--ink);
+}
+.f11-export-items input {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  flex: none;
+}
+.f11 [data-component="ExportControl"] {
+  gap: 6px;
+}
+.f11 [data-component="Scorecard"],
+.f11 [data-component="MetricTile"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.f11-scorecard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.f11-metric {
+  padding: 8px;
+  gap: 2px;
+  background: var(--surface-2);
+}
+.f11-metric .answer {
+  font-size: 18px;
+}
+.f11-metric small {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.f11 [data-component="ChannelSettings"] {
+  gap: 6px;
+}
+.f11-channels {
+  display: flex;
+  flex-direction: column;
+}
+.f11-channels > .row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.f11-channels > .row:last-child {
+  border: 0;
+}
+.f11-channels .grow {
+  color: var(--ink);
+}
+.f11-channel-level {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: transparent;
+  border: 0;
+  appearance: none;
+  width: auto;
+  max-width: 90px;
+}
+.f11-channels .switch {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.f11-quiet-row .btn {
+  padding: 0 8px;
+  font-weight: 400;
+}
+.f11 [data-component="ChannelHandoff"],
+.f11 [data-component="NotificationCard"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.f11-lens {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #0e1726;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 18px;
+}
+.f11-lens .mono {
+  font-size: 9.5px;
+  color: #c8d1e0;
+}
+.f11-lens b {
+  font-size: 15px;
+}
+.f11-lens > span:last-child {
+  font-size: 11px;
+  color: #c8d1e0;
+}
+.f11-handoff-arrow {
+  justify-content: center;
+  color: var(--blue-text);
+}
+.f11 [data-component="ChannelHandoff"] .card {
+  gap: 6px;
+}
+.f11 [data-component="ChannelHandoff"] .card b {
+  font-size: 12.5px;
+}
+.f11-notification {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11.5px;
+}
+.f11-notification .av {
+  background: var(--blue);
+  width: 26px;
+  height: 26px;
+}
+.f11-notification .col {
+  gap: 1px;
+}
+.f11-lockscreen {
+  background: linear-gradient(170deg, #3b4a6b, #1b2436);
+  padding: 14px 10px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f11-lockscreen-clock {
+  text-align: center;
+  color: #fff;
+}
+.f11-lockscreen-clock > div {
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+.f11-lockscreen-clock > span {
+  display: block;
+  font-size: 10.5px;
+  color: #c8d1e0;
+}
+
+.f11 [data-component="DoorMatrix"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f11-doors {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.f11-doors .card {
+  gap: 6px;
+}
+.f11-doors b {
+  font-size: 12.5px;
+}
+.f11-doors .f11-lens b {
+  font-size: 16px;
+  line-height: 1.2;
+}
+.f11-door-compact .btn {
+  width: 100%;
+  height: 40px;
+  font-size: 13px;
+}
+.f11-door-wide .row {
+  gap: 8px;
+}
+.f11-mcp-preview {
+  border-color: var(--blue-line);
+}
+.f11-message {
+  border-radius: 10px;
+  background: var(--f11-message-bg, #eae6df);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f11-doors .f11-message {
+  padding: 8px;
+}
+.f11-bubble {
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 4px 12px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f11-doors .f11-bubble {
+  font-size: 11.5px;
+}
+html[data-theme="dark"] .f11 {
+  --f11-message-bg: #233149;
+}
+@media (max-width: 700px) {
+  .f11-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.f11 [data-component="MessageTemplate"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.f11-replies {
+  gap: 4px;
+}
+.f11-replies button {
+  flex: 1;
+  border: 0;
+  background: var(--surface);
+  color: var(--blue-text);
+  border-radius: 8px;
+  padding: 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.f11 [data-component="DissolveSummary"] {
+  gap: 10px;
+}
+.f11-summary-heading {
+  align-items: flex-start;
+}
+.f11-summary-heading .col {
+  gap: 2px;
+}
+.f11-summary-heading b {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.f11-summary-metrics {
+  gap: 8px;
+}
+.f11-summary-metrics .stage {
+  padding: 8px;
+  gap: 2px;
+}
+.f11-summary-metrics .answer {
+  font-size: 18px;
+}
+.f11-contributions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.f11-contributions .small {
+  color: var(--ink);
+}
+.f11-skill-icon {
+  color: var(--blue-text);
+}
+.f11 [data-component="SkillCard"] .kv {
+  font-size: 11.5px;
+}
+
+.f11-doors .btn[aria-disabled="true"] {
+  opacity: 1;
+}
+.f11-channel-level {
+  text-align: right;
+  text-align-last: right;
+  width: fit-content;
+}
+.f11-export-items input {
+  appearance: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.f11-export-items input:checked {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.f11-export-items input:checked::after {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 4px;
+  border: solid var(--on-blue);
+  border-width: 0 0 2px 2px;
+  transform: translate(2px, 3px) rotate(-45deg);
+}
+.f11-lockscreen-clock {
+  line-height: normal;
+}
+html[data-theme="light"] .f11-notification {
+  background: rgb(255 255 255 / 0.86);
+}
+html[data-theme="light"] .f11-lockscreen > :last-child .f11-notification {
+  background: rgb(255 255 255 / 0.7);
 }

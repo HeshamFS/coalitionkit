@@ -61,14 +61,20 @@ const drawn: Example[] = [
     events: "capture.start, capture.stop → MintPipeline",
     states: [
       {
-        state: "ready",
+        state: "recording",
         props: {
           masks: [
-            { label: "display", score: { value: 0.98, event_ref: "example:1" } },
-            { label: "control", score: { value: 0.94, event_ref: "example:1" } },
+            {
+              label: "display",
+              score: { value: 0.97, event_ref: "example:1" },
+              reading: { value: 1149, event_ref: "example:1" },
+              time: "14:02",
+              elapsed: "0:41",
+            },
+            { label: "dial", score: { value: 0.94, event_ref: "example:1" } },
           ],
           video: "vault:video",
-          narration: "vault:audio",
+          narration: '"This is the setpoint dial. The display shows the current reading in units."',
           tips: ["Show the display and controls", "Explain each control"],
         },
       },
@@ -129,10 +135,10 @@ const drawn: Example[] = [
           unit: "units",
           planned: [
             { t: "09:30", value: { value: 350, event_ref: "example:1" } },
-            { t: "10:30", value: { value: 1150, event_ref: "example:1" } },
+            { t: "11:00", value: { value: 1150, event_ref: "example:1" } },
           ],
           limits: [{ value: 1200, event_ref: "example:1" }],
-          annotations: ["hold starts 10:15"],
+          annotations: [{ label: "hold starts", t: "10:06" }],
           source: "Device 1",
         },
       },
@@ -185,45 +191,72 @@ const drawn: Example[] = [
         props: {
           stages: [
             {
-              name: "capture",
+              name: "Capture",
               state: "done",
               took: { value: 18, event_ref: "example:1" },
-              detail: "recorded",
+              detail: "0:41 video · 1 note",
               artifacts: ["capture:1"],
             },
             {
-              name: "read",
+              name: "Read",
               state: "done",
               took: { value: 14, event_ref: "example:1" },
-              detail: "regions identified",
+              detail: "50 frames · masks · transcript",
+              preview: {
+                kind: "masks",
+                title: "Read · what the model saw",
+                frames: [{ label: "display" }, { label: "dial" }, { label: "switch" }],
+                footer: "display · dial · switch · 3 labels from your voice note",
+              },
               artifacts: ["read:1"],
             },
             {
-              name: "design",
-              state: "running",
+              name: "Design",
+              state: "done",
               took: { value: 16, event_ref: "example:1" },
-              detail: "agent specification",
+              detail: "2 readings · 1 action · units",
+              preview: {
+                kind: "spec",
+                title: "// design · agent spec",
+                lines: [
+                  'reads: ["reading units, device state"]',
+                  'acts: { "set_value": [20, 1200], per_min: 1 }',
+                  'never: ["video_out"]',
+                ],
+              },
               artifacts: ["design:1"],
             },
             {
-              name: "code",
-              state: "waiting",
+              name: "Code",
+              state: "running",
               took: { value: 0, event_ref: "example:1" },
-              detail: "tools",
+              detail: "MCP server, sandboxed",
+              runtime:
+                "Read on Muse Spark · design and code on Muse Wonder · runs in a Modal sandbox",
+              preview: {
+                kind: "code",
+                title: "Code · tools it will expose",
+                lines: [
+                  "read_value() → units",
+                  "read_status() → open | shut",
+                  "set_value(c) → ok | refused",
+                ],
+                footer: "MCP server · no network beyond the device",
+              },
               artifacts: ["code:1"],
             },
             {
-              name: "attack",
+              name: "Attack tests",
               state: "waiting",
               took: { value: 0, event_ref: "example:1" },
-              detail: "bounds and failures",
+              detail: "14 tests",
               artifacts: ["attack:1"],
             },
             {
-              name: "publish",
+              name: "Publish",
               state: "waiting",
               took: { value: 0, event_ref: "example:1" },
-              detail: "owner approval",
+              detail: "owner approves",
               artifacts: ["publish:1"],
             },
           ],
@@ -241,11 +274,27 @@ const drawn: Example[] = [
       {
         state: "live",
         props: {
-          agent: { name: "Device 1", version: "v2", runtime: "isolated", owner: "Member A" },
+          agent: {
+            name: "Device 1",
+            version: "v2",
+            runtime: "Modal",
+            owner: "Member A",
+            created: "minted 3 days ago",
+          },
           health: "live",
           readings: [
-            { name: "reading", value: { value: 1149, event_ref: "example:1" }, unit: "units" },
-            { name: "setpoint", value: { value: 1150, event_ref: "example:1" }, unit: "units" },
+            {
+              name: "reading",
+              value: { value: 1149, event_ref: "example:1" },
+              unit: "units",
+              live: true,
+            },
+            {
+              name: "setpoint",
+              value: { value: 1150, event_ref: "example:1" },
+              unit: "units",
+              action: "set 09:58 by t3",
+            },
           ],
           tools: ["read_value", "read_status", "set_value"],
         },
@@ -253,11 +302,27 @@ const drawn: Example[] = [
       {
         state: "offline",
         props: {
-          agent: { name: "Device 1", version: "v2", runtime: "isolated", owner: "Member A" },
+          agent: {
+            name: "Device 1",
+            version: "v2",
+            runtime: "Modal",
+            owner: "Member A",
+            created: "minted 3 days ago",
+          },
           health: "offline",
           readings: [
-            { name: "reading", value: { value: 1149, event_ref: "example:1" }, unit: "units" },
-            { name: "setpoint", value: { value: 1150, event_ref: "example:1" }, unit: "units" },
+            {
+              name: "reading",
+              value: { value: 1149, event_ref: "example:1" },
+              unit: "units",
+              live: true,
+            },
+            {
+              name: "setpoint",
+              value: { value: 1150, event_ref: "example:1" },
+              unit: "units",
+              action: "set 09:58 by t3",
+            },
           ],
           tools: ["read_value", "read_status", "set_value"],
         },
@@ -265,11 +330,27 @@ const drawn: Example[] = [
       {
         state: "updating",
         props: {
-          agent: { name: "Device 1", version: "v2", runtime: "isolated", owner: "Member A" },
+          agent: {
+            name: "Device 1",
+            version: "v2",
+            runtime: "Modal",
+            owner: "Member A",
+            created: "minted 3 days ago",
+          },
           health: "updating",
           readings: [
-            { name: "reading", value: { value: 1149, event_ref: "example:1" }, unit: "units" },
-            { name: "setpoint", value: { value: 1150, event_ref: "example:1" }, unit: "units" },
+            {
+              name: "reading",
+              value: { value: 1149, event_ref: "example:1" },
+              unit: "units",
+              live: true,
+            },
+            {
+              name: "setpoint",
+              value: { value: 1150, event_ref: "example:1" },
+              unit: "units",
+              action: "set 09:58 by t3",
+            },
           ],
           tools: ["read_value", "read_status", "set_value"],
         },
@@ -285,8 +366,9 @@ const drawn: Example[] = [
         state: "ready",
         props: {
           spec: {
-            reads: ["value", "status"],
-            acts: ["set value, 20–1200, 1 change / min"],
+            name: "Device 1",
+            reads: ["reading units, device state"],
+            acts: ["set reading, 20–1 200 units, 1 change / min"],
             never: ["video leaves device"],
           },
           tests: {
@@ -301,8 +383,9 @@ const drawn: Example[] = [
         state: "locked",
         props: {
           spec: {
-            reads: ["value", "status"],
-            acts: ["set value, 20–1200, 1 change / min"],
+            name: "Device 1",
+            reads: ["reading units, device state"],
+            acts: ["set reading, 20–1 200 units, 1 change / min"],
             never: ["video leaves device"],
           },
           tests: { state: "failed" },
@@ -321,27 +404,26 @@ const drawn: Example[] = [
         props: {
           machines: [
             {
-              name: "Resource 1",
+              name: "Device 1",
               owner: "Member A",
               bookings: [
-                { start: "2026-11-04T09:00:00Z", end: "2026-11-04T14:00:00Z", mine: true },
-                { start: "2026-11-05T08:00:00Z", end: "2026-11-05T16:00:00Z", mine: false },
+                { start: "2026-11-04T09:36:00Z", end: "2026-11-05T02:53:00Z", local: true },
+                { start: "2026-11-05T08:38:00Z", end: "2026-11-05T20:10:00Z", mine: true },
+                { start: "2026-11-06T19:12:00Z", end: "2026-11-07T14:24:00Z" },
               ],
             },
             {
-              name: "Resource 2",
-              owner: "Member A",
+              name: "Device 2",
+              owner: "Member B",
               bookings: [
-                { start: "2026-11-04T09:00:00Z", end: "2026-11-04T14:00:00Z", mine: false },
-                { start: "2026-11-05T08:00:00Z", end: "2026-11-05T16:00:00Z", mine: false },
+                { start: "2026-11-06T04:48:00Z", end: "2026-11-06T19:12:00Z", local: true },
               ],
             },
             {
-              name: "Resource 3",
-              owner: "Member A",
+              name: "Device 3",
+              owner: "Member C",
               bookings: [
-                { start: "2026-11-04T09:00:00Z", end: "2026-11-04T14:00:00Z", mine: false },
-                { start: "2026-11-05T08:00:00Z", end: "2026-11-05T16:00:00Z", mine: false },
+                { start: "2026-11-06T17:17:00Z", end: "2026-11-08T00:00:00Z", local: true },
               ],
             },
           ],
@@ -378,7 +460,7 @@ export const examples: Example[] = drawn
     states: example.states.map((s) => ({
       ...s,
       props:
-        example.name === "AttackTests" && s.state === "running"
+        (example.name === "AttackTests" || example.name === "MintPipeline") && s.state === "running"
           ? s.props
           : stateProps(example.name, s.state, s.props),
     })),
