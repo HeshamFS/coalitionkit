@@ -81,7 +81,7 @@ export function Row({
   );
 }
 
-export function Column({ children, gap = 8 }: { children?: ReactNode; gap?: Gap }) {
+export function Column({ children, gap = 8 }: { children?: ReactNode; gap?: number }) {
   return (
     <div className="col" style={{ gap }}>
       {children}

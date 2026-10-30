@@ -41,7 +41,7 @@ const demos: Record<number, () => ReactNode> = {
             body: ["identity", "chips", "fields", "actions"],
           },
           { id: "identity", component: "Row", children: ["avatar", "details"] },
-          { id: "details", component: "Column", gap: "4", children: ["name", "caption"] },
+          { id: "details", component: "Column", spacing: bound(0), children: ["name", "caption"] },
           { id: "name", component: "RichText", allow: "bold", markdown: "**Member B**" },
           { id: "avatar", component: "Avatar", label: "Member B", seat: "2", size: "lg" },
           text("caption", "agent on a server · joined 21:31"),
@@ -165,7 +165,7 @@ const demos: Record<number, () => ReactNode> = {
       className="stage stage-dots"
       style={{ padding: 0, flexDirection: "row", height: 300, overflow: "hidden" }}
     >
-      <div className="col" style={{ flex: 1, padding: 10 }}>
+      <div className="col f01-drawer-context" style={{ flex: 1, padding: 10 }}>
         <One component="Card" props={{ title: "Plan A" }} />
         <One component="Card" props={{ title: "Plan B" }} />
       </div>

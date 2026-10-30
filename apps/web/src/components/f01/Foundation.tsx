@@ -19,6 +19,7 @@ import "./choice.css";
 import "./calendar.css";
 import "./round4.css";
 import "./media.css";
+import "./round5.css";
 
 export function Foundation({
   name,
@@ -141,7 +142,7 @@ function primitive(args: ViewProps) {
         </P.Row>
       );
     case "Column":
-      return <P.Column gap={Number(p.gap ?? 8) as 4 | 8 | 12 | 16}>{kids}</P.Column>;
+      return <P.Column gap={Math.max(0, number(p.spacing, Number(p.gap ?? 8)))}>{kids}</P.Column>;
     case "Grid":
       return (
         <div
@@ -279,7 +280,12 @@ function feedback(args: ViewProps) {
         />
       );
     case "Spinner":
-      return <span role="status" aria-label={str(p.label, "Loading")} className="spinner" />;
+      return (
+        <span role="status" aria-label={str(p.label, "Loading")} className="row small">
+          <span className="spinner" aria-hidden="true" />
+          {p.label ? str(p.label) : null}
+        </span>
+      );
     case "Divider":
       return p.label ? (
         <div className="row">

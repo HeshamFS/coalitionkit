@@ -265,10 +265,7 @@ const demos: Record<number, () => ReactNode> = {
   27: () => (
     <>
       <One component="Skeleton" props={{ shape: "card" }} />
-      <div className="row small">
-        <Sample name="Spinner" />
-        Your agent is reading the offers…
-      </div>
+      <Sample name="Spinner" props={{ label: "Your agent is reading the offers…" }} />
     </>
   ),
   28: () => <Sample name="EmptyState" />,

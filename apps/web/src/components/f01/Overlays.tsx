@@ -91,7 +91,7 @@ export function Overlay({ name, p, send, build }: ViewProps) {
               aria-label={`Close ${str(p.title)}`}
               onClick={close}
             >
-              ×
+              <Icon name="x" size="sm" />
             </button>
           )}
         </div>

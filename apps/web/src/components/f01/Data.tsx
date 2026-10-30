@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Glyph } from "./Glyph";
 import { Avatar, Badge, type BadgeKind, ScopeBadge, type Seat } from "./primitives";
 import { number, obj, rows, shown, str, type ViewProps } from "./shared";
@@ -90,14 +90,21 @@ export function Gauge({ name, p }: ViewProps) {
     return (
       <ol className="f01-steps" aria-label={str(p.label)}>
         {p.stepLabels.map((label, index) => (
-          <li
-            key={str(label)}
-            className={index + 1 < value ? "is-done" : index + 1 === value ? "is-current" : ""}
-            aria-current={index + 1 === value ? "step" : undefined}
-          >
-            <i>{index + 1 < value ? "✓" : index + 1}</i>
-            {str(label)}
-          </li>
+          <Fragment key={str(label)}>
+            {index > 0 && (
+              <li
+                role="presentation"
+                className={`f01-step-line ${index + 1 <= value ? "is-done" : ""}`}
+              />
+            )}
+            <li
+              className={index + 1 < value ? "is-done" : index + 1 === value ? "is-current" : ""}
+              aria-current={index + 1 === value ? "step" : undefined}
+            >
+              <i>{index + 1 < value ? "✓" : index + 1}</i>
+              {str(label)}
+            </li>
+          </Fragment>
         ))}
       </ol>
     );

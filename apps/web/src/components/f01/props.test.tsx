@@ -5,6 +5,20 @@ import { draw, event } from "./test-utils";
 
 afterEach(cleanup);
 
+it("Spinner renders the catalog label visibly alongside its progress indicator", () => {
+  draw("Spinner", { label: "Reading records" });
+  expect(screen.getByRole("status")).toHaveTextContent("Reading records");
+  expect(screen.getByText("Reading records")).toBeVisible();
+});
+
+it.each([0, 6])("Column retains bound %s px spacing instead of its preset", (spacing) => {
+  const { container } = draw("Column", {
+    gap: "16",
+    spacing: { value: spacing, event_ref: "e1" },
+  });
+  expect(container.querySelector(".col")).toHaveStyle({ gap: `${spacing}px` });
+});
+
 it("Slider retains both range endpoints and prevents crossing", () => {
   const { dispatch } = draw(
     "Slider",
@@ -125,4 +139,31 @@ it("ChoicePicker keeps multiple selections and disabled options", () => {
   event(dispatch, "select", { value: ["b"] });
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "Escape" });
   expect(screen.queryByRole("listbox")).toBeNull();
+});
+
+it("ChoicePicker filters options without losing selected chips and selects with Enter", () => {
+  const { dispatch } = draw(
+    "ChoicePicker",
+    {
+      multiple: true,
+      value: { path: "/selected" },
+      options: [
+        { id: "a", label: "First" },
+        { id: "b", label: "Second" },
+        { id: "c", label: "Unavailable", disabled: true },
+      ],
+    },
+    { selected: ["a"] },
+  );
+  const input = screen.getByRole("combobox");
+  fireEvent.change(input, { target: { value: "sec" } });
+  expect(screen.getByLabelText("Remove First")).toBeTruthy();
+  expect(screen.getAllByRole("option")).toHaveLength(1);
+  fireEvent.keyDown(input, { key: "Enter" });
+  event(dispatch, "select", { value: ["a", "b"] });
+  expect(input).toHaveValue("");
+  fireEvent.change(input, { target: { value: "unavailable" } });
+  dispatch.mockClear();
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(dispatch).not.toHaveBeenCalled();
 });

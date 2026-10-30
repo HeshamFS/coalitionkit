@@ -81,7 +81,11 @@ export const apis = [
     options: array.optional(),
     value: binding.optional(),
   }),
-  api("Column", { children: children.optional(), gap: choice(["4", "8", "12", "16"]).optional() }),
+  api("Column", {
+    children: children.optional(),
+    gap: choice(["4", "8", "12", "16"]).optional(),
+    spacing: literal(Bound).optional(),
+  }),
   api("CommandPalette", {
     groups: choice(["actions", "objects", "log", "ask"]).optional(),
     query: binding.optional(),

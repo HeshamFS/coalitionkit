@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { Glyph } from "./Glyph";
 import { type Props, rows, str } from "./shared";
 
@@ -7,6 +7,7 @@ const keyOf = (item: Props) => str(item.id, str(item.value));
 type ChoiceProps = { p: Props; value: unknown; pick: (value: string) => void };
 export function ChoiceMenu({ p, value, pick }: ChoiceProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [active, setActive] = useState(() =>
     Math.max(
       0,
@@ -15,8 +16,10 @@ export function ChoiceMenu({ p, value, pick }: ChoiceProps) {
   );
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
-  const options = rows(p.options);
-  const selected = options.filter((item) =>
+  const options = rows(p.options).filter((item) =>
+    str(item.label).toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+  );
+  const selected = rows(p.options).filter((item) =>
     Array.isArray(value) ? value.includes(keyOf(item)) : value === keyOf(item),
   );
   useEffect(() => {
@@ -28,7 +31,36 @@ export function ChoiceMenu({ p, value, pick }: ChoiceProps) {
   }, []);
   const choose = (key: string) => {
     pick(key);
+    setQuery("");
     if (!p.multiple) setOpen(false);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setOpen(true);
+      setActive((index) =>
+        Math.max(0, Math.min(options.length - 1, index + (event.key === "ArrowDown" ? 1 : -1))),
+      );
+    }
+    if (event.key === "Enter" && open && options[active]) {
+      event.preventDefault();
+      const item = options[active];
+      if (!item.disabled) choose(keyOf(item));
+    }
+  };
+  const trigger = {
+    className: "f01-choice-trigger",
+    role: "combobox" as const,
+    "aria-label": "Choose an option",
+    "aria-expanded": open,
+    "aria-controls": id,
+    "aria-haspopup": "listbox" as const,
+    "aria-activedescendant": open && options[active] ? `${id}-${active}` : undefined,
+    onKeyDown,
   };
   return (
     <div className="f01-choice" ref={ref}>
@@ -45,41 +77,24 @@ export function ChoiceMenu({ p, value, pick }: ChoiceProps) {
               {str(item.label)} ×
             </button>
           ))}
-        <button
-          type="button"
-          className="f01-choice-trigger"
-          role="combobox"
-          aria-label="Choose an option"
-          aria-expanded={open}
-          aria-controls={id}
-          aria-haspopup="listbox"
-          aria-activedescendant={open && options[active] ? `${id}-${active}` : undefined}
-          onClick={() => setOpen(!open)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setOpen(false);
-              return;
-            }
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-              event.preventDefault();
+        {p.multiple ? (
+          <input
+            {...trigger}
+            value={query}
+            placeholder="add…"
+            onClick={() => setOpen(true)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActive(0);
               setOpen(true);
-              setActive((index) =>
-                Math.max(
-                  0,
-                  Math.min(options.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)),
-                ),
-              );
-            }
-            if (event.key === "Enter" && open && options[active]) {
-              event.preventDefault();
-              const item = options[active];
-              if (!item.disabled) choose(keyOf(item));
-            }
-          }}
-        >
-          <span>{p.multiple ? "add…" : str(selected[0]?.label, "Choose…")}</span>
-          {!p.multiple && <Glyph name="down" size="sm" />}
-        </button>
+            }}
+          />
+        ) : (
+          <button {...trigger} type="button" onClick={() => setOpen(!open)}>
+            <span>{str(selected[0]?.label, "Choose…")}</span>
+            <Glyph name="down" size="sm" />
+          </button>
+        )}
       </div>
       {open && (
         <ChoiceOptions

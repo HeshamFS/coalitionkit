@@ -517,6 +517,10 @@
       "16"
      ],
      "doc": "4 | 8 | 12 | 16"
+    },
+    "spacing": {
+     "type": "number",
+     "doc": "Optional bound spacing in pixels, overriding the gap preset for tightly grouped content."
     }
    }
   },
