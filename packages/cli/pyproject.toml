@@ -1,0 +1,14 @@
+[project]
+name = "coalitionkit-cli"
+version = "0.1.0.dev0"
+description = "Start a local CoalitionKit host and room"
+license = "Apache-2.0"
+requires-python = ">=3.15"
+dependencies = ["coalitionkit-server", "coalitionkit-contracts", "coalitionkit-mcp", "fastapi==0.162.0", "uvicorn==0.54.0"]
+
+[project.scripts]
+coalitionkit = "coalitionkit_cli.main:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"

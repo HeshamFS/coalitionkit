@@ -1,11 +1,12 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.15"
 
 [manifest]
 members = [
     "coalitionkit-acceptance",
     "coalitionkit-channels",
+    "coalitionkit-cli",
     "coalitionkit-contracts",
     "coalitionkit-edges",
     "coalitionkit-gardener",
@@ -263,6 +264,27 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.162.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "pydantic", specifier = "==2.14.1" },
+]
+
+[[package]]
+name = "coalitionkit-cli"
+version = "0.1.0.dev0"
+source = { editable = "packages/cli" }
+dependencies = [
+    { name = "coalitionkit-contracts" },
+    { name = "coalitionkit-mcp" },
+    { name = "coalitionkit-server" },
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coalitionkit-contracts", editable = "packages/contracts" },
+    { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
+    { name = "coalitionkit-server", editable = "packages/server" },
+    { name = "fastapi", specifier = "==0.162.0" },
+    { name = "uvicorn", specifier = "==0.54.0" },
 ]
 
 [[package]]
@@ -544,6 +566,7 @@ source = { virtual = "." }
 dev = [
     { name = "coalitionkit-acceptance" },
     { name = "coalitionkit-channels" },
+    { name = "coalitionkit-cli" },
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-gardener" },
@@ -571,6 +594,7 @@ dev = [
 dev = [
     { name = "coalitionkit-acceptance", editable = "packages/acceptance" },
     { name = "coalitionkit-channels", editable = "packages/channels" },
+    { name = "coalitionkit-cli", editable = "packages/cli" },
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-gardener", editable = "packages/gardener" },

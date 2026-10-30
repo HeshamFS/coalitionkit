@@ -20,6 +20,7 @@ dev = [
     "coalitionkit-acceptance",
     "coalitionkit-surfaces",
     "coalitionkit-server",
+    "coalitionkit-cli",
     "coalitionkit-packs",
     "coalitionkit-channels",
     "jsonschema==4.26.0",
@@ -49,6 +50,7 @@ coalitionkit-mcp = { workspace = true }
 coalitionkit-acceptance = { workspace = true }
 coalitionkit-surfaces = { workspace = true }
 coalitionkit-server = { workspace = true }
+coalitionkit-cli = { workspace = true }
 coalitionkit-packs = { workspace = true }
 coalitionkit-channels = { workspace = true }
 
@@ -64,17 +66,17 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 # The contracts tests import a helper module named "examples"; the top-level examples/ folder
 # must not turn it into a first-party import.
 known-third-party = ["examples"]
-known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
+known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels", "coalitionkit_cli"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools"]
+include = ["packages/cli", "packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
+root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels", "coalitionkit_cli"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -246,3 +248,16 @@ name = "core packages never import channels"
 type = "forbidden"
 source_modules = ["coalitionkit_contracts", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_mcp", "coalitionkit_surfaces", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_vault", "coalitionkit_packs", "coalitionkit_mint"]
 forbidden_modules = ["coalitionkit_channels"]
+
+[[tool.importlinter.contracts]]
+name = "nothing imports cli"
+type = "forbidden"
+source_modules = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
+forbidden_modules = ["coalitionkit_cli"]
+
+[[tool.importlinter.contracts]]
+name = "cli directly imports only server, contracts and mcp gateway"
+type = "forbidden"
+source_modules = ["coalitionkit_cli"]
+allow_indirect_imports = true
+forbidden_modules = ["coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
