@@ -158,7 +158,7 @@ it("ConsentSeal cancels an early release and requests review only after the full
 it("requires acknowledgement before charter acceptance and fails closed after the deadline", () => {
   const action = mount("AcceptanceForm", { decision_deadline: "2000-01-01T00:00:00Z" });
   fireEvent.click(screen.getByRole("checkbox"));
-  expect(screen.getByRole("button", { name: "Accept revision 2" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Accept revision 3" })).toBeDisabled();
   expect(action).not.toHaveBeenCalled();
 });
 it("never renders message text hidden by a redaction", () => {

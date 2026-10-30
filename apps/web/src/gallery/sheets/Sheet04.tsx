@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+
 import { examples } from "../../components/f04/examples";
 import { panels } from "../../components/f04/panels";
+import { ValidationExample } from "../../components/f04/validation-example";
 import { Family } from "../Cell";
 import { Drawn } from "../Drawn";
 
@@ -32,6 +34,17 @@ export function Sheet04() {
             >
               <div className="head">
                 <span className="cell-name">{panel.title}</span>
+                {panel.name === "ConsentSeal" && (
+                  <span className="h-right door">
+                    <span>compact</span>
+                    <span>wide</span>
+                  </span>
+                )}
+                {panel.name === "Wizard" && (
+                  <span className="h-right door">
+                    <span>wide</span>
+                  </span>
+                )}
                 {panel.name === "AvailabilityGrid" && (
                   <span className="h-right">
                     <span className="badge b-vault">Vault</span>
@@ -40,20 +53,24 @@ export function Sheet04() {
                 )}
               </div>
               <div className={`demo ck-demo-${panel.name}`}>
-                {[examples[panel.name] ?? {}].map((props, i) => (
-                  <Drawn
-                    key={String(props.state ?? i)}
-                    components={[
-                      { id: "root", component: panel.name, ...props },
-                      {
-                        id: "content",
-                        component: "Message",
-                        text: "Plan A is ready for review.",
-                        state: "delivered",
-                      },
-                    ]}
-                  />
-                ))}
+                {panel.name === "ValidationSummary" ? (
+                  <ValidationExample />
+                ) : (
+                  [examples[panel.name] ?? {}].map((props, i) => (
+                    <Drawn
+                      key={String(props.state ?? i)}
+                      components={[
+                        { id: "root", component: panel.name, ...props },
+                        {
+                          id: "content",
+                          component: "Message",
+                          text: "Plan A is ready for review.",
+                          state: "delivered",
+                        },
+                      ]}
+                    />
+                  ))
+                )}
               </div>
               <div className="props">{panel.props}</div>
               {panel.events && <div className="evts">{panel.events}</div>}

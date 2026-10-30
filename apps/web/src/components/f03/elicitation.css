@@ -1,0 +1,57 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-ElicitationForm.ck-family {
+  padding: 12px;
+  gap: 8px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  line-height: normal;
+}
+.f03-elicit-eyebrow {
+  font: 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+.ck-ElicitationForm > b {
+  font-size: 14px;
+}
+.f03-elicit-description {
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.ck-ElicitationForm .f03-elicit-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font: 12px / 1.45 var(--font-ui);
+}
+.f03-elicit-choice input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+}
+.f03-elicit-choice input:checked {
+  border: 5px solid var(--blue);
+}
+.f03-elicit-actions {
+  display: flex;
+  gap: 8px;
+}
+.f03-elicit-actions .ck-action {
+  height: 28px;
+  padding: 0 10px;
+}
+.f03-elicit-actions .ck-action:last-child {
+  border-color: transparent;
+  background: transparent;
+}
+.f03-elicit-footnote {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
