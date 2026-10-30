@@ -1,0 +1,116 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-McpAppView.ck-family {
+  gap: 6px;
+  line-height: normal;
+}
+.f03-mcp-resource {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.ck-McpAppView .f01-root-Image,
+.ck-McpAppView .f01-image {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.ck-McpAppView .f01-image img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+}
+.ck-McpAppView .f01-root-Row .f01-root-Badge {
+  margin-left: auto;
+}
+.ck-McpAppView .f01-root-Row .badge {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ck-McpAppView .f01-root-Row h3 {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  line-height: normal !important;
+}
+.ck-McpAppView .card {
+  padding: 8px 10px;
+  background: var(--surface-2);
+}
+.ck-McpAppView .card h3 {
+  font-size: 13.5px !important;
+  line-height: normal !important;
+  font-weight: 600 !important;
+}
+.ck-McpAppView .card .f01-root-Tag {
+  margin-left: auto;
+}
+.f03-client-frame {
+  --f03-client-bg: #fafaf9;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--f03-client-bg);
+}
+[data-theme="dark"] .f03-client-frame {
+  --f03-client-bg: var(--surface-2);
+}
+.f03-client-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.f03-client-heading b {
+  font-size: 12.5px;
+}
+.f03-client-heading > span {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f03-client-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+.f03-client-message {
+  align-self: flex-end;
+  max-width: 86%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border-top-right-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font: 12.5px / 1.45 var(--font-ui);
+}
+.f03-client-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font: 12px / 1.45 var(--font-ui);
+}
+.f03-client-tool svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.f03-client-tool span {
+  font-family: var(--font-mono);
+}
+.f03-client-response {
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink);
+}

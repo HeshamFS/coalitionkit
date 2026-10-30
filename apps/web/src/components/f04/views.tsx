@@ -50,110 +50,9 @@ export function Form({ p, send }: View) {
     </Frame>
   );
 }
-export function ValidationSummary({ p, send }: View) {
-  return (
-    <Frame name="ValidationSummary" tone="ck-error" state="shown">
-      <b>Check these fields</b>
-      <div role="alert">
-        {list(p.errors).map((e) => (
-          <Action key={text(e.field)} onClick={() => send("field.focus", { id: e.field })}>
-            {text(e.text)}
-          </Action>
-        ))}
-      </div>
-    </Frame>
-  );
-}
-export function Wizard({ p, send, build }: View) {
-  const steps = list(p.steps);
-  const [current, set] = useState(
-    Math.max(
-      0,
-      steps.findIndex((s) => s.id === p.current),
-    ),
-  );
-  const step = steps[current];
-  const [values, change] = useState<Data>(obj(p.draft));
-  return (
-    <Frame name="Wizard" state="step">
-      <ol className="ck-wizard-steps">
-        {steps.map((s, i) => (
-          <li key={text(s.id)} aria-current={i === current ? "step" : undefined}>
-            {i < current ? "✓" : i + 1} {label(s)}
-          </li>
-        ))}
-      </ol>
-      {step && (
-        <div>
-          <h3>{label(step)}</h3>
-          {list(step.fields).map((f) => (
-            <Field
-              key={text(f.id)}
-              field={f}
-              value={values[text(f.id)]}
-              change={(v) => change({ ...values, [text(f.id)]: v })}
-            />
-          ))}
-          {Array.isArray(step.components) &&
-            step.components.map((id) => <div key={text(id)}>{build?.(text(id))}</div>)}
-        </div>
-      )}
-      <div className="ck-row">
-        <Action
-          disabled={current === 0}
-          onClick={() => {
-            set(current - 1);
-            send("wizard.back", { current: step?.id, draft: values });
-          }}
-        >
-          Back
-        </Action>
-        <Action
-          primary
-          disabled={!step}
-          onClick={() => {
-            const last = current === steps.length - 1;
-            send(last ? "wizard.finish" : "wizard.next", { current: step?.id, draft: values });
-            if (!last) set(current + 1);
-          }}
-        >
-          {current === steps.length - 1 ? "Finish" : "Next"}
-        </Action>
-      </div>
-      <small>Draft saved by the host</small>
-    </Frame>
-  );
-}
-export function NeedForm({ p, send }: View) {
-  const [value, set] = useState(text(p.text));
-  const [pending, status] = useState(false);
-  return (
-    <Frame name="NeedForm" state={pending ? "checking" : "draft"}>
-      <h3>What do you need?</h3>
-      <label className="ck-field">
-        Need
-        <textarea value={value} onChange={(e) => set(e.target.value)} />
-      </label>
-      <Rows value={p.constraints} />
-      <span className="ck-tag">{text(p.audience) || "me"}</span>
-      <Action
-        primary
-        disabled={!value.trim() || pending}
-        onClick={() => {
-          status(true);
-          send("coalition.need", {
-            text: value,
-            quantity: p.quantity,
-            constraints: p.constraints,
-            audience: p.audience,
-          });
-        }}
-      >
-        Publish need
-      </Action>
-    </Frame>
-  );
-}
+export { NeedForm } from "./need";
+export { ValidationSummary } from "./validation";
+export { Wizard } from "./wizard";
 export function OfferForm({ p, send }: View) {
   const [what, set] = useState(text(p.what));
   return (
@@ -239,41 +138,19 @@ export function DocumentShare({ p, send }: View) {
     </Frame>
   );
 }
-export function AcceptanceForm({ p, send }: View) {
-  const [read, set] = useState(false);
-  return (
-    <Frame name="AcceptanceForm" state={read ? "acknowledged" : "pending"}>
-      <Subject value={p.subject} />
-      <h3>The charter changed</h3>
-      {list(p.diff).map((d, i) => (
-        <div className="ck-diff" key={text(d.rule) || `${i}`}>
-          <b>{text(d.rule)}</b>
-          <del>− {text(d.before)}</del>
-          <ins>+ {text(d.after)}</ins>
-        </div>
-      ))}
-      <p>{text(p.consequence)}</p>
-      <label>
-        <input type="checkbox" checked={read} onChange={(e) => set(e.target.checked)} />I read what
-        changed
-      </label>
-      <div className="ck-row">
-        <Action
-          primary
-          disabled={!read || expired(p.decision_deadline)}
-          onClick={() => send("decide", { charter: p.charter, subject: p.subject })}
-        >
-          Accept revision {number(obj(p.subject).revision)}
-        </Action>
-        <Action onClick={() => send("leave")}>Leave instead</Action>
-      </div>
-    </Frame>
-  );
-}
+export { AcceptanceForm } from "./acceptance";
 export function ConsentSeal({ p, send }: View) {
   const [holding, set] = useState(false);
   const [review, confirm] = useState(false);
+  const [elapsed, tick] = useState(0);
+  const [summary, ...description] = text(p.summary).split("\n");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (!holding) return;
+    const started = Date.now();
+    const interval = setInterval(() => tick(Date.now() - started), 100);
+    return () => clearInterval(interval);
+  }, [holding]);
   useEffect(() => () => clearTimeout(timer.current), []);
   const cancel = () => {
     clearTimeout(timer.current);
@@ -282,6 +159,7 @@ export function ConsentSeal({ p, send }: View) {
   };
   const start = () => {
     if (timer.current || expired(p.decision_deadline)) return;
+    tick(0);
     set(true);
     timer.current = setTimeout(
       () => {
@@ -294,9 +172,14 @@ export function ConsentSeal({ p, send }: View) {
   };
   return (
     <Frame name="ConsentSeal" state={holding ? "holding" : "idle"}>
-      <span className="ck-meta">You're committing to</span>
-      <h3>{text(p.summary)}</h3>
-      <Subject value={p.subject} />
+      <span className="f04-seal-eyebrow">You're committing to</span>
+      <b className="f04-seal-title">{summary}</b>
+      {!!description.length && (
+        <span className="f04-seal-description">{description.join(" ")}</span>
+      )}
+      <span className="f04-seal-subject">
+        <Subject value={p.subject} />
+      </span>
       <button
         type="button"
         className="ck-seal"
@@ -319,12 +202,23 @@ export function ConsentSeal({ p, send }: View) {
         onBlur={cancel}
       >
         <svg aria-hidden="true" viewBox="0 0 112 112">
-          <circle cx="56" cy="56" r="48" />
+          <circle className="f04-seal-track" cx="56" cy="56" r="48" />
+          {holding && (
+            <circle
+              className="f04-seal-progress"
+              cx="56"
+              cy="56"
+              r="48"
+              transform="rotate(-90 56 56)"
+            />
+          )}
           <path d="M42 56l10 10 18-20" />
         </svg>
       </button>
-      <b>{holding ? "Keep holding" : "Hold to review"}</b>
-      <small>Release to cancel · Enter to open confirmation</small>
+      <b className="f04-seal-label">
+        {holding ? `Keep holding · ${(elapsed / 1000).toFixed(1)} s` : "Hold to review"}
+      </b>
+      <span className="f04-seal-footnote">signs with your owner key · release to cancel</span>
       {review && (
         <fieldset aria-label="Confirm consent">
           <p>Review this revision with your owner key.</p>
@@ -376,37 +270,7 @@ export function OwnerSign({ p, send }: View) {
     </Frame>
   );
 }
-export function Receipt({ p, send }: View) {
-  return (
-    <Frame name="Receipt" state="recorded" tone="ck-success">
-      <h3>Your answer is recorded</h3>
-      <Subject value={p.subject} />
-      <dl>
-        <dt>Log entry</dt>
-        <dd>#{number(p.seq)}</dd>
-        <dt>Receipt</dt>
-        <dd>{text(obj(p.receipt).signature ?? obj(p.receipt).algorithm)}</dd>
-        <dt>Hash</dt>
-        <dd>
-          <code>{text(p.hash)}</code>
-        </dd>
-        <dt>Waiting for</dt>
-        <dd>{list(p.remaining).map(label).join(", ") || "Nobody"}</dd>
-      </dl>
-      <div className="ck-row">
-        <Action onClick={() => send("receipt.verify", { receipt: p.receipt, hash: p.hash })}>
-          Verify myself
-        </Action>
-        <Action
-          disabled={expired(p.decision_deadline)}
-          onClick={() => send("decide.change", { subject: p.subject })}
-        >
-          Change answer
-        </Action>
-      </div>
-    </Frame>
-  );
-}
+export { Receipt } from "./receipt";
 export function ReviewStep({ p, send }: View) {
   const passed = obj(p.precheck).passed === true;
   return (
@@ -424,31 +288,4 @@ export function ReviewStep({ p, send }: View) {
     </Frame>
   );
 }
-export function FeedbackForm({ p, send }: View) {
-  const [values, set] = useState<Data>({});
-  return (
-    <Frame name="FeedbackForm" state="draft">
-      <h3>What did you learn?</h3>
-      {list(p.questions).map((q, i) => (
-        <Field
-          key={text(q.id) || `${i}`}
-          field={{
-            ...q,
-            id: q.id ?? `q${i}`,
-            label: q.label ?? q.text,
-            kind: q.kind === "scale" ? "number" : q.kind,
-          }}
-          value={values[text(q.id) || `q${i}`]}
-          change={(v) => set({ ...values, [text(q.id) || `q${i}`]: v })}
-        />
-      ))}
-      <small>Shared with {text(p.audience) || "nobody"}</small>
-      <Action
-        primary
-        onClick={() => send("feedback.save", { values, audience: p.audience ?? "me" })}
-      >
-        Save
-      </Action>
-    </Frame>
-  );
-}
+export { FeedbackForm } from "./feedback";

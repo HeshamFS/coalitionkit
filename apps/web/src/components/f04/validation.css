@@ -1,0 +1,77 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-ValidationSummary.ck-family {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  line-height: normal;
+}
+.f04-validation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--bad-line);
+  border-radius: 10px;
+  background: var(--bad-bg);
+  color: var(--f04-validation-ink);
+  font: 12.5px / 1.45 var(--font-ui);
+}
+.f04-validation-banner svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.f04-validation-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.f04-validation-links button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.f04-validation-example {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f04-validation-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 500 12px var(--font-ui);
+}
+.f04-validation-choice .f01-SegmentedControl {
+  box-shadow: 0 0 0 1px var(--bad-fg);
+}
+.f04-validation-example .f01-error::before {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: 9px var(--font-ui);
+}
+
+.ck-ValidationSummary {
+  --f04-validation-ink: #6b1820;
+}
+[data-theme="dark"] .ck-ValidationSummary {
+  --f04-validation-ink: var(--bad-fg);
+}

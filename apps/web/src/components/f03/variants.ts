@@ -3,6 +3,19 @@ import type { Data } from "../f02/ui";
 import { examples } from "./examples";
 
 export function variants(name: string): Data[] {
+  if (name === "ChannelDigest")
+    return [
+      examples.ChannelDigest ?? {},
+      {
+        channel: "sms",
+        items: [{ text: "Place B12: task now starts 22:45. Reply STOP to mute." }],
+      },
+    ];
+  if (name === "Composer")
+    return [
+      { ...examples.Composer, audience: "coalition" },
+      { ...examples.Composer, audience: "coalition" },
+    ];
   if (name === "Message")
     return [
       { text: "On my way", state: "sending" },

@@ -3,9 +3,16 @@ import type { Data } from "../f02/ui";
 export const examples: Record<string, Data> = {
   AcceptanceForm: {
     charter: "c1",
-    subject: { kind: "charter", id: "p1", revision: { value: 2, event_ref: "example:44" } },
-    consequence: "Until you accept, open commitments are paused and new offers do not count.",
-    diff: [{ rule: "Agent budget", before: "€1 for the coalition", after: "€2 for the coalition" }],
+    subject: { kind: "charter", id: "p1", revision: { value: 3, event_ref: "example:44" } },
+    consequence: "Until you accept, your open commitments are paused and new offers don't count.",
+    diff: [
+      {
+        rule: "Agent budget",
+        heading: "The budget rule changed",
+        before: "€1 for the coalition",
+        after: "€2 for the coalition",
+      },
+    ],
     decision_deadline: "2099-11-01T12:00:00Z",
   },
   AvailabilityGrid: {
@@ -22,7 +29,7 @@ export const examples: Record<string, Data> = {
   },
   ConsentSeal: {
     subject: { kind: "plan", id: "p1", revision: { value: 2, event_ref: "example:44" } },
-    summary: "Provide Resource 1 for three · ≈ €42",
+    summary: "Buy the resource for three · ≈ €42\nB and C pay you back through the coalition log.",
     holdMs: { value: 1200, event_ref: "example:44" },
     decision_deadline: "2099-11-01T12:00:00Z",
   },
@@ -73,10 +80,10 @@ export const examples: Record<string, Data> = {
     ],
   },
   NeedForm: {
-    text: "Resource 1 by Friday",
+    text: "A resource near the workspace",
     audience: "coalition",
-    quantity: { value: 1, event_ref: "example:44" },
-    constraints: [{ kind: "deadline", label: "Friday 16:00" }],
+    quantity: { value: 2, event_ref: "example:44" },
+    constraints: [{ kind: "deadline", value: "01:00" }],
   },
   OfferForm: {
     what: "I can provide Resource 1",
@@ -95,9 +102,9 @@ export const examples: Record<string, Data> = {
   Receipt: {
     subject: { kind: "plan", id: "p1", revision: { value: 2, event_ref: "example:44" } },
     seq: { value: 44, event_ref: "example:44" },
-    receipt: { algorithm: "host ed25519" },
+    receipt: { algorithm: "host ed25519", verified: true },
     hash: "5d0a…e19",
-    remaining: ["Member C"],
+    remaining: ["C (1 of 3 left)"],
     decision_deadline: "2099-11-01T12:00:00Z",
   },
   ReviewStep: {
@@ -116,17 +123,60 @@ export const examples: Record<string, Data> = {
     ],
   },
   Wizard: {
-    current: "goal",
+    current: "rules",
     canSkip: false,
-    draft: {},
+    draft: { agreement: "all", deadline: "30" },
     steps: [
       {
         id: "goal",
         label: "Goal",
         fields: [{ id: "goal", label: "What do you want to do together?", kind: "text" }],
       },
-      { id: "members", label: "Members" },
-      { id: "rules", label: "Rules" },
+      { id: "roles", label: "Roles" },
+      {
+        id: "rules",
+        label: "Rules",
+        prompt: "How should decisions work?",
+        fields: [
+          {
+            id: "agreement",
+            label: "Agreement",
+            kind: "choice",
+            options: [
+              {
+                id: "all",
+                label: "Every member agrees",
+                description: "Slower, but nobody is outvoted",
+              },
+              { id: "two", label: "Two of three", description: "The third can still leave" },
+              {
+                id: "organizer",
+                label: "The organizer decides",
+                description: "Others can only offer",
+              },
+            ],
+          },
+          {
+            id: "deadline",
+            label: "Time to decide",
+            kind: "choice",
+            options: [
+              { id: "30", label: "30 minutes" },
+              { id: "60", label: "60 minutes" },
+            ],
+          },
+        ],
+        suggestion: {
+          emphasis: "every member agrees",
+          text: "For a group of members in a workspace, every member agrees with a short deadline usually works. You can change it later with a new revision.",
+        },
+        summary: [
+          { label: "Goal: finish by 10:00, together if not dearer" },
+          { label: "Roles: organizer ×1, member ×2-5" },
+          { label: "Rules: every member · 30 min", current: true },
+        ],
+      },
+      { id: "budget", label: "Budget" },
       { id: "review", label: "Review" },
     ],
   },

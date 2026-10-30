@@ -1,0 +1,52 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-ChannelDigest.f03-digest-email {
+  padding: 0;
+  gap: 6px;
+  overflow: hidden;
+  line-height: normal;
+}
+.f03-digest-email header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.f03-digest-email header span {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f03-digest-email header b {
+  font-size: 12.5px;
+  line-height: 18px;
+}
+.f03-digest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+.f03-digest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font: 12px / 1.45 var(--font-ui);
+}
+.f03-digest-body .ck-action {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 10px;
+  text-decoration: none;
+}
+.f03-digest-note {
+  color: var(--ink-3);
+  font: 11px var(--font-mono);
+}
+.ck-ChannelDigest.f03-digest-sms {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  font: 12px / 1.45 var(--font-ui);
+}

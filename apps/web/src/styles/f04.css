@@ -237,3 +237,49 @@
 .ck-sheet-04 .cell-name {
   font-weight: 700;
 }
+
+.ck-ConsentSeal.ck-family {
+  line-height: normal;
+}
+.f04-seal-eyebrow {
+  font: 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+.f04-seal-title {
+  font-size: 14px;
+}
+.f04-seal-description {
+  color: var(--ink-2);
+  font: 12px / 1.45 var(--font-ui);
+}
+.f04-seal-subject {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ck-ConsentSeal[data-state] .ck-seal .f04-seal-track {
+  stroke: var(--line);
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+.ck-ConsentSeal .ck-seal .f04-seal-progress {
+  fill: none;
+  stroke-linecap: round;
+}
+.ck-ConsentSeal .ck-seal path {
+  opacity: 0.45;
+}
+.f04-seal-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.f04-seal-footnote {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
