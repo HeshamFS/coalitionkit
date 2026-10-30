@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useState } from "react";
+import { Badge, type BadgeKind } from "./primitives";
 import { number, rows, shown, str, type ViewProps } from "./shared";
 
 export function DataDisplay({ name, p, send }: ViewProps) {
@@ -9,7 +10,15 @@ export function DataDisplay({ name, p, send }: ViewProps) {
         {rows(p.pairs).map((r) => (
           <div className="f01-pair" key={str(r.label)}>
             <dt>{str(r.label)}</dt>
-            <dd>{shown(r.value)}</dd>
+            <dd>
+              {shown(r.value)}
+              {typeof r.provenance === "string" && (
+                <>
+                  {" "}
+                  <Badge kind={r.provenance as BadgeKind} label={r.provenance} />
+                </>
+              )}
+            </dd>
           </div>
         ))}
       </dl>

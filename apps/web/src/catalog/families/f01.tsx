@@ -6,7 +6,7 @@ import { Foundation } from "../../components/f01/Foundation";
 import { Bound } from "../schemas";
 
 const binding = z.union([CommonSchemas.DataBinding, z.never()]);
-const literal = <T extends z.ZodTypeAny>(schema: T) => z.union([schema, binding]);
+const literal = <T extends z.ZodTypeAny>(schema: T) => z.union([schema, CommonSchemas.DataBinding]);
 const text = CommonSchemas.DynamicString;
 const flag = CommonSchemas.DynamicBoolean;
 const array = literal(z.array(z.unknown()));

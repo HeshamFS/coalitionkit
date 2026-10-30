@@ -253,8 +253,61 @@ it("ButtonGroup dispatches the child action through the catalog", () => {
 });
 it("Card emits an open subject", () => {
   const { dispatch } = draw("Card", { title: "Task card" });
-  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  fireEvent.click(screen.getByRole("button", { name: "Task card" }));
   event(dispatch, "open", { subject: { kind: "card", id: "root" } });
+  expect(screen.queryByRole("button", { name: "Open" })).toBeNull();
+});
+it.each(["Card", "Panel", "Grid"])("%s renders bound fields and their provenance", (name) => {
+  draw(
+    name,
+    { fields: { path: "/fields" } },
+    {
+      fields: [
+        { label: "Count", value: { value: 3, event_ref: "e1" }, provenance: "measured" },
+        { label: "Available", value: false },
+      ],
+    },
+  );
+  expect(screen.getByText("Count").nextSibling).toHaveTextContent("3");
+  expect(screen.getByText("measured")).toHaveClass("b-measured");
+  expect(screen.getByText("Available").nextSibling).toHaveTextContent("false");
+});
+it("Card keeps its child action without adding an Open button", () => {
+  const { dispatch } = draw("Card", { title: "Task", children: ["go"] }, {}, [
+    {
+      id: "go",
+      component: "Button",
+      label: "Open",
+      action: { name: "task.open", context: { id: "t1" } },
+    },
+  ]);
+  expect(screen.getAllByRole("button", { name: "Open" })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  event(dispatch, "task.open", { id: "t1" });
+  expect(dispatch).toHaveBeenCalledTimes(1);
+});
+it("resolves bound enum, object and number props through the catalog", () => {
+  const { dispatch } = draw(
+    "Button",
+    {
+      label: "Run",
+      variant: { path: "/variant" },
+      action: { path: "/action" },
+    },
+    { variant: "primary", action: { name: "task.run", context: { id: "t1" } } },
+  );
+  expect(screen.getByRole("button")).toHaveClass("btn-primary");
+  fireEvent.click(screen.getByRole("button"));
+  event(dispatch, "task.run", { id: "t1" });
+  cleanup();
+  draw(
+    "Progress",
+    { label: "Ready", value: { path: "/amount" } },
+    {
+      amount: { value: 42, event_ref: "e1" },
+    },
+  );
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "42");
 });
 it("Button preserves existing A2UI event envelopes", () => {
   const { dispatch } = draw("Button", {

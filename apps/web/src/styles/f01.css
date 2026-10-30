@@ -251,6 +251,15 @@ textarea.f01-input {
 .f01-pair {
   display: contents;
 }
+.f01 button.f01-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
 .f01-table-scroll {
   overflow-x: auto;
 }
@@ -388,8 +397,12 @@ textarea.f01-input {
   width: 100%;
   font-size: 11px;
 }
+.sheet.sheet-01 {
+  padding-inline: 0;
+  width: 100%;
+}
 .sheet-01 .demo {
-  gap: 10px;
+  gap: 8px;
 }
 .sheet-01 .f01-state-row {
   display: flex;

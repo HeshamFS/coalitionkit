@@ -70,62 +70,118 @@ export function Sheet01() {
       </div>
       {sections.map(([n, title, names]) => (
         <Family key={n} n={n} title={title}>
-          {names.map((name) => (
-            <Cell
-              key={name}
-              name={name}
-              props={Object.keys(apis.find((a) => a.name === name)?.schema.shape ?? {}).join(" · ")}
-              doors={metadata[name]?.doors}
-              events={metadata[name]?.events.join(" · ") || "display only"}
-            >
-              {examples(name).map((sample) => (
-                <State key={JSON.stringify(sample)} label={sample.label ?? "default"}>
-                  <Drawn
-                    label={name}
-                    data={sample.data}
-                    components={[
-                      ...(name === "Tooltip"
-                        ? [
-                            {
-                              id: "root",
-                              component: "Column",
-                              children: ["tooltip-target", "tip"],
-                            },
-                            {
-                              id: "tooltip-target",
-                              component: "Button",
-                              label: "Audience",
-                              variant: "secondary",
-                            },
-                            { id: "tip", component: "Tooltip", ...sample.props },
-                          ]
-                        : [{ id: "root", component: name, ...sample.props }]),
-                      {
-                        id: "body",
-                        component: "Text",
-                        text: "Review the details with your coalition.",
-                      },
-                      {
-                        id: "action1",
-                        component: "Button",
-                        label: "Continue",
-                        variant: "primary",
-                        action: { name: "continue" },
-                      },
-                      {
-                        id: "action2",
-                        component: "Button",
-                        label: "Cancel",
-                        action: { name: "cancel" },
-                      },
-                    ]}
-                  />
-                </State>
-              ))}
-            </Cell>
-          ))}
+          {names
+            .filter((name) => name !== "Badge" && name !== "Tag")
+            .map((name) =>
+              name === "KeyValue" ? (
+                <KeyValuePanel key={name} />
+              ) : (
+                <Cell
+                  key={name}
+                  name={name}
+                  props={Object.keys(apis.find((a) => a.name === name)?.schema.shape ?? {}).join(
+                    " · ",
+                  )}
+                  doors={metadata[name]?.doors}
+                  events={metadata[name]?.events.join(" · ") || "display only"}
+                >
+                  {examples(name).map((sample) => (
+                    <State key={JSON.stringify(sample)} label={sample.label ?? "default"}>
+                      <Drawn
+                        label={name}
+                        data={sample.data}
+                        components={[
+                          ...(name === "Tooltip"
+                            ? [
+                                {
+                                  id: "root",
+                                  component: "Column",
+                                  children: ["tooltip-target", "tip"],
+                                },
+                                {
+                                  id: "tooltip-target",
+                                  component: "Button",
+                                  label: "Audience",
+                                  variant: "secondary",
+                                },
+                                { id: "tip", component: "Tooltip", ...sample.props },
+                              ]
+                            : [{ id: "root", component: name, ...sample.props }]),
+                          {
+                            id: "body",
+                            component: "Text",
+                            text: "Review the details with your coalition.",
+                          },
+                          {
+                            id: "action1",
+                            component: "Button",
+                            label: "Continue",
+                            variant: "primary",
+                            action: { name: "continue" },
+                          },
+                          {
+                            id: "action2",
+                            component: "Button",
+                            label: "Cancel",
+                            action: { name: "cancel" },
+                          },
+                        ]}
+                      />
+                    </State>
+                  ))}
+                </Cell>
+              ),
+            )}
         </Family>
       ))}
+    </div>
+  );
+}
+
+function KeyValuePanel() {
+  const tags = [
+    ["agreed", "Agreed"],
+    ["needs", "Needs you"],
+    ["changed", "Changed"],
+    ["private", "Private"],
+    ["blocked", "Blocked"],
+  ];
+  const badges = [
+    ["measured", "Measured"],
+    ["signed", "Signed"],
+    ["vault", "Vault answer"],
+    ["model", "Model output"],
+    ["estimate", "Estimate"],
+  ];
+  const groups: [string, string[][]][] = [
+    ["Tag", tags],
+    ["Badge", badges],
+  ];
+  return (
+    <div className="cell" data-component="KeyValue · Badge · Tag">
+      <div className="head">
+        <span className="cell-name">KeyValue · Badge · Tag</span>
+      </div>
+      <div className="demo">
+        <Drawn
+          label="KeyValue"
+          components={[{ id: "root", component: "KeyValue", ...examples("KeyValue")[0]?.props }]}
+        />
+        {groups.map(([component, values]) => (
+          <div className="row wrap" key={String(component)}>
+            {values.map(([kind, label]) => (
+              <Drawn
+                key={kind}
+                label={String(label)}
+                components={[{ id: "root", component, kind, label }]}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="props">
+        Tag = state (5 words only) · Badge = where a value came from · Scope chip = who sees it
+      </div>
     </div>
   );
 }

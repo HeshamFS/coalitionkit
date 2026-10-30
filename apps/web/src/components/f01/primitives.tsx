@@ -154,7 +154,14 @@ export function Card({
     <div className={cls} {...(title ? { role: "group", "aria-label": title } : {})}>
       {(title || scope) && (
         <div className="head">
-          {title && <span className="h-title">{title}</span>}
+          {title &&
+            (onOpen ? (
+              <button type="button" className="f01-card-title h-title" onClick={onOpen}>
+                {title}
+              </button>
+            ) : (
+              <span className="h-title">{title}</span>
+            ))}
           {scope && (
             <span className="h-right">
               <ScopeBadge audience={scope} />
@@ -163,13 +170,6 @@ export function Card({
         </div>
       )}
       {children}
-      {onOpen && (
-        <div className="row">
-          <button type="button" className="btn btn-sm" onClick={onOpen}>
-            Open
-          </button>
-        </div>
-      )}
     </div>
   );
 }
