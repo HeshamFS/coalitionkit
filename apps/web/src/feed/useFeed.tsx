@@ -9,6 +9,7 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
+import type { ConsentAcknowledgement } from "../components/f08/ConsentSeal";
 import { type Answer, focusRequest } from "./actions";
 import { AgentStore } from "./agent";
 import type { HostConfig } from "./config";
@@ -20,7 +21,7 @@ export type FeedApi = {
   feed: FeedStore;
   agent: AgentStore;
   /** For trusted UI only: built from a host OpenRequest. */
-  answer: (a: Answer) => Promise<void>;
+  answer: (a: Answer) => Promise<ConsentAcknowledgement | undefined>;
   signOut: () => void;
 };
 
@@ -56,7 +57,9 @@ export function FeedProvider({
   children: ReactNode;
 }) {
   const agent = useMemo(() => new AgentStore(), []);
-  const answerRef = useRef<(a: Answer) => Promise<void>>(async () => {});
+  const answerRef = useRef<(a: Answer) => Promise<ConsentAcknowledgement | undefined>>(
+    async () => undefined,
+  );
   const feed = useMemo(
     () =>
       new FeedStore((action) => {
@@ -85,14 +88,16 @@ export function FeedProvider({
   answerRef.current = async (a) => {
     const session = config;
     const result = await postAnswer(session, a, fetchFn);
-    if (!live.current.mounted || live.current.config !== session) return;
+    if (!live.current.mounted || live.current.config !== session) return undefined;
     if (!result.ok && result.auth) {
       expired();
-      return;
+      return undefined;
     }
     agent.setRefusal(
       result.ok ? null : `${result.error}${result.detail ? `: ${result.detail}` : ""}`,
     );
+    // The host's acknowledgement: the seal shows the sequence and the owner's signature.
+    return result.ok ? { seq: result.seq, signature: result.signature } : undefined;
   };
 
   useEffect(() => {

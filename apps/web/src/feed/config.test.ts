@@ -76,3 +76,18 @@ describe("rule 2: the token never comes from the query string", () => {
     expect(readConfig("", ENV)).toBeNull();
   });
 });
+
+describe("an accepted answer", () => {
+  it("carries the host's sequence and the owner's signature for the seal's receipt", async () => {
+    const fetchFn = async () =>
+      new Response(JSON.stringify({ status: "accepted", seq: 219, consent_sig: "h.p.s" }), {
+        status: 200,
+      });
+    const result = await postAnswer(
+      { baseUrl: "", token: "t" },
+      { interrupt_id: "plan:p1:2:u1", consent: true },
+      fetchFn,
+    );
+    expect(result).toEqual({ ok: true, seq: 219, signature: "h.p.s" });
+  });
+});

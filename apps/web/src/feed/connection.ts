@@ -87,7 +87,7 @@ export function openStream(opts: StreamOptions): () => void {
 }
 
 export type AnswerResult =
-  | { ok: true; seq: number }
+  | { ok: true; seq: number; signature: string }
   | { ok: false; error: string; detail: string; auth?: boolean };
 
 /** A consent answer goes to the host as plain JSON; the host asks the owner key to sign it. */
@@ -103,7 +103,9 @@ export async function postAnswer(
     body: JSON.stringify(body),
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (res.ok) return { ok: true, seq: Number(json.seq ?? 0) };
+  if (res.ok) {
+    return { ok: true, seq: Number(json.seq ?? 0), signature: String(json.consent_sig ?? "") };
+  }
   // The host also answers 403 with an error code for a request that is not yours: that is a
   // refused answer, not a refused token.
   if (res.status === 401 || (res.status === 403 && !json.error)) {

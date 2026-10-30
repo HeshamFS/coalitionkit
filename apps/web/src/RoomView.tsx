@@ -57,7 +57,7 @@ export function RoomView() {
         expiresAt: humanTime(open.expiresAt) || undefined,
       }}
       state={feed.state}
-      onAnswer={(a) => void answer(a)}
+      onAnswer={(a) => answer(a)}
     />
   ) : (
     <EmptyState

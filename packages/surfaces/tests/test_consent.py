@@ -67,6 +67,7 @@ def test_answer_is_an_owner_signed_decide_the_host_accepts(world: World, hub: Su
     plan = plan_for_alice_and_bob(world)
     result = agent(hub, "alice").answer(f"plan:{plan}:1:alice", True)
     assert result["status"] == "accepted"
+    assert isinstance(result["consent_sig"], str) and result["consent_sig"].count(".") == 2
     decide = world.host.store.read(world.host.coalition_id)[-1]
     assert decide["type"] == "coalition.decide" and decide["on_behalf_of"] == "alice"
     jwk = world.host.state.members["alice"]["owner_key"]
