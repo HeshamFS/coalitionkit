@@ -4,7 +4,8 @@ import { PrivacyCharterRevision } from "./presentation";
 import { Action, type Props, type Send, text } from "./shared";
 export function CommitmentCard({ p, send }: { p: Props; send: Send }) {
   const status = text(p.status);
-  const charterRevision = useContext(PrivacyCharterRevision);
+  const currentCharter = useContext(PrivacyCharterRevision);
+  const charterRevision = text(p.charterRevision) || currentCharter;
   const tag =
     status === "pending"
       ? ["needs", "Needs you"]

@@ -120,7 +120,7 @@ export function Bar({ value }: { value: number }) {
       aria-valuemax={100}
       aria-valuenow={Math.round(Math.max(0, Math.min(1, value)) * 100)}
     >
-      <span style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
+      <span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%` }} />
     </div>
   );
 }

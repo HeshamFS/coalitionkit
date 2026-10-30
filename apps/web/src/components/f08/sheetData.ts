@@ -4,7 +4,11 @@ import { obj, type Props } from "./shared";
 const bound = (value: number) => ({ value, event_ref: "example:1" });
 export function sheetData(name: string, state: string, p: Props): Props {
   if (name === "ConsentCard" && state !== "expired")
-    return { ...p, decision_deadline: new Date(Date.now() + 134 * 60000).toISOString() };
+    return {
+      ...p,
+      acceptLabel: "Accept Plan A",
+      decision_deadline: new Date(Date.now() + 134 * 60000).toISOString(),
+    };
   if (name === "StaleNotice")
     return {
       ...p,
@@ -49,6 +53,7 @@ export function sheetData(name: string, state: string, p: Props): Props {
   if (name === "CommitmentCard")
     return {
       ...p,
+      charterRevision: bound(3),
       task:
         state === "pending"
           ? "Reserve the item · ≈ €42"

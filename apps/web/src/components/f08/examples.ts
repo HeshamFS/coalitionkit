@@ -46,7 +46,6 @@ const drawn: Example[] = [
         state: "clean",
         props: {
           canaries: { value: 20, event_ref: "example:1" },
-          runs: { value: 3, event_ref: "example:1" },
           found: { value: 0, event_ref: "example:1" },
           surfaces: ["log", "feed", "deltas", "A2UI", "traces"],
         },

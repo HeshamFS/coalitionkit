@@ -25,7 +25,7 @@ export function CanaryMonitor({ p }: { p: Props; send: Send }) {
         </strong>
         <span className="small">found outside their vault</span>
         <span className="h-right">
-          <Badge tone="measured">{text(p.runs)} runs</Badge>
+          <Badge tone="measured">{p.runs === undefined ? "[RUNS]" : text(p.runs)} runs</Badge>
         </span>
       </div>
       <span className="st">adversarial agents scripted to extract them</span>

@@ -30,6 +30,7 @@ export const apis = {
   CommitmentCard: {
     name: "CommitmentCard",
     schema: z.object({
+      charterRevision: lit(Bound).optional(),
       assignee: lit(z.string()).optional(),
       commitment_id: lit(z.string()).optional(),
       decision_deadline: lit(z.string()).optional(),
@@ -44,6 +45,7 @@ export const apis = {
   ConsentCard: {
     name: "ConsentCard",
     schema: z.object({
+      acceptLabel: lit(z.string()).optional(),
       consequence: lit(z.string()),
       consequenceOfNo: lit(z.string()).optional(),
       cost: lit(z.string()).optional(),
@@ -88,6 +90,8 @@ export const apis = {
   PrivateField: {
     name: "PrivateField",
     schema: z.object({
+      label: lit(z.string()).optional(),
+      unit: lit(z.string()).optional(),
       display: lit(z.string()),
       policy: lit(z.string()).optional(),
       reveal: lit(Bound).optional(),

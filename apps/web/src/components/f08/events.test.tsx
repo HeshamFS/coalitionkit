@@ -83,7 +83,7 @@ describe("catalog named events", () => {
   });
   it("keeps revision-bound consent data intact", () => {
     const { p, dispatchAction } = draw("ConsentCard");
-    fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+    fireEvent.click(screen.getByRole("button", { name: "Accept Plan A" }));
     expect(dispatchAction).toHaveBeenCalledWith({
       event: {
         name: "decide",

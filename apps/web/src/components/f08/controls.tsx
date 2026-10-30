@@ -128,7 +128,7 @@ export function ConsentView({ p, send }: { p: Props; send: Send }) {
       cost={text(p.cost)}
       consequenceOfNo={text(p.consequenceOfNo)}
       deadline={deadlineLabel(text(p.decision_deadline))}
-      yesLabel={`Accept ${text(subject.id)}`}
+      yesLabel={text(p.acceptLabel) || "Accept"}
       noLabel={subject.kind === "plan" ? "Not this plan" : "Not this one"}
       state={expired ? "expired" : preview === "answered" || preview === "stale" ? preview : "open"}
       answer={preview === "answered"}

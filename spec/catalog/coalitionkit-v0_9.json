@@ -4996,6 +4996,10 @@
     "task": {
      "type": "id",
      "doc": "ref"
+    },
+    "charterRevision": {
+     "type": "number",
+     "doc": "Bound current charter revision required to resume a suspended commitment."
     }
    }
   },
@@ -5048,6 +5052,10 @@
     "yourPart": {
      "type": "string",
      "doc": "string"
+    },
+    "acceptLabel": {
+     "type": "string",
+     "doc": "Optional affirmative button label, including a human-readable subject name; defaults to Accept."
     }
    }
   },
@@ -5200,6 +5208,14 @@
     "reveal": {
      "type": "number",
      "doc": "seconds"
+    },
+    "label": {
+     "type": "string",
+     "doc": "Visible field label; never the private value."
+    },
+    "unit": {
+     "type": "string",
+     "doc": "Unit or cadence displayed beside the masked value."
     }
    }
   },

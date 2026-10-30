@@ -32,10 +32,16 @@ describe.each([
       return;
     }
     for (const example of examples) {
+      const count =
+        family === "08" && example.name === "PrivateField"
+          ? 3
+          : family === "08" && example.name === "ApprovalButton"
+            ? example.states.length + 1
+            : example.states.length;
       expect(
         container.querySelectorAll(`section[data-component="${example.name}"]`).length,
         example.name,
-      ).toBe(example.states.length);
+      ).toBe(count);
     }
   });
 });

@@ -2,12 +2,7 @@
 
 import { examples } from "../../components/f08/examples";
 import { panels } from "../../components/f08/panels";
-import {
-  DisclosurePreviews,
-  PrivacyCharterRevision,
-  PrivacyDoor,
-  PrivacyFieldLayout,
-} from "../../components/f08/presentation";
+import { DisclosurePreviews, PrivacyDoor } from "../../components/f08/presentation";
 import { PreviewState } from "../../components/f08/shared";
 import { Family } from "../Cell";
 import { One } from "../Drawn";
@@ -89,25 +84,26 @@ function Samples({ name }: { name: string }) {
 function PrivateFields() {
   return (
     <>
-      <PrivacyFieldLayout value={{ label: "Usage limit", unit: "per cycle" }}>
-        <One
-          component="PrivateField"
-          props={{
-            display: "••••",
-            policy: "vault",
-            reveal: { value: 10, event_ref: "example:1" },
-          }}
-        />
-      </PrivacyFieldLayout>
-      <PrivacyFieldLayout value={{ label: "Phone" }}>
-        <One
-          component="PrivateField"
-          props={{ display: "+351 •••• ••• 21", policy: "never shared" }}
-        />
-      </PrivacyFieldLayout>
-      <PrivacyFieldLayout value={{ label: "Start" }}>
-        <One component="PrivateField" props={{ display: "09:05", policy: "shared with task" }} />
-      </PrivacyFieldLayout>
+      <One
+        component="PrivateField"
+        props={{
+          label: "Usage limit",
+          unit: "per cycle",
+          display: "••••",
+          policy: "vault",
+          reveal: { value: 10, event_ref: "example:1" },
+        }}
+      />
+
+      <One
+        component="PrivateField"
+        props={{ label: "Phone", display: "+351 •••• ••• 21", policy: "never shared" }}
+      />
+
+      <One
+        component="PrivateField"
+        props={{ label: "Start", display: "09:05", policy: "shared with task" }}
+      />
     </>
   );
 }
@@ -118,56 +114,54 @@ export function Sheet08() {
         "Usage limit": { question: '"Is €96 within your limit?"', answer: "yes", exact: '"€140"' },
       }}
     >
-      <PrivacyCharterRevision value="3">
-        <div className="sheet f08-sheet" data-testid="sheet-08">
-          <div className="sheet-head">
-            <div>
-              <div className="eyebrow">coalitionkit/v0_9 · family 08 · example data</div>
-              <div className="sheet-title">Privacy and consent</div>
-              <div className="sheet-sub">
-                What stays yours, what others can learn and how little, who sees each thing, and
-                every moment where nothing happens until a person says yes with their own key.
-              </div>
-            </div>
-            <div className="h-right">
-              <span className="badge b-example">Example data</span>
-              <span className="scope">vault · scope · PSI · consent</span>
+      <div className="sheet f08-sheet" data-testid="sheet-08">
+        <div className="sheet-head">
+          <div>
+            <div className="eyebrow">coalitionkit/v0_9 · family 08 · example data</div>
+            <div className="sheet-title">Privacy and consent</div>
+            <div className="sheet-sub">
+              What stays yours, what others can learn and how little, who sees each thing, and every
+              moment where nothing happens until a person says yes with their own key.
             </div>
           </div>
-          {sections.map((section) => (
-            <Family key={section.number} n={section.number} title={section.heading}>
-              {section.cells.map((cell) => {
-                const name = cell.names[0];
-                const panel = panels[name];
-                if (!panel) return null;
-                return (
-                  <div key={name} className={`cell${cell.span ? " span2" : ""}`} data-panel={name}>
-                    <div className="head">
-                      <span className="cell-name">
-                        {name} · {panel.title}
-                      </span>
-                      {panel.badge && (
-                        <span className={`h-right badge b-${panel.tone}`}>{panel.badge}</span>
-                      )}
-                      {panel.doors && (
-                        <span className="h-right door">
-                          {panel.doors.map((d) => (
-                            <span key={d}>{d}</span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                    <div className="demo">
-                      <Samples name={name} />
-                    </div>
-                    <div className="props">{panel.props}</div>
-                  </div>
-                );
-              })}
-            </Family>
-          ))}
+          <div className="h-right">
+            <span className="badge b-example">Example data</span>
+            <span className="scope">vault · scope · PSI · consent</span>
+          </div>
         </div>
-      </PrivacyCharterRevision>
+        {sections.map((section) => (
+          <Family key={section.number} n={section.number} title={section.heading}>
+            {section.cells.map((cell) => {
+              const name = cell.names[0];
+              const panel = panels[name];
+              if (!panel) return null;
+              return (
+                <div key={name} className={`cell${cell.span ? " span2" : ""}`} data-panel={name}>
+                  <div className="head">
+                    <span className="cell-name">
+                      {name} · {panel.title}
+                    </span>
+                    {panel.badge && (
+                      <span className={`h-right badge b-${panel.tone}`}>{panel.badge}</span>
+                    )}
+                    {panel.doors && (
+                      <span className="h-right door">
+                        {panel.doors.map((d) => (
+                          <span key={d}>{d}</span>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  <div className="demo">
+                    <Samples name={name} />
+                  </div>
+                  <div className="props">{panel.props}</div>
+                </div>
+              );
+            })}
+          </Family>
+        ))}
+      </div>
     </DisclosurePreviews>
   );
 }
