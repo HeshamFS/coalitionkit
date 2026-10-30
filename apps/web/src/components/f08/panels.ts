@@ -78,7 +78,7 @@ export const panels: Record<
   ApprovalButton: {
     title: "one tap",
     props:
-      "subject · memberel · consequence (required) · disabledReason · on lens: money never confirms on glasses",
+      "subject · label · consequence (required) · disabledReason · on lens: money never confirms on glasses",
     doors: ["compact", "lens"],
   },
   DurableConsent: {

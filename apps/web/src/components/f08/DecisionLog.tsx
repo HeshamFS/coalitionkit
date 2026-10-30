@@ -25,6 +25,7 @@ export function DecisionLog({ p, send }: { p: Props; send: Send }) {
                 <>
                   <b>{text(e.answer).replace(/^./, (s) => s.toUpperCase())}</b> to {text(e.subject)}{" "}
                   r{text(e.revision)}
+                  {e.closed === true && " · decision closed"}
                 </>
               ) : (
                 text(e.subject)

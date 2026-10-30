@@ -14,7 +14,12 @@ export function StaleNotice({ p, send }: { p: Props; send: Send }) {
           <b>
             {text(obj(p.subject).id)} changed to revision {text(p.currentRevision)}
           </b>{" "}
-          while you were reading. Your answer was not sent.
+          while you were reading.{" "}
+          {list(p.diff)
+            .map((v) => text(obj(v).description))
+            .filter(Boolean)
+            .join(" ")}{" "}
+          Your answer was not sent.
         </div>
       </div>
       <div className="f08-diff">

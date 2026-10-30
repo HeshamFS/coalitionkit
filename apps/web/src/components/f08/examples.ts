@@ -169,7 +169,7 @@ const drawn: Example[] = [
     states: [
       {
         state: "default",
-        props: { field: "Resource limit", level: "bool", buckets: ["€80–€150"], overrides: [] },
+        props: { field: "Usage limit", level: "bool", buckets: ['"€80 – €150"'], overrides: [] },
       },
     ],
   },

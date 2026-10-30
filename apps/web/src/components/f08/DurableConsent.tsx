@@ -24,7 +24,9 @@ export function DurableConsent({ p, send }: { p: Props; send: Send }) {
                   <td>
                     <span className="row">
                       <span className={`av av-xs ${g.pending ? "s1" : "av-sq sh"}`}>
-                        {text(g.grantee).split(" ").at(-1)?.slice(0, 1)}
+                        {g.pending
+                          ? text(g.grantee).split(" ").at(-1)?.slice(0, 1)
+                          : text(g.grantee).slice(0, 1)}
                       </span>
                       {text(g.grantee)}
                     </span>
