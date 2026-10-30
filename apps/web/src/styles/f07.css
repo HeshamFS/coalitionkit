@@ -153,3 +153,205 @@
     overflow: auto;
   }
 }
+.f07-sheet .sheet-sub {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.f07-agenda-list {
+  gap: 0;
+}
+.f07-agenda:last-child {
+  border-bottom: 0;
+}
+.f07-agenda .pin {
+  background: var(--line-strong);
+}
+.f07-agenda .f07-dot-agreed {
+  background: var(--blue);
+}
+.f07-agenda .f07-dot-needs-you {
+  background: var(--warn-fg);
+}
+.f07-agenda-title {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f07-agenda > span:nth-child(2) {
+  flex: none;
+}
+.f07-text-action {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--blue-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.f07-location {
+  gap: 6px;
+}
+.f07-location > b {
+  font-size: 13.5px;
+}
+.f07-location input[type="radio"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  flex: none;
+  background: var(--surface);
+}
+.f07-location input[type="radio"]:checked {
+  border: 5px solid var(--blue);
+}
+.f07-location input:checked + span {
+  font-weight: 700;
+}
+.f07-location label.row {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f07-location label.col {
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.f07-location select {
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+}
+.f07-location > button {
+  background: var(--blue);
+  color: var(--on-blue);
+  border-color: var(--blue);
+}
+.f07-location select:focus-visible,
+.f07-text-action:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.f07-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.f07-search {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgb(var(--blue-rgb) / 16%);
+}
+.f07-search input {
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+.f07-place {
+  flex-direction: row;
+  gap: 10px;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.f07-place.selected {
+  border-color: var(--blue);
+  background: var(--blue-tint);
+}
+.f07-place .col {
+  gap: 2px;
+}
+.f07-place b {
+  font-size: 12.5px;
+}
+.f07-place .badge {
+  align-self: flex-start;
+}
+.f07-place-image {
+  width: 54px;
+  height: 54px;
+  flex: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--line), var(--ink-3));
+}
+.f07-over {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.f07-pin-map {
+  background: var(--surface-3);
+  position: relative;
+  min-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.f07-pin-map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.f07-pin-actions {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .f07-picker {
+    grid-template-columns: 1fr;
+  }
+}
+.f07-map {
+  height: 330px;
+}
+.f07-map > svg {
+  height: 100%;
+}
+.f07-map-controls .icon-btn {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.f07-map-controls {
+  gap: 2px;
+}
+.f07-map-hit {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.f07-map-label {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--blue-text);
+  font-size: 9.5px;
+  cursor: pointer;
+}
+.f07-map-legend {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+}

@@ -240,3 +240,165 @@ meter.f-meter::-moz-meter-bar {
     grid-template-columns: 1fr;
   }
 }
+/* Family sheet composition; component styles remain shared with live surfaces. */
+.f05-sheet .sheet-sub {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.f05-sheet .panel-ParticipantCard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.f05-vendors {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 6px 8px;
+}
+.f05-text-action {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--blue-text);
+  cursor: pointer;
+}
+.f05-charter {
+  gap: 6px;
+}
+.f05-charter b {
+  font-size: 13.5px;
+}
+.f05-charter ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f05-charter li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f05-charter li > .num {
+  width: 16px;
+  flex: none;
+}
+.f05-charter .row:last-child {
+  align-items: flex-start;
+}
+.f05-charter .row:last-child button {
+  flex: none;
+}
+@media (max-width: 600px) {
+  .f05-sheet .panel-ParticipantCard {
+    grid-template-columns: 1fr;
+  }
+}
+.f05-sheet.sheet,
+.f07-sheet.sheet {
+  width: calc(100% + 72px);
+  margin-inline: -36px;
+}
+.f05-ring {
+  width: 220px;
+  height: 200px;
+}
+.f05-seat-hit {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.f05-ring-legend {
+  gap: 10px;
+}
+.f05-ring-legend .acting {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+.f05-ring-legend .owes {
+  box-shadow: 0 0 0 2px var(--warn-fg);
+}
+.f05-ring-legend .open {
+  border: 1px dashed var(--line-strong);
+}
+.f05-participant {
+  gap: 6px;
+}
+.f05-participant .col {
+  gap: 0;
+}
+.f05-participant .av-lg {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+.f05-participant .f05-person {
+  font-weight: 700;
+}
+.f05-participant .chip {
+  height: 20px;
+  font-size: 11px;
+}
+.f05-participant .spinner {
+  color: var(--blue);
+}
+.f05-participant[data-state="acting"] {
+  padding: 9px 11px;
+}
+.f05-participant[data-state="left"] {
+  opacity: 1;
+}
+.f05-participant[data-state="left"] .f05-person,
+.f05-participant[data-state="left"] .av,
+.f05-participant[data-state="invited"] .f05-person {
+  color: var(--ink-3);
+}
+.f05-avatar-agreed,
+.f05-avatar-watcher {
+  position: relative;
+}
+.f05-avatar-agreed::after,
+.f05-avatar-watcher::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--presence-live);
+}
+.f05-avatar-watcher::after {
+  background: var(--presence-away);
+}
+.f05-avatar-acting {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.f05-avatar-invited {
+  opacity: 0.5;
+}
+.f05-participant > .f05-text-action {
+  align-self: flex-start;
+}
+.f05-sheet .cell-name,
+.f07-sheet .cell-name {
+  font-weight: 700;
+}
+.f05-ring-legend {
+  justify-content: center;
+}
+.f07-location > small {
+  font-size: 12px;
+  line-height: 1.45;
+}

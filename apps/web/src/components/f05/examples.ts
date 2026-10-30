@@ -45,7 +45,7 @@ export const examples: Record<string, { state: string; props: Record<string, unk
     {
       state: "default",
       props: {
-        goal: "Goal by Mon",
+        goal: "by Mon",
         openSeats: { value: 2, event_ref: "example:1" },
         seats: [
           {
@@ -235,7 +235,10 @@ export const examples: Record<string, { state: string; props: Record<string, unk
   ],
   RoleChip: [
     { state: "held", props: { role: "organizer", open: false } },
-    { state: "open", props: { role: "member", open: true } },
+    { state: "member", props: { role: "member", open: false } },
+    { state: "decider", props: { role: "decider", open: false } },
+    { state: "watcher", props: { role: "watcher", open: false } },
+    { state: "open", props: { role: "helper", open: true } },
   ],
   RoleMatrix: [
     {
@@ -257,11 +260,11 @@ export const examples: Record<string, { state: string; props: Record<string, unk
           },
           {
             action: "see raw data",
-            rights: { organizer: "\u2713", member: "\u2713", watcher: "\u2013" },
+            rights: { organizer: "own", member: "own", watcher: "\u2013" },
           },
           {
             action: "change charter",
-            rights: { organizer: "\u2713", member: "\u2713", watcher: "\u2013" },
+            rights: { organizer: "propose", member: "accept", watcher: "\u2013" },
           },
         ],
       },
@@ -351,11 +354,24 @@ export const examples: Record<string, { state: string; props: Record<string, unk
 examples.ParticipantCard?.forEach((example, index) => {
   example.props.participant = `Member ${String.fromCharCode(65 + index)}`;
   example.props.seat = { value: [3, 1, 5, 4, 2, 5][index], event_ref: "example:1" };
-  if (example.state === "acting") example.props.act = "answering query q12";
+  if (example.state === "acting") {
+    example.props.act = "answering query q12";
+    example.props.roles = ["member", "decider"];
+  }
+  if (example.state === "owes") {
+    example.props.roles = ["member", "decider"];
+    example.props.capabilities = ["Resource 3"];
+  }
   if (example.state === "watcher") {
     example.props.roles = ["observe only"];
     example.props.capabilities = [];
   }
-  if (example.state === "invited") example.props.act = "invited 2 h ago · expires in 22 h";
-  if (example.state === "left") example.props.act = "2 tasks went back to planning";
+  if (example.state === "invited") {
+    example.props.roles = ["invited 2 h ago"];
+    example.props.act = "hasn't joined · invite expires in 22 h";
+  }
+  if (example.state === "left") {
+    example.props.roles = ["left yesterday"];
+    example.props.act = "2 tasks went back to planning";
+  }
 });
