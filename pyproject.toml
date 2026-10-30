@@ -7,6 +7,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "coalitionkit-conformance",
     "coalitionkit-contracts",
     "coalitionkit-vault",
     "coalitionkit-runtime",
@@ -37,6 +38,7 @@ package = false
 members = ["packages/*"]
 
 [tool.uv.sources]
+coalitionkit-conformance = { workspace = true }
 coalitionkit-contracts = { workspace = true }
 coalitionkit-vault = { workspace = true }
 coalitionkit-runtime = { workspace = true }
@@ -67,14 +69,14 @@ known-third-party = ["examples"]
 known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
 
 [tool.pyright]
-include = ["packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools"]
+include = ["packages/conformance", "packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 typeCheckingMode = "strict"
 
 [tool.importlinter]
-root_packages = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
+root_packages = ["coalitionkit_conformance", "coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -246,3 +248,9 @@ name = "core packages never import channels"
 type = "forbidden"
 source_modules = ["coalitionkit_contracts", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_mcp", "coalitionkit_surfaces", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_vault", "coalitionkit_packs", "coalitionkit_mint"]
 forbidden_modules = ["coalitionkit_channels"]
+
+[[tool.importlinter.contracts]]
+name = "conformance uses only contracts and client edges"
+type = "forbidden"
+source_modules = ["coalitionkit_conformance"]
+forbidden_modules = ["coalitionkit_server", "coalitionkit_runtime", "coalitionkit_surfaces", "coalitionkit_vault", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_gardener", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels", "coalitionkit_edges.a2a.server", "coalitionkit_edges.a2a.host_port"]
