@@ -186,10 +186,25 @@ export function NeedCard({
   const withdrawn = state === "withdrawn";
   return (
     <article
-      className={cx("card", state === "matched" && "card-live")}
+      className={cx("card", "f06-need", state === "matched" && "card-live")}
+      tabIndex={onOpen ? 0 : undefined}
+      role={onOpen ? "button" : undefined}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen?.();
+        }
+        if (event.key === "Delete" && state === "open") {
+          event.preventDefault();
+          onWithdraw?.();
+        }
+      }}
       data-need={needId}
+      data-state={state}
+      aria-keyshortcuts={state === "open" ? "Enter Space Delete" : "Enter Space"}
       aria-label={`Need ${text}, ${state}`}
-      style={{ opacity: withdrawn ? 0.55 : 1 }}
+      style={{ opacity: withdrawn ? "var(--f06-inactive-opacity, .55)" : 1 }}
     >
       <div className="head">
         <Avatar seat={owner.seat} label={owner.label} />
@@ -205,7 +220,7 @@ export function NeedCard({
           </span>
         )}
       </div>
-      <div className="row">
+      <div className={withdrawn ? "col" : "row"}>
         <Badge
           kind={state === "matched" ? "signed" : state === "fulfilled" ? "measured" : "estimate"}
           label={state}
@@ -218,20 +233,6 @@ export function NeedCard({
           </span>
         )}
       </div>
-      {(onOpen || onWithdraw) && !withdrawn && state !== "fulfilled" && (
-        <div className="row">
-          {onOpen && (
-            <button type="button" className="btn btn-sm" onClick={onOpen}>
-              Open
-            </button>
-          )}
-          {onWithdraw && (
-            <button type="button" className="btn btn-sm btn-ghost" onClick={onWithdraw}>
-              Withdraw
-            </button>
-          )}
-        </div>
-      )}
     </article>
   );
 }
@@ -239,6 +240,13 @@ export function NeedCard({
 /* ---------- OfferCard ---------- */
 
 export type OfferState = "open" | "accepted" | "expired" | "withdrawn";
+
+function shortTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? value
+    : date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+}
 
 export function OfferCard({
   offerId,
@@ -274,8 +282,16 @@ export function OfferCard({
     <article
       className={cx("card", asking && "card-ask")}
       data-offer={offerId}
+      tabIndex={state === "open" && onWithdraw ? 0 : undefined}
+      aria-keyshortcuts={state === "open" ? "Delete" : undefined}
+      onKeyDown={(event) => {
+        if (event.key === "Delete" && state === "open" && event.target === event.currentTarget) {
+          event.preventDefault();
+          onWithdraw?.();
+        }
+      }}
       aria-label={`Offer ${what}, ${state}`}
-      style={{ opacity: dead ? 0.55 : 1 }}
+      style={{ opacity: dead ? "var(--f06-inactive-opacity, .55)" : 1 }}
     >
       <div className="head">
         <span
@@ -291,21 +307,31 @@ export function OfferCard({
           {state === "open" && !asking && scope !== "private" && (
             <Badge kind="estimate" label="quote" />
           )}
-          {dead && <Badge kind="estimate" label={state} />}
+          {state === "withdrawn" && <Badge kind="estimate" label={state} />}
         </span>
       </div>
-      {meta && <span className="small">{meta}</span>}
-      {scope === "private" && (
+      {meta && !dead && <span className="small">{meta}</span>}
+      {scope === "private" && !meta && (
         <span className="small">only the people named here and the host see it</span>
       )}
-      {cost && (
+      {cost && !dead && (
         <div className="row">
-          <Bound n={cost.amount} unit={cost.unit} />
-          {cost.kind && <span className="small">{cost.kind}</span>}
-          {expires && !dead && <span className="h-right small">expires {expires}</span>}
+          <span className="num small" title={cost.amount.event_ref}>
+            {cost.unit}
+            {cost.amount.value}
+          </span>
+          {expires && !dead && (
+            <span className="h-right small">
+              expires <time dateTime={expires}>{shortTime(expires)}</time>
+            </span>
+          )}
         </div>
       )}
-      {state === "expired" && expires && <span className="small">expired {expires}</span>}
+      {state === "expired" && expires && (
+        <span className="small">
+          expired <time dateTime={expires}>{shortTime(expires)}</time>
+        </span>
+      )}
       {asking && (
         <div className="row">
           <button type="button" className="btn btn-sm btn-primary" onClick={onAccept}>
@@ -313,13 +339,6 @@ export function OfferCard({
           </button>
           <button type="button" className="btn btn-sm" onClick={onAsk}>
             Ask
-          </button>
-        </div>
-      )}
-      {onWithdraw && state === "open" && !asking && (
-        <div className="row">
-          <button type="button" className="btn btn-sm btn-ghost" onClick={onWithdraw}>
-            Withdraw
           </button>
         </div>
       )}
