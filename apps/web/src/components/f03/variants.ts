@@ -19,11 +19,21 @@ export function variants(name: string): Data[] {
   if (name === "Message")
     return [
       { text: "On my way", state: "sending" },
-      { text: "On my way", state: "seen" },
+      { text: "On my way", state: "seen", seen_count: { value: 2, event_ref: "example:44" } },
       { text: "On my way", state: "failed" },
       {
         text: "",
         state: "redacted",
+        scope: "task:t2",
+        projection: [
+          { text: "My place is " },
+          { length: { value: 10, event_ref: "example:44" } },
+          { text: ", unit " },
+          {
+            length: { value: 4, event_ref: "example:44" },
+            width: { value: 26, event_ref: "example:44" },
+          },
+        ],
         redactions: [
           { length: { value: 10, event_ref: "example:44" } },
           { length: { value: 4, event_ref: "example:44" } },
@@ -38,14 +48,18 @@ export function variants(name: string): Data[] {
         state: "running",
         summary: '"Is €96 within the most you’ll pay?"',
         args: { question: "Is €96 within the most you’ll pay?" },
+        provenance: "asked by Planner · only your vault sees the number",
       },
       {
         tool: "psi.match",
         state: "done",
         summary: "2 shared slots across 3 calendars",
         args: { scope: "counts only" },
+        duration: { value: 0.4, event_ref: "example:44" },
+        emphasis: "2 shared slots",
+        provenance: "counts only · nobody learned a busy time",
       },
-      { tool: "resource.quote", state: "failed" },
+      { tool: "resource.quote", state: "failed", failure: "timeout" },
     ];
   if (name === "AgentStatus")
     return [

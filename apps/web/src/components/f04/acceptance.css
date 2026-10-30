@@ -85,3 +85,10 @@
   height: 28px;
   padding: 0 10px;
 }
+
+.ck-AcceptanceForm .ck-action:disabled {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-color: var(--line);
+}

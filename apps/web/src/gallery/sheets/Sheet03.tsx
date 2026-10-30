@@ -33,6 +33,19 @@ export function Sheet03() {
             >
               <div className="head">
                 <span className="cell-name">{panel.title}</span>
+                {panel.name === "VideoCall" && (
+                  <>
+                    <span className="h-right door">
+                      <span>wide</span>
+                    </span>
+                    <span className="badge b-measured">live</span>
+                  </>
+                )}
+                {panel.name === "VoiceCall" && (
+                  <span className="h-right door">
+                    <span>compact</span>
+                  </span>
+                )}
                 {panel.name === "McpAppView" && (
                   <span className="h-right door">
                     <span>MCP App</span>

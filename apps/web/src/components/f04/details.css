@@ -1,0 +1,144 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-LimitField.ck-family,
+.ck-DocumentShare.ck-family,
+.ck-OwnerSign.ck-family,
+.ck-OfferForm.ck-family {
+  line-height: normal;
+  gap: 6px;
+}
+.f04-limit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 12px / 1.45 var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+}
+.f04-over {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.f04-text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue-text);
+  font: inherit;
+  cursor: pointer;
+}
+.f04-document-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+}
+.f04-document-preview > b {
+  font-size: 12px;
+}
+.f04-push {
+  margin-left: auto;
+}
+.ck-DocumentShare .btn {
+  flex-shrink: 0;
+}
+.ck-OwnerSign > .row > b {
+  font-size: 13.5px;
+}
+.ck-OwnerSign dl {
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+}
+.ck-OwnerSign > .btn {
+  width: 100%;
+}
+.ck-ReviewStep.ck-family {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  line-height: normal;
+}
+.f04-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.f04-review-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f04-review-sections .card {
+  flex-direction: row;
+}
+.f04-review-sections .col {
+  gap: 0;
+}
+.f04-review-sections .small {
+  color: var(--ink);
+}
+.f04-review-sections button.small {
+  color: var(--blue-text);
+  font: 12px / 1.45 var(--font-ui);
+}
+.f04-review-grid > .col {
+  gap: 8px;
+}
+.f04-target {
+  height: 22px;
+}
+.f04-offer-input {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px var(--font-ui);
+}
+.ck-OfferForm .input input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 13px var(--font-mono);
+  appearance: textfield;
+}
+.ck-OfferForm .input input::-webkit-inner-spin-button {
+  appearance: none;
+}
+.ck-OfferForm .input .unit {
+  white-space: nowrap;
+}
+.ck-OfferForm .field .chip {
+  height: 24px;
+}
+.ck-OfferForm .f04-add {
+  border-style: dashed;
+}
+@media (max-width: 640px) {
+  .f04-review-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ck-OfferForm label.field > span:first-child,
+.ck-OfferForm .field > .lbl {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ck-OfferForm label.field {
+  gap: 4px;
+}

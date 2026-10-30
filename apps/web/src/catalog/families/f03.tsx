@@ -51,6 +51,8 @@ export const apis = {
   CallSummary: {
     name: "CallSummary",
     schema: z.object({
+      participants: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      transcript: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       decided: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       duration: z.union([Bound, CommonSchemas.DataBinding]).optional(),
       needs: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
@@ -117,6 +119,9 @@ export const apis = {
   Message: {
     name: "Message",
     schema: z.object({
+      seen_count: z.union([Bound, CommonSchemas.DataBinding]).optional(),
+      projection: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
+      scope: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       policy: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       redactions: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       state: z
@@ -138,6 +143,10 @@ export const apis = {
   ToolCall: {
     name: "ToolCall",
     schema: z.object({
+      duration: z.union([Bound, CommonSchemas.DataBinding]).optional(),
+      failure: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      provenance: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      emphasis: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       args: z.union([z.record(z.unknown()), CommonSchemas.DataBinding]).optional(),
       state: z.union([z.enum(["running", "done", "failed"]), CommonSchemas.DataBinding]).optional(),
       summary: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
@@ -147,6 +156,8 @@ export const apis = {
   VideoCall: {
     name: "VideoCall",
     schema: z.object({
+      title: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      elapsed: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       captions: z.union([z.boolean(), CommonSchemas.DataBinding]).optional(),
       recording: z.union([z.enum(["transcript", "off"]), CommonSchemas.DataBinding]).optional(),
       tiles: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
@@ -155,6 +166,9 @@ export const apis = {
   VoiceCall: {
     name: "VoiceCall",
     schema: z.object({
+      title: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      elapsed: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      clock: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       caption: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       participants: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       speaking: z.union([z.string(), CommonSchemas.DataBinding]).optional(),

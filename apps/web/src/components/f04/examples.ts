@@ -35,7 +35,16 @@ export const examples: Record<string, Data> = {
   },
   DocumentShare: {
     document: "document:1",
-    purpose: "Share only what proves the change.",
+    purpose: "Share only what proves the cancellation.",
+    preview: {
+      title: "RESOURCE PASS",
+      rows: [
+        { field: "Owner" },
+        { field: "Task", value: "482 · CANCELLED" },
+        { field: "Reference" },
+        { field: "Position", value: "14C" },
+      ],
+    },
     masks: [
       { field: "Owner", by: "agent" },
       { field: "Reference", by: "agent" },
@@ -59,24 +68,52 @@ export const examples: Record<string, Data> = {
     ],
   },
   Form: {
-    title: "Tell us what you need",
+    title: "Your part of the task",
+    description: "Planner asks so it can plan. Fields marked private never leave your vault.",
+    show_schema: true,
+    scope: "task:t2",
+    submit_label: "Send to Planner",
     fields: [
-      { id: "goal", label: "Goal", kind: "text", required: true, help: "What should happen?" },
-      { id: "date", label: "By when?", kind: "datetime" },
+      { id: "finish_by", label: "Finish by", kind: "datetime", display_label: "Tomorrow 10:00" },
       {
-        id: "limit",
-        label: "Budget limit",
+        id: "max_cost",
+        label: "Most you'll pay for the resource",
         kind: "money",
-        private: "vault",
-        help: "Only your agent can read this.",
+        private: "answer-only",
+        display_value: { value: 140, event_ref: "example:44" },
+        unit: "per use",
+        help: 'Agents only learn "within" or "over"',
       },
+      {
+        id: "items",
+        label: "Items",
+        kind: "choice",
+        initial: "small",
+        options: [
+          { id: "none", label: "None" },
+          { id: "small", label: "Small" },
+          { id: "large", label: "Large" },
+        ],
+      },
+      { id: "share_slot", label: "Happy to share a slot", kind: "bool" },
     ],
-    submit_event: "form.submit",
+    submit_event: "coalition.offer",
   },
   LimitField: {
-    limits: [{ id: "budget", label: "Budget limit", disclose: "answer-only" }],
+    shared_values: { time: "10:00" },
+    limits: [
+      { id: "cost", label: "Resource per use", disclose: "answer-only" },
+      { id: "time", label: "Latest finish", disclose: "shared" },
+      { id: "distance", label: "Distance at most", disclose: "answer-only" },
+    ],
     queries: [
-      { question: "Does Plan A fit your limit?", answer: "Yes", asker: "Agent B", time: "22:15" },
+      {
+        question: '"Is €96 within your resource limit?"',
+        answer: "within",
+        asker: "Agent B",
+        time: "22:15",
+      },
+      { question: '"Is €160 within…?"', answer: "over", asker: "Agent B", time: "22:16" },
     ],
   },
   NeedForm: {
@@ -86,13 +123,18 @@ export const examples: Record<string, Data> = {
     constraints: [{ kind: "deadline", value: "01:00" }],
   },
   OfferForm: {
-    what: "I can provide Resource 1",
+    what: "Twin slot, resource near workspace 1",
+    target_label: "Slot before 01:00 · B",
+    scope: "task:t2",
     target: "need",
-    cost: { amount: { value: 42, event_ref: "example:44" }, kind: "estimate" },
-    conditions: ["After approval"],
+    cost: { amount: { value: 118, event_ref: "example:44" }, kind: "estimate" },
+    conditions: ["until 01:00", "quiet use"],
     expires: "2099-11-01T12:00:00Z",
   },
   OwnerSign: {
+    subject_label: "Plan A",
+    answer_label: "Yes",
+    device_label: "this phone",
     subject: { kind: "plan", id: "p1", revision: { value: 2, event_ref: "example:44" } },
     answer: "bool",
     kid: "owner · 3b9e…71f",
@@ -108,7 +150,8 @@ export const examples: Record<string, Data> = {
     decision_deadline: "2099-11-01T12:00:00Z",
   },
   ReviewStep: {
-    notice: "After publishing, the charter can only change by a new revision every member accepts.",
+    notice:
+      "Once published, the charter can only change by a new revision that every member accepts.",
     precheck: { passed: true },
     sections: [
       { label: "Goal", summary: "Finish by 10:00, together if possible", editStep: "goal" },

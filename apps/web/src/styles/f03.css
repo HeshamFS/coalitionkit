@@ -14,63 +14,6 @@
   border-radius: 50%;
   background: var(--blue);
 }
-.ck-VideoCall {
-  background: var(--dark-bg);
-  color: var(--dark-ink);
-  border-color: var(--dark-line);
-}
-.ck-VideoCall small {
-  color: var(--dark-ink-2);
-}
-.ck-call-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.ck-video-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.ck-video-tile {
-  min-height: 130px;
-  background: var(--dark-surface);
-  border: 2px solid transparent;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 14px;
-}
-.ck-video-tile .ck-avatar {
-  width: 48px;
-  height: 48px;
-  font-size: 20px;
-}
-.ck-speaking {
-  border-color: var(--dark-blue);
-}
-.ck-captions {
-  background: var(--dark-surface);
-  padding: 8px;
-  border-radius: 6px;
-}
-.ck-VoiceCall {
-  align-items: center;
-  text-align: center;
-  background: var(--dark-bg);
-  color: var(--dark-ink);
-  padding: 24px 14px;
-}
-.ck-call-people {
-  display: flex;
-  gap: 10px;
-}
-.ck-call-people .ck-avatar {
-  width: 42px;
-  height: 42px;
-}
 .ck-extract {
   padding: 10px;
   background: var(--blue-tint);
@@ -87,11 +30,6 @@
 }
 .ck-Message[data-state="redacted"] .ck-bubble {
   color: var(--ink-2);
-}
-@media (max-width: 480px) {
-  .ck-video-grid {
-    grid-template-columns: 1fr;
-  }
 }
 /* Panel structure belongs to the sheet; component styling also applies in rooms. */
 .ck-sheet-03 .ck-demo-AgentStatus {
@@ -129,7 +67,9 @@
   border-top-left-radius: 4px;
 }
 .ck-Message[data-state="sending"] .f03-bubble {
-  opacity: 0.7;
+  --f03-sending-bg: #4375c9;
+  opacity: 1;
+  background: var(--f03-sending-bg);
 }
 .ck-Message[data-state="failed"] .f03-bubble {
   background: var(--bad-bg);
@@ -150,6 +90,7 @@
   align-self: flex-start;
 }
 .f03-message-error {
+  line-height: normal;
   align-self: flex-end;
   color: var(--bad-fg);
   font-size: 11.5px;
@@ -171,7 +112,7 @@
   width: 70px;
   border-radius: 3px;
   vertical-align: middle;
-  margin-right: 4px;
+  margin-right: 0;
 }
 .f03-spinner {
   display: inline-block;
@@ -189,7 +130,7 @@
 }
 .ck-ToolCall.ck-family {
   padding: 0;
-  gap: 0;
+  gap: 6px;
   overflow: hidden;
 }
 .f03-tool-head {
@@ -224,6 +165,7 @@
   gap: 4px;
   padding: 8px 10px;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--ink-2);
 }
 .f03-text-button {
@@ -454,4 +396,42 @@
 .ck-AgentHandoff .ck-action:last-child:not(:first-child) {
   background: transparent;
   border-color: transparent;
+}
+
+[data-theme="dark"] .ck-Message[data-state="sending"] .f03-bubble {
+  --f03-sending-bg: var(--blue);
+}
+.ck-Composer .ck-action:disabled,
+.ck-ElicitationForm .ck-action:disabled {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+.ck-AgentHandoff .av.s1 {
+  background: var(--f03-handoff-seat, #0d7a82);
+}
+
+.f03-tool-body .st {
+  line-height: normal;
+}
+
+.f03-spinner {
+  animation: f03-spin 0.8s linear infinite;
+}
+@keyframes f03-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .f03-spinner {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ck-sheet-03 .head {
+    flex-wrap: wrap;
+  }
 }
