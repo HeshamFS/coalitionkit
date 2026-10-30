@@ -16,6 +16,8 @@ from coalitionkit_contracts import (
     DecisionExpiredError,
     OwnerKeyConflictError,
     SchemaValidationError,
+    Scope,
+    ScopeSource,
     SignatureError,
     StaleSubjectError,
     StoredSubmission,
@@ -30,6 +32,7 @@ from coalitionkit_contracts import (
     new_ulid,
     next_revision,
     prev_hash,
+    principals,
     receipt_payload,
     sign_envelope,
     submission_digest,
@@ -44,9 +47,9 @@ from .cache import HostCache
 from .consents import ConsentLedger
 from .identity import IdentityRegistry
 from .lifecycle import State
-from .projector import delivery, derive_scope, projection
+from .projector import ViewerProjection, delivery, derive_scope, projection
 from .rules import Refusal, authorize, require, scope_check, stage_check
-from .steward import FakeSteward, Steward, Verdict
+from .steward import FakeSteward, ReviewContext, Steward, Verdict
 from .store import Document, EventStore, Transaction
 
 
@@ -225,7 +228,19 @@ class CoalitionHost:
         policy_id = self.policy(event)
         if policy_id:
             raise Refusal("pack_violation", {"policy_id": policy_id})
-        verdict = self.steward.review(deepcopy(event))
+        members = frozenset(state.members)
+        verdict = self.steward.review(
+            deepcopy(event),
+            context=ReviewContext(
+                members=members,
+                consented=members,
+                recipients=principals(
+                    ScopeSource(Scope.model_validate(event["scope"]), event["on_behalf_of"]),
+                    state.membership(),
+                )
+                & members,
+            ),
+        )
         if verdict.action not in {"allow", "redact"}:
             raise Refusal("steward_blocked", {"policy_id": verdict.policy_id})
         result = self._append(tx, event, sender, verdict, now)
@@ -426,6 +441,11 @@ class CoalitionHost:
             return projection(
                 state, list(state.events.values()), viewer, self.sign, self._cache.redactions
             )
+
+    def update_view(self, view: ViewerProjection) -> list[Document]:
+        with self._cache.transaction() as tx:
+            state = self._cache.refresh(tx, self.clock())
+            return view.update(state, self.sign, self._cache.redactions)
 
     def replay(self, viewer: str, since: int = 0) -> list[Document]:
         with self._cache.transaction() as tx:

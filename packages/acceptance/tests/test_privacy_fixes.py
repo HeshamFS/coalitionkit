@@ -38,14 +38,20 @@ def test_a_prompt_is_allowed_only_for_the_owners_own_agent() -> None:
         ledger.record("prompt", agent, f"to {agent}", "x qwertyuiopasdf y", agent_owner=agent)
     result = scan(ledger, Registry([canary]))
     assert result.sightings == {"prompt": 1}  # the owner's own agent, nothing else
-    assert result.model_prompts == {"steward_model": 1, "member_agent": 1}
+    assert result.model_prompts == {"steward_projection": 1, "member_agent": 1}
+    nobody = Canary(
+        "c2", "word", "redact", "p1", "asdfghjklqwert", "asdfghjklqwert", frozenset({HOST, STEWARD})
+    )
+    ledger = Ledger()
+    ledger.record("prompt", STEWARD, "audit", "x asdfghjklqwert y", agent_owner=STEWARD)
+    assert scan(ledger, Registry([nobody])).model_prompts == {"steward_model": 1}
     assert sorted(leak.viewer for leak in result.leaks) == [HOST, "p3"]
 
 
-async def test_steward_prompts_are_reported_apart_not_allowed() -> None:
+async def test_priv4_the_steward_model_sees_no_canary_nobody_was_to_receive() -> None:
     outcome = await run_privacy(3)
     assert outcome.leaks == []
-    assert outcome.result.model_prompts.get("steward_model", 0) > 0
+    assert outcome.result.model_prompts.get("steward_model", 0) == 0
 
 
 # -- 4. a slot is searched by both of its endpoints ------------------------------------------

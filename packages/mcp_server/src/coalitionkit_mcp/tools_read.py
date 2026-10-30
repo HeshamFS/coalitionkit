@@ -58,10 +58,57 @@ async def pending_questions(coalition_id: str, ctx: Context) -> CallToolResult:
     )
 
 
+def event_list(surface: dict[str, Any]) -> list[dict[str, Any]]:
+    """The viewer's own events as a list ordered by sequence.
+
+    A host's projection keeps them in a map keyed by event ID; the view and the text mirror both
+    want the order. Only what the viewer's projection holds is here: nothing is added.
+    """
+    raw: Any = surface.get("events")
+    items: list[Any] = list(raw.values()) if isinstance(raw, dict) else []  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType, reportUnknownMemberType]
+    if isinstance(raw, list):
+        items = list(raw)  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+    found = [e for e in items if isinstance(e, dict)]  # pyright: ignore[reportUnknownVariableType]
+    return sorted(found, key=lambda e: int(e.get("seq", 0)))  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType, reportUnknownVariableType]
+
+
+#: How much of one entry's own text the plain-text mirror carries.
+TEXT_PREVIEW = 280
+
+
+def event_line(event: dict[str, Any]) -> str:
+    """One log entry; a note's own text is shown, since hosts that read only text need it.
+
+    The text comes from the same projection as the structured result, so a field the viewer may
+    not see (redacted or out of scope) is already absent here.
+    """
+    line = f"- #{event.get('seq')} {event.get('type')}"
+    payload: Any = event.get("payload")
+    content: Any = payload.get("content") if isinstance(payload, dict) else None  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    if isinstance(content, str) and content.strip():
+        line += ": " + " ".join(content.split())[:TEXT_PREVIEW]
+    return line
+
+
 def surface_text(data: dict[str, Any]) -> str:
     """A plain-text rendering of the rebuilt surface, for hosts that render no view."""
     surface: dict[str, Any] = data.get("surface", {})
-    lines = [str(surface.get("title", "Coalition")), f"Status: {surface.get('status', 'unknown')}"]
+    events: list[dict[str, Any]] = surface.get("events", [])
+    goal = next(
+        (
+            e.get("payload", {}).get("goal")
+            for e in reversed(events)
+            if e.get("type") == "coalition.charter"
+        ),
+        None,
+    )
+    title = surface.get("title") or goal or "Coalition"
+    lines = [str(title)]
+    if surface.get("status"):  # the view carries no status of its own; never invent one
+        lines.append(f"Status: {surface['status']}")
+    if events:
+        lines.append(f"Log entries: {len(events)}")
+        lines.extend(event_line(e) for e in events)
     for task in surface.get("tasks", []):
         lines.append(f"- task {task.get('task_id')}: {task.get('status')} {task.get('title', '')}")
     for question in surface.get("questions", []):
@@ -77,6 +124,7 @@ async def my_view(coalition_id: str, ctx: Context, device: str = "web") -> CallT
     if not device or len(device) > 32:
         raise CoalitionToolError("schema_invalid", "device must be 1 to 32 characters")
     surface = await deps_of(ctx).view.surface(hosted.participant, coalition_id, device)
+    surface = {**surface, "events": event_list(surface)}
     data = {"coalition_id": coalition_id, "device": device, "surface": surface}
     return ok("my_view", data, surface_text, meta={"ui": {"resourceUri": VIEW_URI}}, readable=True)
 

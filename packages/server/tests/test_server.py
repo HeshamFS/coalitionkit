@@ -246,6 +246,9 @@ async def test_restart_preserves_members_log_and_credentials(settings: Settings)
         with httpx.Client() as http:
             response = http.get(second.base + "/healthz")
             assert response.json()["store"] == "ok"
+            steward = response.json()["steward"]
+            assert set(steward) == {"provider", "model", "fallback"}
+            assert steward["fallback"] == (steward["provider"] == "meta")
             assert "admin-test" not in response.text
         person = second.state.registry.hosted_for(host.coalition_id, "p1")
         await send(
@@ -259,3 +262,154 @@ async def test_restart_preserves_members_log_and_credentials(settings: Settings)
             ),
         )
         assert len(second.state.store.read(host.coalition_id)) == len(before) + 1
+
+
+def _adapter(members: frozenset[str] | None) -> tuple[Any, Any, Any]:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from coalitionkit_models import FakeModel, ModelGateway, ScriptedResponse, Settings
+    from coalitionkit_server.audit import AuditLoop, StewardAdapter
+    from coalitionkit_steward import Steward
+
+    allow = '{"action": "allow", "policy_id": null, "reason": "ok", "redact": []}'
+    fake = FakeModel([ScriptedResponse(allow)] * 4)
+    gateway = ModelGateway(Settings(_env_file=None), transport=fake)  # pyright: ignore[reportCallIssue]
+    steward = Steward(gateway, signing_key=Ed25519PrivateKey.generate(), kid="host")
+    runner = AuditLoop()
+    adapter = StewardAdapter(steward, runner, None if members is None else lambda _: members)
+    return adapter, fake, runner
+
+
+def _proposal() -> dict[str, Any]:
+    canary = "zq7canary-p3-only"
+    tasks = ["01M4XRC2A00000000000000002", "01M4XRC2A00000000000000003"]
+    assignments = [{"task_id": tasks[0], "assignee": "p1"}, {"task_id": tasks[1], "assignee": "p3"}]
+    assignments[1]["note"] = canary
+    plan = {"plan_id": "01M4XRC0Z8185GR38E1W8124GK", "revision": 1, "assignments": assignments}
+    return {
+        "ext_version": "0.1",
+        "coalition_id": "01M4XRC000000G40R40M30E209",
+        "event_id": "01M4XRC0Z8185GR38E1W8124GK",
+        "type": "coalition.propose",
+        "sender": "https://agents.example.org/p1/card.json",
+        "on_behalf_of": "p1",
+        "scope": {"audience": "coalition"},
+        "payload": {"proposal_set_id": "s", "plans": [{**plan, "objective_scores": {}}]},
+        "sig": "x",
+    }
+
+
+def test_steward_adapter_with_members_never_sends_a_non_member_assignment_to_the_model() -> None:
+    adapter, fake, runner = _adapter(frozenset({"p1", "p2"}))
+    try:
+        verdict = adapter.review(_proposal())
+    finally:
+        runner.close()
+    sent = json.dumps([messages for _, messages, _ in fake.calls])
+    assert fake.calls and "zq7canary-p3-only" not in sent
+    assert verdict.action == "allow"
+
+
+def test_steward_adapter_without_members_fails_closed_and_sends_nothing() -> None:
+    adapter, fake, runner = _adapter(None)
+    try:
+        verdict = adapter.review(_proposal())
+    finally:
+        runner.close()
+    assert fake.calls == []
+    assert (verdict.action, verdict.policy_id) == ("escalate", "steward-members-unknown")
+
+
+@pytest.mark.parametrize("kind", ["observe", "offer", "ripple"])
+def test_steward_adapter_receives_consented_recipients(kind: str) -> None:
+    from coalitionkit_runtime.steward import ReviewContext
+
+    adapter, fake, runner = _adapter(None)
+    members = frozenset({"p1", "p2"})
+    context = ReviewContext(members, members, members)
+    event: Document = {**_proposal(), "type": f"coalition.{kind}", "payload": {}}
+    event["scope"] = {"audience": "participants", "participants": ["p1", "p2"]}
+    try:
+        assert adapter.review(event, context=context).action == "allow"
+        event["scope"] = {"audience": "participants", "participants": ["p1", "p2", "p3"]}
+        assert adapter.review(event, context=context).action == "block"
+        assert not fake.calls
+    finally:
+        runner.close()
+
+
+def test_selftest_does_not_block_first_safe_review() -> None:
+    from coalitionkit_runtime.steward import ReviewContext
+    from coalitionkit_server.audit import StewardAdapter
+
+    ready = threading.Event()
+    adapter, _, runner = _adapter(frozenset({"p1", "p2"}))
+    steward = adapter.steward
+
+    def initialize() -> Any:
+        assert ready.wait(5)
+        return steward
+
+    deferred = StewardAdapter(initialize, runner)
+    members = frozenset({"p1", "p2"})
+    context = ReviewContext(members, members, members)
+    try:
+        event = {**_proposal(), "type": "coalition.observe", "payload": {"content": "update"}}
+        assert deferred.review(event, context=context).action == "allow"
+        assert deferred.review(_proposal(), context=context).policy_id == "steward-selftest-pending"
+        ready.set()
+        assert deferred._ready is not None  # pyright: ignore[reportPrivateUsage]
+        deferred._ready.result(timeout=5)  # pyright: ignore[reportPrivateUsage]
+        assert deferred.review(_proposal(), context=context).action == "allow"
+    finally:
+        ready.set()
+        runner.close()
+
+
+def test_health_reports_store_failure(settings: Settings) -> None:
+    from unittest.mock import patch
+
+    from fastapi.testclient import TestClient
+
+    from coalitionkit_runtime.pool import StoreUnavailable
+
+    app = create_server(settings)
+    with TestClient(app) as client:
+        with patch.object(app.state.server.store, "transaction", side_effect=StoreUnavailable):
+            response = client.get("/healthz")
+            assert response.status_code == 503
+            assert response.json()["store"] == "down"
+        assert client.get("/healthz").json()["store"] == "ok"
+
+
+def test_health_reports_a_saturated_pool_as_busy_not_down(settings: Settings) -> None:
+    from unittest.mock import patch
+
+    from fastapi.testclient import TestClient
+
+    from coalitionkit_runtime.pool import PoolBusy
+
+    app = create_server(settings)
+    store = app.state.server.store
+    with TestClient(app) as client, patch.object(store, "transaction", side_effect=PoolBusy):
+        response = client.get("/healthz")
+        assert response.status_code == 503
+        assert response.json()["store"] == "busy"
+
+
+async def test_interrupted_append_is_retryable_over_a2a(running: Running) -> None:
+    from unittest.mock import patch
+
+    from coalitionkit_runtime.pool import StoreUnavailable
+
+    enrolled = running.enroll()
+    event = running.join(enrolled)
+    host = running.state.hosts[enrolled["coalition_id"]]
+    with (
+        patch.object(host, "accept", side_effect=StoreUnavailable),
+        pytest.raises(A2AClientError, match="503"),
+    ):
+        await send(running, enrolled, event)
+    await send(running, enrolled, event)
+    await send(running, enrolled, event)
+    assert sum(e["event_id"] == event["event_id"] for e in host.store.read(host.coalition_id)) == 1

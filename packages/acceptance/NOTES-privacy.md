@@ -1,7 +1,7 @@
 # Notes from acceptance test 2 (privacy canaries)
 
 PRIV-1 through PRIV-3 are fixed and their reproductions in `tests/test_privacy_findings.py`
-now run without xfail. The observations below describe the original defects. PRIV-4 is unchanged.
+now run without xfail. PRIV-4 is fixed too (see below). The observations describe the original defects.
 
 Result of the runs themselves: no canary of the 20 planted per run was found outside its vault,
 redacted field, private scope, plan assignment or PSI input on any surface the host sends out
@@ -72,17 +72,26 @@ runs use a model that answers honestly.
   binary search over a limit yields at most the same bit each time. The runs record 60 probe
   answers per victim per adversary and scan them; no canary number appears.
 
-## PRIV-4: the Steward's model audit receives private and redacted text (decision pending)
+## PRIV-4 (fixed): the Steward's model audit received private and redacted text
 
-- Surface: model prompts of the Steward (`engine.py`, `_audit_messages`).
-- The Steward's model audit receives private and redacted text and sends it to a hosted model.
-  Decision pending with the owner. Options: audit only projections; keep private content to
-  deterministic policies; or run the Steward model on a no-retention or self-hosted endpoint.
-- Measured, not counted as a leak and not as an allowed sighting: the scanners report these as
-  `sent_to_models.steward_model` (55 canaries over 5 live runs, where the Steward saw redacted and
-  private-scope events). Prompts to the hosted agent of a member the canary's scope entitles are
-  reported apart as `sent_to_models.member_agent`; that is legitimate (a member's own agent sees
-  what that member may see) and is documented here as such.
+- Surface: model prompts of the Steward (`engine.py`, `_audit`).
+- Original defect: the audit prompt carried the unredacted payload, so fields redacted for
+  recipients, private-scope text and policy-redacted fields went to a hosted model (55 canaries
+  over 5 live runs were sent as `sent_to_models.steward_model`).
+- Owner decision (2026-10-29): the deterministic policies and redaction run first; the model
+  then audits only the projection each recipient will be delivered (scope `redact` and the
+  Steward's own redactions removed; for a proposal set, each member's own assignments).
+  Distinct projections are audited once each (deduplicated by hash); the strictest answer
+  wins; the model's reason stays host-only. Messages scoped `self` or `host` reach no other
+  recipient and are not sent to a model.
+- Collector: `steward_model` now means "a canary nobody was to receive reached the Steward
+  model" and is a defect; `steward_projection` is a canary that a recipient other than its owner
+  may see, carried in the projection that recipient gets (legitimate by the decision above).
+  The collector passes the Coalition's members, so an assignee who is no member gets no view.
+- Measured after the fix: `steward_model` 0 (was 4 on the 3-seed probe: 2 assignment, 2
+  private-scope); `steward_projection` is reported apart. Live variant, 5 runs (100 canaries, 0 found outside their vault): `steward_model` 0 (was 55), `steward_projection` 10, `member_agent` 5; 45 model calls, 5,015 micro-USD.
+- Tests: `packages/steward/tests/test_steward.py` (`test_priv4_*`, all failing on the old
+  engine) and `test_priv4_the_steward_model_sees_no_canary_nobody_was_to_receive`.
 - Related: PRIV-1 is the other half, the verdict text coming back out.
 
 ## Core fixes and interop disposition

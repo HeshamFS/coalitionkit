@@ -77,9 +77,10 @@ class Settings(BaseSettings):
     composer_model: str = "muse-spark-1.3"
     hosted_agent_model: str = "muse-spark-1.3"
     steward_model: str = "muse-spark-1.3"
-    # Where the Steward runs: the Meta key, or a Baseten host for Muse Spark Open.
-    steward_provider: StewardProvider = "meta"
-    steward_baseten_model: str = "meta-models/muse-spark-open-1026"
+    # Where the Steward runs. Unset: Muse Spark Open on Baseten when a Baseten key is set,
+    # otherwise Meta's own endpoint (see ``steward_host``).
+    steward_provider: StewardProvider | None = None
+    steward_baseten_model: str = "meta-models/muse-spark-open"
 
     image_model: str = "muse-image-1.0"
     segment_model: str = "sam-3.1"
@@ -97,6 +98,13 @@ class Settings(BaseSettings):
     rate_limit_per_minute: dict[Role, int] = _default_limits()
 
     @property
+    def steward_host(self) -> StewardProvider:
+        """The provider the Steward uses: the explicit setting, else Baseten when its key is set."""
+        if self.steward_provider is not None:
+            return self.steward_provider
+        return "baseten" if _present(self.baseten_api_key) else "meta"
+
+    @property
     def production(self) -> bool:
         return self.env == "production"
 
@@ -109,7 +117,7 @@ class Settings(BaseSettings):
         if not self.production:
             return self
         needed = ["meta_api_key"]
-        if self.steward_provider == "baseten":
+        if self.steward_host == "baseten":
             needed.append("baseten_api_key")
         missing = [
             f"COALITIONKIT_{name.upper()}" for name in needed if not _present(getattr(self, name))
@@ -135,7 +143,7 @@ class Settings(BaseSettings):
             case "hosted_agent":
                 return Route(role, self.hosted_agent_model, self.meta_base_url, "meta")
             case "steward":
-                if self.steward_provider == "baseten":
+                if self.steward_host == "baseten":
                     return Route(role, self.steward_baseten_model, self.baseten_base_url, "baseten")
                 return Route(role, self.steward_model, self.meta_base_url, "meta")
             case "vault":

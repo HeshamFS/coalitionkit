@@ -3,6 +3,10 @@
 
 Each scenario returns a ``Recorder``; the pass conditions are its counters
 (``lost_events``, ``duplicate_events``, ``max_decisions_per_revision``).
+
+These run in process against the host. ``chaos_server`` runs the same cases against the real
+server process, including a killed process and Postgres in Docker. The old "split NATS" case is
+gone: ADR 014 replaced NATS with an in-process bus, so there is no message bus to split.
 """
 
 from __future__ import annotations

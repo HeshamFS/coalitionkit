@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from coalitionkit_contracts import Envelope, Scope, ScopeSource, principals
 from coalitionkit_models import ChatMessage, ModelGateway, Role, Route, Settings
 from coalitionkit_models.gateway import RawCompletion, Usage
-from coalitionkit_steward import Artifact, Steward
+from coalitionkit_steward import Artifact, Steward, StewardContext
 from coalitionkit_surfaces import (
     CATALOG_ID,
     FeedSession,
@@ -222,11 +222,12 @@ async def steward_pass(world: PrivacyWorld, mode: str = HONEST) -> int:
     gateway = ModelGateway(settings(), transport=transport)
     steward = Steward(gateway, signing_key=Ed25519PrivateKey.generate(), kid="steward")
     verdicts = 0
+    context = StewardContext(members=frozenset(NAMES))
     for event in world.arena.events():
         if event["type"] in {"coalition.join", "coalition.decide"}:
             continue
         envelope = Envelope.model_validate(event)
-        signed = await steward.review(envelope, flagged=True)
+        signed = await steward.review(envelope, context=context, flagged=True)
         verdicts += 1
         body = signed.body
         for viewer in audience(world, event):
@@ -246,7 +247,7 @@ async def steward_pass(world: PrivacyWorld, mode: str = HONEST) -> int:
                 scope=Scope.model_validate(event["scope"]),
                 content=event["payload"],
             )
-            made = await steward.review_artifact(artifact)
+            made = await steward.review_artifact(artifact, context=context)
             for viewer in audience(world, event):
                 world.record(
                     "steward_verdict",

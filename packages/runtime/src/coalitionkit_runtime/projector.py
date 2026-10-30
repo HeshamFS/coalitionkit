@@ -5,14 +5,56 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+from dataclasses import dataclass, field
 from typing import Any, cast
 
-from coalitionkit_contracts import Scope, ScopeSource, delivery_form, prev_hash, resolve_narrowest
+from coalitionkit_contracts import (
+    Membership,
+    Scope,
+    ScopeSource,
+    delivery_form,
+    prev_hash,
+    resolve_narrowest,
+)
 
 from .lifecycle import State
 from .store import Document
 
 Signer = Callable[[str, Document, Document], Document]
+
+
+@dataclass
+class ViewerProjection:
+    """A connection's fold; membership changes invalidate prior visibility decisions."""
+
+    viewer: str
+    sequence: int = 0
+    membership: Membership | None = None
+    document: Document = field(default_factory=lambda: dict[str, Any]())
+
+    def update(
+        self, state: State, sign: Signer, redactions: dict[str, tuple[str, ...]]
+    ) -> list[Document]:
+        membership = state.membership()
+        head = next(reversed(state.events.values()))["seq"] if state.events else 0
+        reset = membership != self.membership or head < self.sequence
+        pending: list[Document] = []
+        for event in reversed(state.events.values()):
+            if not reset and event["seq"] <= self.sequence:
+                break
+            pending.append(event)
+        additions = projection(state, list(reversed(pending)), self.viewer, sign, redactions)
+        if reset:
+            self.document = additions
+            ops = [{"op": "replace", "path": "", "value": deepcopy(additions)}]
+        else:
+            ops = [
+                {"op": "add", "path": f"/events/{key}", "value": deepcopy(value)}
+                for key, value in additions["events"].items()
+            ]
+            self.document["events"].update(additions["events"])
+        self.sequence, self.membership = head, membership
+        return ops
 
 
 def derive_scope(state: State, sources: list[Document]) -> Document:

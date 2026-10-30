@@ -1,0 +1,16 @@
+[project]
+name = "coalitionkit-mint"
+version = "0.1.0.dev0"
+description = "Fixed-template, owner-approved MCP agents"
+license = "Apache-2.0"
+requires-python = ">=3.15"
+dependencies = [
+    "coalitionkit-contracts", "coalitionkit-models", "coalitionkit-steward",
+    "cryptography==50.0.2", "pydantic==2.14.1", "httpx2==2.16.0",
+    "a2a-sdk==1.3.0", "protobuf==7.36.2", "starlette==1.10.0",
+    "coalitionkit-edges", "mcp>=2.3.0", "uvicorn==0.54.0", "pillow>=12.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"

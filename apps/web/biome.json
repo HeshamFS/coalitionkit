@@ -2,7 +2,16 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": false },
   "files": {
-    "includes": ["src/**", "e2e/**", "*.ts", "*.json", "!test-results", "!dist", "!node_modules"]
+    "includes": [
+      "src/**",
+      "e2e/**",
+      "scripts/**",
+      "*.ts",
+      "*.json",
+      "!test-results",
+      "!dist",
+      "!node_modules"
+    ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100, "lineEnding": "lf" },
   "linter": {

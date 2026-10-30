@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from threading import Event, RLock
 
@@ -19,6 +20,7 @@ class Subscription:
     cursor: int
     wake: Event = field(default_factory=Event)
     dropped: bool = False
+    notify: Callable[[], None] | None = None
 
     def read(self, store: EventStore) -> list[Document]:
         if self.dropped:
@@ -38,8 +40,10 @@ class Bus:
         self._subscriptions: set[Subscription] = set()
         self._lock = RLock()
 
-    def subscribe(self, coalition_id: str, since: int = 0) -> Subscription:
-        subscription = Subscription(coalition_id, since)
+    def subscribe(
+        self, coalition_id: str, since: int = 0, notify: Callable[[], None] | None = None
+    ) -> Subscription:
+        subscription = Subscription(coalition_id, since, notify=notify)
         with self._lock:
             self._subscriptions.add(subscription)
         return subscription
@@ -56,3 +60,9 @@ class Bus:
                         sub.dropped = True
                         self._subscriptions.remove(sub)
                     sub.wake.set()
+                    if sub.notify is not None:
+                        try:
+                            sub.notify()
+                        except RuntimeError:  # its event loop is closed: the stream is gone
+                            sub.dropped = True
+                            self._subscriptions.discard(sub)

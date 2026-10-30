@@ -18,6 +18,9 @@ Thumbs.db
 
 # acceptance run outputs
 packages/acceptance/scorecard-*.json
+packages/acceptance/scorecard-ledger.sqlite3*
 # Example run outputs (scorecards)
 examples/out/
 examples/.venv/
+
+packages/mint/scorecard-*.json

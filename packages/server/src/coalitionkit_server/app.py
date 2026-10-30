@@ -18,9 +18,11 @@ from coalitionkit_contracts import new_ulid, public_key_to_jwk, validate_payload
 from coalitionkit_edges.a2a import HostSigner, create_host_app
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
+from coalitionkit_models import ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_runtime import Acknowledgement, CoalitionHost, PostgresStore, SQLiteStore
 from coalitionkit_runtime.host import utc_now
+from coalitionkit_runtime.pool import PoolBusy, StoreUnavailable
 from coalitionkit_steward import Steward
 from coalitionkit_surfaces import SurfaceHub
 from coalitionkit_surfaces.app import create_app as surfaces_app
@@ -31,10 +33,11 @@ from .mcp_port import MCPPort
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
+from .whatsapp import mount_whatsapp
 
 
 class Server:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, model_gateway: ModelGateway | None = None) -> None:
         self.settings = settings
         self.key = load_key(settings.host_key_file)
         url = settings.store.get_secret_value()
@@ -47,10 +50,11 @@ class Server:
             self.store = PostgresStore(url)
         else:
             raise ValueError("store must be sqlite:///path or a Postgres URL")
-        self.gateway = gateway()
+        self.gateway = model_gateway or gateway()
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
-            Steward(self.gateway, signing_key=self.key, kid="host"), self.runner
+            lambda: Steward(self.gateway, signing_key=self.key, kid="host"),
+            self.runner,
         )
         self.signer = HostSigner(
             settings.public_base_url + "/.well-known/agent-card.json", self.key, "host"
@@ -205,8 +209,9 @@ class Dispatch:
         await self.server.surfaces[row["coalition"]](scope, receive, send)
 
 
-def create_server(settings: Settings) -> FastAPI:
-    server = Server(settings)
+def create_server(settings: Settings, model_gateway: ModelGateway | None = None) -> FastAPI:
+    """The composed application. ``model_gateway`` is a test hook for metered gateways."""
+    server = Server(settings, model_gateway)
     mcp = mcp_app(
         Deps(MCPPort(server), ViewPort(server.hosts, server.registry), server.registry),
         public_url=settings.public_base_url + "/mcp",
@@ -216,10 +221,15 @@ def create_server(settings: Settings) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        whatsapp = getattr(app.state, "whatsapp", None)
+        if whatsapp is not None:
+            whatsapp.start()
         try:
             async with mcp.router.lifespan_context(mcp):
                 yield
         finally:
+            if whatsapp is not None:
+                await asyncio.to_thread(whatsapp.stop)
             await asyncio.to_thread(server.close)
 
     app = create_host_app(server, server.signer, server.registry, settings.public_base_url)
@@ -227,10 +237,15 @@ def create_server(settings: Settings) -> FastAPI:
     app.state.server = server
     admin_routes(app, server)
 
-    @app.get("/healthz")
-    def health() -> Document:  # pyright: ignore[reportUnusedFunction]
-        with server.store.transaction("") as tx:
-            tx.execute("SELECT 1")
+    @app.get("/healthz", response_model=None)
+    def health() -> Document | JSONResponse:  # pyright: ignore[reportUnusedFunction]
+        try:
+            with server.store.transaction("") as tx:
+                tx.execute("SELECT 1")
+        except PoolBusy:
+            return JSONResponse({"status": "unavailable", "store": "busy"}, status_code=503)
+        except StoreUnavailable:
+            return JSONResponse({"status": "unavailable", "store": "down"}, status_code=503)
         routes: dict[str, str] = {}
         for role in ROLES:
             try:
@@ -239,7 +254,21 @@ def create_server(settings: Settings) -> FastAPI:
                 routes[role] = "missing_key"
             else:
                 routes[role] = "configured_not_probed"
-        return {"status": "ok", "store": "ok", "model_routes": routes}
+        steward = server.gateway.settings.route("steward")
+        steward_status = {
+            "provider": server.gateway.settings.steward_host,
+            "model": steward.model,
+            "fallback": server.gateway.settings.steward_host == "meta",
+        }
+        return {"status": "ok", "store": "ok", "model_routes": routes, "steward": steward_status}
 
+    mount_whatsapp(
+        app,
+        settings,
+        server.store,
+        server.hosts,
+        lambda request: admin(request, settings),
+        server.registry.lookup,
+    )
     app.mount("/", Dispatch(server, mcp))
     return app

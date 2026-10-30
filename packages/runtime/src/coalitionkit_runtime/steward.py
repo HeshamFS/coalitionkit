@@ -10,6 +10,13 @@ from .store import Document
 
 
 @dataclass(frozen=True)
+class ReviewContext:
+    members: frozenset[str]
+    consented: frozenset[str]
+    recipients: frozenset[str]
+
+
+@dataclass(frozen=True)
 class Verdict:
     action: Literal["allow", "redact", "block", "quarantine", "escalate"] = "allow"
     policy_id: str = "default"
@@ -17,7 +24,7 @@ class Verdict:
 
 
 class Steward(Protocol):
-    def review(self, envelope: Document) -> Verdict: ...
+    def review(self, envelope: Document, *, context: ReviewContext) -> Verdict: ...
 
 
 class FakeSteward:
@@ -25,6 +32,6 @@ class FakeSteward:
         self.verdict = verdict or Verdict()
         self.calls: list[str] = []
 
-    def review(self, envelope: Document) -> Verdict:
+    def review(self, envelope: Document, *, context: ReviewContext) -> Verdict:
         self.calls.append(envelope["event_id"])
         return self.verdict
