@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { LogEntry } from "../components/live";
+import type { Plan } from "../components/plans";
 import type { Stage } from "../shell/bars";
 import { STAGES } from "../shell/bars";
 import type { ViewerState } from "./delta";
@@ -49,7 +50,7 @@ export function deriveRoom(state: ViewerState | null): RoomModel {
   }
   return {
     title: typeof goal === "string" && goal ? goal : "Coalition",
-    members: count("join"),
+    members: deriveParticipants(state).length,
     stage,
     counts: {
       needs: count("need"),
@@ -113,4 +114,115 @@ export function tensionView(
     ? found.payload.tradeoffs.filter((t): t is string => typeof t === "string")
     : [];
   return { options, tradeoffs };
+}
+
+const record = (v: unknown): Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+const text = (v: unknown): string => (typeof v === "string" ? v : "");
+const records = (v: unknown) => (Array.isArray(v) ? v.map(record) : []);
+
+/** Only explicit identity links are used. The current host projection omits event authors. */
+export function deriveParticipants(state: ViewerState | null) {
+  const events = eventsOf(state);
+  const charter = events.findLast((e) => e.type === "coalition.charter")?.payload;
+  const names = records(charter?.participants);
+  const joined = new Map<string, Record<string, unknown>>();
+  for (const e of events.filter((e) => e.type === "coalition.join")) {
+    const p = e.payload;
+    const id = text(p.participant) || text(p.card_url) || `join-${e.seq}`;
+    joined.set(id, p);
+  }
+  return [...joined].map(([id, p], index) => {
+    const card = record(p.card);
+    const named = names.find((n) => n.id === id || n.card_url === p.card_url);
+    const item = events.findLast(
+      (e) =>
+        ["coalition.task", "coalition.need", "coalition.offer"].includes(e.type) &&
+        [e.payload.participant, e.payload.assignee, e.payload.owner].includes(id),
+    );
+    return {
+      id,
+      seat: (index % 5) + 1,
+      label: text(p.display_name) || text(named?.display_name) || `Member ${index + 1}`,
+      agent: text(card.name),
+      vendor: text(card.vendor),
+      item: text(item?.payload.title) || text(item?.payload.description),
+      status: text(item?.payload.status),
+    };
+  });
+}
+
+export function derivePlans(state: ViewerState | null): Plan[] {
+  const plans = new Map<string, Plan>();
+  const sourceIds = new Map(
+    Object.entries(record(state?.events)).map(([id, raw]) => [record(raw).seq, id]),
+  );
+  for (const event of eventsOf(state).filter((e) => e.type === "coalition.propose")) {
+    for (const p of records(event.payload.plans)) {
+      const id = text(p.plan_id);
+      if (!id) continue;
+      plans.set(id, {
+        id,
+        label: text(p.title) || text(p.label) || id,
+        description: text(p.description) || undefined,
+        canDecide: false,
+        objectives: Object.entries(record(p.objective_scores))
+          .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+          .map(([name, value]) => ({
+            name,
+            value: { value: value as number, event_ref: sourceIds.get(event.seq) ?? "" },
+          })),
+      });
+    }
+  }
+  return [...plans.values()];
+}
+
+export function deriveMetrics(state: ViewerState | null) {
+  const participants = deriveParticipants(state);
+  const events = eventsOf(state);
+  const metrics = [{ label: "Events", value: events.length }];
+  const agents = participants.filter((p) => p.agent);
+  const vendors = new Set(participants.map((p) => p.vendor).filter(Boolean));
+  if (agents.length) metrics.push({ label: "Agents", value: agents.length });
+  if (vendors.size) metrics.push({ label: "Vendors", value: vendors.size });
+  const meter = record(state?.cost_meter);
+  if (typeof meter.spent === "number" && Number.isFinite(meter.spent))
+    metrics.push({
+      label: text(meter.currency) ? `Spent (${text(meter.currency)})` : "Spent",
+      value: meter.spent,
+    });
+  return metrics;
+}
+
+export function deriveDecisions(state: ViewerState | null) {
+  return eventsOf(state)
+    .filter((e) => e.type === "coalition.decide")
+    .map((e) => ({
+      seq: e.seq,
+      subject: text(record(e.payload.subject).id),
+      revision: record(e.payload.subject).revision,
+      answer: e.payload.consent === true ? "yes" : e.payload.consent === false ? "no" : "",
+      time: text(e.payload.decided_at),
+      participant: text(e.payload.participant),
+    }));
+}
+
+export function derivePrivateNotes(state: ViewerState | null) {
+  return records(state?.privacy_notes).map((p) => ({
+    participant: text(p.participant),
+    knows: text(p.knows),
+    notKnows: text(p.notKnows),
+    because: text(p.because),
+  }));
+}
+
+export function deriveSchedule(state: ViewerState | null) {
+  return records(state?.schedule)
+    .map((p) => ({
+      id: text(p.task_id),
+      title: text(p.title),
+      time: text(p.start),
+    }))
+    .filter((p) => p.title);
 }

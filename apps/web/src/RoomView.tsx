@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 import { A2uiSurface } from "@a2ui/react/v0_9";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { EmptyState, Skeleton } from "./components/feedback";
 import { Card } from "./components/primitives";
-import { deriveRoom, eventsOf, fixedFields } from "./feed/derive";
+import { deriveRoom } from "./feed/derive";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
-import type { DeckGroup, PresenceEntry } from "./shell/bars";
-import { AgentDock, type ConsentRequest, ConsentTray, WiringDrawer } from "./shell/dock";
-import { PhoneShell, type PhoneTab, RoomShell } from "./shell/RoomShell";
+import { RoomLens } from "./room/lens";
+import { usePhoneRoom } from "./room/media";
+import { RoomNavigation } from "./room/navigation";
+import { Decisions, Metrics, Participants, Plans, Privacy, Schedule, Wiring } from "./room/parts";
+import { type ConsentRequest, ConsentTray } from "./shell/dock";
+import { RoomShell } from "./shell/RoomShell";
 import { TrustedRequest } from "./TrustedRequest";
+import "./styles/room.css";
 
-const SEATS = [1, 2, 3, 4, 5] as const;
-
-function useMedia(query: string): boolean {
-  const mq = useMemo(() => window.matchMedia(query), [query]);
-  return useSyncExternalStore(
-    (fn) => {
-      mq.addEventListener("change", fn);
-      return () => mq.removeEventListener("change", fn);
-    },
-    () => mq.matches,
-  );
-}
-
-/** The fixed layout, drawn when no composed tree is usable. */
+/** Fixed fallback remains available to callers and refused composed trees. */
 export function FixedView({ fields }: { fields: { label: string; value: string }[] }) {
   return (
     <Card title="Standard view">
@@ -38,153 +29,106 @@ export function FixedView({ fields }: { fields: { label: string; value: string }
     </Card>
   );
 }
-
 export function RoomView() {
   const feed = useFeedSnapshot();
   const agent = useAgentSnapshot();
   const { answer, agent: agentStore, signOut } = useFeedApi();
-  const phone = useMedia("(max-width: 720px)");
-  const [selected, setSelected] = useState("canvas");
-  const [tab, setTab] = useState<PhoneTab>("Now");
-  const [wiring, setWiring] = useState(false);
-  const focus = agent.focus;
-  const setFocus = (id: string | null) => agentStore.setFocus(id);
-
+  const [selected, setSelected] = useState("Stage");
+  const phone = usePhoneRoom();
   const room = deriveRoom(feed.state);
-  const events = eventsOf(feed.state);
-  const latest = events.at(-1);
-  const presence: PresenceEntry[] = Array.from({ length: Math.min(room.members, 5) }, (_, i) => ({
-    seat: SEATS[i % 5] as 1 | 2 | 3 | 4 | 5,
-    label: `Member ${i + 1}`,
-    presence: "live" as const,
-  }));
-
-  const groups: DeckGroup[] = [
-    {
-      heading: "This coalition",
-      items: [
-        { id: "canvas", label: "Canvas", icon: "canvas" },
-        { id: "charter", label: "Charter", icon: "shield" },
-        { id: "people", label: "People", icon: "people", count: room.members },
-        { id: "needs", label: "Needs", icon: "clock", count: room.counts.needs },
-        { id: "offers", label: "Offers", icon: "plus", count: room.counts.offers },
-        { id: "plans", label: "Plans", icon: "list", count: room.counts.plans },
-        { id: "log", label: "Log", icon: "tray", count: room.counts.log },
-      ],
-    },
-    {
-      heading: "Yours",
-      items: [
-        {
-          id: "consents",
-          label: "Consents",
-          icon: "shieldCheck",
-          count: agent.requests.length,
-          tone: "blue",
-        },
-      ],
-    },
-  ];
-
-  const requests: ConsentRequest[] = agent.requests.map((r) => ({
-    id: r.id,
-    kind: r.kind === "tension_option" ? "tension" : (r.kind as ConsentRequest["kind"]),
-    title: r.message,
-    deadline: r.expiresAt,
-    revision: r.revision,
-  }));
-  const open = agent.requests.find((r) => r.id === focus) ?? null;
-
-  const canvas = (
-    <div className="surface-host">
-      {agent.refusal && (
-        <Card tone="dashed">
-          <span className="small" role="alert">
-            The host did not take that answer: {agent.refusal}
-          </span>
-        </Card>
-      )}
-      {open && (
-        <TrustedRequest request={open} state={feed.state} onAnswer={(a) => void answer(a)} />
-      )}
-      {selected !== "canvas" ? (
-        <EmptyState
-          title="Drawn by your agent"
-          body="This section is built from the canvas when your agent composes it."
-        />
-      ) : feed.surfaces.length > 0 ? (
-        feed.surfaces.map((s) => <A2uiSurface key={s.id} surface={s.model} />)
-      ) : feed.status === "connecting" ? (
-        <Skeleton shape="card" label="Loading your view" />
-      ) : (
-        <FixedView fields={fixedFields(feed.state)} />
-      )}
-    </div>
-  );
-
-  const tray = (
-    <ConsentTray
-      requests={requests}
-      onOpen={(id) => {
-        setFocus(id);
-        setSelected("canvas");
-        setTab("Now");
-      }}
+  const open =
+    agent.requests.find((r) => r.id === agent.focus) ?? (phone ? agent.requests[0] : undefined);
+  const section = agent.focus ? "My part" : phone && selected === "Stage" ? "My part" : selected;
+  const select = (tab: string) => {
+    agentStore.setFocus(null);
+    setSelected(tab);
+  };
+  const onOpen = (id: string) => {
+    agentStore.setFocus(id);
+    setSelected("My part");
+  };
+  const consent = open ? (
+    <TrustedRequest
+      key={`${open.id}:${open.revision}`}
+      request={open}
+      state={feed.state}
+      onAnswer={(a) => void answer(a)}
+    />
+  ) : (
+    <EmptyState
+      title={agent.requests.length ? "Choose a request to review" : "Nothing needs your answer"}
+      body=""
     />
   );
-
-  const dock = (
-    <AgentDock
-      messages={agent.lines.map((l) => ({ id: l.id, from: "agent" as const, text: l.text }))}
-      state="idle"
-      composerDisabledReason="Typing to your agent is not connected to the host yet."
-    />
-  );
-
-  if (phone) {
-    const people = presence.map((p) => ({ seat: p.seat, label: p.label }));
-    return (
-      <PhoneShell
-        title={room.title}
-        stage={room.stage}
-        people={people}
-        tab={tab}
-        onTab={setTab}
-        tray={tray}
-        onSignOut={signOut}
-      >
-        {tab === "Agent" ? dock : canvas}
-      </PhoneShell>
-    );
-  }
   return (
     <RoomShell
+      layout="stage"
       title={room.title}
-      meta={`${room.members} ${room.members === 1 ? "member" : "members"}`}
       stage={room.stage}
-      presence={presence}
-      groups={groups}
+      presence={[]}
+      groups={[]}
       selected={selected}
-      onSelect={(id) =>
-        id === "consents" ? agent.requests[0] && setFocus(agent.requests[0].id) : setSelected(id)
-      }
-      connection={feed.status === "reconnecting" ? "reconnecting" : "live"}
-      tray={tray}
-      dock={dock}
+      onSelect={select}
+      connection={feed.status === "live" ? "live" : "reconnecting"}
       onSignOut={signOut}
-      wiringOpen={wiring}
-      onToggleWiring={() => setWiring((v) => !v)}
-      wiring={
-        <WiringDrawer
-          state={latest ? "inspecting" : "closed"}
-          header={latest ? `#${latest.seq}` : undefined}
-          message={latest ? { type: latest.type, payload: latest.payload } : undefined}
-          footnote="your projection of this event"
-          onClose={() => setWiring(false)}
-        />
+      navigation={<RoomNavigation selected={section} onSelect={select} />}
+      aside={
+        <>
+          <Wiring state={feed.state} />
+          <Decisions state={feed.state} requests={agent.requests} onOpen={onOpen} />
+          <Privacy state={feed.state} />
+        </>
       }
     >
-      {canvas}
+      <div className="room-content" data-section={section}>
+        <ConsentTray
+          requests={agent.requests.map((r) => ({
+            id: r.id,
+            kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
+            title: r.message,
+            revision: r.revision,
+            deadline: r.expiresAt,
+          }))}
+          onOpen={onOpen}
+        />
+        {agent.refusal && (
+          <Card tone="dashed">
+            <span role="alert">The host did not take that answer: {agent.refusal}</span>
+          </Card>
+        )}
+        {feed.status === "connecting" && <Skeleton shape="card" label="Loading your view" />}
+        <div className="room-stage-content">
+          <div className="room-goal">
+            <b>Goal</b>
+            <span>{room.title}</span>
+            <span className="room-connection">{feed.status}</span>
+          </div>
+          <Participants state={feed.state} />
+          <Plans state={feed.state} />
+          <Metrics state={feed.state} />
+        </div>
+        <div className="room-own-content">
+          <Participants state={feed.state} own />
+          {consent}
+          <Schedule state={feed.state} />
+          <Privacy state={feed.state} own />
+        </div>
+        <div className="room-plans-content">
+          <Plans state={feed.state} />
+        </div>
+        <div className="room-wiring-content">
+          <Wiring state={feed.state} />
+          <Decisions state={feed.state} requests={agent.requests} onOpen={onOpen} />
+        </div>
+        <div className="room-lens-content">
+          <RoomLens state={feed.state} />
+        </div>
+        <div className="surface-host">
+          {feed.surfaces.map((s) => (
+            <A2uiSurface key={s.id} surface={s.model} />
+          ))}
+        </div>
+      </div>
     </RoomShell>
   );
 }

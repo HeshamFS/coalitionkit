@@ -67,6 +67,7 @@ export function TopBar({
   onInvite,
   onSearch,
   onSignOut,
+  room,
 }: {
   title: string;
   meta?: string;
@@ -76,6 +77,7 @@ export function TopBar({
   onInvite?: () => void;
   onSearch?: () => void;
   onSignOut?: () => void;
+  room?: boolean;
 }) {
   return (
     <header className="topbar">
@@ -87,36 +89,38 @@ export function TopBar({
         </span>
       )}
       <div style={{ marginLeft: 14 }}>
-        <StageBar current={stage} />
+        <StageBar current={stage} compact={room} />
       </div>
-      <span className="h-right">
-        {/* biome-ignore lint/a11y/useSemanticElements: a stack of avatars is a labelled group */}
-        <div className="stack" role="group" aria-label="Who is here">
-          {presence.map((p) => (
-            <Avatar key={p.label} seat={p.seat} label={p.label} presence={p.presence} />
-          ))}
-        </div>
-        <button
-          type="button"
-          className="dock"
-          style={{ boxShadow: "none", cursor: "pointer" }}
-          aria-label="Search"
-          onClick={onSearch}
-        >
-          <Icon name="search" size="sm" />
-          <span className="kbd">{"⌘"}K</span>
-        </button>
-        <button type="button" className="btn btn-sm" onClick={onInvite}>
-          <Icon name="link" size="sm" />
-          Invite
-        </button>
-        {me && <Avatar seat={me.seat} label={me.label} size="lg" />}
-        {onSignOut && (
-          <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
-            Sign out
+      {!room && (
+        <span className="h-right">
+          {/* biome-ignore lint/a11y/useSemanticElements: a stack of avatars is a labelled group */}
+          <div className="stack" role="group" aria-label="Who is here">
+            {presence.map((p) => (
+              <Avatar key={p.label} seat={p.seat} label={p.label} presence={p.presence} />
+            ))}
+          </div>
+          <button
+            type="button"
+            className="dock"
+            style={{ boxShadow: "none", cursor: "pointer" }}
+            aria-label="Search"
+            onClick={onSearch}
+          >
+            <Icon name="search" size="sm" />
+            <span className="kbd">{"⌘"}K</span>
           </button>
-        )}
-      </span>
+          <button type="button" className="btn btn-sm" onClick={onInvite}>
+            <Icon name="link" size="sm" />
+            Invite
+          </button>
+          {me && <Avatar seat={me.seat} label={me.label} size="lg" />}
+          {onSignOut && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
+              Sign out
+            </button>
+          )}
+        </span>
+      )}
     </header>
   );
 }
