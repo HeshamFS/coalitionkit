@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-import { examples, groups, labels } from "../../components/f02/examples";
+import { groups } from "../../components/f02/examples";
+import { sheetLabels } from "../../components/f02/sheet-data";
+import { sheetNodes } from "../../components/f02/sheet-nodes";
 import { Family } from "../Cell";
 import { Drawn } from "../Drawn";
 
@@ -59,91 +61,21 @@ export function Sheet02() {
                     <span key={door}>{door}</span>
                   ))}
                 </div>
+                {name === "RoomShell" && <span className="f02-example-badge">Fixed frame</span>}
               </div>
-              <Drawn
-                components={[
-                  {
-                    id: "root",
-                    component: name,
-                    ...examples[name],
-                    ...(name === "ConsentTray"
-                      ? {
-                          requests: [
-                            {
-                              kind: "plan",
-                              label: "Plan A · work together",
-                              deadline: "18 min",
-                              subject: {
-                                kind: "plan",
-                                id: "p1",
-                                revision: { value: 2, event_ref: "example:44" },
-                              },
-                            },
-                            {
-                              kind: "commitment",
-                              label: "Your commitment: book Resource 1",
-                              deadline: "today",
-                              subject: {
-                                kind: "commitment",
-                                id: "c1",
-                                revision: { value: 1, event_ref: "example:44" },
-                              },
-                            },
-                            {
-                              kind: "charter",
-                              label: "Revision 3: budget raised to €2",
-                              subject: {
-                                kind: "charter",
-                                id: "c2",
-                                revision: { value: 3, event_ref: "example:44" },
-                              },
-                            },
-                          ],
-                        }
-                      : {}),
-                  },
-                  {
-                    id: "content",
-                    component: "Column",
-                    gap: "8",
-                    children: ["plan", "task", "offers"],
-                  },
-                  {
-                    id: "plan",
-                    component: "Card",
-                    title: "Plan A · work together",
-                    status: "needs-you",
-                    fields: [
-                      { label: "", value: "07:10 start, 3 places · Resource 1 · Task 3 at 22:30" },
-                    ],
-                  },
-                  {
-                    id: "task",
-                    component: "Card",
-                    title: "Task 3",
-                    status: "changed",
-                    tone: "live",
-                    fields: [{ label: "", value: "starts 22:45 · 3 places · ≈ €14 each" }],
-                  },
-                  {
-                    id: "offers",
-                    component: "Card",
-                    title: "Your offers",
-                    fields: [{ label: "", value: "Resource 1 · Resource 2" }],
-                  },
-                  {
-                    id: "header",
-                    component: "TopBar",
-                    title: "Coalition 1",
-                    stage: { path: "/stage" },
-                    presence: examples.TopBar?.presence,
-                  },
-                  { id: "dock", component: "AgentDock", ...examples.AgentDock },
-                  { id: "tray", component: "ConsentTray", ...examples.ConsentTray },
-                ]}
-                data={{ stage: "Decide" }}
-              />
-              <div className="props">{labels[name]?.props}</div>
+              <div className={name === "LensCard" ? "f02-lens-scene" : "f02-panel-demo"}>
+                {name === "LensCard" && (
+                  <svg viewBox="0 0 300 430" aria-hidden="true">
+                    <rect x="40" y="230" width="220" height="140" fill="#2A323C" opacity=".55" />
+                    <rect x="60" y="250" width="70" height="40" fill="#F5C542" opacity=".8" />
+                    <text x="66" y="276" fontFamily="var(--font-mono)" fontSize="16" fill="#1B2436">
+                      P12
+                    </text>
+                  </svg>
+                )}
+                <Drawn components={sheetNodes(name)} data={{ stage: "Decide" }} />
+              </div>
+              <div className="props">{sheetLabels[name]}</div>
               {name === "EntryComposer" && (
                 <div className="evts">→ coalition.create(goal, pack?)</div>
               )}

@@ -1,0 +1,108 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-family.ck-WiringDrawer {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  line-height: normal;
+}
+.f02-wiring-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.f02-inspected {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 2px solid var(--blue);
+  border-radius: 10px;
+}
+.f02-inspected header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f02-inspected header b {
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.f02-inspected header span {
+  margin-left: auto;
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.f02-inspected small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f02-inspected small:last-child {
+  font: 11px var(--font-mono);
+  color: var(--blue-text);
+}
+.f02-wire {
+  --wire-bg: #0e1726;
+  --wire-ink: #c8d1e0;
+  --wire-key: #8db8ff;
+  --wire-string: #9fe0b8;
+  --wire-comment: #a9b4c6;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--wire-bg);
+  color: var(--wire-ink);
+  overflow: auto;
+  font: 10.5px / 1.6 var(--font-mono);
+}
+.ck-family .f02-wire pre {
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+.f02-json-key {
+  color: var(--wire-key);
+}
+.f02-json-string {
+  color: var(--wire-string);
+}
+.f02-json-comment {
+  color: var(--wire-comment);
+  white-space: nowrap;
+}
+.f02-wire-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f02-verify {
+  border: 0;
+  padding: 0 7px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  font: 500 10.5px var(--font-ui);
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .f02-wiring-columns {
+    grid-template-columns: 1fr;
+  }
+}

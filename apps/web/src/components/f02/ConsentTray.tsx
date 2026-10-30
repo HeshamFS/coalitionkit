@@ -19,6 +19,35 @@ export function ConsentTray({ p, send }: View) {
     const time = (v: unknown) => Date.parse(text(v)) || Number.POSITIVE_INFINITY;
     return time(a.deadline) - time(b.deadline);
   });
+  const only = requests[0];
+  if (requests.length === 1 && only)
+    return (
+      <Frame name="ConsentTray" state="pending" tone="f02-tray-single">
+        <ShellIcon name="Charter" />
+        <div>
+          <b>1 decision waits for you</b>
+          <small>
+            {label(only)}
+            {only.deadline ? ` · decide by ${deadline(only.deadline)}` : ""}
+          </small>
+        </div>
+        <button
+          type="button"
+          className="ck-action"
+          onClick={() => send("consent.open", { subject: only.subject })}
+        >
+          Read
+        </button>
+        <button
+          type="button"
+          className="ck-action ck-primary"
+          aria-label={`${label(only)} · Review`}
+          onClick={() => send("consent.open", { subject: only.subject })}
+        >
+          Decide
+        </button>
+      </Frame>
+    );
   return (
     <Frame name="ConsentTray" state={requests.length ? "pending" : "empty"}>
       <div className="f02-tray-heading">

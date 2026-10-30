@@ -70,3 +70,37 @@
 .f02-tray-request .ck-action {
   font-weight: 500;
 }
+
+.ck-family.ck-ConsentTray.f02-tray-single {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.f02-tray-single > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--warn-fg);
+}
+.f02-tray-single > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+.f02-tray-single b {
+  font-size: 12.5px;
+}
+.f02-tray-single small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f02-request-kind {
+  font-size: 10.5px;
+  font-weight: 500;
+  height: 18px;
+  padding: 0 7px;
+  line-height: 18px;
+}
+.f02-tray-request .ck-action {
+  font-weight: 600;
+}
