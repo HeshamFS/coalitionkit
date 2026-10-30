@@ -28,9 +28,55 @@ export type RoomShellProps = {
   onSearch?: () => void;
   onSignOut?: () => void;
   style?: CSSProperties;
+  layout?: "stage";
+  navigation?: ReactNode;
+  aside?: ReactNode;
 };
 
 export function RoomShell(p: RoomShellProps) {
+  if (p.layout === "stage")
+    return (
+      <div className="room-stage-shell">
+        <nav className="room-rail" aria-label="Room tools">
+          <Icon name="canvas" />
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Stage"
+            onClick={() => p.onSelect?.("Stage")}
+          >
+            <Icon name="canvas" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Wiring"
+            onClick={() => p.onSelect?.("Wiring")}
+          >
+            <Icon name="terminal" />
+          </button>
+        </nav>
+        <div className="room-main">
+          <div className="room-heading">
+            <TopBar title={p.title} stage={p.stage} presence={[]} room />
+            <span className="room-connection" role="status">
+              <span className="live-dot" />
+              {p.connection ?? "live"}
+            </span>
+            {p.navigation}
+            <button type="button" className="btn btn-sm room-signout" onClick={p.onSignOut}>
+              Sign out
+            </button>
+          </div>
+          <div className="room-columns">
+            <main className="room-canvas">{p.children}</main>
+            <aside className="room-aside" aria-label="Wiring and decisions">
+              {p.aside}
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
   const connection = p.connection ?? "live";
   const watcher = connection === "watcher";
   const wiringShown = Boolean(p.wiringOpen && p.wiring);
