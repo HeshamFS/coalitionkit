@@ -1,0 +1,7 @@
+{
+  "goal": "Agree on shared tasks and decisions",
+  "roles": [{"id": "member"}],
+  "rules": [],
+  "deadline": "2099-12-31T00:00:00Z",
+  "deciders": []
+}

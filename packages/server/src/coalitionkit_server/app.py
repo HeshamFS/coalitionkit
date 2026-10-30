@@ -7,6 +7,7 @@ import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import cast
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
@@ -133,6 +134,34 @@ def admin(request: Request, settings: Settings) -> None:
 
 
 def admin_routes(app: FastAPI, server: Server) -> None:
+    @app.post("/admin/coalitions/{coalition}/host-events")
+    def emit(request: Request, coalition: str, body: Document) -> Document:  # pyright: ignore[reportUnusedFunction]
+        admin(request, server.settings)
+        if coalition not in server.hosts:
+            raise HTTPException(404)
+        if (
+            set(body) - {"type", "payload", "scope", "sources"}
+            or not isinstance(body.get("type"), str)
+            or not isinstance(body.get("payload"), dict)
+            or (body.get("scope") is not None and not isinstance(body["scope"], dict))
+            or (
+                "sources" in body
+                and (
+                    not isinstance(body["sources"], list)
+                    or not all(
+                        isinstance(source, str) for source in cast(list[object], body["sources"])
+                    )
+                )
+            )
+        ):
+            raise HTTPException(422, "invalid host event request")
+        reply = server.hosts[coalition].host_emit(
+            body["type"], body["payload"], body.get("scope"), sources=body.get("sources")
+        )
+        if isinstance(reply, Acknowledgement):
+            return {"accepted": reply.accepted, "receipt": reply.receipt}
+        return reply
+
     @app.post("/admin/coalitions")
     def create(request: Request, charter: Document) -> Document:  # pyright: ignore[reportUnusedFunction]
         admin(request, server.settings)
