@@ -15,7 +15,7 @@ export const examples: Record<string, Data> = {
         text: "Two plans passed the steward. A keeps the three of you together; B is cheaper but splits you up.",
       },
       { role: "user", text: "Which one finishes before 10?" },
-      { text: "Both do. A ends 09:05, B 09:40. Your vault said yes to the resource price in A." },
+      { text: "Both do. A ends 09:05, B 09:40. Your vault said yes to the asset price in A." },
       { role: "tool", text: "vault.answer(q7) → yes" },
     ],
   },

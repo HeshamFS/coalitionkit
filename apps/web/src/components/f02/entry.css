@@ -1,0 +1,209 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-family.ck-EntryComposer {
+  align-items: center;
+  padding: 22px 26px;
+  background: radial-gradient(var(--bg-dot) 1.1px, transparent 1.1px) var(--surface-2);
+  background-size: 18px 18px;
+  gap: 8px;
+}
+.ck-EntryComposer > svg {
+  width: 54px;
+  height: 54px;
+}
+.ck-EntryComposer > svg circle:not(:first-child) {
+  fill: var(--bg-dot);
+}
+.ck-EntryComposer h2 {
+  font: 400 30px / normal var(--font-display);
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+.ck-family.ck-EntryComposer form {
+  width: 100%;
+  max-width: 560px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  gap: 6px;
+}
+.ck-EntryComposer textarea {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  border: 0;
+  padding: 0;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  font: 14px / normal var(--font-ui);
+}
+.ck-EntryComposer textarea::placeholder {
+  color: var(--ink-2);
+  opacity: 1;
+}
+.f02-compose-tools,
+.f02-pack-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.f02-compose-tools > .ck-action {
+  margin-left: auto;
+  height: 32px;
+  font-size: 13px;
+}
+.f02-pack-list {
+  max-width: 560px;
+  justify-content: center;
+}
+.f02-pack-list small {
+  font-size: 12px;
+}
+.f02-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 12px var(--font-ui);
+  white-space: nowrap;
+}
+button.f02-chip {
+  cursor: pointer;
+}
+.f02-chip[aria-pressed="true"] {
+  color: var(--blue-text);
+  background: var(--blue-tint);
+  border-color: var(--blue-line);
+}
+.f02-no-pack {
+  border-style: dashed;
+}
+.f02-vault-note {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--mute-bg);
+  color: var(--mute-fg);
+  font-size: 10.5px;
+  line-height: 16px;
+}
+.ck-family.ck-InviteCard {
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  line-height: normal;
+}
+.f02-invite-qr {
+  width: 112px;
+  height: 112px;
+  flex: none;
+}
+.ck-InviteCard > b {
+  font-size: 13.5px;
+}
+.ck-InviteCard p,
+.ck-JoinScreen p {
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.f02-invite-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.f02-invite-link code {
+  font-size: 11px;
+}
+.f02-invite-link svg {
+  margin-left: auto;
+}
+.ck-InviteCard small {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.ck-family.ck-JoinScreen {
+  gap: 6px;
+  line-height: normal;
+}
+.f02-eyebrow {
+  font: 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.ck-JoinScreen h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.ck-JoinScreen hr {
+  width: 100%;
+  height: 1px;
+  border: 0;
+  margin: 2px 0;
+  background: var(--line);
+}
+.f02-charter-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.f02-charter-rules > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f02-charter-rules svg {
+  color: var(--ok-fg);
+}
+.f02-charter-rules [data-tone="warn"] svg {
+  color: var(--warn-fg);
+}
+.f02-text-action {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue-text);
+  font: 12px / 1.45 var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.ck-JoinScreen > .ck-primary {
+  height: 32px;
+  font-size: 13px;
+}
+.ck-JoinScreen .f02-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+@media (max-width: 640px) {
+  .ck-family.ck-EntryComposer {
+    padding: 16px;
+  }
+  .f02-compose-tools > .ck-action {
+    margin-left: 0;
+  }
+}
+
+.f02-compose-tools > .ck-action {
+  padding: 0 12px;
+}

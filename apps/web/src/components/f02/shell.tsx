@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Fragment, useState } from "react";
+import { CanvasActivity } from "./CanvasActivity";
 import "./shell.css";
+import "./shell-layout.css";
 import { Children, Frame, label, list, number, text, type View } from "./ui";
 
 export function ShellIcon({ name }: { name: string }) {
   const paths: Record<string, string> = {
-    Canvas: "M3 3h18v18H3zM3 9h18",
+    Copy: "M8 8h12v12H8zM16 8V5H5v11h3",
+    File: "M14 3H6v18h12V7zM14 3v4h4",
+    Microphone: "M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3M5 11a7 7 0 0 0 14 0M12 18v3",
+    Warning: "M12 8v5M12 16h.01",
+    Bell: "M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4",
+    Canvas: "M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3M3 9h18",
+    Now: "M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3",
+    Consents: "M12 3l8 4v6c0 4-3.5 7-8 8-4.5-1-8-4-8-8V7zM9 12l2 2 4-4",
     Charter: "M12 3l8 4v6c0 4-4 7-8 8-4-1-8-4-8-8V7z",
+    Person: "M3 20a6 6 0 0 1 12 0",
     People: "M3 20a6 6 0 0 1 12 0M17 5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-6",
     Needs: "M12 8v4l3 2",
     Offers: "M12 5v14M5 12h14",
@@ -24,8 +34,8 @@ export function ShellIcon({ name }: { name: string }) {
   return (
     <svg className="f02-icon" aria-hidden="true" viewBox="0 0 24 24">
       <path d={paths[name] ?? paths.Charter} />
-      {name === "People" && <circle cx="9" cy="8" r="3" />}
-      {name === "Needs" && <circle cx="12" cy="12" r="9" />}
+      {["People", "Person"].includes(name) && <circle cx="9" cy="8" r="3" />}
+      {["Needs", "Warning"].includes(name) && <circle cx="12" cy="12" r="9" />}
       {name === "Search" && <circle cx="11" cy="11" r="7" />}
     </svg>
   );
@@ -78,12 +88,17 @@ export function StageBar({ p }: View) {
 
 export function TopBar({ p, send, roomActions = false }: View & { roomActions?: boolean }) {
   const people = list(p.presence);
+  const agents = people.reduce((total, person) => total + number(person.agents), 0);
   return (
     <Frame name="TopBar">
       <header className="f02-topline">
         <CoalitionMark />
         <b>{text(p.title)}</b>
-        {people.length > 0 && <span className="f02-meta">· {people.length} people</span>}
+        {people.length > 0 && (
+          <span className="f02-meta">
+            · {people.length} people{agents > 0 ? `, ${agents} agents` : ""}
+          </span>
+        )}
         <StageBar p={{ current: p.stage }} send={send} />
         <div className="f02-top-actions">
           <div className="f02-people">
@@ -116,7 +131,11 @@ export function TopBar({ p, send, roomActions = false }: View & { roomActions?: 
               </button>
             </>
           )}
-          {people[0] && <span className="ck-avatar f02-me">{label(people[0]).slice(0, 1)}</span>}
+          {people[0] && (
+            <span className="ck-avatar f02-me" style={{ background: "var(--seat-1)" }}>
+              {label(people[0]).slice(0, 1)}
+            </span>
+          )}
         </div>
       </header>
     </Frame>
@@ -143,7 +162,7 @@ export function Deck({ p, send }: View) {
               <ShellIcon name={label(s)} />
               {label(s)}{" "}
               {s.count != null && (
-                <span className="f02-count">
+                <span className="f02-count" data-attention={s.attention === true || undefined}>
                   {text(s.prefix)}
                   {number(s.count)}
                 </span>
@@ -167,7 +186,17 @@ export function RoomShell({ p, send, build }: View) {
       <div className="ck-room-body">
         <Deck p={{ sections: p.deck }} send={send} />
         <div className="ck-canvas">
-          <Children value={p.canvas} build={build} />
+          <div className="f02-canvas-content">
+            <Children value={p.canvas} build={build} />
+          </div>
+          <CanvasActivity presence={p.presence} />
+          <div className="f02-canvas-status">
+            <span>Zoom 100%</span>
+            <span>
+              <i className="f02-live" />
+              <b>Live</b>
+            </span>
+          </div>
           <div className="ck-room-tray">
             <Children value={p.tray} build={build} />
           </div>
@@ -216,6 +245,7 @@ export function AgentDock({ p, send }: View) {
             value={message}
             onChange={(e) => set(e.target.value)}
           />
+          <ShellIcon name="Microphone" />
           <button type="submit" aria-label="Send" disabled={!message.trim()}>
             <ShellIcon name="Send" />
           </button>
@@ -250,7 +280,7 @@ export function PhoneShell({ p, send, build }: View) {
                 send("tab.select", { id: t });
               }}
             >
-              <ShellIcon name={t === "Now" ? "Canvas" : t} />
+              <ShellIcon name={t === "People" ? "Person" : t} />
               {t}
             </button>
           ))}
