@@ -1,81 +1,66 @@
 // SPDX-License-Identifier: Apache-2.0
-import { examples, groups, labels } from "../../components/f03/examples";
-import { Cell, Family, State } from "../Cell";
+import { panels } from "../../components/f03/panels";
+import { variants } from "../../components/f03/variants";
+import { Family } from "../Cell";
 import { Drawn } from "../Drawn";
 
 export function Sheet03() {
   return (
-    <div className="ck-sheet" data-testid="sheet-03">
+    <div className="ck-sheet ck-sheet-03" data-testid="sheet-03">
       <div className="sheet-head">
         <div>
           <div className="eyebrow">coalitionkit/v0_9 · family 03 · example data</div>
-          <h1 className="sheet-title">Conversation and calls</h1>
+          <div className="sheet-title">Conversation and calls</div>
+          <div className="sheet-sub">
+            Where people and agents talk: private agent chat, the shared thread, live calls with a
+            diarized transcript, agents negotiating in the open, and CoalitionKit inside another
+            chat app.
+          </div>
+        </div>
+        <div className="h-right">
+          <span className="badge b-example">Example data</span>
+          <span className="scope">agent session · feed session</span>
         </div>
       </div>
-      {groups.map(([heading, names], index) => (
-        <Family
-          key={String(heading)}
-          n={`03${String.fromCharCode(97 + index)}`}
-          title={String(heading)}
-        >
-          {(names as string[]).map((name) => (
-            <Cell
-              key={name}
-              name={name}
-              props={labels[name]?.props ?? ""}
-              events={labels[name]?.events}
-              span={
-                [
-                  "RoomShell",
-                  "VideoCall",
-                  "CoalitionThread",
-                  "Wizard",
-                  "Form",
-                  "ReviewStep",
-                ].includes(name)
-                  ? 2
-                  : undefined
-              }
+      {panels.map((group, index) => (
+        <Family key={group.title} n={`03${String.fromCharCode(97 + index)}`} title={group.title}>
+          {group.panels.map((panel) => (
+            <div
+              key={panel.title}
+              className={`cell${panel.span > 1 ? ` span${panel.span}` : ""}`}
+              data-panel={panel.title}
             >
-              <div className="ck-examples">
-                {variants(name).map((props, i) => (
-                  <State key={String(props.state ?? i)} label={String(props.state ?? "default")}>
-                    <Drawn
-                      components={[
-                        { id: "root", component: name, ...props },
-                        {
-                          id: "content",
-                          component: "Message",
-                          text: "Plan A is ready for review.",
-                          state: "delivered",
-                        },
-                        { id: "header", component: "TopBar", title: "Coalition 1" },
-                        {
-                          id: "dock",
-                          component: "AgentDock",
-                          agent: "a1",
-                          messages: [{ text: "Your limits stay private." }],
-                        },
-                        { id: "tray", component: "ConsentTray", requests: [] },
-                      ]}
-                      data={{ stage: "Decide" }}
-                    />
-                  </State>
+              <div className="head">
+                <span className="cell-name">{panel.title}</span>
+                {panel.name === "AvailabilityGrid" && (
+                  <span className="h-right">
+                    <span className="badge b-vault">Vault</span>
+                    <span className="badge b-measured">PSI-ready</span>
+                  </span>
+                )}
+              </div>
+              <div className={`demo ck-demo-${panel.name}`}>
+                {variants(panel.name).map((props, i) => (
+                  <Drawn
+                    key={String(props.state ?? i)}
+                    components={[
+                      { id: "root", component: panel.name, ...props },
+                      {
+                        id: "content",
+                        component: "Message",
+                        text: "Plan A is ready for review.",
+                        state: "delivered",
+                      },
+                    ]}
+                  />
                 ))}
               </div>
-            </Cell>
+              <div className="props">{panel.props}</div>
+              {panel.events && <div className="evts">{panel.events}</div>}
+            </div>
           ))}
         </Family>
       ))}
     </div>
   );
-}
-function variants(name: string) {
-  const base = examples[name] ?? {};
-  const states: Record<string, string[]> = {
-    Message: ["sending", "delivered", "seen", "failed", "redacted", "blocked"],
-    ToolCall: ["running", "done", "failed"],
-    AgentStatus: ["listening", "answering", "needs-you", "paused", "offline"],
-  };
-  return states[name]?.map((state) => ({ ...base, state })) ?? [base];
 }

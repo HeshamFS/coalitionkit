@@ -10,23 +10,14 @@ export const examples: Record<string, Data> = {
   },
   AvailabilityGrid: {
     days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-    slots: [
-      { id: "Mon09:00", day: "Mon", label: "09:00", available: false },
-      { id: "Mon10:00", day: "Mon", label: "10:00", available: false },
-      { id: "Mon11:00", day: "Mon", label: "11:00", available: false },
-      { id: "Tue09:00", day: "Tue", label: "09:00", available: true },
-      { id: "Tue10:00", day: "Tue", label: "10:00", available: true },
-      { id: "Tue11:00", day: "Tue", label: "11:00", available: true },
-      { id: "Wed09:00", day: "Wed", label: "09:00", available: false },
-      { id: "Wed10:00", day: "Wed", label: "10:00", available: false },
-      { id: "Wed11:00", day: "Wed", label: "11:00", available: false },
-      { id: "Thu09:00", day: "Thu", label: "09:00", available: false },
-      { id: "Thu10:00", day: "Thu", label: "10:00", available: false },
-      { id: "Thu11:00", day: "Thu", label: "11:00", available: false },
-      { id: "Fri09:00", day: "Fri", label: "09:00", available: false },
-      { id: "Fri10:00", day: "Fri", label: "10:00", available: false },
-      { id: "Fri11:00", day: "Fri", label: "11:00", available: false },
-    ],
+    slots: ["09:00", "11:00", "13:00", "15:00", "17:00"].flatMap((time, row) =>
+      ["Mon", "Tue", "Wed", "Thu", "Fri"].map((day, column) => ({
+        id: `${day}${time}`,
+        day,
+        label: time,
+        available: ["11010", "10011", "00111", "11100", "01001"][row]?.[column] === "1",
+      })),
+    ),
     source: "manual",
   },
   ConsentSeal: {

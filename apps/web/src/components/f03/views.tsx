@@ -17,24 +17,8 @@ import {
 import "../../styles/f02.css";
 import "../../styles/f03.css";
 
-export function Message({ p, send }: View) {
-  const state = text(p.state) || "delivered";
-  return (
-    <Frame name="Message" state={state}>
-      <div className={`ck-bubble ${state === "failed" ? "ck-error" : ""}`}>
-        <p>
-          {state === "redacted"
-            ? "Content hidden by policy"
-            : state === "blocked"
-              ? "Message blocked by policy"
-              : text(p.text)}
-        </p>
-        <small>{state === "seen" ? "✓✓ Seen" : state}</small>
-        {state === "failed" && <Action onClick={() => send("message.retry")}>Retry</Action>}
-      </div>
-    </Frame>
-  );
-}
+export { AgentStatus, Message, ToolCall } from "./chat";
+
 export function CoalitionThread({ p, send }: View) {
   return (
     <Frame name="CoalitionThread" state={list(p.messages).length ? "streaming" : "empty"}>
@@ -52,25 +36,6 @@ export function CoalitionThread({ p, send }: View) {
       ))}
       {!list(p.messages).length && <p>No messages yet.</p>}
       {list(p.typing).length > 0 && <small>{list(p.typing).map(label).join(", ")} typing…</small>}
-    </Frame>
-  );
-}
-export function ToolCall({ p, send }: View) {
-  const [open, set] = useState(false);
-  return (
-    <Frame name="ToolCall" state={text(p.state)}>
-      <Action
-        pressed={open}
-        onClick={() => {
-          set(!open);
-          send("toolcall.expand");
-        }}
-      >
-        {p.state === "running" ? "◌" : p.state === "failed" ? "!" : "✓"} {text(p.tool)} ·{" "}
-        {text(p.state)}
-      </Action>
-      <small>{text(p.summary)}</small>
-      {open && <pre>{JSON.stringify(p.args ?? {}, null, 2)}</pre>}
     </Frame>
   );
 }
@@ -127,26 +92,6 @@ export function Composer({ p, send }: View) {
           Send
         </Action>
       </div>
-    </Frame>
-  );
-}
-export function AgentStatus({ p, send }: View) {
-  return (
-    <Frame name="AgentStatus" state={text(p.state)}>
-      <div className="ck-row">
-        <span className="ck-live" />
-        <b>Your agent</b>
-        <span>{text(p.state)}</span>
-        <Action onClick={() => send(p.state === "paused" ? "agent.resume" : "agent.pause")}>
-          {p.state === "paused" ? "Resume" : "Pause"}
-        </Action>
-      </div>
-      <small>{text(p.task)}</small>
-      {p.budget ? (
-        <small>
-          Budget {number(obj(p.budget).used)} / {number(obj(p.budget).cap)}
-        </small>
-      ) : null}
     </Frame>
   );
 }
@@ -364,45 +309,69 @@ export function AskAgent({ p, send }: View) {
   return (
     <Frame name="AskAgent">
       <b>Ask {text(p.to)}'s agent</b>
-      <div className="ck-row">
+      <div className="f03-query-options">
         {["bool", "number-range", "choice"].map((k) => (
           <Action key={k} pressed={kind === k} onClick={() => choose(k)}>
             {k === "bool" ? "Yes / no" : k === "number-range" ? "Number" : "Choice"}
           </Action>
         ))}
       </div>
-      <label className="ck-field">
-        Question
-        <textarea value={value} onChange={(e) => set(e.target.value)} />
-      </label>
-      <small>Their vault answers; you see only the answer</small>
-      <Action
-        primary
-        disabled={!value.trim()}
-        onClick={() => send("coalition.query", { to: p.to, kind, text: value, task_id: p.task_id })}
-      >
-        Ask
-      </Action>
+      <textarea
+        className="f03-query-input"
+        aria-label="Question"
+        value={value}
+        onChange={(e) => set(e.target.value)}
+      />
+      <div className="f03-query-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+        Their vault answers; you see only the answer
+      </div>
+      <div className="f03-query-footer">
+        <span className="ck-tag">{p.task_id ? `task:${text(p.task_id)}` : "me"}</span>
+        <Action
+          primary
+          disabled={!value.trim()}
+          onClick={() =>
+            send("coalition.query", { to: p.to, kind, text: value, task_id: p.task_id })
+          }
+        >
+          Ask
+        </Action>
+      </div>
     </Frame>
   );
 }
 export function AgentHandoff({ p, send }: View) {
   return (
-    <Frame name="AgentHandoff" tone="ck-ask">
-      <b>Your agent needs you</b>
-      <p>{text(p.question)}</p>
-      <small>{text(p.reason)}</small>
-      <div className="ck-row">
-        {list(p.choices).map((c) => (
-          <Action
-            key={text(c.value ?? c.id)}
-            onClick={() => send("handoff.answer", { value: c.value ?? c.id })}
-          >
-            {label(c)}
-          </Action>
-        ))}
+    <Frame name="AgentHandoff">
+      <div className="card card-ask">
+        <div className="row">
+          <span className="f03-agent-avatar">Y</span>
+          <svg className="ico ico-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+          <span className="av s1">A</span>
+          <b style={{ fontSize: 12.5 }}>Your agent needs you</b>
+        </div>
+        <span className="small" style={{ color: "var(--ink)" }}>
+          {text(p.question)} {text(p.reason)}
+        </span>
+        <div className="row">
+          {list(p.choices).map((c, index) => (
+            <Action
+              key={text(c.value ?? c.id)}
+              primary={index === 0}
+              onClick={() => send("handoff.answer", { value: c.value ?? c.id })}
+            >
+              {label(c)}
+            </Action>
+          ))}
+        </div>
       </div>
-      <small>{text(p.rule)}</small>
+      <span className="st">the agent's rule: {text(p.rule)}</span>
     </Frame>
   );
 }

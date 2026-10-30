@@ -145,3 +145,95 @@
     grid-template-columns: 1fr;
   }
 }
+.ck-sheet-04 .sheet-head > .h-right {
+  display: flex;
+  gap: 6px;
+}
+.ck-AvailabilityGrid.ck-family {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  line-height: normal;
+}
+.f04-slot-grid {
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+}
+.f04-day,
+.f04-time {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f04-day {
+  text-align: center;
+}
+.f04-slot {
+  height: 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+}
+.f04-slot[aria-pressed="true"],
+.f04-free {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.f04-availability-footer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.f04-free {
+  width: 22px;
+  height: 14px;
+  flex: none;
+}
+.f04-availability-footer button {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.f04-availability-privacy {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.f04-availability-privacy svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+@media (max-width: 640px) {
+  .ck-sheet-04 .g4 {
+    grid-template-columns: 1fr;
+  }
+  .ck-sheet-04 .span2 {
+    grid-column: auto;
+  }
+  .f04-availability-footer {
+    flex-wrap: wrap;
+  }
+  .f04-availability-privacy {
+    margin-left: 0;
+  }
+}
+.ck-sheet-04 .cell-name {
+  font-weight: 700;
+}
