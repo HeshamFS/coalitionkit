@@ -3,6 +3,12 @@ import { useId, useState } from "react";
 import { Action, Frame, list, Mark, Meter, num, obj, type Props, rows, str } from "../f05/shared";
 import "../../styles/f07.css";
 
+const clock = (value: unknown) => {
+  const raw = str(value);
+  const match = raw.match(/T(\d{2}:\d{2})/);
+  return match?.[1] ?? raw;
+};
+
 export { IndoorMap, MapView, PlacePicker } from "./maps";
 export function RouteCard({ p }: Props) {
   const progress = num(p.progress),
@@ -14,7 +20,9 @@ export function RouteCard({ p }: Props) {
         <Mark state={state} />
       </div>
       <div className="row">
-        <b className="f07-arrival">{str(p.eta)}</b>
+        <b className="f07-arrival">
+          <time dateTime={str(p.eta)}>{clock(p.eta)}</time>
+        </b>
         <span>{num(p.distance) / 1000} km</span>
       </div>
       <Meter value={progress * 100} label="Route progress" />
@@ -34,7 +42,9 @@ export function ArrivalCard({ p }: Props) {
   return (
     <Frame name="ArrivalCard" state="arrived">
       <div className="f07-lens">
-        <small>ARRIVED · {str(p.arrivedAt)}</small>
+        <small>
+          ARRIVED · <time dateTime={str(p.arrivedAt)}>{clock(p.arrivedAt)}</time>
+        </small>
         <b>You're at {str(p.place)}</b>
         <p>{str(p.next)}</p>
       </div>
@@ -55,7 +65,7 @@ export function LocationShare({ p, send }: Props) {
     [until, setUntil] = useState(str(p.until) || "arrival"),
     [sharing, setSharing] = useState(false);
   return (
-    <Frame name="LocationShare" state={sharing ? "sharing" : "off"} className="card">
+    <Frame name="LocationShare" state={sharing ? "sharing" : "off"} className="card f07-location">
       <b>Share where you are</b>
       <small>with: {str(p.audience) || str(obj(p.audience).audience)}</small>
       {[
@@ -72,14 +82,21 @@ export function LocationShare({ p, send }: Props) {
             checked={precision === value}
             onChange={() => setPrecision(value ?? "off")}
           />
-          {label}
+          <span>{label}</span>
+          {value === "approximate" && <span className="h-right st">default</span>}
         </label>
       ))}
       <label className="col">
         Stop sharing
         <select value={until} onChange={(e) => setUntil(e.target.value)}>
           {["task end", "time", "arrival"].map((t) => (
-            <option key={t}>{t}</option>
+            <option key={t} value={t}>
+              {t === "arrival"
+                ? "When the task arrives"
+                : t === "task end"
+                  ? "When the task ends"
+                  : "At a chosen time"}
+            </option>
           ))}
         </select>
       </label>
@@ -111,20 +128,30 @@ export function LocationShare({ p, send }: Props) {
 }
 export function AgendaList({ p, send }: Props) {
   return (
-    <Frame name="AgendaList">
-      <small>{str(p.day)}</small>
-      {rows(p.items).map((r, i) => (
-        <div className="f07-agenda" key={`${str(r.time)}-${str(r.title)}`}>
-          <time>{str(r.time)}</time>
-          <span>{str(r.title)}</span>
-          <Mark state={r.state} />
-          {Boolean(r.action) && (
-            <Action onClick={() => send("item.action", { item: i, action: r.action })}>
-              {str(r.action)}
-            </Action>
-          )}
-        </div>
-      ))}
+    <Frame name="AgendaList" className="f07-agenda-list">
+      <div title={str(p.day)}>
+        {rows(p.items).map((r, i) => (
+          <div className="f07-agenda" key={`${str(r.time)}-${str(r.title)}`}>
+            <time>{str(r.time)}</time>
+            <span className={`pin f07-dot-${str(r.state)}`} />
+            <span className="f07-agenda-title">{str(r.title)}</span>
+            {(r.state === "agreed" || r.state === "needs-you") && (
+              <span className={`tag ${r.state === "agreed" ? "t-agreed" : "t-needs"}`}>
+                {r.state === "agreed" ? "Agreed" : "Needs you"}
+              </span>
+            )}
+            {Boolean(r.action) && (
+              <button
+                type="button"
+                className="f07-text-action"
+                onClick={() => send("item.action", { item: i, action: r.action })}
+              >
+                {str(r.action)}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </Frame>
   );
 }

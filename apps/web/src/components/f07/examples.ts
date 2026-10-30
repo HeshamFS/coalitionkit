@@ -287,18 +287,3 @@ export const examples: Record<string, { state: string; props: Record<string, unk
     },
   ],
 };
-
-const mapExample = examples.MapView?.[0]?.props ?? {};
-examples.MapView?.push(
-  { state: "loading", props: {} },
-  { state: "no-location", props: { ...mapExample, points: [], you: undefined } },
-);
-const routeExample = examples.RouteCard?.[0]?.props ?? {};
-examples.RouteCard?.push(
-  { state: "planned", props: { ...routeExample, progress: { value: 0, event_ref: "example:1" } } },
-  { state: "arrived", props: { ...routeExample, progress: { value: 1, event_ref: "example:1" } } },
-);
-examples.PlacePicker?.push(
-  { state: "searching", props: { query: "Place", results: [] } },
-  { state: "results", props: { ...examples.PlacePicker[0]?.props, pin: undefined } },
-);

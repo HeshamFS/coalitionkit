@@ -73,25 +73,61 @@ export function StageTrack({ p }: Props) {
   );
 }
 export function ParticipantCard({ p, send }: Props) {
+  const state = str(p.state);
+  const role = texts(p.roles);
   return (
-    <Frame name="ParticipantCard" state={str(p.state)} className="card">
-      <button
-        type="button"
-        className="f05-person"
-        onClick={() => send("participant.open", { participant: p.participant })}
-      >
-        <Person name={p.participant} seat={num(p.seat, 1)} />
-      </button>
-      <small>{texts(p.roles)}</small>
-      <div className="row wrap">
-        {list(p.capabilities).map((c) => (
-          <span className="chip" key={str(c)}>
-            {str(c)}
-          </span>
-        ))}
+    <Frame name="ParticipantCard" state={state} className="card f05-participant">
+      <div className="row">
+        <span
+          className={`av av-lg f05-avatar-${state}`}
+          style={{
+            background: state === "left" ? "var(--surface-3)" : `var(--seat-${num(p.seat, 1)})`,
+          }}
+        >
+          {str(p.participant).slice(-1)}
+        </span>
+        <div className="col grow">
+          <button
+            type="button"
+            className="f05-person"
+            onClick={() => send("participant.open", { participant: p.participant })}
+          >
+            {str(p.participant)}
+          </button>
+          <span className="st">{role}</span>
+        </div>
+        {state === "acting" && <span className="spinner" role="status" aria-label="Acting" />}
       </div>
-      <Mark state={p.state} />
-      {Boolean(p.act) && <small>{str(p.act)}</small>}
+      {!["watcher", "invited", "left"].includes(state) && (
+        <div className="row wrap">
+          {list(p.capabilities).map((c) => (
+            <span className="chip" key={str(c)}>
+              {str(c)}
+            </span>
+          ))}
+        </div>
+      )}
+      {state === "watcher" && <span className="small">sees results, never raw data</span>}
+      {state === "invited" && <span className="small">{str(p.act)}</span>}
+      {state === "left" && <span className="small">{str(p.act)}</span>}
+      {state === "acting" ? (
+        <span className="small blue">{str(p.act)}</span>
+      ) : state === "invited" ? (
+        <button
+          type="button"
+          className="f05-text-action"
+          onClick={() => send("participant.open", { participant: p.participant })}
+        >
+          Resend
+        </button>
+      ) : (
+        <span
+          className={`tag ${{ agreed: "t-agreed", owes: "t-needs", watcher: "t-private", left: "t-blocked" }[state] ?? ""}`}
+        >
+          {{ agreed: "Agreed", owes: "Needs you", watcher: "Private", left: "Blocked" }[state] ??
+            state}
+        </span>
+      )}
     </Frame>
   );
 }
@@ -123,7 +159,7 @@ export function AgentPresence({ p }: Props) {
 export function RoleChip({ p }: Props) {
   return (
     <Frame name="RoleChip" state={p.open ? "open" : "held"}>
-      <span className={`chip ${p.open ? "f05-open" : "chip-on"}`}>
+      <span className={`chip ${p.open ? "f05-open" : p.role === "organizer" ? "chip-on" : ""}`}>
         {str(p.role)}
         {p.open ? " (open)" : ""}
       </span>
@@ -132,26 +168,38 @@ export function RoleChip({ p }: Props) {
 }
 export function CharterCard({ p, send }: Props) {
   return (
-    <Frame name="CharterCard" className="card">
-      <div className="row sp">
+    <Frame name="CharterCard" className="card f05-charter">
+      <div className="row">
+        <svg className="ico blue" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3l8 4v6c0 4-3.5 7-8 8-4.5-1-8-4-8-8V7z" />
+        </svg>
         <b>Charter</b>
-        <span className="badge b-signed">
+        <span className="h-right badge b-signed">
           r{str(p.revision)} · signed by {list(p.signedBy).length}
         </span>
       </div>
       <ol>
         {rows(p.rules).map((r) => (
-          <li key={str(r.n)}>{str(r.text)}</li>
+          <li key={str(r.n)}>
+            <span className="num st">{str(r.n)}</span>
+            <span>{str(r.text)}</span>
+          </li>
         ))}
       </ol>
-      <div className="row sp">
-        <small>
+      <div className="row">
+        <span className="small">
           Roles:{" "}
           {rows(p.roles)
             .map((r) => str(r.name))
             .join(", ")}
-        </small>
-        <Action onClick={() => send("charter.history")}>History</Action>
+        </span>
+        <button
+          className="f05-text-action h-right"
+          type="button"
+          onClick={() => send("charter.history")}
+        >
+          History
+        </button>
       </div>
     </Frame>
   );
@@ -172,7 +220,7 @@ export function RoleMatrix({ p }: Props) {
           <tbody>
             {rows(p.rights).map((r) => (
               <tr key={str(r.action)}>
-                <th>{str(r.action)}</th>
+                <td>{str(r.action)}</td>
                 {list(p.roles).map((role) => (
                   <td key={str(role)}>{str(obj(r.rights)[str(role)]) || "–"}</td>
                 ))}

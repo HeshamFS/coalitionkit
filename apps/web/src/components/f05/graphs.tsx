@@ -1,72 +1,140 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Action, Frame, list, num, type Props, rows, str } from "./shared";
+import { Frame, list, num, type Props, rows, str } from "./shared";
+
+function SeatGlyph({
+  seat,
+  x,
+  y,
+  i,
+  send,
+}: {
+  seat?: Record<string, unknown>;
+  x: number;
+  y: number;
+  i: number;
+  send: Props["send"];
+}) {
+  const name = str(seat?.participant);
+  return (
+    <g>
+      <circle
+        cx={x}
+        cy={y}
+        r={seat ? 15 : 13}
+        fill={seat ? `var(--seat-${num(seat.seat, 1)})` : "none"}
+        stroke={seat?.state === "acting" ? "var(--blue)" : seat ? "none" : "var(--line-strong)"}
+        strokeWidth={seat?.state === "acting" ? 3 : 1}
+        strokeDasharray={seat ? undefined : "3 3"}
+      />
+      {seat?.state === "owes" && (
+        <circle
+          cx={x}
+          cy={y}
+          r="19"
+          fill="none"
+          stroke="var(--warn-fg)"
+          strokeWidth="1.5"
+          strokeDasharray="2 3"
+        />
+      )}
+      {seat && (
+        <text
+          x={x}
+          y={y + 4}
+          textAnchor="middle"
+          fill="var(--on-fill)"
+          fontSize="10"
+          fontWeight="700"
+        >
+          {name.slice(-1)}
+        </text>
+      )}
+      <text
+        x={i === 1 ? 4 : i === 2 ? 6 : x + 14}
+        y={i === 0 ? 22 : i === 1 ? 20 : i === 2 ? 128 : y + 4}
+        fontSize="9"
+        fill="var(--ink-2)"
+      >
+        {seat ? `${name}${seat.state === "acting" ? " · acting" : ""}` : "open seat"}
+      </text>
+      {seat && (
+        <foreignObject x={x - 15} y={y - 15} width="30" height="30">
+          <button
+            type="button"
+            className="f05-seat-hit"
+            aria-label={`${name} · ${str(seat.state)}`}
+            onClick={() => send("seat.open", { participant: seat.participant })}
+          />
+        </foreignObject>
+      )}
+    </g>
+  );
+}
 export function SeatRing({ p, send }: Props) {
   const seats = rows(p.seats),
-    visible = seats.slice(0, 7),
-    open = Math.min(7 - visible.length, num(p.openSeats)),
-    total = visible.length + open;
+    visible = seats.slice(0, 7);
+  const total = visible.length + Math.max(0, Math.min(7 - visible.length, num(p.openSeats)));
+  const positions =
+    total === 5
+      ? [
+          [128, 26],
+          [62, 44],
+          [40, 100],
+          [62, 156],
+          [128, 174],
+        ]
+      : Array.from({ length: total }, (_, i) => {
+          const angle = -Math.PI / 2 - (i * Math.PI) / Math.max(1, total - 1);
+          return [120 + 78 * Math.cos(angle), 100 + 74 * Math.sin(angle)];
+        });
   return (
     <Frame name="SeatRing">
-      <div className="f05-ring">
-        <svg viewBox="0 0 220 200" role="img" aria-label="Coalition seats">
-          <path
-            d="M150 40 A78 78 0 1 0 150 160"
-            fill="none"
-            stroke="var(--line)"
-            strokeWidth="2"
-            strokeDasharray="3 5"
-          />
-          <circle cx="120" cy="100" r="26" fill="var(--blue-tint)" stroke="var(--blue-line)" />
-          <text x="120" y="96" textAnchor="middle" fill="var(--blue-text)" fontSize="10">
-            Goal
-          </text>
-          <text x="120" y="110" textAnchor="middle" fill="var(--blue-text)" fontSize="8">
-            {str(p.goal)}
-          </text>
-          {Array.from({ length: total }, (_, i) => {
-            const angle = -Math.PI / 2 - (i * Math.PI) / Math.max(1, total - 1),
-              x = 120 + 78 * Math.cos(angle),
-              y = 100 + 74 * Math.sin(angle),
-              seat = visible[i];
-            return (
-              <g key={seat ? str(seat.participant) : `open-${i}`}>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r="15"
-                  fill={seat ? `var(--seat-${num(seat.seat, 1)})` : "var(--surface)"}
-                  stroke={
-                    seat?.state === "acting"
-                      ? "var(--blue)"
-                      : seat?.state === "owes"
-                        ? "var(--warn-fg)"
-                        : "var(--line-strong)"
-                  }
-                  strokeWidth="3"
-                  strokeDasharray={seat ? undefined : "3 3"}
-                />
-                <text
-                  x={x}
-                  y={y + 4}
-                  textAnchor="middle"
-                  fill={seat ? "var(--on-fill)" : "var(--ink-2)"}
-                >
-                  {seat ? str(seat.participant).slice(-1) : "?"}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-      <div className="row wrap">
-        {visible.map((s) => (
-          <Action
-            key={str(s.participant)}
-            onClick={() => send("seat.open", { participant: s.participant })}
-          >
-            {str(s.participant)} · {str(s.state)}
-          </Action>
+      <svg className="f05-ring" viewBox="0 0 220 200" aria-label="Coalition seats">
+        <path
+          d="M150 40 A78 78 0 1 0 150 160"
+          fill="none"
+          stroke="var(--line)"
+          strokeWidth="2"
+          strokeDasharray="3 5"
+        />
+        <circle cx="120" cy="100" r="26" fill="var(--blue-tint)" stroke="var(--blue-line)" />
+        <text
+          x="120"
+          y="96"
+          textAnchor="middle"
+          fill="var(--blue-text)"
+          fontSize="10"
+          fontWeight="600"
+        >
+          Goal
+        </text>
+        <text
+          x="120"
+          y="110"
+          textAnchor="middle"
+          fill="var(--blue-text)"
+          fontSize="8"
+          className="mono"
+        >
+          {str(p.goal)}
+        </text>
+        {positions.map(([x = 0, y = 0], i) => (
+          <SeatGlyph key={`${x}-${y}`} seat={visible[i]} x={x} y={y} i={i} send={send} />
         ))}
+      </svg>
+      <div className="row wrap small f05-ring-legend">
+        <span className="row">
+          <i className="pin acting" />
+          acting now
+        </span>
+        <span className="row">
+          <i className="pin owes" />
+          owes an answer
+        </span>
+        <span className="row">
+          <i className="pin open" />
+          open seat
+        </span>
         {seats.length > 7 && <span>+{seats.length - 7}</span>}
       </div>
     </Frame>
