@@ -5,7 +5,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
-
 .f11-quiet {
   display: flex;
   flex-wrap: wrap;
@@ -19,7 +18,6 @@
   flex-direction: column;
   gap: 4px;
 }
-
 .f11-metric {
   display: flex;
   flex-direction: column;
@@ -27,10 +25,6 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
-}
-.f11-metric small {
-  font-size: 12px;
-  font-weight: 400;
 }
 .f11-archive {
   display: flex;
@@ -50,7 +44,6 @@
   padding: 24px 12px;
   text-align: center;
 }
-
 /* Sheet framing is local to this family. */
 .sheet:has(> .sheet-11) {
   padding: 0;
@@ -66,7 +59,6 @@
 .f11 .family-card .row {
   flex-wrap: nowrap;
 }
-
 .f11 [data-component="CostMeter"] {
   border: 0;
   padding: 0;
@@ -82,7 +74,6 @@
 .f11 .tbl .f11-right {
   text-align: right;
 }
-
 .f11 [data-component="CoalitionArchive"] {
   padding: 0;
   border: 0;
@@ -108,7 +99,6 @@
 .f11-empty a {
   text-decoration: none;
 }
-
 .f11 [data-component="LessonReview"] {
   padding: 0;
   border: 0;
@@ -157,15 +147,12 @@
   border-width: 0 0 2px 2px;
   transform: translate(2px, 3px) rotate(-45deg);
 }
-
 .sheet-11 .cell-name {
   font-weight: 700;
 }
-
 .f11-notification .sh {
   color: var(--on-ink);
 }
-
 .f11-control-title {
   font-size: 13px;
 }
@@ -210,7 +197,6 @@
   font-size: inherit;
   font-weight: inherit;
 }
-
 .f11 [data-component="ChannelSettings"] {
   gap: 6px;
 }
@@ -327,7 +313,6 @@
   font-size: 10.5px;
   color: #c8d1e0;
 }
-
 .f11 [data-component="DoorMatrix"] {
   padding: 0;
   border: 0;
@@ -389,7 +374,6 @@ html[data-theme="dark"] .f11 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
 .f11 [data-component="MessageTemplate"] {
   border: 0;
   padding: 0;
@@ -409,7 +393,6 @@ html[data-theme="dark"] .f11 {
   font-size: 12px;
   cursor: pointer;
 }
-
 .f11 [data-component="DissolveSummary"] {
   gap: 10px;
 }
@@ -447,7 +430,6 @@ html[data-theme="dark"] .f11 {
 .f11 [data-component="SkillCard"] .kv {
   font-size: 11.5px;
 }
-
 .f11-doors .btn[aria-disabled="true"] {
   opacity: 1;
 }
@@ -483,4 +465,34 @@ html[data-theme="light"] .f11-notification {
 }
 html[data-theme="light"] .f11-lockscreen > :last-child .f11-notification {
   background: rgb(255 255 255 / 0.7);
+}
+html[data-theme="light"] .f11-replies button {
+  color: #0070f3;
+}
+.f11-notification .av {
+  color: var(--on-blue);
+}
+.f11 [data-component="CoalitionArchive"] .tbl {
+  table-layout: fixed;
+}
+.f11 [data-component="CoalitionArchive"] th {
+  white-space: nowrap;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(1) {
+  width: 30.86%;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(2) {
+  width: 18.06%;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(3) {
+  width: 16.20%;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(4) {
+  width: 17.59%;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(5) {
+  width: 9.26%;
+}
+.f11 [data-component="CoalitionArchive"] th:nth-child(6) {
+  width: 8.03%;
 }

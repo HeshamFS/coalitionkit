@@ -6171,6 +6171,18 @@
     "threshold": {
      "type": "number",
      "doc": "value"
+    },
+    "firedAt": {
+     "type": "datetime",
+     "doc": "Time the alarm fired."
+    },
+    "ripple": {
+     "type": "string",
+     "doc": "Summary of affected tasks and notified participants."
+    },
+    "unit": {
+     "type": "string",
+     "doc": "Unit of the reading and threshold."
     }
    }
   },
@@ -6251,6 +6263,14 @@
       "vendor app"
      ],
      "doc": "camera|serial|vendor app"
+    },
+    "sourceLabel": {
+     "type": "string",
+     "doc": "Human-readable label of the reader source."
+    },
+    "confidenceWindow": {
+     "type": "number",
+     "doc": "Window in seconds over which confidence was measured."
     }
    }
   },
@@ -6279,6 +6299,10 @@
     "stages": {
      "type": "array",
      "doc": "[{name: capture|read|design|code|attack|publish, state, took, detail, artifacts[]}]"
+    },
+    "elapsedPlaceholder": {
+     "type": "string",
+     "doc": "Explicit placeholder when elapsed time has not been measured."
     }
    }
   },
@@ -6402,6 +6426,14 @@
     "to": {
      "type": "string",
      "doc": "door"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "Human-readable summary of the request being handed off."
+    },
+    "actionLabel": {
+     "type": "string",
+     "doc": "Human-readable action to review at the destination."
     }
    }
   },
@@ -6647,6 +6679,10 @@
     "value": {
      "type": "number",
      "doc": "measured?"
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Explicit placeholder for an unmeasured value; never a measurement."
     }
    }
   },
@@ -6675,6 +6711,10 @@
      "type": "string",
      "required": true,
      "doc": "coalition"
+    },
+    "ageLabel": {
+     "type": "string",
+     "doc": "Relative notification time, for example now or 2 h."
     }
    }
   },
@@ -6728,6 +6768,14 @@
     "templates": {
      "type": "array",
      "doc": "[]"
+    },
+    "usedCount": {
+     "type": "number",
+     "doc": "Number of times this reusable pattern was used."
+    },
+    "summary": {
+     "type": "string",
+     "doc": "Short description of the reusable workflow."
     }
    }
   }

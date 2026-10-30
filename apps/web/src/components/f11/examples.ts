@@ -18,6 +18,8 @@ const drawn: Example[] = [
       {
         state: "offered",
         props: {
+          summary: "resource ≈ €42",
+          actionLabel: "buy the resource",
           from: "lens",
           to: "phone",
           reason: "money",
@@ -360,7 +362,7 @@ const drawn: Example[] = [
               value: { value: 0, event_ref: "example:1" },
               context: "3 208 events",
             },
-            { label: "change to paint p95", context: "target < 1 s" },
+            { label: "change to paint p95", placeholder: "[MS]", context: "target < 1 s" },
             {
               label: "ripple p95",
               value: { value: 64, event_ref: "example:1" },
@@ -381,6 +383,9 @@ const drawn: Example[] = [
         state: "draft",
         props: {
           name: "Three-member task run",
+          usedCount: { value: 1, event_ref: "example:1" },
+          summary:
+            "Make → send → run → check → model, with the transfer rule and a 4-hour decision window.",
           source: "Coalition 1",
           roles: ["Coordinator", "Member", "Reviewer"],
           rules: [

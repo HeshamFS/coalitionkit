@@ -40,3 +40,54 @@ it("hands off the exact subject and revision without signing", () => {
     event: { name: "handoff.open", context: { from: "lens", to: "phone", subject } },
   });
 });
+it("renders optional notification age without changing its deep link", () => {
+  const dispatchAction = vi.fn();
+  render(
+    draw(
+      "NotificationCard",
+      { title: "Coalition 1", body: "Plan signed", ageLabel: "2 h", link: "/room/1" },
+      { dispatchAction } as unknown as ComponentContext,
+    ),
+  );
+  expect(screen.getByText("2 h")).toBeVisible();
+  fireEvent.click(screen.getByRole("button"));
+  expect(dispatchAction).toHaveBeenCalledWith({
+    event: { name: "notification.open", context: { link: "/room/1" } },
+  });
+});
+it("keeps a metric placeholder distinct from a measured value", () => {
+  render(
+    draw("MetricTile", { label: "Latency", placeholder: "[MS]", context: "target < 1 s" }, {
+      dispatchAction: vi.fn(),
+    } as unknown as ComponentContext),
+  );
+  expect(screen.getByText("[MS]")).toHaveAttribute("title", "Not run yet");
+  expect(screen.getByText("target < 1 s")).toBeVisible();
+});
+it("hands off only after a completed hold and never emits a decision", () => {
+  vi.useFakeTimers();
+  try {
+    const dispatchAction = vi.fn();
+    const subject = { kind: "plan", id: "p1", revision: { value: 2, event_ref: "e1" } };
+    render(
+      draw("ChannelHandoff", { from: "lens", to: "phone", subject }, {
+        dispatchAction,
+      } as unknown as ComponentContext),
+    );
+    const button = screen.getByRole("button", { name: "Open phone" });
+    fireEvent.pointerDown(button, { button: 0 });
+    vi.advanceTimersByTime(300);
+    fireEvent.pointerCancel(button);
+    vi.advanceTimersByTime(600);
+    expect(dispatchAction).not.toHaveBeenCalled();
+    fireEvent.pointerDown(button, { button: 0 });
+    vi.advanceTimersByTime(600);
+    fireEvent.pointerUp(button);
+    fireEvent.click(button, { detail: 1 });
+    expect(dispatchAction).toHaveBeenCalledExactlyOnceWith({
+      event: { name: "handoff.open", context: { subject, from: "lens", to: "phone" } },
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});

@@ -160,10 +160,13 @@ export function Metric({ p }: { p: Props }) {
   return (
     <div className="f11-metric">
       <span className="st">{text(p.label)}</span>
-      <strong className="answer">
-        {p.value === undefined ? "—" : text(p.value)} <small>{text(p.unit)}</small>
+      <strong className="answer" title={p.value === undefined ? "Not run yet" : undefined}>
+        {p.value === undefined ? text(p.placeholder) || "—" : text(p.value)}{" "}
+        <small>{text(p.unit)}</small>
       </strong>
-      <span className="st">{p.value === undefined ? "Not run yet" : text(p.context)}</span>
+      <span className="st">
+        {p.value === undefined && !p.placeholder ? "Not run yet" : text(p.context)}
+      </span>
     </div>
   );
 }

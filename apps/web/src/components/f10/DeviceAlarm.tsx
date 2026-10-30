@@ -12,10 +12,19 @@ export function DeviceAlarm({ p, send }: { p: Props; send: Send }) {
           <path d="M12 3l10 18H2zM12 10v4M12 17h.01" />
         </svg>
         <b>{text(p.device)} over setpoint</b>
+        {Boolean(p.firedAt) && (
+          <time className="h-right num small" dateTime={text(p.firedAt)}>
+            {new Date(text(p.firedAt)).toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+            })}
+          </time>
+        )}
       </div>
       <span className="small">
-        {num(p.reading).toLocaleString("fr-FR")} units, {num(p.reading) - num(p.threshold)} above
-        setpoint for{" "}
+        {num(p.reading).toLocaleString("fr-FR")} {text(p.unit ?? "units")},{" "}
+        {num(p.reading) - num(p.threshold)} above setpoint for{" "}
         {num(p.duration) >= 60 ? `${num(p.duration) / 60} min` : `${num(p.duration)} s`}.{" "}
         {text(p.autoAction)}
       </span>
@@ -23,6 +32,7 @@ export function DeviceAlarm({ p, send }: { p: Props; send: Send }) {
         <Action label="Stop the run" event="alarm.stop" send={send} data={{ device: p.device }} />
         <Action label="Acknowledge" event="alarm.ack" send={send} data={{ device: p.device }} />
       </div>
+      {Boolean(p.ripple) && <span className="st">ripple: {text(p.ripple)}</span>}
     </div>
   );
 }
