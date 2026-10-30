@@ -1,6 +1,272 @@
 // SPDX-License-Identifier: Apache-2.0
-// Family 01 of coalitionkit/v0_9: Foundations. Zod APIs and React implementations for this family's
-// components that are not in ../implementations.tsx, drawn as design sheet 01 draws them.
-import type { ReactComponentImplementation } from "@a2ui/react/v0_9";
+import { createComponentImplementation } from "@a2ui/react/v0_9";
+import { CommonSchemas } from "@a2ui/web_core/v0_9";
+import { z } from "zod";
+import { Foundation } from "../../components/f01/Foundation";
+import { Bound } from "../schemas";
 
-export const implementations: ReactComponentImplementation[] = [];
+const binding = z.union([CommonSchemas.DataBinding, z.never()]);
+const literal = <T extends z.ZodTypeAny>(schema: T) => z.union([schema, binding]);
+const text = CommonSchemas.DynamicString;
+const flag = CommonSchemas.DynamicBoolean;
+const array = literal(z.array(z.unknown()));
+const object = literal(z.record(z.unknown()));
+const children = CommonSchemas.ChildList;
+const choice = (values: [string, ...string[]]) => literal(z.enum(values));
+const api = (name: string, shape: z.ZodRawShape) => ({ name, schema: z.object(shape) });
+export const apis = [
+  api("AudioPlayer", { src: binding.optional(), title: text.optional() }),
+  api("Avatar", {
+    label: text,
+    presence: choice(["live", "away", "off"]).optional(),
+    ring: flag.optional(),
+    seat: choice(["1", "2", "3", "4", "5", "host", "steward"]).optional(),
+    size: choice(["xs", "sm", "lg", "xl"]).optional(),
+  }),
+  api("AvatarStack", { max: literal(Bound).optional(), people: array.optional() }),
+  api("Badge", {
+    kind: choice(["measured", "vault", "signed", "model", "estimate", "example"]).optional(),
+    label: text,
+  }),
+  api("Banner", {
+    action: object.optional(),
+    body: text.optional(),
+    title: text,
+    tone: choice(["info", "ask", "blocked", "agreed"]).optional(),
+  }),
+  api("Button", {
+    action: object.optional(),
+    busy: flag.optional(),
+    disabled: flag.optional(),
+    label: text,
+    size: choice(["sm", "md", "lg"]).optional(),
+    variant: choice(["primary", "secondary", "ink", "ghost"]).optional(),
+  }),
+  api("ButtonGroup", { children: children.optional() }),
+  api("Card", {
+    children: children.optional(),
+    fields: array.optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    scope: text.optional(),
+    status: choice(["agreed", "needs-you", "changed", "private", "blocked"]).optional(),
+    title: text.optional(),
+    tone: choice(["default", "live", "ask", "dashed"]).optional(),
+  }),
+  api("CheckBox", { label: text, value: binding.optional() }),
+  api("Chip", { label: text, seat: text.optional(), selected: flag.optional() }),
+  api("ChoicePicker", {
+    display: choice(["chips", "menu"]).optional(),
+    multiple: flag.optional(),
+    options: array.optional(),
+    value: binding.optional(),
+  }),
+  api("Column", { children: children.optional(), gap: choice(["4", "8", "12", "16"]).optional() }),
+  api("CommandPalette", {
+    groups: choice(["actions", "objects", "log", "ask"]).optional(),
+    query: binding.optional(),
+  }),
+  api("DateTimeInput", {
+    mode: choice(["date", "time", "datetime"]).optional(),
+    tz: text.optional(),
+    value: binding.optional(),
+  }),
+  api("Deadline", { consequence: text, deadline: text.optional(), label: text }),
+  api("Divider", {}),
+  api("Drawer", {
+    body: children.optional(),
+    footer: children.optional(),
+    side: choice(["right", "left"]).optional(),
+    title: text,
+    width: literal(Bound).optional(),
+  }),
+  api("EmptyState", {
+    action: object.optional(),
+    body: text.optional(),
+    glyph: text.optional(),
+    title: text,
+  }),
+  api("ErrorState", {
+    cause: text.optional(),
+    details: object.optional(),
+    lastSeen: text.optional(),
+    retry: flag.optional(),
+  }),
+  api("FileDrop", {
+    accept: array.optional(),
+    maxBytes: literal(Bound).optional(),
+    target: binding.optional(),
+  }),
+  api("FilterBar", {
+    filters: array.optional(),
+    groupBy: text.optional(),
+    query: binding.optional(),
+    resultCount: binding.optional(),
+    sort: object.optional(),
+  }),
+  api("Grid", {
+    children: children.optional(),
+    columns: literal(Bound).optional(),
+    fields: array.optional(),
+    gap: choice(["4", "8", "12", "16"]).optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    status: choice(["agreed", "needs-you", "changed", "private", "blocked"]).optional(),
+  }),
+  api("Heading", {
+    text: text,
+    tone: choice(["default", "blue"]).optional(),
+    variant: choice(["h1", "h2", "h3"]).optional(),
+  }),
+  api("Icon", {
+    label: text.optional(),
+    name: text,
+    size: choice(["16", "20", "24"]).optional(),
+    tone: choice(["ink", "blue"]).optional(),
+  }),
+  api("IconButton", { action: object.optional(), ariaLabel: text, icon: text.optional() }),
+  api("Image", { alt: text, evidence: text.optional(), src: binding.optional() }),
+  api("KeyValue", { pairs: array.optional() }),
+  api("Link", { href: text.optional(), text: text }),
+  api("List", {
+    empty: text.optional(),
+    items: binding.optional(),
+    max: literal(Bound).optional(),
+    selectable: flag.optional(),
+    template: text.optional(),
+  }),
+  api("Menu", { items: array.optional() }),
+  api("Meter", {
+    bands: array.optional(),
+    label: text,
+    max: literal(Bound).optional(),
+    min: literal(Bound).optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    unit: text.optional(),
+    value: literal(Bound),
+  }),
+  api("Modal", {
+    children: children.optional(),
+    dismissible: flag.optional(),
+    open: binding.optional(),
+    title: text,
+  }),
+  api("NumberField", {
+    label: text,
+    max: literal(Bound).optional(),
+    min: literal(Bound).optional(),
+    step: literal(Bound).optional(),
+    unit: text.optional(),
+    value: binding.optional(),
+  }),
+  api("Panel", {
+    children: children.optional(),
+    fields: array.optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    scope: text.optional(),
+    status: choice(["agreed", "needs-you", "changed", "private", "blocked"]).optional(),
+    title: text.optional(),
+  }),
+  api("Popover", {
+    actions: literal(Bound).optional(),
+    anchor: text.optional(),
+    body: children.optional(),
+    title: text,
+  }),
+  api("Progress", {
+    label: text,
+    max: literal(Bound).optional(),
+    min: literal(Bound).optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    steps: literal(Bound).optional(),
+    unit: text.optional(),
+    value: literal(Bound),
+  }),
+  api("RadioGroup", { options: array.optional(), value: binding.optional() }),
+  api("RichText", {
+    allow: choice(["bold", "italic", "list", "link"]).optional(),
+    markdown: text.optional(),
+  }),
+  api("Row", {
+    align: choice(["start", "center", "end"]).optional(),
+    children: children.optional(),
+    gap: choice(["4", "8", "12", "16"]).optional(),
+  }),
+  api("SearchField", { groups: array.optional(), query: binding.optional() }),
+  api("SegmentedControl", { options: array.optional(), value: binding.optional() }),
+  api("Sheet", {
+    children: children.optional(),
+    dismissible: flag.optional(),
+    open: binding.optional(),
+    title: text,
+  }),
+  api("Skeleton", {
+    lines: literal(Bound).optional(),
+    previous: binding.optional(),
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    reserves: literal(Bound).optional(),
+    shape: choice(["line", "block", "avatar", "card"]).optional(),
+    state: choice(["skeleton", "filled", "live", "rest", "changed"]).optional(),
+  }),
+  api("Slider", {
+    max: literal(Bound).optional(),
+    min: literal(Bound).optional(),
+    step: literal(Bound).optional(),
+    unit: text.optional(),
+    value: binding.optional(),
+  }),
+  api("SlotPicker", {
+    days: array.optional(),
+    duration: literal(Bound).optional(),
+    selected: text.optional(),
+    source: text.optional(),
+  }),
+  api("Spinner", { label: text.optional() }),
+  api("SplitButton", { items: array.optional(), primary: text.optional() }),
+  api("Switch", { label: text, value: binding.optional() }),
+  api("Table", { columns: array.optional(), rows: binding.optional(), sortable: flag.optional() }),
+  api("Tabs", {
+    options: array.optional(),
+    panels: children.optional(),
+    value: binding.optional(),
+  }),
+  api("Tag", {
+    kind: choice(["agreed", "needs", "changed", "private", "blocked"]).optional(),
+    label: text,
+  }),
+  api("Text", {
+    provenance: choice(["measured", "vault", "signed", "model", "estimate"]).optional(),
+    text: text,
+    tone: choice(["default", "muted", "blue"]).optional(),
+    variant: choice(["body", "caption"]).optional(),
+  }),
+  api("TextArea", {
+    error: binding.optional(),
+    label: text,
+    maxLength: literal(Bound).optional(),
+    value: binding.optional(),
+  }),
+  api("TextField", {
+    error: binding.optional(),
+    label: text,
+    maxLength: literal(Bound).optional(),
+    placeholder: text.optional(),
+    value: binding.optional(),
+  }),
+  api("TimeZone", { others: array.optional(), value: text.optional() }),
+  api("Toast", {
+    action: object.optional(),
+    text: text,
+    tone: choice(["done", "change", "error"]).optional(),
+    undoWindow: literal(Bound).optional(),
+  }),
+  api("Tooltip", { target: text.optional(), tip: text.optional() }),
+  api("Video", {
+    captions: binding.optional(),
+    poster: binding.optional(),
+    src: binding.optional(),
+  }),
+];
+export const implementations = apis.map((definition) =>
+  createComponentImplementation(definition, ({ props, context, buildChild }) => (
+    <Foundation name={definition.name} p={props} context={context} build={buildChild} />
+  )),
+);
