@@ -44,34 +44,61 @@ export function Channels({ p, send }: { p: Props; send: Send }) {
   );
 }
 export function Lessons({ p, send }: { p: Props; send: Send }) {
-  const [selected, setSelected] = useState(rows(p.lessons).map(() => true));
+  const lessons = rows(p.lessons);
+  const [selected, setSelected] = useState(lessons.map((l) => l.kind !== "judgement"));
   return (
     <>
-      {rows(p.lessons).map((lesson, i) => (
-        <label className="card" key={text(lesson.text) || `${i}`}>
-          <span className="row">
+      <div className="f11-lessons">
+        {lessons.map((lesson, i) => (
+          <label
+            className={`card f11-lesson${lesson.kind === "judgement" ? " card-dashed" : ""}`}
+            key={text(lesson.text) || `${i}`}
+          >
             <input
               type="checkbox"
               checked={selected[i] ?? false}
+              disabled={lesson.kind === "judgement"}
               onChange={(e) =>
                 setSelected((old) => old.map((v, j) => (j === i ? e.target.checked : v)))
               }
             />
-            <span>{text(lesson.text)}</span>
-          </span>
-          <span className="row">
-            <Badge tone="vault">{text(lesson.scope)}</Badge>
-            <span className="st">from {text(lesson.from)}</span>
-          </span>
-        </label>
-      ))}
-      <Action
-        label="Save selected lessons"
-        event="lessons.save"
-        send={send}
-        data={{ lessons: rows(p.lessons).filter((_, i) => selected[i]) }}
-        primary
-      />
+            <span className="col grow">
+              <span className="small">
+                {lesson.kind === "judgement" ? text(lesson.text) : <b>{text(lesson.text)}</b>}
+              </span>
+              <span className="st">
+                {lesson.kind === "judgement"
+                  ? "rejected by default: judgements about people are not stored"
+                  : `from: ${text(lesson.from)}`}
+              </span>
+            </span>
+            {lesson.kind !== "judgement" && (
+              <Badge tone={lesson.scope === "private" ? "vault" : "estimate"}>
+                {lesson.scope === "private" ? "keep private" : text(lesson.scope)}
+              </Badge>
+            )}
+          </label>
+        ))}
+      </div>
+      <div className="row">
+        <span className="small">
+          {selected.filter(Boolean).length} of {lessons.length} selected
+        </span>
+        <span className="h-right">
+          <button
+            className="btn btn-sm btn-primary"
+            type="button"
+            aria-label="Save selected lessons"
+            onClick={() =>
+              send("lessons.save", {
+                lessons: lessons.filter((lesson, i) => selected[i] && lesson.kind !== "judgement"),
+              })
+            }
+          >
+            Save to my agent
+          </button>
+        </span>
+      </div>
     </>
   );
 }

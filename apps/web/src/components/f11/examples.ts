@@ -56,11 +56,27 @@ const drawn: Example[] = [
           items: [
             {
               coalition: "Coalition 1",
-              pack: "Core",
-              ended: "Oct 28",
+              pack: "Coordination",
+              ended: "2026-11-09T12:40:00Z",
               outcome: "reached",
-              yourCost: "€52.67",
+              yourCost: "€0.24",
               log: "log:1",
+            },
+            {
+              coalition: "Coalition 2",
+              pack: "Planning",
+              ended: "2026-10-29T12:40:00Z",
+              outcome: "reached",
+              yourCost: "€0.12",
+              log: "log:2",
+            },
+            {
+              coalition: "Coalition 3",
+              pack: "none",
+              ended: "Sep",
+              outcome: "partly",
+              yourCost: "€0.05",
+              log: "log:3",
             },
           ],
         },
@@ -76,20 +92,20 @@ const drawn: Example[] = [
       {
         state: "ok",
         props: {
-          budget: { value: 1, event_ref: "example:1" },
-          total: { value: 0.35, event_ref: "example:1" },
+          budget: { value: 3, event_ref: "example:1" },
+          total: { value: 0.71, event_ref: "example:1" },
           rows: [
             {
-              role: "Planner",
-              model: "Model A",
-              tokens: { value: 12400, event_ref: "example:1" },
-              cost: { value: 0.24, event_ref: "example:1" },
+              role: "Gardener",
+              model: "Muse Wonder",
+              cost: { value: 0.38, event_ref: "example:1" },
             },
+            { role: "Members", model: "Muse Spark", cost: { value: 0.19, event_ref: "example:1" } },
+            { role: "Steward", model: "Spark Open", cost: { value: 0.09, event_ref: "example:1" } },
             {
-              role: "Steward",
-              model: "Model B",
-              tokens: { value: 3200, event_ref: "example:1" },
-              cost: { value: 0.11, event_ref: "example:1" },
+              role: "Mint",
+              model: "Wonder + Spark",
+              cost: { value: 0.05, event_ref: "example:1" },
             },
           ],
         },
@@ -211,12 +227,23 @@ const drawn: Example[] = [
         state: "suggested",
         props: {
           lessons: [
-            { text: "Allow extra time for Task 3", from: ["t3"], scope: "private", kind: "timing" },
             {
-              text: "Check availability first",
-              from: ["t2"],
+              text: "Use the express option when results are needed within 5 days.",
+              from: ["tension t-2 · you chose speed over €66"],
+              scope: "private",
+              kind: "timing",
+            },
+            {
+              text: "Resource 3 is free on weekends; ask before Friday.",
+              from: ["scheduling · Member C agreed to share this"],
               scope: "shareable",
               kind: "coordination",
+            },
+            {
+              text: "Member B is slow to answer queries.",
+              from: [],
+              scope: "private",
+              kind: "judgement",
             },
           ],
         },
