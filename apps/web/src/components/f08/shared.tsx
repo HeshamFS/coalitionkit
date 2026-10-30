@@ -61,7 +61,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`card family-card ${tone}`}
+      className={`${["ApprovalButton", "ConsentCard", "DisclosureLadder", "ScopeBadge", "PrivateField", "OverlapView", "WhatOthersKnow", "StaleNotice", "DurableConsent", "DecisionLog"].includes(name) ? "f08-content" : "card"} family-card ${tone}`}
       data-component={name}
       data-state={usePreviewState() ?? state}
       aria-label={name}

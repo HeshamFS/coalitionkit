@@ -32,7 +32,7 @@ const actions = [
   ["ApprovalButton", "Approve", "approve"],
   ["CommitmentCard", "Approve", "commit.approve"],
   ["ConsentCard", "Accept", "decide"],
-  ["DecisionLog", "10:42", "entry.open"],
+  ["DecisionLog", "11:42", "entry.open"],
   ["DisclosureLadder", "exact", "disclosure.raise"],
   ["DurableConsent", "Revoke", "grant.revoke"],
   ["PrivateField", "Reveal", "field.reveal"],
@@ -73,6 +73,7 @@ const actions = [
 describe("catalog named events", () => {
   it.each(actions)("%s emits %s as %s", (name, label, event) => {
     const { dispatchAction } = draw(name ?? "");
+    if (name === "VaultCard") fireEvent.click(screen.getByText("See all"));
     fireEvent.click(
       screen.getAllByRole("button", { name: new RegExp(label ?? "") })[0] as HTMLElement,
     );
@@ -97,7 +98,7 @@ describe("catalog named events", () => {
   });
   it("prevents expired approval and publication with failed tests", () => {
     const first = draw("ApprovalButton", { decision_deadline: "2020-01-01T00:00:00Z" });
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    fireEvent.click(screen.getByRole("button", { name: /Approve/ }));
     expect(first.dispatchAction).not.toHaveBeenCalled();
     cleanup();
     const second = draw("PublishApproval", { tests: { state: "failed" } });

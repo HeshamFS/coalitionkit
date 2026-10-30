@@ -115,3 +115,187 @@
 .family-extra[open] > .col {
   margin-bottom: 8px;
 }
+
+/* Family-local layout: the catalog renders the same component in every door. */
+.f08-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+}
+.f08 .family-card .row {
+  flex-wrap: nowrap;
+}
+.f08 .family-card {
+  font-size: 14px;
+}
+.f08-surfaces {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.f08-surfaces .slot {
+  height: 22px;
+}
+.f08-message {
+  color: var(--ink);
+  line-height: 1.6;
+}
+.f08-message del {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.f08-sheet [data-panel="ScopeBadge"] .demo {
+  gap: 6px;
+}
+.f08-sheet .sheet-sub {
+  max-width: none;
+}
+.sheet:has(> .f08-sheet) {
+  padding: 0;
+}
+.sheet:has(> .f08-sheet) > .sheet-head,
+.sheet:has(> .f08-sheet) > .small {
+  display: none;
+}
+.f08 .family-card[data-component="CommitmentCard"][data-state="pending"] {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+.f08 .family-card[data-component="CommitmentCard"][data-state="withdrawn"] {
+  opacity: 0.55;
+}
+.f08 [data-state="withdrawn"] .h-title {
+  text-decoration: line-through;
+}
+
+.f08 .card.family-card {
+  gap: 6px;
+}
+.f08 [data-component="VoteTally"] .bar > span {
+  background: var(--ok-fg);
+}
+.f08 [data-component="VoteTally"][data-state="closed"] {
+  gap: 4px;
+}
+.f08-vault-rows > .row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.f08-vault-rows > .row:last-child {
+  border: 0;
+}
+.f08-vault-menu {
+  position: relative;
+}
+.f08-vault-menu summary {
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+.f08-vault-menu[open] {
+  flex-wrap: wrap;
+}
+
+.f08-level {
+  gap: 4px;
+  color: var(--ink);
+}
+.f08-level:last-child {
+  border-color: var(--bad-line);
+}
+.f08-level:last-child .eyebrow {
+  color: var(--bad-fg);
+}
+.f08-level[aria-pressed="true"] .eyebrow {
+  color: var(--blue-text);
+}
+.f08-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.f08-diff > span {
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.f08-added {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.f08-removed {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+.f08-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--blue-text);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.f08-log .f08-decision {
+  width: 100%;
+  padding: 7px 0;
+  align-items: flex-start;
+}
+.f08-log .f08-decision:last-child {
+  border-bottom: 0;
+}
+
+.f08-psi {
+  width: 100%;
+  height: 200px;
+}
+
+.f08-projection-field {
+  display: contents;
+}
+.f08-verify {
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.f08-eye {
+  display: flex;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  padding: 0;
+  cursor: pointer;
+}
+.f08 button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.f08 [data-component="ApprovalButton"] .btn:disabled {
+  background: var(--surface);
+  color: var(--ink-3);
+  border-color: var(--line);
+  opacity: 0.65;
+}
+
+.f08 .b-measured {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.f08-sheet .head > .b-measured {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.f08 .sh {
+  background: var(--ink);
+  color: var(--ink-inverse);
+}
+.f08-ladder {
+  align-items: start;
+}

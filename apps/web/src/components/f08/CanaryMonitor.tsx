@@ -6,23 +6,29 @@ export function CanaryMonitor({ p }: { p: Props; send: Send }) {
   return (
     <>
       <div className="row">
-        <b>Canaries planted</b>
+        <b style={{ fontSize: 13 }}>Canaries planted</b>
         <span className="h-right num">{text(p.canaries)} / run</span>
       </div>
-      <div className="row wrap">
+      <div className="f08-surfaces">
         {list(p.surfaces).map((v) => (
-          <Badge key={text(v)} tone="measured">
+          <span key={text(v)} className="slot slot-best">
             {text(v)}
-          </Badge>
+          </span>
         ))}
       </div>
       <div className="row">
-        <strong className={`answer ${num(p.found) > 0 ? "family-bad" : ""}`}>
+        <strong
+          style={{ fontSize: 20 }}
+          className={`answer ${num(p.found) > 0 ? "family-bad" : ""}`}
+        >
           {text(p.found)}
         </strong>
         <span className="small">found outside their vault</span>
-        <Badge>{text(p.runs)} runs</Badge>
+        <span className="h-right">
+          <Badge tone="measured">{text(p.runs)} runs</Badge>
+        </span>
       </div>
+      <span className="st">adversarial agents scripted to extract them</span>
     </>
   );
 }

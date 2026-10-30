@@ -12,7 +12,7 @@ export function Disclosure({ p, send }: { p: Props; send: Send }) {
         {levels.map((level, i) => (
           <button
             type="button"
-            className={`card ${p.level === level ? "card-live" : ""}`}
+            className={`card f08-level ${p.level === level ? "card-live" : ""}`}
             key={level}
             aria-pressed={p.level === level}
             onClick={() =>
@@ -25,13 +25,42 @@ export function Disclosure({ p, send }: { p: Props; send: Send }) {
             <span className="eyebrow">
               {i + 1} · {["nothing", "yes / no", "a range", "exact"][i]}
             </span>
-            <span className="small">
-              {["Agents can't ask", "Answer only", text(p.buckets), "Asks you every time"][i]}
+            <span className="small" style={{ color: "var(--ink)" }}>
+              {
+                [
+                  "Agents can't ask",
+                  "A question within your limit → yes",
+                  text(p.buckets),
+                  "Exact value",
+                ][i]
+              }
             </span>
+            {i === 0 ? (
+              <span className="redact" style={{ width: "100%", height: 10, opacity: 0.15 }} />
+            ) : (
+              <span className="st">
+                {i === 1
+                  ? `chosen for: ${text(p.field).toLowerCase()}`
+                  : i === 2
+                    ? "buckets set by you"
+                    : "asks you every time"}
+              </span>
+            )}
           </button>
         ))}
       </div>
-      <span className="small">Each step up shows who would learn it and asks first</span>
+      <div className="slider" style={{ marginTop: 4 }} aria-hidden="true">
+        <div className="track" />
+        <div
+          className="fill"
+          style={{ left: 0, width: `${12 + levels.indexOf(text(p.level)) * 25}%` }}
+        />
+        <div className="knob" style={{ left: `${12 + levels.indexOf(text(p.level)) * 25}%` }} />
+      </div>
+      <div className="row small">
+        <span>{text(p.field)}</span>
+        <span className="h-right">Each step up shows who would learn it and asks first</span>
+      </div>
     </>
   );
 }
@@ -57,8 +86,13 @@ export function Approval({ p, send }: { p: Props; send: Send }) {
       >
         {signing ? "Signing…" : text(p.label)}
       </button>
-      <span className="small">{text(p.consequence)}</span>
-      <span className="st">{expired ? "Deadline passed" : text(p.disabledReason)}</span>
+      <span className="small">
+        {expired
+          ? "Deadline passed"
+          : p.disabledReason
+            ? `Disabled: ${text(p.disabledReason)}`
+            : text(p.consequence)}
+      </span>
     </>
   );
 }
@@ -67,35 +101,42 @@ export function ConsentView({ p, send }: { p: Props; send: Send }) {
   const subject = obj(p.subject);
   const expired = Date.parse(text(p.decision_deadline)) <= Date.now();
   return (
-    <>
-      <Consent
-        subject={{
-          kind: text(subject.kind),
-          id: text(subject.id),
-          revision: num(subject.revision),
-        }}
-        title={text(p.summary)}
-        yourPart={text(p.yourPart)}
-        cost={text(p.cost)}
-        consequenceOfNo={text(p.consequenceOfNo)}
-        deadline={text(p.decision_deadline)}
-        state={
-          expired ? "expired" : preview === "answered" || preview === "stale" ? preview : "open"
-        }
-        answer={preview === "answered"}
-        currentRevision={preview === "stale" ? num(subject.revision) + 1 : undefined}
-        onReview={() => send("compare", { subject: p.subject })}
-        onDecide={(consent) =>
-          send("decide", {
-            subject: p.subject,
-            consent,
-            consequence: p.consequence,
-            decision_deadline: p.decision_deadline,
-          })
-        }
-        onCompare={() => send("compare", { subject: p.subject })}
-      />
-      <span className="small">{text(p.consequence)}</span>
-    </>
+    <Consent
+      subject={{
+        kind: text(subject.kind),
+        id: text(subject.id),
+        revision: num(subject.revision),
+      }}
+      title={text(p.summary)}
+      yourPart={text(p.yourPart)}
+      cost={text(p.cost)}
+      consequenceOfNo={text(p.consequenceOfNo)}
+      deadline={deadlineLabel(text(p.decision_deadline))}
+      state={expired ? "expired" : preview === "answered" || preview === "stale" ? preview : "open"}
+      answer={preview === "answered"}
+      currentRevision={preview === "stale" ? num(subject.revision) + 1 : undefined}
+      onReview={() => send("compare", { subject: p.subject })}
+      onDecide={(consent) =>
+        send("decide", {
+          subject: p.subject,
+          consent,
+          consequence: p.consequence,
+          decision_deadline: p.decision_deadline,
+        })
+      }
+      onCompare={() => send("compare", { subject: p.subject })}
+    />
   );
+}
+
+function deadlineLabel(value: string) {
+  const minutes = Math.max(0, Math.ceil((Date.parse(value) - Date.now()) / 60000));
+  if (!Number.isFinite(minutes)) return value;
+  if (minutes >= 1440)
+    return new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min left`;
 }

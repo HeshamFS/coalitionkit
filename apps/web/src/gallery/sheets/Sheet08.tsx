@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { examples } from "../../components/f08/examples";
+import { panels } from "../../components/f08/panels";
 import { PreviewState } from "../../components/f08/shared";
-import { Cell, Family, State } from "../Cell";
+import { Family } from "../Cell";
 import { One } from "../Drawn";
 import "../../styles/f08.css";
 
@@ -46,56 +47,78 @@ const drawnCounts: Record<string, number> = {
   ScopeBadge: 7,
   VoteTally: 2,
   CommitmentCard: 4,
-  ApprovalButton: 3,
+  ApprovalButton: 2,
 };
 function Samples({ name }: { name: string }) {
   const example = examples.find((e) => e.name === name);
   if (!example) return null;
   const count = drawnCounts[name] ?? 1;
-  const draw = (s: (typeof example.states)[number]) => (
-    <State key={s.state} label={s.state}>
-      <PreviewState value={s.state}>
-        <One component={name} props={s.props} />
-      </PreviewState>
-    </State>
-  );
+  const states =
+    name === "OverlapView"
+      ? [...example.states].sort((a) => (a.state === "done" ? -1 : 1))
+      : example.states;
   return (
     <>
-      {example.states.slice(0, count).map(draw)}
-      {example.states.length > count && (
-        <details className="family-extra">
-          <summary>Other states</summary>
-          {example.states.slice(count).map(draw)}
-        </details>
-      )}
+      {states.slice(0, count).map((s) => (
+        <PreviewState key={s.state} value={s.state}>
+          <One component={name} props={s.props} />
+        </PreviewState>
+      ))}
+      <div hidden>
+        {states.slice(count).map((s) => (
+          <PreviewState key={s.state} value={s.state}>
+            <One component={name} props={s.props} />
+          </PreviewState>
+        ))}
+      </div>
     </>
   );
 }
 export function Sheet08() {
   return (
-    <div className="sheet" data-testid="sheet-08">
+    <div className="sheet f08-sheet" data-testid="sheet-08">
       <div className="sheet-head">
         <div>
           <div className="eyebrow">coalitionkit/v0_9 · family 08 · example data</div>
           <div className="sheet-title">Privacy and consent</div>
+          <div className="sheet-sub">
+            What stays yours, what others can learn and how little, who sees each thing, and every
+            moment where nothing happens until a person says yes with their own key.
+          </div>
+        </div>
+        <div className="h-right">
+          <span className="badge b-example">Example data</span>
+          <span className="scope">vault · scope · PSI · consent</span>
         </div>
       </div>
       {sections.map((section) => (
         <Family key={section.number} n={section.number} title={section.heading}>
           {section.cells.map((cell) => {
-            const selected = cell.names.map((name) => examples.find((e) => e.name === name));
+            const name = cell.names[0];
+            const panel = panels[name];
+            if (!panel) return null;
             return (
-              <Cell
-                key={cell.names.join(" · ")}
-                name={cell.names.join(" · ")}
-                span={cell.span ?? undefined}
-                props={selected.map((e) => e?.props).join(" · ")}
-                events={selected.map((e) => e?.events).join(" · ")}
-              >
-                {cell.names.map((name) => (
-                  <Samples key={name} name={name} />
-                ))}
-              </Cell>
+              <div key={name} className={`cell${cell.span ? " span2" : ""}`} data-panel={name}>
+                <div className="head">
+                  <span className="cell-name">
+                    {name} · {panel.title}
+                  </span>
+                  {panel.badge && (
+                    <span className={`h-right badge b-${panel.tone}`}>{panel.badge}</span>
+                  )}
+                  {panel.doors && (
+                    <span className="h-right door">
+                      {panel.doors.map((d) => (
+                        <span key={d}>{d}</span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+                <div className="demo">
+                  <Samples name={name} />
+                </div>
+                <div className="props">{panel.props}</div>
+              </div>
             );
           })}
         </Family>
