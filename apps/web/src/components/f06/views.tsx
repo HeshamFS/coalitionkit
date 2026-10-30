@@ -83,7 +83,6 @@ export function Timeline({ p }: Props) {
           state: (r.state ?? "next") as Work.TimelineItem["state"],
         }))}
       />
-      <small>{str(p.now)}</small>
     </Frame>
   );
 }
@@ -119,13 +118,16 @@ export function TensionCard({ p, send }: Props) {
   return (
     <Frame name="TensionCard">
       <Plans.TensionCard
-        title={`Choose for ${str(p.tension_id)}`}
+        title={str(rows(p.options)[0]?.summary) || `Choose for ${str(p.tension_id)}`}
         options={rows(p.options).map((r) => ({
           id: str(r.id),
           label: str(r.label),
           tradeoffs: list(r.tradeoffs).map(str),
         }))}
-        deciders={list(p.deciders).map(person)}
+        deciders={list(p.deciders).map((value, i) => ({
+          ...person(value),
+          answered: i < num(p.answered),
+        }))}
         answered={num(p.answered)}
         deadline={str(p.decision_deadline)}
         state={expired ? "expired" : "open"}
@@ -138,68 +140,113 @@ export function TensionCard({ p, send }: Props) {
 }
 export { AnswerCard } from "./answers";
 export function Checklist({ p, send }: Props) {
+  const items = rows(p.items),
+    task = obj(items[0]?.task);
   return (
-    <Frame name="Checklist" className="card">
-      {rows(p.items).map((r, i) => (
+    <Frame name="Checklist" className="card f06-checklist">
+      {!!task.id && (
+        <div className="head">
+          <span className="mono st">{str(task.id)}</span>
+          <span className="h-title">{str(task.title)}</span>
+          <span className="h-right num small">
+            {items.filter((r) => r.done).length} / {items.length}
+          </span>
+        </div>
+      )}
+      {items.map((r, i) => (
         <label className="row" key={str(r.text)}>
           <input
             type="checkbox"
+            className="f06-checkbox"
+            aria-label={str(r.text)}
             checked={r.done === true}
             disabled={r.by !== "self"}
+            data-live={!!r.evidence && !r.done}
             onChange={() => send("item.toggle", { item: i, done: !r.done })}
           />
-          <span className={r.done ? "f06-done" : ""}>{str(r.text)}</span>
-          <small>{str(r.evidence)}</small>
+          <span className={`small ${r.done ? "f06-done" : "f06-step"}`}>
+            {r.evidence && !r.done ? <b>{str(r.text)}</b> : str(r.text)}
+          </span>
+          {!!r.evidence && <span className="h-right badge b-measured">{str(r.evidence)}</span>}
         </label>
       ))}
     </Frame>
   );
 }
 export function AssignmentRow({ p }: Props) {
+  const assignments = rows(p.assignments),
+    first = assignments[0];
   return (
-    <Frame name="AssignmentRow" className="card">
-      <b>Your part</b>
-      {list(p.assignments).map((r) => (
-        <div key={str(obj(r).task ?? r)}>
-          {str(obj(r).task ?? r)} · {str(obj(r).window)}
+    <Frame name="AssignmentRow" className="card f06-assignment">
+      <span className="eyebrow">{first?.plan ? `In ${str(first.plan)} you do` : "Your part"}</span>
+      {assignments.map((r) => (
+        <div className="row f06-assignment-row" key={str(r.task)}>
+          <span className="mono st">{str(r.task)}</span>
+          <span className="small grow">{str(r.title)}</span>
+          <span className="num small">{str(r.window)}</span>
         </div>
       ))}
-      <div className="row">
-        <b>
-          {str(p.hours)} h · {str(p.share)}%
-        </b>
-        <span className="badge b-vault">{str(p.fit)}</span>
+      <div className="row small">
+        <span>
+          {str(p.hours)} h{first?.total ? ` of ${str(first.total)}` : ""} · {str(p.share)} %
+        </span>
+        <span className="h-right badge b-vault">{str(p.fit)}</span>
       </div>
     </Frame>
   );
 }
 export function CostSplit({ p }: Props) {
+  const items = rows(p.items),
+    total = items.reduce((sum, r) => sum + num(r.amount), 0);
   return (
-    <Frame name="CostSplit">
+    <Frame name="CostSplit" className="f06-cost">
+      <div className="row f06-cost-stack" aria-hidden="true">
+        {items.map((r) => (
+          <span
+            key={str(r.label)}
+            style={{
+              width: `${total ? (100 * num(r.amount)) / total : 0}%`,
+              background: `var(--seat-${person(r.payer).seat})`,
+            }}
+          />
+        ))}
+      </div>
       <table className="tbl">
         <thead>
           <tr>
             <th>Item</th>
-            <th>Payer</th>
-            <th>Amount</th>
-            <th>Kind</th>
+            <th>Paid by</th>
+            <th className="r">Cost</th>
           </tr>
         </thead>
         <tbody>
-          {rows(p.items).map((r) => (
+          {items.map((r) => (
             <tr key={str(r.label)}>
               <td>{str(r.label)}</td>
               <td>{str(r.payer)}</td>
-              <td>{str(r.amount)}</td>
-              <td>{str(r.kind)}</td>
+              <td className="r num" title={`${str(r.kind)} · ${str(obj(r.amount).event_ref)}`}>
+                €{str(r.amount)}
+              </td>
             </tr>
           ))}
+          <tr>
+            <td>
+              <b>Total</b>
+            </td>
+            <td />
+            <td className="r num">
+              <b>€{total}</b>
+            </td>
+          </tr>
         </tbody>
       </table>
-      <small>Split {str(p.rule)} · settlements are display only</small>
-      {list(p.settlements).map((r) => (
-        <p key={str(r)}>{str(r)}</p>
-      ))}
+      <div className="row small">
+        {list(p.settlements).map((r, i) => (
+          <span key={str(r)} className={i ? "h-right blue" : undefined}>
+            {str(r)}
+          </span>
+        ))}
+      </div>
     </Frame>
   );
 }
@@ -225,10 +272,11 @@ export function MatchView({ p, send }: Props) {
           stroke="var(--line-strong)"
         />
         <text x="14" y={middle - 4} fill="var(--ink)" fontSize="10.5" fontWeight="600">
-          {str(p.need)}
+          {str(p.need).split(" · ")[0]}
         </text>
         <text x="14" y={middle + 12} fill="var(--ink-3)" fontSize="9.5">
           need
+          {str(p.need).includes(" · ") ? ` · ${str(p.need).split(" · ").slice(1).join(" · ")}` : ""}
         </text>
         {offers.map((offer, i) => (
           <g key={str(offer.offer)}>
@@ -245,25 +293,70 @@ export function MatchView({ p, send }: Props) {
               strokeWidth={offer.offer === p.chosen ? 2 : 1.5}
               strokeDasharray={offer.blockedBy ? "3 4" : undefined}
             />
-            <foreignObject x="176" y={14 + i * 70} width="120" height="44">
+            <rect
+              x="176"
+              y={14 + i * 70}
+              width="120"
+              height="40"
+              rx="8"
+              fill={
+                offer.offer === p.chosen
+                  ? "var(--blue-tint)"
+                  : offer.blockedBy
+                    ? "var(--surface-2)"
+                    : "var(--surface)"
+              }
+              stroke={offer.offer === p.chosen ? "var(--blue)" : "var(--line)"}
+              strokeWidth={offer.offer === p.chosen ? 1.5 : 1}
+              strokeDasharray={offer.blockedBy ? "3 3" : undefined}
+            />
+            <text
+              x="186"
+              y={31 + i * 70}
+              fontSize="10.5"
+              fontWeight={offer.blockedBy ? 400 : 600}
+              fill={
+                offer.offer === p.chosen
+                  ? "var(--blue-text)"
+                  : offer.blockedBy
+                    ? "var(--ink-3)"
+                    : "var(--ink)"
+              }
+            >
+              {str(offer.offer)}
+            </text>
+            <text
+              x="186"
+              y={45 + i * 70}
+              fontSize="9.5"
+              fill={
+                offer.offer === p.chosen
+                  ? "var(--blue-text)"
+                  : offer.blockedBy
+                    ? "var(--bad-fg)"
+                    : "var(--ink-3)"
+              }
+            >
+              {offer.blockedBy
+                ? `fails: ${str(offer.blockedBy)}`
+                : str(offer.description) || texts(offer.reasons)}
+            </text>
+            <foreignObject x="176" y={14 + i * 70} width="120" height="40">
               <button
                 type="button"
                 aria-label={str(offer.offer)}
-                className={`f06-match-offer ${offer.offer === p.chosen ? "chosen" : ""} ${offer.blockedBy ? "blocked" : ""}`}
+                className="f06-diagram-target"
                 onClick={() => send("match.inspect", { offer: offer.offer })}
-              >
-                <b>{str(offer.offer)}</b>
-                <small>
-                  {offer.blockedBy ? `fails: ${str(offer.blockedBy)}` : texts(offer.reasons)}
-                </small>
-              </button>
+              />
             </foreignObject>
           </g>
         ))}
       </svg>
       <div className="row small">
         <span className="badge b-model">Gardener</span>best fit:{" "}
-        {texts(offers.find((offer) => offer.offer === p.chosen)?.reasons)}
+        {list(offers.find((offer) => offer.offer === p.chosen)?.reasons)
+          .map(str)
+          .join(", ")}
       </div>
     </Frame>
   );

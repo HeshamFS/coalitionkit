@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Icon } from "../../ui/Icon";
 import { Avatar, Badge, cx, type Seat, Tag } from "../primitives";
 
 /** A number is only ever shown from a bound value: the display form plus the event it came from. */
@@ -86,18 +85,29 @@ export function TaskCard({
   const compactCard = status === "done" || withdrawn;
   return (
     <article
-      className="card"
+      className="card f06-task"
       aria-label={`Task ${title}, ${status}`}
-      style={{ opacity: withdrawn ? 0.6 : 1, boxShadow: compactCard ? undefined : "var(--shadow)" }}
+      style={{
+        opacity: withdrawn ? "var(--f06-inactive-opacity, .6)" : 1,
+        boxShadow: compactCard ? undefined : "var(--shadow)",
+      }}
     >
       <div className="head">
         <span className="mono st">{taskId}</span>
-        <span className="h-title">{title}</span>
+        <span className="h-title">
+          {onOpen && !withdrawn ? (
+            <button type="button" className="f06-task-open" aria-label="Open" onClick={onOpen}>
+              {title}
+            </button>
+          ) : (
+            title
+          )}
+        </span>
         <span className="h-right">
           <StatusMark status={status} />
         </span>
       </div>
-      {assignee && (
+      {assignee && !compactCard && (
         <div className="row">
           <Avatar seat={assignee.seat} label={assignee.label} size="xs" />
           <span className="small">
@@ -137,24 +147,22 @@ export function TaskCard({
       )}
       {deps && !compactCard && (
         <div className="row small">
-          <Icon name="link" size="sm" />
+          <svg className="ico ico-sm" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
           {deps}
         </div>
       )}
-      {evidence && <span className="small">evidence: {evidence}</span>}
-      {(onOpen || onDone) && !withdrawn && (
-        <div className="row">
-          {onOpen && (
-            <button type="button" className="btn btn-sm" onClick={onOpen}>
-              Open
-            </button>
-          )}
-          {onDone && status === "committed" && (
-            <button type="button" className="btn btn-sm btn-primary" onClick={onDone}>
-              Mark done
-            </button>
-          )}
-        </div>
+      {status === "done" && (assignee || evidence) && (
+        <span className="small">
+          {assignee?.label}
+          {evidence ? ` · evidence: ${evidence}` : ""}
+        </span>
+      )}
+      {onDone && status === "committed" && (
+        <button type="button" className="btn btn-sm btn-primary" onClick={onDone}>
+          Mark done
+        </button>
       )}
     </article>
   );
@@ -363,7 +371,7 @@ export type TimelineItem = {
 export function Timeline({ items }: { items: TimelineItem[] }) {
   return (
     <ol
-      className="col"
+      className="col f06-timeline"
       aria-label="Timeline"
       style={{
         gap: 0,

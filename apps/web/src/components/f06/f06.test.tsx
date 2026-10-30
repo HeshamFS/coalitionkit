@@ -82,3 +82,64 @@ it("renders waiting metadata without claiming an answer", () => {
   expect(screen.getByText(/waiting 4 min/)).toBeTruthy();
   expect(container.querySelector(".answer")).toBeNull();
 });
+
+it("groups the reference into 14 panels and nests objective bars in the plans", () => {
+  const { container } = render(<Sheet06 />);
+  expect(container.querySelectorAll("[data-panel]")).toHaveLength(14);
+  expect(container.querySelector('[data-panel="ObjectiveBars"]')).toBeNull();
+  expect(
+    container.querySelectorAll('[data-panel="PlanCompare"] [data-component="ObjectiveBars"]'),
+  ).toHaveLength(3);
+  expect(container.querySelectorAll('[data-panel="TaskCard"] article')).toHaveLength(3);
+});
+it.each(["open", "negotiating", "proposed", "decided", "committed", "done", "withdrawn"])(
+  "keeps the %s task state available through the catalog",
+  (status) => {
+    const { container } = surface("TaskCard", { ...examples.TaskCard?.[0]?.props, status });
+    expect(container.querySelector("[data-fallback]")).toBeNull();
+    expect(screen.getByRole("article", { name: new RegExp(`, ${status}$`) })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Mark done" }) !== null).toBe(
+      status === "committed",
+    );
+  },
+);
+it("opens the drawn task title without an extra visible Open control", () => {
+  const { dispatch } = surface("TaskCard", { ...examples.TaskCard?.[0]?.props, status: "decided" });
+  expect(screen.queryByText("Open")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Open" }));
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "task.open", context: { task_id: "t3" } }),
+  );
+});
+it("opens a schedule task and keeps its date axis human readable", () => {
+  const { container, dispatch } = surface("Gantt", examples.Gantt?.[0]?.props ?? {});
+  expect(container.querySelector(".f06-axis")?.textContent).toContain("Thu 5 · today");
+  fireEvent.click(screen.getByRole("button", { name: "Member A · done" }));
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "task.open", context: { id: "t1" } }),
+  );
+});
+it("explains supplied tradeoffs without sending a consent action", () => {
+  const { dispatch } = surface("TensionCard", examples.TensionCard?.[0]?.props ?? {});
+  fireEvent.click(screen.getByRole("button", { name: "Ask Gardener why" }));
+  expect(screen.getByRole("status").textContent).toContain("Results Monday");
+  expect(dispatch).not.toHaveBeenCalled();
+  expect(screen.getByText("16:00").getAttribute("datetime")).toBe("2031-06-05T16:00:00Z");
+});
+it("renders bound money with a total and names a breached charter cap", () => {
+  const costs = surface("CostSplit", examples.CostSplit?.[0]?.props ?? {});
+  expect(screen.getByText("€158")).toBeTruthy();
+  costs.unmount();
+  surface("FairnessMeter", {
+    rows: [
+      {
+        participant: "p1",
+        hours: { value: 12, event_ref: "e1" },
+        share: { value: 60, event_ref: "e1" },
+        rule: "rule 3",
+      },
+    ],
+    cap: { value: 50, event_ref: "e1" },
+  });
+  expect(screen.getByText("Over cap: rule 3")).toBeTruthy();
+});

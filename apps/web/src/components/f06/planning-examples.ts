@@ -1,14 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
+import { planExamples } from "./plan-examples";
 export const planningExamples: Record<string, { state: string; props: Record<string, unknown> }[]> =
   {
+    PlanCompare: planExamples,
     AssignmentRow: [
       {
         state: "default",
         props: {
           assignments: [
-            { task: "t2", window: "Wed 16:00" },
-            { task: "t4", window: "Thu 12:00" },
-            { task: "t5", window: "Fri 14:00" },
+            {
+              task: "t2",
+              title: "Transfer to A",
+              window: "Wed 16:00",
+              plan: "Plan A",
+              total: { value: 34, event_ref: "example:1" },
+            },
+            { task: "t4", title: "Return", window: "Thu 12:00" },
+            { task: "t5", title: "Review", window: "Fri 14:00" },
           ],
           hours: { value: 9, event_ref: "example:1" },
           share: { value: 26, event_ref: "example:1" },
@@ -30,8 +38,9 @@ export const planningExamples: Record<string, { state: string; props: Record<str
           options: [
             {
               id: "a",
+              summary: "Fast or cheap? The plans differ by a week and €66.",
               label: "Results Monday",
-              tradeoffs: ["+ \u20ac66", "Member B carries the cost"],
+              tradeoffs: ["+ €66 for the express transfer", "Member B carries the cost"],
             },
             {
               id: "b",
@@ -41,7 +50,7 @@ export const planningExamples: Record<string, { state: string; props: Record<str
           ],
           deciders: ["Member A", "Member B", "Member C"],
           answered: { value: 1, event_ref: "example:1" },
-          decision_deadline: "2030-06-05T12:00:00Z",
+          decision_deadline: "2031-06-05T16:00:00Z",
         },
       },
     ],
@@ -73,6 +82,7 @@ export const planningExamples: Record<string, { state: string; props: Record<str
           rows: [
             {
               participant: "Member A",
+              rule: "charter rule 3",
               hours: { value: 14, event_ref: "example:1" },
               share: { value: 41, event_ref: "example:1" },
               agreedShare: { value: 41, event_ref: "example:1" },
@@ -119,7 +129,7 @@ export const planningExamples: Record<string, { state: string; props: Record<str
             },
           ],
           rule: "even",
-          settlements: ["Even split \u20ac52.67 each", "Member B gets \u20ac23.33 back"],
+          settlements: ["Even split \u20ac52.67 each", "B gets €23.33 back"],
         },
       },
     ],
