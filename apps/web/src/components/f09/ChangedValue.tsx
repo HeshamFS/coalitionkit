@@ -10,7 +10,7 @@ export function ChangedValue({ p }: { p: Props; send: Send }) {
       state={
         preview === "flash" || preview === "tinted" || preview === "seen" ? preview : undefined
       }
-      before={text(p.before)}
+      before={p.before === undefined ? undefined : text(p.before)}
       after={text(p.after)}
     />
   );

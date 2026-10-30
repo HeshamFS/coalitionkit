@@ -1,16 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Action, type Props, type Send, text } from "../f08/shared";
+import { type Props, type Send, text } from "../f08/shared";
 import "../../styles/f09.css";
 
 export function ConnectionStatus({ p, send }: { p: Props; send: Send }) {
+  const feed = text(p.feed) || "offline";
   return (
-    <div className="row">
-      <span className={p.feed === "live" ? "live-dot pulse" : "spinner"} />
-      <b>{text(p.feed)}</b>
-      <span className="st">{text(p.latencyMs)} ms</span>
-      {p.feed !== "live" && (
-        <Action label="Reconnect" event="feed.reconnect" send={send} data={{ run: p.run }} />
-      )}
-    </div>
+    <button
+      type="button"
+      className={`dock f09-connection f09-${feed}`}
+      onClick={() => send("feed.reconnect", { run: p.run })}
+      disabled={feed === "live"}
+      aria-label={feed === "live" ? "Live connection" : "Reconnect"}
+    >
+      <span
+        className={feed === "live" ? "live-dot pulse" : feed === "offline" ? "pin" : "spinner"}
+      />
+      <b>{feed === "live" ? "Live" : feed === "offline" ? "Offline" : "Reconnecting"}</b>
+      {feed === "live"
+        ? ` · feed run ${text(p.run)} · ${text(p.latencyMs)} ms`
+        : feed === "offline"
+          ? " · showing the last good view"
+          : " · new run, fresh snapshot"}
+    </button>
   );
 }

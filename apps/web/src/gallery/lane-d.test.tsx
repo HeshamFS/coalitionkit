@@ -21,6 +21,16 @@ describe.each([
     const { container } = render(<Sheet />);
     expect(container.querySelector(`[data-testid="sheet-${family}"]`)).not.toBeNull();
     expect(container.querySelector("[data-fallback]")).toBeNull();
+    if (family === "09") {
+      expect(container.querySelectorAll("[data-panel]")).toHaveLength(14);
+      for (const example of examples) {
+        expect(
+          container.querySelector(`[data-component="${example.name}"]`),
+          example.name,
+        ).not.toBeNull();
+      }
+      return;
+    }
     for (const example of examples) {
       expect(
         container.querySelectorAll(`section[data-component="${example.name}"]`).length,
