@@ -2782,7 +2782,8 @@
     "posted"
    ],
    "events": [
-    "summary.post(item)"
+    "summary.post(item)",
+    "transcript.open(id)"
    ],
    "props": {
     "decided": {
@@ -2804,6 +2805,14 @@
     "questions": {
      "type": "array",
      "doc": "[]"
+    },
+    "participants": {
+     "type": "string",
+     "doc": "Participant count summary."
+    },
+    "transcript": {
+     "type": "id",
+     "doc": "Transcript reference for opening the viewer projection."
     }
    }
   },
@@ -3030,6 +3039,18 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "seen_count": {
+     "type": "number",
+     "doc": "Number of viewers who have seen the message."
+    },
+    "projection": {
+     "type": "array",
+     "doc": "Viewer-safe text and redaction length spans; never contains hidden text."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Scope caption for the viewer projection."
     }
    }
   },
@@ -3091,6 +3112,22 @@
     "tool": {
      "type": "string",
      "doc": "name"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Elapsed call time in seconds."
+    },
+    "failure": {
+     "type": "string",
+     "doc": "Safe failure reason."
+    },
+    "provenance": {
+     "type": "string",
+     "doc": "Viewer-safe result provenance caption."
+    },
+    "emphasis": {
+     "type": "string",
+     "doc": "Leading summary text to emphasize."
     }
    }
   },
@@ -3109,7 +3146,8 @@
     "call.mute",
     "call.camera",
     "call.share",
-    "call.end"
+    "call.end",
+    "call.captions"
    ],
    "props": {
     "captions": {
@@ -3127,6 +3165,14 @@
     "tiles": {
      "type": "array",
      "doc": "[{participant, kind: person|agent|screen, speaking, muted}]"
+    },
+    "title": {
+     "type": "string",
+     "doc": "Call title."
+    },
+    "elapsed": {
+     "type": "string",
+     "doc": "Formatted elapsed call time."
     }
    }
   },
@@ -3157,6 +3203,18 @@
     "speaking": {
      "type": "id",
      "doc": "participant"
+    },
+    "title": {
+     "type": "string",
+     "doc": "Call title."
+    },
+    "elapsed": {
+     "type": "string",
+     "doc": "Formatted elapsed call time."
+    },
+    "clock": {
+     "type": "string",
+     "doc": "Device time label."
     }
    }
   },
@@ -3295,6 +3353,10 @@
     "purpose": {
      "type": "string",
      "doc": "string"
+    },
+    "preview": {
+     "type": "object",
+     "doc": "Viewer-safe document title and projected rows; hidden values must be omitted."
     }
    }
   },
@@ -3338,7 +3400,8 @@
     "sent"
    ],
    "events": [
-    "form.submit(values)"
+    "form.submit(values)",
+    "form.later"
    ],
    "props": {
     "fields": {
@@ -3353,6 +3416,34 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Explanation above the fields."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Submission audience label."
+    },
+    "submit_label": {
+     "type": "string",
+     "doc": "Submit button label."
+    },
+    "presentation": {
+     "type": "enum",
+     "doc": "Field layout or voice read-back presentation.",
+     "values": [
+      "fields",
+      "voice"
+     ]
+    },
+    "conversation": {
+     "type": "array",
+     "doc": "Viewer-safe voice turns; private answers must be omitted."
+    },
+    "show_schema": {
+     "type": "boolean",
+     "doc": "Display the field schema alongside the rendered form."
     }
    }
   },
@@ -3397,6 +3488,10 @@
     "queries": {
      "type": "array",
      "doc": "[{question, answer, asker, time}]"
+    },
+    "shared_values": {
+     "type": "object",
+     "doc": "Explicitly shared display values keyed by limit id. Private limit values are never included."
     }
    }
   },
@@ -3474,6 +3569,14 @@
     "what": {
      "type": "string",
      "doc": "string"
+    },
+    "target_label": {
+     "type": "string",
+     "doc": "Human-readable target context."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Audience label."
     }
    }
   },
@@ -3521,6 +3624,18 @@
      "type": "subject",
      "required": true,
      "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "answer_label": {
+     "type": "string",
+     "doc": "Display label for the selected answer; does not authorize a decision."
+    },
+    "subject_label": {
+     "type": "string",
+     "doc": "Human-readable subject label."
+    },
+    "device_label": {
+     "type": "string",
+     "doc": "Device display label."
     }
    }
   },
@@ -3577,7 +3692,9 @@
     "blocked"
    ],
    "events": [
-    "wizard.finish"
+    "wizard.finish",
+    "wizard.edit(step)",
+    "wizard.back"
    ],
    "props": {
     "notice": {

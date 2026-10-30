@@ -190,7 +190,20 @@ export function CallSummary({ p, send }: View) {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8v4l3 2" />
         </svg>
-        <span>{Math.round(number(p.duration) / 60)} min · transcript in each speaker's vault</span>
+        <span>
+          {Math.round(number(p.duration) / 60)} min ·{" "}
+          {p.participants ? `${text(p.participants)} · ` : ""}transcript in each speaker's vault
+        </span>
+        {!!p.transcript && (
+          <button
+            className="f03-text-button"
+            style={{ marginLeft: "auto", flexShrink: 0 }}
+            type="button"
+            onClick={() => send("transcript.open", { id: p.transcript })}
+          >
+            Open transcript
+          </button>
+        )}
       </div>
     </Frame>
   );

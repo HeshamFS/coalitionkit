@@ -70,6 +70,7 @@ const cases = [
   ["AskAgent", "Ask", "coalition.query"],
   ["CallInvite", "Join", "call.join"],
   ["CallSummary", "Review and post", "summary.post"],
+  ["CallSummary", "Open transcript", "transcript.open"],
   ["CoalitionThread", "Can we finish together by 10:00?", "message.open"],
   ["Composer", "Record", "voice.record"],
   ["DiarizedTranscript", "Review extracted items", "extract.review"],
@@ -77,17 +78,21 @@ const cases = [
   ["NegotiationTheatre", "Inspect turn", "turn.inspect"],
   ["ToolCall", "✓ coalition.my_view · done", "toolcall.expand"],
   ["VideoCall", "Mute", "call.mute"],
+  ["VideoCall", "Captions", "call.captions"],
   ["VoiceCall", "Speaker", "call.speaker"],
   ["AcceptanceForm", "Leave instead", "leave"],
   ["AvailabilityGrid", "Import calendar", "availability.import"],
   ["DocumentShare", "Share as evidence", "evidence.share"],
   ["FeedbackForm", "Save", "feedback.save"],
-  ["LimitField", "Edit in vault", "limit.change"],
+  ["Form", "Later", "form.later"],
+  ["LimitField", "Edit Resource per use", "limit.change"],
   ["NeedForm", "Publish need", "coalition.need"],
-  ["OfferForm", "Publish offer", "coalition.offer"],
+  ["OfferForm", "Offer", "coalition.offer"],
   ["OwnerSign", "Confirm with passkey", "sign.confirm"],
   ["Receipt", "Verify myself", "receipt.verify"],
   ["ReviewStep", "Publish charter", "wizard.finish"],
+  ["ReviewStep", "Edit", "wizard.edit"],
+  ["ReviewStep", "Back", "wizard.back"],
   ["ValidationSummary", "Add a goal", "field.focus"],
   ["Wizard", "Next", "wizard.next"],
 ];
@@ -115,7 +120,10 @@ it.each([
   expect(JSON.stringify(action.mock.calls)).toContain("A shared goal");
 });
 it("Form submits editable values", () => {
-  const action = mount("Form");
+  const action = mount("Form", {
+    fields: [{ id: "goal", label: "Goal", kind: "text", required: true }],
+    submit_label: "Submit",
+  });
   fireEvent.change(screen.getByLabelText("Goal *"), { target: { value: "Finish task" } });
   fireEvent.click(screen.getByRole("button", { name: "Submit" }));
   expect(JSON.stringify(action.mock.calls)).toContain('"goal":"Finish task"');
@@ -166,7 +174,7 @@ it("never renders message text hidden by a redaction", () => {
   expect(screen.queryByText("Private value")).toBeNull();
 });
 it("does not collect private form values without a local vault connection", () => {
-  mount("Form");
+  mount("Form", { fields: [{ id: "private", kind: "money", private: "vault" }] });
   expect(screen.getByPlaceholderText("Set in your local vault")).toBeDisabled();
 });
 it("routes owner signing intent to trusted request review", () => {

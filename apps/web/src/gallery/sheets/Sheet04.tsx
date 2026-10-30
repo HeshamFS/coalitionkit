@@ -34,6 +34,13 @@ export function Sheet04() {
             >
               <div className="head">
                 <span className="cell-name">{panel.title}</span>
+                {panel.name === "Form" && (
+                  <span className="h-right door">
+                    {(panel.span === 2 ? ["wide", "compact", "voice"] : ["voice"]).map((door) => (
+                      <span key={door}>{door}</span>
+                    ))}
+                  </span>
+                )}
                 {panel.name === "ConsentSeal" && (
                   <span className="h-right door">
                     <span>compact</span>
@@ -56,7 +63,28 @@ export function Sheet04() {
                 {panel.name === "ValidationSummary" ? (
                   <ValidationExample />
                 ) : (
-                  [examples[panel.name] ?? {}].map((props, i) => (
+                  [
+                    panel.title === "Form · voice door"
+                      ? {
+                          title: "Your part of the task",
+                          presentation: "voice",
+                          conversation: [
+                            { role: "agent", text: '"When do you need to finish the task?"' },
+                            { role: "user", text: '"By ten tomorrow morning"' },
+                            {
+                              role: "agent",
+                              text: '"Ten tomorrow. What’s the most for a resource? Only your vault keeps it."',
+                            },
+                            { role: "user", text: '"A hundred forty"' },
+                          ],
+                          fields: [
+                            { id: "finish_by", readback: "2026-10-29T10:00 ✓" },
+                            { id: "max_cost", private: "answer-only" },
+                            { id: "items" },
+                          ],
+                        }
+                      : (examples[panel.name] ?? {}),
+                  ].map((props, i) => (
                     <Drawn
                       key={String(props.state ?? i)}
                       components={[

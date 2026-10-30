@@ -46,6 +46,7 @@ export const apis = {
   DocumentShare: {
     name: "DocumentShare",
     schema: z.object({
+      preview: z.union([z.record(z.unknown()), CommonSchemas.DataBinding]).optional(),
       document: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       masks: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       purpose: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
@@ -61,6 +62,12 @@ export const apis = {
   Form: {
     name: "Form",
     schema: z.object({
+      description: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      scope: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      submit_label: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      presentation: z.union([z.enum(["fields", "voice"]), CommonSchemas.DataBinding]).optional(),
+      conversation: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
+      show_schema: z.union([z.boolean(), CommonSchemas.DataBinding]).optional(),
       fields: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       submit_event: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       title: z.union([z.string(), CommonSchemas.DataBinding]),
@@ -69,6 +76,7 @@ export const apis = {
   LimitField: {
     name: "LimitField",
     schema: z.object({
+      shared_values: z.union([z.record(z.unknown()), CommonSchemas.DataBinding]).optional(),
       limits: z
         .union([
           z.array(
@@ -98,6 +106,8 @@ export const apis = {
   OfferForm: {
     name: "OfferForm",
     schema: z.object({
+      target_label: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      scope: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       conditions: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       cost: z.union([z.record(z.unknown()), CommonSchemas.DataBinding]).optional(),
       expires: z
@@ -110,6 +120,9 @@ export const apis = {
   OwnerSign: {
     name: "OwnerSign",
     schema: z.object({
+      answer_label: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      subject_label: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
+      device_label: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       answer: z.union([z.enum(["bool", "choice"]), CommonSchemas.DataBinding]).optional(),
       decision_deadline: z
         .union([z.string().datetime({ offset: true }), CommonSchemas.DataBinding])

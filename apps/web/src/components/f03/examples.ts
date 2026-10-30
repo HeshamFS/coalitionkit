@@ -35,6 +35,8 @@ export const examples: Record<string, Data> = {
     ],
   },
   CallSummary: {
+    participants: "3 people, 1 agent",
+    transcript: "transcript:1",
     duration: { value: 1080, event_ref: "example:44" },
     decided: [{ id: "p1", text: "Task run Thursday", detail: "A · 1 150 units, 45 min hold" }],
     needs: [{ id: "n1", text: "Item by Wed 22:00", detail: "from Member A · task t4" }],
@@ -187,18 +189,28 @@ export const examples: Record<string, Data> = {
     summary: "Your view updated · 2 plans",
   },
   VideoCall: {
+    title: "Three-member sync",
+    elapsed: "12:04",
     tiles: [
       { participant: "Member A", kind: "person", speaking: true },
       { participant: "Member B", kind: "person", muted: true },
-      { participant: "Agent C", kind: "agent" },
+      { participant: "Member C", kind: "screen", label: "Task scan 01 · shared" },
+      { participant: "Planner", kind: "agent", initial: "G" },
     ],
-    recording: "off",
+    recording: "transcript",
     captions: true,
   },
   VoiceCall: {
-    participants: ["Member A", "Member B", "Member C"],
-    speaking: "Member B",
-    caption: "The first plan works for me.",
+    title: "Three-member sync",
+    elapsed: "04:12",
+    clock: "12:05",
+    participants: [
+      { label: "Member A", initial: "A" },
+      { label: "Member B", initial: "B" },
+      { label: "Planner", initial: "G", kind: "agent" },
+    ],
+    speaking: "Member A",
+    caption: '"…only if the item arrives by Wednesday night."',
   },
 };
 export const groups = [

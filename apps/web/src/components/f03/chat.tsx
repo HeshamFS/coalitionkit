@@ -15,14 +15,23 @@ export function Message({ p, send }: View) {
           </>
         ) : state === "redacted" ? (
           <span role="img" aria-label="Redacted content">
-            {list(p.redactions).map((part, i) => (
-              <span
-                className="f03-redaction"
-                key={text(part.id) || String(i)}
-                style={{ width: Math.min(160, Math.max(12, number(part.length, 10) * 7)) }}
-              />
-            ))}
-            {!list(p.redactions).length && <span className="f03-redaction" />}
+            {list(p.projection ?? p.redactions).map((part, i) =>
+              part.text ? (
+                <span key={String(i)}>{text(part.text)}</span>
+              ) : (
+                <span
+                  className="f03-redaction"
+                  key={text(part.id) || String(i)}
+                  style={{
+                    width: Math.min(
+                      160,
+                      Math.max(12, number(part.width, number(part.length, 10) * 7)),
+                    ),
+                  }}
+                />
+              ),
+            )}
+            {!list(p.projection ?? p.redactions).length && <span className="f03-redaction" />}
           </span>
         ) : (
           text(p.text)
@@ -39,9 +48,9 @@ export function Message({ p, send }: View) {
       ) : (
         <span className="f03-message-meta">
           {state === "seen"
-            ? "delivered · seen ✓✓"
+            ? `delivered · seen${p.seen_count ? ` by ${number(p.seen_count)}` : ""} ✓✓`
             : state === "redacted"
-              ? `${list(p.redactions).length || 1} parts redacted for you`
+              ? `${list(p.redactions).length || 1} parts redacted for you${p.scope ? ` · scope ${text(p.scope)}` : ""}`
               : state === "blocked"
                 ? `policy ${text(p.policy) || "restricted"}`
                 : state}
@@ -71,14 +80,38 @@ export function ToolCall({ p, send }: View) {
         {state === "running" ? (
           <span className="f03-spinner" />
         ) : (
-          <span className="f03-tool-mark">{mark}</span>
+          <svg className="ico ico-sm f03-tool-mark" viewBox="0 0 24 24" aria-hidden="true">
+            {state === "failed" ? (
+              <>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 8l8 8M16 8l-8 8" />
+              </>
+            ) : (
+              <path d="M5 12l5 5 9-10" />
+            )}
+          </svg>
         )}
         <span>{text(p.tool)}</span>
-        <span className="f03-tool-state">{state}</span>
+        <span className="f03-tool-state">
+          {state === "done" && p.duration ? `${number(p.duration)} s` : state}
+          {state === "failed" && p.failure ? ` · ${text(p.failure)}` : ""}
+        </span>
       </button>
       {(p.summary || open) && (
         <div className="f03-tool-body">
-          {!!p.summary && <span>{text(p.summary)}</span>}
+          {!!p.summary && (
+            <span>
+              {p.emphasis && text(p.summary).startsWith(text(p.emphasis)) ? (
+                <>
+                  <b>{text(p.emphasis)}</b>
+                  {text(p.summary).slice(text(p.emphasis).length)}
+                </>
+              ) : (
+                text(p.summary)
+              )}
+            </span>
+          )}
+          {!!p.provenance && <span className="st">{text(p.provenance)}</span>}
           {state === "done" && (
             <button className="f03-text-button" type="button" onClick={toggle} aria-expanded={open}>
               Show the call {open ? "▴" : "▾"}
