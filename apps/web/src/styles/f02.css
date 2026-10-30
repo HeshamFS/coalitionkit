@@ -1,0 +1,247 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-family {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px / 1.45 var(--font-ui);
+}
+.ck-family * {
+  box-sizing: border-box;
+}
+.ck-family h2,
+.ck-family h3,
+.ck-family p {
+  margin: 0;
+}
+.ck-family h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.ck-family h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ck-family small {
+  color: var(--ink-2);
+  font-size: 11.5px;
+}
+.ck-family pre {
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  background: var(--code-bg);
+  border-radius: 8px;
+  font: 11px / 1.8 var(--font-mono);
+}
+.ck-family code,
+.ck-meta {
+  font: 11px / 1.5 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.ck-meta {
+  color: var(--ink-2);
+}
+.ck-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.ck-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ck-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 12px / 1.35 var(--font-ui);
+  cursor: pointer;
+}
+.ck-action:hover {
+  background: var(--surface-2);
+}
+.ck-action[aria-pressed="true"] {
+  background: var(--blue-tint);
+  border-color: var(--blue-line);
+  color: var(--blue-text);
+}
+.ck-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+}
+.ck-primary:hover {
+  background: var(--btn-hover);
+}
+.ck-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ck-family :focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.ck-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font: 10px / 1.5 var(--font-mono);
+}
+.ck-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ck-field input:not([type="checkbox"]),
+.ck-field textarea,
+.ck-field select {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px / 1.5 var(--font-ui);
+}
+.ck-field textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+.ck-family form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ck-family label {
+  display: flex;
+  gap: 6px;
+}
+.ck-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+.ck-presence {
+  display: flex;
+  margin-left: auto;
+  gap: 4px;
+}
+.ck-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--seat-1);
+  color: var(--on-fill);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ck-avatar:nth-child(2n) {
+  background: var(--seat-2);
+}
+.ck-avatar:nth-child(3n) {
+  background: var(--seat-3);
+}
+.ck-mark,
+.ck-wave {
+  color: var(--blue);
+}
+.ck-wave {
+  font-size: 28px;
+  letter-spacing: 3px;
+}
+.ck-bubble {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 10px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ck-LensCard {
+  --lens-white: #fff;
+  --lens-black: rgb(0 0 0 / 78%);
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--lens-black);
+  color: var(--lens-white);
+}
+.ck-LensCard h2 {
+  font-size: 24px;
+}
+.ck-LensCard p {
+  font-size: 18px;
+}
+.ck-LensCard .ck-meta {
+  color: inherit;
+}
+.ck-LensCard .ck-action {
+  background: transparent;
+  color: inherit;
+  border-color: currentColor;
+  font-size: 14px;
+}
+.ck-split,
+.ck-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ck-board {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ck-board section {
+  background: var(--surface-2);
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ck-ask {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+.ck-error {
+  background: var(--bad-bg);
+  border-color: var(--bad-line);
+}
+.ck-success {
+  border-color: var(--ok-line);
+}
+@media (max-width: 640px) {
+  .ck-room-body,
+  .ck-split,
+  .ck-board {
+    grid-template-columns: 1fr;
+  }
+  .ck-Deck nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

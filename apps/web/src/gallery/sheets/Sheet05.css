@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.f05-sheet .sheet-sub,
+.f07-sheet .sheet-sub {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.f05-sheet .panel-ParticipantCard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .f05-sheet .panel-ParticipantCard {
+    grid-template-columns: 1fr;
+  }
+}
+.f05-sheet.sheet,
+.f07-sheet.sheet {
+  width: calc(100% + 72px);
+  margin-inline: -36px;
+}
+.f05-sheet .cell-name,
+.f07-sheet .cell-name {
+  font-family: "F05 Sheet Mono", var(--font-mono);
+  font-weight: 600;
+}

@@ -1,0 +1,94 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-AcceptanceForm.ck-family {
+  gap: 6px;
+  line-height: normal;
+}
+.f04-acceptance-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f04-acceptance-head .tag {
+  margin-left: auto;
+}
+.f04-acceptance-eyebrow {
+  font: 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.f04-acceptance-title {
+  font-size: 14px;
+}
+.f04-acceptance-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font: 11px var(--font-mono);
+}
+.f04-acceptance-diff del,
+.f04-acceptance-diff ins {
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+.f04-acceptance-diff del {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.f04-acceptance-diff ins {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.f04-acceptance-consequence {
+  color: var(--ink-2);
+  font: 12px / 1.45 var(--font-ui);
+}
+.ck-AcceptanceForm .f04-acceptance-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font: 12px / 1.45 var(--font-ui);
+}
+.f04-acceptance-check input {
+  appearance: none;
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  flex: none;
+  position: relative;
+  cursor: pointer;
+}
+.f04-acceptance-check input:checked {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.f04-acceptance-check input:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 5px;
+  height: 8px;
+  border: solid var(--on-blue);
+  border-width: 0 2px 2px 0;
+  transform: rotate(40deg);
+}
+.f04-acceptance-actions {
+  display: flex;
+  gap: 8px;
+}
+.f04-acceptance-actions .ck-action {
+  height: 28px;
+  padding: 0 10px;
+}
+
+.ck-AcceptanceForm .ck-action:disabled {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-color: var(--line);
+}

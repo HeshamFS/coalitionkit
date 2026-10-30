@@ -106,7 +106,7 @@ export const activity = [
   },
   {
     seq: 60,
-    actor: { seat: "host" as const, label: "Planner" },
+    actor: { seat: "host" as const, label: "Gardener" },
     verb: "is re-planning",
     object: "4 tasks",
     time: "now",

@@ -1,0 +1,318 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "./f08.css";
+.f09 {
+  --f09-media-bg: #2a3346;
+  --f09-media-panel: #3b475e;
+  --f09-object: #b9c0cc;
+  --f09-object-shadow: #8a93a3;
+  --f09-media-text: #c8d1e0;
+  --f09-evidence-top: #4b5568;
+  --f09-evidence-bottom: #1e2533;
+  --f09-region: #e0703a;
+  --f09-region-line: #f09a6e;
+  --f09-region-label: #c2552a;
+  min-width: 0;
+}
+.f09 button {
+  cursor: pointer;
+}
+.f09 button:focus-visible,
+.f09 input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.f09 .kv {
+  margin: 0;
+  font-size: 11.5px;
+}
+.f09 .b-bad {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.f09 .b-warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+.f09-receipt {
+  border: 0;
+  font-family: inherit;
+}
+.f09-connection {
+  width: fit-content;
+  max-width: 100%;
+  font-family: inherit;
+  justify-content: flex-start;
+}
+.f09-connection:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.f09-offline {
+  border-color: var(--bad-line);
+}
+.f09-offline .pin {
+  background: var(--bad-fg);
+}
+.f09-reconnecting .spinner {
+  color: var(--warn-fg);
+  width: 10px;
+  height: 10px;
+}
+.f09 .dock {
+  font-family: inherit;
+}
+.f09-thinking,
+.f09-progress {
+  gap: 8px;
+}
+.f09-thinking b,
+.f09-progress b,
+.f09-verdict b {
+  font-size: 13px;
+}
+.f09-steps {
+  gap: 5px;
+}
+.f09-steps .small {
+  color: var(--ink);
+}
+.f09-step-done svg {
+  color: var(--ok-fg);
+}
+.f09-step-space {
+  width: 14px;
+  flex: none;
+}
+.f09-step-next .grow {
+  color: var(--ink-3);
+}
+.f09-step-failed {
+  color: var(--bad-fg);
+}
+.f09 .spinner {
+  width: 12px;
+  height: 12px;
+  color: var(--blue);
+}
+.f09-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f09-activity-row {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  width: 100%;
+  padding: 6px 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+.f09-activity-row:last-child {
+  border-bottom: 0;
+}
+.f09-activity-row .small {
+  color: var(--ink);
+}
+.f09-activity .chip,
+.f09-masks .chip {
+  height: 22px;
+}
+.f09-chain {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+}
+.f09-chain svg {
+  display: block;
+  width: 100%;
+  height: 150px;
+}
+.f09-event {
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-left: 3px solid transparent;
+  text-align: left;
+  align-items: baseline;
+}
+.f09-event.ln-hit {
+  background: var(--blue-tint);
+  border-left-color: var(--blue);
+}
+.f09-log-time {
+  width: 60px;
+  color: var(--ink-3);
+  flex: none;
+}
+.f09-log-type {
+  width: 150px;
+  flex: none;
+}
+.f09 .code-head .chip {
+  height: 20px;
+  font-size: 10.5px;
+}
+.f09 .code-head .row {
+  gap: 6px;
+}
+.f09-presence {
+  height: 220px;
+}
+.f09-presence-card {
+  position: absolute;
+  outline-offset: 2px;
+}
+.f09-cursor {
+  position: absolute;
+  white-space: nowrap;
+}
+.f09-cursor .cursor-tag {
+  margin-left: 8px;
+}
+.f09-here {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+.f09-progress svg {
+  width: 100%;
+  height: 90px;
+}
+.f09-evidence {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+}
+.f09-evidence-media {
+  height: 110px;
+  background: linear-gradient(160deg, var(--f09-evidence-top), var(--f09-evidence-bottom));
+}
+.f09 .media svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.f09-mask-media {
+  height: 170px;
+  background: var(--f09-media-bg);
+}
+.f09-masks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f09-region {
+  fill: var(--blue);
+  stroke: var(--dark-blue);
+}
+.f09-region-1 {
+  fill: var(--f09-region);
+  stroke: var(--f09-region-line);
+}
+.f09-region-label {
+  fill: var(--blue);
+  stroke: none;
+}
+.f09-region-1 .f09-region-label {
+  fill: var(--f09-region-label);
+}
+.f09-add-label {
+  border-style: dashed;
+}
+.f09-verify {
+  gap: 10px;
+}
+.f09-verify .small {
+  color: var(--ink);
+}
+.f09-verify .wire {
+  font-size: 10px;
+}
+.f09-error {
+  padding: 8px 10px;
+}
+.f09-task-grid,
+.f09-errors {
+  gap: 8px;
+}
+.f09-untouched {
+  opacity: 0.75;
+}
+.f09-inline .drawn,
+.f09-inline .f09 {
+  display: inline;
+}
+.f09-tint {
+  border-radius: 4px;
+  padding: 0 6px;
+  background: var(--blue-tint);
+}
+.f09-provenance {
+  gap: 5px;
+}
+.f09 [data-state="tinted"] > span:first-child {
+  background: var(--blue-tint);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+@media (max-width: 600px) {
+  .f09-event {
+    flex-wrap: wrap;
+  }
+  .f09-verify {
+    grid-template-columns: 1fr;
+  }
+  .f09-presence {
+    overflow: auto;
+  }
+  .f09-connection {
+    white-space: normal;
+    height: auto;
+    min-height: 28px;
+  }
+}
+.f09 .f09-verify {
+  gap: 10px;
+}
+.f09 .sh {
+  color: var(--on-ink);
+}
+.f09 .f09-reconnecting .spinner {
+  color: var(--warn-fg);
+  width: 10px;
+  height: 10px;
+}
+.f09-step-running > .grow > b {
+  font-size: inherit;
+}
+
+.f09-masks .h-right.st {
+  max-width: 90px;
+}
+
+@font-face {
+  font-family: "F09 Mono";
+  src: url("@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2")
+    format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+.f09 {
+  --font-mono: "F09 Mono", ui-monospace, monospace;
+}
+.f09[data-component="ReceiptBadge"],
+.f09[data-component="ProvenanceTag"] {
+  display: flex;
+}
+.f09 .av,
+.f09 .cursor-tag {
+  color: var(--on-fill);
+}

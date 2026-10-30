@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { LensCard, type LensGesture } from "../components/lens";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "../feed/useFeed";
-import { buildSteps, type Gesture, type LensStep, press, START } from "./machine";
+import { LensStepCard } from "./LensStepCard";
+import { buildSteps, type Gesture, press, START } from "./machine";
 
 /** The catalog components the lens draws. Every one of them has `lens` among its doors. */
 export const LENS_COMPONENTS = ["LensCard"] as const;
-
-function hintsFor(step: LensStep | undefined): LensGesture[] {
-  return [
-    { gesture: "Tap", does: step?.kind === "phone" ? "next" : "got it" },
-    { gesture: "Swipe", does: "next", tone: "muted" },
-  ];
-}
 
 /**
  * The lens door (glasses simulator): one card, one step, 600 x 600. It reads the same feed as
@@ -48,15 +41,9 @@ export function LensView() {
 
   const card =
     !step || (feed.state === null && feed.status === "connecting") ? (
-      <LensCard eyebrow="Coalition" title="Connecting" />
+      <LensStepCard title="Connecting" index={0} total={1} />
     ) : (
-      <LensCard
-        eyebrow={step.eyebrow}
-        title={step.title}
-        body={step.body}
-        step={{ index, total: steps.length }}
-        hints={hintsFor(step)}
-      />
+      <LensStepCard title={step.title} body={step.body} index={index} total={steps.length} />
     );
 
   return (

@@ -1,0 +1,165 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.f01-choice-trigger:is(input) {
+  min-width: 32px;
+  width: 32px;
+  outline: none;
+  height: 22px;
+}
+.f01-choice-trigger::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+.f01-tooltip {
+  padding: 5px 8px;
+}
+.f01-tooltip::after {
+  left: 14px;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+}
+.f01-menu kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+  border-color: var(--line-strong);
+  border-bottom-width: 2px;
+  color: var(--ink-2);
+}
+.f01-steps li {
+  gap: 6px;
+  white-space: nowrap;
+}
+.f01-steps {
+  gap: 6px;
+}
+.f01-steps li + li {
+  flex: none;
+}
+.f01-steps li + li::before {
+  content: none;
+}
+.f01-steps .f01-step-line {
+  flex: 1;
+  height: 1.5px;
+  min-width: 12px;
+  background: var(--line-strong);
+}
+.f01-steps .f01-step-line.is-done {
+  background: var(--blue);
+}
+.f01-steps i {
+  font: 700 10px var(--font-ui);
+  border-width: 1.5px;
+}
+.f01-steps .is-done {
+  color: var(--ink-2);
+}
+.f01-steps .is-current i {
+  background: transparent;
+}
+.f01-meter {
+  gap: 8px;
+}
+.f01-drop {
+  line-height: normal;
+  gap: 6px;
+}
+.f01-drop .small {
+  line-height: normal;
+}
+.f01-video-player {
+  border-radius: 12px;
+}
+.f01-video-player .f01-play {
+  width: 16px;
+}
+.f01-cc {
+  padding: 0 2px;
+}
+.f01-Drawer .f01-field {
+  gap: 8px;
+}
+.f01-file > .col {
+  line-height: normal;
+}
+.f01-Drawer .f01-dialog {
+  border: 0;
+  border-left: 1px solid var(--line);
+}
+
+.f01-Popover .f01-root-RichText {
+  font-size: 13.5px;
+}
+.f01 .btn-sm.btn-ghost {
+  padding-inline: 10px;
+}
+.f01-reconnecting {
+  gap: 6px;
+}
+.f01-command-footer {
+  font-size: 11px;
+}
+.f01-drawer-context .card {
+  color: var(--ink-3);
+  background: var(--surface-2);
+}
+.f01-choice-entry {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.f01-choice-placeholder {
+  color: var(--ink-3);
+  font-size: 13px;
+  pointer-events: none;
+}
+.f01-choice-entry .f01-choice-trigger {
+  min-width: 0;
+  width: 100%;
+  outline: none;
+  box-shadow: none;
+}
+.f01-zone-select {
+  position: relative;
+  display: flex;
+}
+.f01-zone-select select {
+  appearance: none;
+  padding-right: 30px;
+  width: 100%;
+}
+.f01-zone-select > .ico {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink-3);
+}
+.f01-calendar-previous {
+  display: flex;
+  transform: rotate(180deg);
+}
+.f01-deadline .small {
+  line-height: 1.45;
+}
+.f01-deadline {
+  padding: 10px 12px;
+}
+.f01-deadline .head {
+  line-height: normal;
+  gap: 8px;
+}
+.f01-deadline .f01-bar {
+  height: 6px;
+}
+.f01-root-TimeZone > .col {
+  gap: 8px;
+}
+.f01-root-TimeZone .lbl {
+  font-weight: 400;
+}

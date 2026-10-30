@@ -1,0 +1,255 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-VideoCall,
+.ck-VoiceCall {
+  --f03-call-bg: #0b1220;
+  --f03-call-ink: #c8d1e0;
+  --f03-call-line: #33405a;
+  --f03-call-blue: #4d8dff;
+  --f03-call-control: #233149;
+  --f03-call-red: #e5484d;
+  --f03-call-white: #fff;
+  --f03-call-muted: #a9b4c6;
+  --f03-call-panel: #121b2e;
+  --f03-call-caption: #e8edf5;
+}
+.ck-VideoCall.ck-family {
+  background: var(--f03-call-bg);
+  padding: 8px;
+  border: 0;
+  gap: 8px;
+  line-height: normal;
+}
+.f03-video-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--f03-call-ink);
+  font-size: 11.5px;
+}
+.f03-video-heading > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--f03-call-red);
+}
+.f03-video-heading b {
+  color: var(--f03-call-white);
+}
+.f03-call-indicators {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.f03-call-indicators span {
+  font: 10.5px var(--font-mono);
+  border: 1px solid var(--f03-call-line);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.f03-video-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.f03-call-tile {
+  height: 120px;
+  border-radius: 8px;
+  position: relative;
+}
+.f03-call-person {
+  background: linear-gradient(160deg, #2b3a55, #15203a);
+}
+.f03-call-person[data-seat="1"] {
+  background: linear-gradient(160deg, #33304a, #1a1830);
+}
+.f03-person {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #3e4f6e;
+}
+.f03-call-person[data-seat="1"] .f03-person {
+  fill: #4a4466;
+}
+.f03-call-speaking {
+  box-shadow: 0 0 0 2px var(--f03-call-blue);
+}
+.f03-call-tag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+}
+.f03-call-tag svg {
+  width: 10px;
+  height: 10px;
+  vertical-align: -1px;
+}
+.f03-call-screen {
+  display: grid;
+  place-items: center;
+  background: #1b2436;
+}
+.f03-screen {
+  width: 90%;
+}
+.f03-screen rect {
+  fill: #0e1726;
+}
+.f03-screen path {
+  fill: none;
+  stroke: var(--f03-call-blue);
+  stroke-width: 2;
+}
+.f03-screen text {
+  font: 4.5px var(--font-mono);
+  fill: #8db8ff;
+}
+.f03-call-agent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: var(--f03-call-panel);
+  border: 1px dashed var(--f03-call-line);
+}
+.f03-call-agent .av,
+.f03-voice-agent {
+  background: #1f66e5;
+  color: white;
+}
+.f03-agent-caption {
+  color: var(--f03-call-ink);
+  font-size: 10.5px;
+}
+.f03-call-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+}
+.f03-call-wave i {
+  width: 3px;
+  border-radius: 2px;
+  background: #8db8ff;
+}
+.f03-call-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.f03-call-controls button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--f03-call-control);
+  color: var(--f03-call-white);
+  cursor: pointer;
+  padding: 0;
+}
+.f03-call-controls button[aria-pressed="true"]:not([aria-label="Captions"]) {
+  box-shadow: inset 0 0 0 1px var(--f03-call-blue);
+}
+.f03-call-controls .f03-end-call {
+  width: 52px;
+  border-radius: 18px;
+  background: var(--f03-call-red);
+}
+.ck-VoiceCall.ck-family {
+  width: 260px;
+  max-width: 100%;
+  height: 360px;
+  padding: 0;
+  border: 6px solid #1b2436;
+  border-radius: 28px;
+  background: var(--f03-call-bg);
+  overflow: hidden;
+  align-self: center;
+  margin-inline: auto;
+  gap: 0;
+  line-height: normal;
+  color: var(--f03-call-white);
+}
+.f03-phone-bar {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: 22px;
+  align-items: center;
+  padding: 0 14px;
+  font: 600 10px var(--font-ui);
+  color: var(--f03-call-ink);
+}
+.f03-voice-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.f03-voice-body > b {
+  font-size: 15px;
+}
+.f03-call-stack {
+  display: flex;
+  padding-left: 6px;
+}
+.f03-call-stack .av {
+  margin-left: -6px;
+  box-shadow: 0 0 0 3px var(--f03-call-bg);
+}
+.f03-call-stack .f03-voice-speaking {
+  box-shadow:
+    0 0 0 3px var(--f03-call-bg),
+    0 0 0 5px var(--f03-call-blue);
+}
+.f03-voice-time {
+  font-size: 12px;
+  color: var(--f03-call-muted);
+}
+.f03-voice-caption {
+  max-width: 210px;
+  background: var(--f03-call-panel);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: var(--f03-call-caption);
+  text-align: left;
+}
+.ck-VoiceCall .f03-call-controls {
+  justify-content: space-around;
+  width: 100%;
+  padding: 12px 18px 16px;
+}
+.ck-VoiceCall .f03-call-controls button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+@media (max-width: 420px) {
+  .f03-call-indicators {
+    flex-wrap: wrap;
+  }
+}
+
+.ck-VideoCall .s1,
+.ck-VoiceCall .s1 {
+  background: var(--f03-call-seat1, #0d7a82);
+}
+.ck-VideoCall .s3,
+.ck-VoiceCall .s3 {
+  background: var(--f03-call-seat3, #b02a64);
+}
+.ck-VideoCall .s5 {
+  background: var(--f03-call-seat5, #3e5c76);
+}

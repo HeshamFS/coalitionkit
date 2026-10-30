@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Avatar, cx, type Seat } from "../components/primitives";
+import { RoomLogo } from "../room/icons";
 import { Icon, type IconName, Mark } from "../ui/Icon";
 
 export const STAGES = [
@@ -67,6 +68,7 @@ export function TopBar({
   onInvite,
   onSearch,
   onSignOut,
+  room,
 }: {
   title: string;
   meta?: string;
@@ -76,47 +78,58 @@ export function TopBar({
   onInvite?: () => void;
   onSearch?: () => void;
   onSignOut?: () => void;
+  room?: boolean;
 }) {
   return (
     <header className="topbar">
-      <Mark />
+      {room ? <RoomLogo /> : <Mark />}
       <b style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{title}</b>
-      {meta && (
+      {meta && !room && (
         <span className="small">
           {"·"} {meta}
         </span>
       )}
       <div style={{ marginLeft: 14 }}>
-        <StageBar current={stage} />
-      </div>
-      <span className="h-right">
-        {/* biome-ignore lint/a11y/useSemanticElements: a stack of avatars is a labelled group */}
-        <div className="stack" role="group" aria-label="Who is here">
-          {presence.map((p) => (
-            <Avatar key={p.label} seat={p.seat} label={p.label} presence={p.presence} />
-          ))}
-        </div>
-        <button
-          type="button"
-          className="dock"
-          style={{ boxShadow: "none", cursor: "pointer" }}
-          aria-label="Search"
-          onClick={onSearch}
-        >
-          <Icon name="search" size="sm" />
-          <span className="kbd">{"⌘"}K</span>
-        </button>
-        <button type="button" className="btn btn-sm" onClick={onInvite}>
-          <Icon name="link" size="sm" />
-          Invite
-        </button>
-        {me && <Avatar seat={me.seat} label={me.label} size="lg" />}
-        {onSignOut && (
-          <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
-            Sign out
-          </button>
+        {room ? (
+          <span className="sg sg-now">
+            <span className="live-dot" />
+            {stage}
+            {meta ? ` · ${meta}` : ""}
+          </span>
+        ) : (
+          <StageBar current={stage} />
         )}
-      </span>
+      </div>
+      {!room && (
+        <span className="h-right">
+          {/* biome-ignore lint/a11y/useSemanticElements: a stack of avatars is a labelled group */}
+          <div className="stack" role="group" aria-label="Who is here">
+            {presence.map((p) => (
+              <Avatar key={p.label} seat={p.seat} label={p.label} presence={p.presence} />
+            ))}
+          </div>
+          <button
+            type="button"
+            className="dock"
+            style={{ boxShadow: "none", cursor: "pointer" }}
+            aria-label="Search"
+            onClick={onSearch}
+          >
+            <Icon name="search" size="sm" />
+            <span className="kbd">{"⌘"}K</span>
+          </button>
+          <button type="button" className="btn btn-sm" onClick={onInvite}>
+            <Icon name="link" size="sm" />
+            Invite
+          </button>
+          {me && <Avatar seat={me.seat} label={me.label} size="lg" />}
+          {onSignOut && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={onSignOut}>
+              Sign out
+            </button>
+          )}
+        </span>
+      )}
     </header>
   );
 }

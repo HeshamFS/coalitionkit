@@ -10,7 +10,7 @@ import { Banner, EmptyState, ErrorState, Skeleton, Toast } from "./feedback";
 import { ActivityStream, ChangedValue, LogStream, RippleBanner } from "./live";
 import { PlanCompare, TensionCard } from "./plans";
 import { Avatar, AvatarStack, Badge, Button, Card, ScopeBadge, Tag } from "./primitives";
-import { NeedCard, OfferCard, TaskCard, Timeline } from "./work";
+import { costText, NeedCard, OfferCard, TaskCard, Timeline } from "./work";
 
 describe("Button", () => {
   it("fires on click and on keyboard", async () => {
@@ -202,7 +202,13 @@ describe("work cards", () => {
   });
   it("offer card dead states are muted", () => {
     render(<OfferCard offerId="o1" what="Offer 1" state="expired" expires="09:00" />);
-    expect(screen.getByRole("article")).toHaveStyle({ opacity: "0.55" });
+    // The sheet dims dead offers through the family's inactive-opacity token.
+    expect(screen.getByRole("article").getAttribute("style")).toContain("--f06-inactive-opacity");
+  });
+  it("offer cost puts a currency symbol first and any other unit after", () => {
+    expect(costText(38, "€")).toBe("€38");
+    expect(costText(12, "min")).toBe("12 min");
+    expect(costText(5)).toBe("5");
   });
   it("timeline marks the current step", () => {
     render(

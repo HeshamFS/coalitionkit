@@ -1,0 +1,102 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.trusted-seal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+}
+.trusted-seal-control {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  user-select: none;
+}
+.trusted-seal-control svg {
+  width: 100%;
+  height: 100%;
+}
+.trusted-seal-control circle {
+  stroke-width: 6;
+}
+.seal-track {
+  fill: none;
+  stroke: var(--line);
+}
+.seal-progress {
+  fill: none;
+  stroke: var(--blue);
+  stroke-linecap: round;
+  stroke-dasharray: 302;
+  stroke-dashoffset: 302;
+}
+.seal-core {
+  fill: var(--surface);
+}
+.trusted-seal-control span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 600 13px var(--font-ui);
+  color: var(--blue-text);
+}
+.trusted-seal[data-state="holding"] .seal-progress {
+  animation: seal-fill 1200ms linear forwards;
+}
+.trusted-seal[data-state="signed"] .seal-progress {
+  stroke-dashoffset: 0;
+}
+.trusted-seal[data-state="signed"] .seal-core {
+  fill: var(--blue);
+}
+.trusted-seal-control path {
+  fill: none;
+  stroke: white;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.seal-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.seal-status b {
+  font-size: 15px;
+}
+.seal-status span {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.trusted-phone-consent {
+  min-height: 650px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 20px;
+  background: var(--canvas);
+}
+.trusted-phone-consent h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+@keyframes seal-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trusted-seal[data-state="holding"] .seal-progress {
+    animation: none;
+    stroke-dashoffset: 151;
+  }
+}

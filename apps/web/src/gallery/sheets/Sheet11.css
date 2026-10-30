@@ -1,0 +1,15 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.sheet:has(> .sheet-11) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .sheet-11) > .sheet-head,
+.sheet:has(> .sheet-11) > .small {
+  display: none;
+}
+.sheet.sheet-11 {
+  width: 1440px;
+}
+.sheet-11 .cell-name {
+  font-weight: 700;
+}

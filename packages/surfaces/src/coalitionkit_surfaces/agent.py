@@ -183,7 +183,13 @@ class AgentSession:
             raise ConsentError(result["payload"]["code"], "the host refused the decision")
         accepted = result.accepted
         assert accepted is not None
-        return {"status": "accepted", "seq": accepted["seq"]}
+        # The owner's signature is part of the decide event every decider receives; returning it
+        # lets the trusted card show the receipt the person just signed.
+        return {
+            "status": "accepted",
+            "seq": accepted["seq"],
+            "consent_sig": envelope["payload"]["consent_sig"],
+        }
 
     def _verify(
         self, envelope: Document, request: ConsentRequest, choice: str, consent: bool, jwk: Document

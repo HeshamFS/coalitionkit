@@ -3,6 +3,7 @@
 // own data (the OpenRequest and the viewer's projection), never from a composed tree.
 import { useState } from "react";
 import { ConsentCard } from "./components/consent";
+import { type ConsentAcknowledgement, TrustedConsentSeal } from "./components/f08/ConsentSeal";
 import { Banner } from "./components/feedback";
 import { TensionCard } from "./components/plans";
 import { Card } from "./components/primitives";
@@ -10,6 +11,7 @@ import { type Answer, answerFor } from "./feed/actions";
 import type { OpenRequest } from "./feed/agent";
 import type { ViewerState } from "./feed/delta";
 import { tensionView } from "./feed/derive";
+import { usePhoneRoom } from "./room/media";
 
 export function TrustedRequest({
   request,
@@ -18,8 +20,12 @@ export function TrustedRequest({
 }: {
   request: OpenRequest;
   state: ViewerState | null;
-  onAnswer: (answer: Answer) => void;
+  onAnswer:
+    | ((answer: Answer) => void)
+    | ((answer: Answer) => Promise<ConsentAcknowledgement | undefined>);
 }) {
+  const phone = usePhoneRoom();
+  const [phoneSent, setPhoneSent] = useState<string>();
   const [problem, setProblem] = useState<string | null>(null);
   const send = (consent: boolean, choice?: string) => {
     try {
@@ -60,6 +66,37 @@ export function TrustedRequest({
       </>
     );
   }
+  if (phone)
+    return (
+      <section
+        className="trusted-phone-consent"
+        aria-label={`Consent to decide: ${request.message}`}
+      >
+        <span className="small">Your agent needs your yes</span>
+        <h2>{request.message}</h2>
+        <span className="small">
+          {request.subjectId} · revision {request.revision}
+        </span>
+        <TrustedConsentSeal
+          key={`${request.id}:${request.revision}`}
+          deadline={request.expiresAt}
+          onApprove={() => {
+            const answer = answerFor(request, true);
+            setPhoneSent(request.id);
+            return onAnswer(answer);
+          }}
+        />
+        <button
+          type="button"
+          className="btn"
+          disabled={phoneSent === request.id}
+          onClick={() => send(false)}
+        >
+          Not this one
+        </button>
+        {problem && <Banner tone="blocked" title="Could not send." body={problem} />}
+      </section>
+    );
   return (
     <>
       {problem && <Banner tone="blocked" title="Could not send." body={problem} />}

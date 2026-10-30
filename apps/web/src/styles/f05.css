@@ -1,0 +1,458 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "../components/f05/contrast.css";
+.f-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.f-catalog p,
+.f-catalog h2 {
+  margin: 0;
+}
+.f-catalog small {
+  color: var(--ink-2);
+  font-size: 11px;
+}
+.f-catalog button:focus-visible,
+.f-catalog input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.f-catalog [data-state="left"],
+.f-catalog[data-state="left"] {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.f-catalog[data-state="acting"] {
+  border: 2px solid var(--blue);
+}
+.f-catalog[data-state="owes"] {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+.f-catalog[data-state="watcher"] {
+  opacity: 0.7;
+}
+.f-mark {
+  display: inline-flex;
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font-size: 11px;
+}
+.f-mark-agreed,
+.f-mark-done,
+.f-mark-fulfilled,
+.f-mark-accepted {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.f-mark-owes,
+.f-mark-needs-you {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+.f-mark-acting,
+.f-mark-changed,
+.f-mark-now {
+  background: var(--blue-tint);
+  color: var(--blue-text);
+}
+.f-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+  flex: 1;
+}
+.f-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+}
+.f05-header {
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+.f05-header-top {
+  align-items: flex-start;
+}
+.f05-header-top > svg {
+  flex: none;
+}
+.f05-header-top > .col {
+  gap: 2px;
+}
+.f05-header h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.f05-header-counts {
+  gap: 14px;
+}
+.f05-stages {
+  display: flex;
+  margin: 0;
+  gap: 0;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+.f05-stages li {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 60px;
+  color: var(--ink-2);
+}
+.f05-stages li[aria-current] {
+  color: var(--blue-text);
+  font-weight: 600;
+}
+.f05-person {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+.f05-presence {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.f05-presence.live {
+  background: var(--ok-fg);
+}
+.f05-presence.idle {
+  background: var(--warn-fg);
+}
+.f05-open {
+  border-style: dashed;
+}
+.f05-scroll {
+  overflow: auto;
+}
+.f05-ring {
+  width: 260px;
+  max-width: 100%;
+  align-self: center;
+}
+.f05-invite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 7px 0;
+}
+.f05-invite small {
+  display: block;
+}
+@media (max-width: 600px) {
+  .f05-invite {
+    flex-wrap: wrap;
+  }
+}
+
+meter.f-meter {
+  appearance: none;
+  width: 100%;
+  border: 0;
+}
+meter.f-meter::-webkit-meter-bar {
+  background: var(--surface-3);
+  border: 0;
+  border-radius: 999px;
+}
+meter.f-meter::-webkit-meter-optimum-value {
+  background: var(--blue);
+  border-radius: 999px;
+}
+meter.f-meter::-moz-meter-bar {
+  background: var(--blue);
+  border-radius: 999px;
+}
+
+.f05-acts {
+  width: 100%;
+  min-height: 230px;
+  font-family: var(--font-ui);
+}
+.f05-graph-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--ink-3);
+}
+.f05-agent {
+  width: 100%;
+  height: 34px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.f05-agent.acting {
+  background: var(--blue-tint);
+  border: 1.5px solid var(--blue);
+  color: var(--blue-text);
+  font-weight: 600;
+}
+.f05-stage-bar {
+  height: 4px;
+  background: var(--surface-3);
+  width: 100%;
+}
+.f05-stage-bar > span {
+  height: 100%;
+  display: block;
+}
+
+/* Family sheet composition; component styles remain shared with live surfaces. */
+.f05-vendors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f05-text-action,
+.f07-text-action {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--blue-text);
+  cursor: pointer;
+}
+.f05-charter {
+  gap: 6px;
+}
+.f05-charter b {
+  font-size: 13.5px;
+}
+.f05-charter ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f05-charter li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f05-charter li > .num {
+  width: 16px;
+  flex: none;
+}
+.f05-charter .row:last-child {
+  align-items: flex-start;
+}
+.f05-charter .row:last-child button {
+  flex: none;
+}
+.f05-ring {
+  width: 220px;
+  height: 200px;
+}
+.f05-seat-hit {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.f05-ring-legend {
+  gap: 10px;
+}
+.f05-ring-legend .acting {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+.f05-ring-legend .owes {
+  box-shadow: 0 0 0 2px var(--warn-fg);
+}
+.f05-ring-legend .open {
+  border: 1px dashed var(--line-strong);
+}
+.f05-participant {
+  gap: 6px;
+}
+.f05-participant .col {
+  gap: 0;
+}
+.f05-participant .av-lg {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+.f05-participant .f05-person {
+  font-weight: 700;
+}
+.f05-participant .chip {
+  height: 20px;
+  font-size: 11px;
+}
+.f05-participant .spinner {
+  color: var(--blue);
+}
+.f05-participant[data-state="acting"] {
+  padding: 9px 11px;
+}
+.f05-participant[data-state="left"] {
+  opacity: 1;
+}
+.f05-participant[data-state="left"] .f05-person,
+.f05-participant[data-state="left"] .av,
+.f05-participant[data-state="invited"] .f05-person {
+  color: var(--ink-3);
+}
+.f05-avatar-agreed,
+.f05-avatar-watcher {
+  position: relative;
+}
+.f05-avatar-agreed::after,
+.f05-avatar-watcher::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 2px var(--surface);
+  border-radius: 50%;
+  background: var(--presence-live);
+}
+.f05-avatar-watcher::after {
+  background: var(--presence-away);
+}
+.f05-avatar-acting {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.f05-avatar-invited {
+  opacity: 0.5;
+}
+.f05-participant > .f05-text-action,
+.f07-text-action {
+  align-self: flex-start;
+}
+.f05-ring-legend {
+  justify-content: center;
+}
+.f07-location > small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f05-roster .av {
+  width: 16px;
+  height: 16px;
+  font-size: 7.5px;
+}
+.f05-roster th:nth-child(5) {
+  text-align: right;
+}
+.f05-leave ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.f05-leave .small {
+  color: var(--ink);
+}
+.f05-leave b {
+  font-size: 13px;
+}
+.f05-warning {
+  color: var(--warn-fg);
+}
+.f05-safe {
+  color: var(--ok-fg);
+}
+.f05-pack b {
+  font-size: 13px;
+}
+.f05-pack .kv {
+  font-size: 11.5px;
+  margin: 0;
+}
+.f05-pack button {
+  cursor: pointer;
+}
+.f05-invites .col {
+  gap: 0;
+}
+.f05-invites .f05-invite:last-child {
+  border-bottom: 0;
+}
+.f05-invited-avatar {
+  opacity: 0.55;
+}
+.f05-empty-avatar {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+.f05-vendor-icon {
+  width: 10px;
+  height: 10px;
+}
+.f05-agent-details {
+  gap: 0;
+}
+.f05-acts {
+  height: 230px;
+}
+.f05-acts > .f05-graph-label {
+  letter-spacing: 0.06em;
+}
+.f05-vendors .badge {
+  align-self: flex-start;
+}
+
+/* Header and stage surfaces can share a card without changing either catalog API. */
+.f05-overview {
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+.f05-overview > div,
+.f05-overview .f05-header {
+  display: contents;
+}
+.f05-overview .f05-header-top {
+  order: 1;
+}
+.f05-overview [data-component="StageTrack"] {
+  order: 2;
+}
+.f05-overview .f05-header-counts {
+  order: 3;
+}
+.f05-header-state {
+  align-items: flex-end;
+  gap: 4px;
+}
+.f05-stages li[aria-current] .st {
+  font-family: "F05 Sheet Mono", var(--font-mono);
+  color: var(--blue-text);
+  font-weight: 600;
+}

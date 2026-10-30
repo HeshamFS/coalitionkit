@@ -1,0 +1,141 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+.ck-CoalitionThread.ck-family {
+  padding: 12px;
+  gap: 10px;
+  line-height: normal;
+}
+.f03-thread-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f03-thread-date > span {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.f03-thread-turn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.f03-thread-avatar {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  color: var(--ink-inverse);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.f03-thread-avatar.f03-square {
+  border-radius: 6px;
+}
+.f03-thread-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.f03-thread-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f03-thread-author b {
+  font-size: 12.5px;
+}
+.f03-thread-time {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f03-thread-text {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font: 12px / 1.45 var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.f03-thread-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 380px;
+  margin-top: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f03-thread-card b {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.f03-thread-card .scope {
+  margin-left: auto;
+}
+.f03-thread-system {
+  display: flex;
+  justify-content: center;
+}
+.f03-thread-system > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.f03-thread-system svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.f03-thread-caret {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  background: var(--ink);
+  vertical-align: middle;
+  margin-left: 2px;
+}
+.f03-thread-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f03-thread-typing .f03-thread-avatar {
+  width: 16px;
+  height: 16px;
+  font-size: 7.5px;
+}
+.f03-typing-dots {
+  color: var(--ink-3);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.f03-thread-card {
+  line-height: normal;
+}
+.f03-thread-card > span {
+  line-height: 1.45;
+}

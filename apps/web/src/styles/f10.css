@@ -1,0 +1,466 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "./f08.css";
+.f10-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f10-stages {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.f10-alarm {
+  border: 2px solid var(--bad-fg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.f10-alarm > b {
+  color: var(--bad-fg);
+}
+.f10-machine {
+  width: 70px;
+}
+.f10-track {
+  position: relative;
+  height: 18px;
+  flex: 1;
+  min-width: 100px;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.f10-booking {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, var(--surface-3) 0 4px, var(--bg) 4px 8px);
+}
+.f10-mine {
+  background: var(--blue);
+}
+@media (max-width: 600px) {
+  .f10-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Sheet framing is local to this family. */
+.f10 .family-card .row {
+  flex-wrap: nowrap;
+}
+.f10 [data-component="AttackTests"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f10 [data-component="EdgeReaderStatus"] .kv {
+  font-size: 11.5px;
+}
+.f10-reader-title {
+  font-size: 13px;
+}
+.f10 [data-component="EdgeReaderStatus"] .bar > span {
+  background: var(--ok-fg);
+}
+.f10-tests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.f10-tests li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.f10-tests li:last-child {
+  border-bottom: 0;
+}
+.f10-tests .small {
+  color: var(--ink);
+}
+.f10-test-running {
+  color: var(--blue);
+  width: 12px;
+  height: 12px;
+}
+.f10-test-fail {
+  color: var(--bad-fg);
+  background: var(--bad-bg);
+}
+.f10-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue-text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.f10 {
+  --f10-device: #56637a;
+  --f10-display: #0e1726;
+  --f10-dial: #2a3346;
+  --f10-mask-dial: #f09a6e;
+  --f10-camera-top: #3a4558;
+  --f10-camera-bottom: #1c2330;
+  --f10-phone-border: #1b2436;
+  --f10-record-red: #e5484d;
+  --f10-preview-green: #7fd1a3;
+  --f10-preview-blue: #8db8ff;
+}
+.f10 [data-component="CaptureCard"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.f10-capture {
+  align-items: center;
+}
+.f10-phone {
+  width: 100%;
+  max-width: 260px;
+  height: 360px;
+  border: 6px solid var(--f10-phone-border);
+  border-radius: 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+}
+.f10-phone-bar {
+  height: 22px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.f10-phone-bar .row {
+  gap: 4px;
+}
+.f10-rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--f10-record-red);
+}
+.f10-camera {
+  flex: 1;
+  position: relative;
+  background: linear-gradient(160deg, var(--f10-camera-top), var(--f10-camera-bottom));
+}
+.f10-camera svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.f10-display-value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  fill: var(--f10-preview-green);
+}
+.f10-mask-label,
+.f10-dial-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  fill: var(--f10-preview-blue);
+}
+.f10-dial-label {
+  fill: var(--f10-mask-dial);
+}
+.f10-narration {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background: rgb(0 0 0 / 0.6);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 11px;
+}
+.f10-record-controls {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+.f10-record {
+  padding: 0;
+  width: 48px;
+  height: 48px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  cursor: pointer;
+}
+.f10-record span {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--f10-record-red);
+}
+.f10 [data-component="MintPipeline"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f10-stage {
+  text-align: left;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  gap: 4px;
+}
+.f10-stage b {
+  font-size: 12px;
+}
+.f10-stage-done {
+  border-color: var(--f10-success-line, #a9d9bc);
+}
+.f10-stage-space {
+  width: 14px;
+}
+.f10-stage-meter {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-3);
+}
+.f10-stage-meter span {
+  height: 100%;
+  background: var(--ok-fg);
+}
+.f10-stage-meter span:nth-child(2) {
+  background: #2f8a5b;
+}
+.f10-stage-meter span:nth-child(3) {
+  background: var(--blue);
+}
+.f10-artifacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+.f10-artifact {
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  gap: 5px;
+}
+.f10-artifact .small {
+  color: var(--ink);
+}
+.f10-thumbnails {
+  gap: 4px;
+}
+.f10-thumbnails svg {
+  width: 56px;
+  height: 42px;
+  border-radius: 6px;
+  background: var(--f10-camera-top);
+}
+.f10-spec {
+  background: var(--f10-display);
+  color: var(--dark-ink);
+  font-size: 9.5px;
+  line-height: 1.6;
+  gap: 0;
+  padding: 10px 12px;
+}
+.f10-spec .st {
+  font-size: 9.5px;
+  color: var(--f10-preview-green);
+}
+.f10-spec .eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 9.5px;
+  color: var(--dark-ink-2);
+}
+@media (max-width: 600px) {
+  .f10-artifacts {
+    grid-template-columns: 1fr;
+  }
+}
+.f10-publish-title {
+  font-size: 14px;
+}
+.f10-capabilities {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.f10-capabilities .small {
+  color: var(--ink);
+}
+.f10-acts {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+}
+.f10 [data-component="PublishApproval"] .chip {
+  height: 22px;
+}
+.f10 [data-component="PublishApproval"] > .btn-primary {
+  height: 32px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+  font-size: 13px;
+}
+.f10-agent-heading {
+  gap: 0;
+}
+.f10-agent-heading b {
+  font-size: 13px;
+}
+.f10-readings {
+  gap: 6px;
+}
+.f10-readings .stage {
+  padding: 8px;
+  gap: 2px;
+}
+.f10-readings .answer {
+  font-size: 18px;
+}
+.f10 [data-component="DeviceReading"],
+.f10 [data-component="DeviceAlarm"],
+.f10 [data-component="ScheduleTwin"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f10-chart {
+  width: 100%;
+  height: 190px;
+}
+.f10-axis {
+  font: 9px var(--font-mono);
+  fill: var(--ink-3);
+}
+.f10-value {
+  font: 10px var(--font-mono);
+  fill: var(--ink);
+}
+.f10-limit {
+  font: 9px var(--font-ui);
+  fill: var(--bad-fg);
+}
+.f10-annotation {
+  font: 9px var(--font-ui);
+  fill: var(--blue-text);
+}
+.f10-measured-key,
+.f10-planned-key {
+  width: 16px;
+  height: 2px;
+  background: var(--blue);
+}
+.f10-planned-key {
+  height: 0;
+  background: transparent;
+  border-top: 2px dashed var(--line-strong);
+}
+.f10-alarm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f10-alarm b {
+  font-size: 13.5px;
+  color: var(--bad-fg);
+}
+.f10-alarm > .small {
+  color: var(--ink);
+}
+.f10-alarm .btn:first-child {
+  background: var(--bad-fg);
+  border-color: var(--bad-fg);
+  color: var(--on-fill);
+}
+.f10-machine {
+  width: 56px;
+  flex: none;
+  color: var(--ink);
+}
+.f10-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f10-track {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.f10-days {
+  padding-left: 62px;
+}
+.f10-schedule-key {
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+.f10-busy {
+  background: repeating-linear-gradient(135deg, var(--surface-3) 0 3px, var(--bg) 3px 6px);
+}
+.f10-local-0 {
+  background: #bbd3fb;
+}
+.f10-local-1 {
+  background: #9cced2;
+}
+.f10-local-2 {
+  background: #dcd3f0;
+}
+.f10-stages {
+  align-items: start;
+}
+.f10-stage:not(.f10-stage-done):not(.card-live) {
+  color: var(--ink-3);
+}
+.f10-thumbnails svg:last-child rect {
+  stroke: var(--f10-preview-green);
+}
+.f10-spec {
+  background: #0e1726;
+  color: #c8d1e0;
+  font-family: var(--font-mono);
+  border: 0;
+}
+.f10-spec .st {
+  color: inherit;
+}
+.f10-spec .eyebrow {
+  color: #72819a;
+}
+.f10-code-key {
+  color: #8db8ff;
+}
+.f10-code-string {
+  color: #9fe0b8;
+}
+.f10-thumbnails svg:last-child rect {
+  stroke: #9fe0b8;
+}
+.f10-artifact:has(.f10-thumbnails) {
+  gap: 6px;
+}
+.f10-callout-time {
+  font: 9px var(--font-ui);
+  fill: var(--ink-3);
+}
+.f10 [data-component="DeviceReading"] .f10-link {
+  color: var(--ink-2);
+}

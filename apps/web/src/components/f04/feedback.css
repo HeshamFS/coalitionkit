@@ -1,0 +1,104 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-FeedbackForm.ck-family {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  line-height: normal;
+  background: transparent;
+}
+.f04-feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.f04-feedback-column,
+.f04-feedback-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ck-FeedbackForm label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.f04-feedback-question textarea {
+  width: 100%;
+  min-height: 62px;
+  resize: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: 13px / 1.5 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+}
+.f04-feedback-question fieldset {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.f04-feedback-question .f04-feedback-choice {
+  padding: 1px;
+  height: 30px;
+  background: var(--surface-3);
+  border-radius: 999px;
+}
+.f04-feedback-choice button {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font: 500 12px var(--font-ui);
+  cursor: pointer;
+}
+.f04-feedback-choice button[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.f04-feedback-scale {
+  gap: 4px;
+}
+.f04-feedback-scale button {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 12px var(--font-mono);
+  cursor: pointer;
+}
+.f04-feedback-scale button[aria-pressed="true"] {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+  font-weight: 600;
+}
+.f04-feedback-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f04-feedback-footer .ck-action {
+  margin-left: auto;
+  height: 28px;
+  padding: 0 10px;
+}
+@media (max-width: 640px) {
+  .f04-feedback-grid {
+    grid-template-columns: 1fr;
+  }
+}

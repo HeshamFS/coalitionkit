@@ -1,0 +1,133 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-NeedForm.ck-family {
+  gap: 6px;
+  line-height: normal;
+}
+.f04-need-title {
+  font-size: 13.5px;
+}
+.f04-need-input {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px var(--font-ui);
+}
+.f04-need-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.ck-NeedForm .f04-need-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.f04-need-stepper {
+  display: flex;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.f04-need-stepper button {
+  width: 30px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 14px var(--font-ui);
+  cursor: pointer;
+}
+.f04-need-stepper input {
+  appearance: textfield;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+  font: 12px var(--font-mono);
+}
+.f04-need-stepper input::-webkit-inner-spin-button {
+  appearance: none;
+}
+.f04-need-segments {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 1px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+.f04-need-segments button {
+  border: 0;
+  border-radius: 999px;
+  height: 28px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ink-2);
+  font: 500 12px var(--font-ui);
+  cursor: pointer;
+}
+.f04-need-segments button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.f04-need-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f04-need-note svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.ck-NeedForm > .ck-action {
+  height: 28px;
+  padding: 0 10px;
+}
+
+.f04-need-stepper button:first-child {
+  border-right: 1px solid var(--line);
+}
+.f04-need-stepper button:last-child {
+  border-left: 1px solid var(--line);
+}
+.f04-need-stepper input {
+  font-size: 13px;
+}
+
+.f04-need-segments {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.f04-need-stepper {
+  width: 130px;
+  max-width: 100%;
+}
+.f04-need-stepper button {
+  width: 32px;
+  font-size: 13px;
+}

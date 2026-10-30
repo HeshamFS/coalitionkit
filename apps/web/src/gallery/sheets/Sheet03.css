@@ -1,0 +1,31 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-sheet-03 .ck-demo-AgentStatus {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.ck-sheet-03 .sheet-head > .h-right {
+  display: flex;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .ck-sheet-03 .g4,
+  .ck-sheet-03 .ck-demo-AgentStatus {
+    grid-template-columns: 1fr;
+  }
+  .ck-sheet-03 .span2 {
+    grid-column: auto;
+  }
+}
+.ck-sheet-03 .ck-demo-AgentStatus {
+  align-items: start;
+}
+.ck-sheet-03 .cell-name {
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .ck-sheet-03 .head {
+    flex-wrap: wrap;
+  }
+}

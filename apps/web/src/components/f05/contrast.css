@@ -1,0 +1,53 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Preserve readable labels where the reference fades an entire member card. */
+.f05-participant.f-catalog[data-state="watcher"],
+.f05-participant .f05-avatar-invited,
+.f05-invites .f05-invited-avatar {
+  opacity: 1;
+}
+.f05-participant[data-state="owes"] .st {
+  color: var(--f05-owes-label, #626d87);
+}
+.f05-participant.f-catalog[data-state="left"] .av,
+.f05-invites .f05-empty-avatar {
+  color: var(--f05-empty-label, #606b84);
+}
+.f07-map .f07-map-credit {
+  color: var(--f07-credit-label, #5c667e);
+}
+/* Nearest darker shades along each seat hue with 4.5:1 white-label contrast. */
+:root[data-theme="dark"]
+  :is(
+    .f05-participant,
+    .f05-invites,
+    .f05-roster,
+    [data-component="AgentPresence"],
+    [data-component="SeatRing"],
+    [data-component="ActsForGraph"],
+    .f07-route,
+    [data-component="ArrivalCard"],
+    [data-component="TimeZoneStrip"]
+  ) {
+  --on-fill: #ffffff;
+  --seat-1: #19838b;
+  --seat-2: #b16225;
+  --seat-3: #c9467f;
+  --seat-4: #7f66ca;
+  --seat-5: #5d7994;
+  --f05-owes-label: var(--ink-3);
+  --f05-empty-label: var(--ink-3);
+}
+:root[data-theme="dark"] .f07-map .f07-map-credit {
+  --f07-credit-label: var(--ink-3);
+}
+
+:root[data-theme="dark"] .f07-zonebar {
+  --f07-zone-bg: var(--surface-3);
+}
+
+.f07-map {
+  --f07-landmark-label: #5c6780;
+}
+:root[data-theme="dark"] .f07-map {
+  --f07-landmark-label: var(--ink-3);
+}

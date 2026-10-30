@@ -1,0 +1,210 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-Wizard.ck-family {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  line-height: normal;
+}
+.f04-wizard-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.f04-wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.f04-wizard-step i {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  font: 700 10px var(--font-ui);
+}
+.f04-wizard-done {
+  color: var(--ink-2);
+}
+.f04-wizard-done i {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--on-blue);
+}
+.f04-wizard-step[aria-current="step"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.f04-wizard-step[aria-current="step"] i {
+  background: var(--surface);
+  border-color: var(--blue);
+  color: var(--blue-text);
+}
+.f04-wizard-line {
+  flex: 1;
+  height: 1.5px;
+  min-width: 12px;
+  background: var(--line-strong);
+}
+.f04-wizard-line-done {
+  background: var(--blue);
+}
+.f04-wizard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.f04-wizard-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f04-wizard-title {
+  font-size: 14px;
+}
+.f04-wizard-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.ck-Wizard .f04-wizard-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.f04-wizard-option.f04-wizard-selected {
+  border-color: var(--blue);
+  background: var(--blue-tint);
+}
+.f04-wizard-option input {
+  appearance: none;
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.f04-wizard-option input:checked {
+  border: 5px solid var(--blue);
+}
+.f04-wizard-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.f04-wizard-option b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.f04-wizard-option span span {
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f04-wizard-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.f04-wizard-eyebrow {
+  font: 11px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.f04-wizard-suggestion {
+  font: 12px / 1.45 var(--font-ui);
+}
+.f04-wizard-summary {
+  gap: 4px;
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f04-wizard-current {
+  color: var(--blue-text);
+}
+.f04-wizard-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f04-wizard-footer > span {
+  font: 12px / 1.45 var(--font-ui);
+  color: var(--ink-2);
+}
+.f04-wizard-footer .ck-action {
+  height: 28px;
+  padding: 0 10px;
+}
+.f04-wizard-footer .ck-action:first-child {
+  background: transparent;
+  border-color: transparent;
+}
+.f04-wizard-footer .ck-action:last-child {
+  margin-left: auto;
+}
+.ck-Wizard .ck-field {
+  gap: 4px;
+}
+.ck-Wizard .ck-field label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.ck-Wizard .ck-field small:empty {
+  display: none;
+}
+@media (max-width: 640px) {
+  .f04-wizard-grid {
+    grid-template-columns: 1fr;
+  }
+  .f04-wizard-rail {
+    flex-wrap: wrap;
+  }
+}
+
+.ck-Wizard .ck-field select {
+  height: 32px;
+  padding: 0 10px;
+  line-height: normal;
+}
+
+.ck-Wizard .ck-field:has(select) {
+  position: relative;
+}
+.ck-Wizard .ck-field select {
+  appearance: none;
+}
+.ck-Wizard .ck-field:has(select)::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  bottom: 14px;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid var(--ink-3);
+  border-bottom: 1px solid var(--ink-3);
+  transform: rotate(45deg);
+  pointer-events: none;
+}

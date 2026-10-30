@@ -48,6 +48,22 @@
     "title": {
      "type": "string",
      "doc": "string?"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Bound media duration in seconds."
+    },
+    "elapsed": {
+     "type": "number",
+     "doc": "Bound initial playback position in seconds."
+    },
+    "waveform": {
+     "type": "array",
+     "doc": "Bound amplitude samples for the voice waveform, from zero to one."
+    },
+    "transcript": {
+     "type": "binding",
+     "doc": "Plain-text transcript from the host."
     }
    }
   },
@@ -253,6 +269,23 @@
       "ghost"
      ],
      "doc": "primary | secondary | ink | ghost"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "soft",
+      "danger",
+      "danger-fill"
+     ],
+     "doc": "Optional soft or destructive treatment shown by the control sheet."
+    },
+    "icon": {
+     "type": "string",
+     "doc": "Optional leading icon name."
+    },
+    "trailingIcon": {
+     "type": "string",
+     "doc": "Optional trailing icon name."
     }
    }
   },
@@ -367,6 +400,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Supporting description beneath the label."
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disable changes to the value."
     }
    }
   },
@@ -399,6 +440,14 @@
     "selected": {
      "type": "boolean",
      "doc": "boolean?"
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disabled chip."
+    },
+    "dashed": {
+     "type": "boolean",
+     "doc": "Dashed add-item treatment."
     }
    }
   },
@@ -468,6 +517,10 @@
       "16"
      ],
      "doc": "4 | 8 | 12 | 16"
+    },
+    "spacing": {
+     "type": "number",
+     "doc": "Optional bound spacing in pixels, overriding the gap preset for tightly grouped content."
     }
    }
   },
@@ -535,6 +588,22 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "range": {
+     "type": "boolean",
+     "doc": "Select a start and end date from the calendar."
+    },
+    "busy": {
+     "type": "array",
+     "doc": "Unavailable ISO dates from the private calendar match, without names."
+    },
+    "min": {
+     "type": "datetime",
+     "doc": "Earliest selectable date."
+    },
+    "max": {
+     "type": "datetime",
+     "doc": "Latest selectable date."
     }
    }
   },
@@ -567,6 +636,10 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "startedAt": {
+     "type": "datetime",
+     "doc": "Start of the decision window, used for elapsed progress."
     }
    }
   },
@@ -583,7 +656,12 @@
     "default"
    ],
    "events": [],
-   "props": {}
+   "props": {
+    "label": {
+     "type": "string",
+     "doc": "Optional text between the dividing rules."
+    }
+   }
   },
   "Drawer": {
    "family": "01",
@@ -685,6 +763,10 @@
     "retry": {
      "type": "boolean",
      "doc": "bool"
+    },
+    "missedEvents": {
+     "type": "number",
+     "doc": "Bound count of missed events that will replay during reconnection."
     }
    }
   },
@@ -752,6 +834,18 @@
     "sort": {
      "type": "object",
      "doc": "{field, dir}"
+    },
+    "options": {
+     "type": "array",
+     "doc": "Available filter groups {field, label, options: [{value, label}]}."
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Search input placeholder."
+    },
+    "resultLabel": {
+     "type": "string",
+     "doc": "Host-provided summary of the current result count and matches."
     }
    }
   },
@@ -1114,6 +1208,10 @@
      "type": "number",
      "required": true,
      "doc": "path"
+    },
+    "caption": {
+     "type": "string",
+     "doc": "Secondary measurement caption below the label."
     }
    }
   },
@@ -1191,6 +1289,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "currency": {
+     "type": "string",
+     "doc": "Currency prefix before the number."
+    },
+    "help": {
+     "type": "string",
+     "doc": "Supporting text beneath the numeric input."
     }
    }
   },
@@ -1328,6 +1434,10 @@
      "type": "number",
      "required": true,
      "doc": "path (0..1)"
+    },
+    "stepLabels": {
+     "type": "array",
+     "doc": "Ordered labels for a numbered workflow; value is the active step."
     }
    }
   },
@@ -1606,6 +1716,22 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "marks": {
+     "type": "array",
+     "doc": "Tick marks {at: bound number, label, tone?}."
+    },
+    "format": {
+     "type": "enum",
+     "values": [
+      "number",
+      "time"
+     ],
+     "doc": "Format numeric values as numbers or minutes since midnight."
+    },
+    "valueLabel": {
+     "type": "string",
+     "doc": "Optional output caption, such as the participant floor."
     }
    }
   },
@@ -1641,6 +1767,10 @@
     "source": {
      "type": "string",
      "doc": "psi_match"
+    },
+    "participants": {
+     "type": "number",
+     "doc": "Bound participant count from the private calendar match."
     }
    }
   },
@@ -1709,6 +1839,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Supporting description beneath the label."
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disable changes to the value."
     }
    }
   },
@@ -1726,7 +1864,10 @@
    ],
    "events": [
     "sort(key)",
-    "open(row)"
+    "open(row)",
+    "table.action(ids)",
+    "table.page(page)",
+    "select(ids)"
    ],
    "props": {
     "columns": {
@@ -1740,6 +1881,35 @@
     "sortable": {
      "type": "boolean",
      "doc": "boolean?"
+    },
+    "selection": {
+     "type": "enum",
+     "values": [
+      "none",
+      "one",
+      "many"
+     ],
+     "doc": "Row selection mode."
+    },
+    "selected": {
+     "type": "array",
+     "doc": "Selected row identifiers."
+    },
+    "total": {
+     "type": "number",
+     "doc": "Bound total result count from the host."
+    },
+    "page": {
+     "type": "number",
+     "doc": "Bound current page, starting at one."
+    },
+    "pageSize": {
+     "type": "number",
+     "doc": "Bound maximum rows per page."
+    },
+    "action": {
+     "type": "object",
+     "doc": "Optional bulk action {label}; invokes table.action with selected identifiers."
     }
    }
   },
@@ -1892,6 +2062,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "decorations": {
+     "type": "array",
+     "doc": "Plain-text decorations {text, kind: bold | mention}; editing remains plain text."
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Placeholder while the text area is empty."
     }
    }
   },
@@ -1935,6 +2113,18 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "help": {
+     "type": "string",
+     "doc": "Supporting text beneath the input."
+    },
+    "readOnly": {
+     "type": "boolean",
+     "doc": "Read-only input."
+    },
+    "private": {
+     "type": "boolean",
+     "doc": "Display a vault placeholder instead of the bound value."
     }
    }
   },
@@ -1958,6 +2148,14 @@
     "value": {
      "type": "string",
      "doc": "IANA tz"
+    },
+    "at": {
+     "type": "datetime",
+     "doc": "Instant shown in each participant time zone."
+    },
+    "label": {
+     "type": "string",
+     "doc": "Viewer time-zone display label."
     }
    }
   },
@@ -2020,6 +2218,10 @@
     "tip": {
      "type": "string",
      "doc": "string"
+    },
+    "shortcut": {
+     "type": "string",
+     "doc": "Optional keyboard shortcut displayed in the tooltip."
     }
    }
   },
@@ -2050,6 +2252,18 @@
     "src": {
      "type": "binding",
      "doc": "path"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Bound media duration in seconds."
+    },
+    "elapsed": {
+     "type": "number",
+     "doc": "Bound initial playback position in seconds."
+    },
+    "caption": {
+     "type": "string",
+     "doc": "Current plain-text caption supplied by the host."
     }
    }
   },
@@ -2205,6 +2419,10 @@
     "coalition.create(goal, pack?)"
    ],
    "props": {
+    "draft": {
+     "type": "string",
+     "doc": "Initial editable goal text; omitted for an empty composer."
+    },
     "attachments": {
      "type": "array",
      "doc": "[ref] → vault"
@@ -2338,6 +2556,10 @@
     "reply(?)"
    ],
    "props": {
+    "title": {
+     "type": "string",
+     "doc": "Coalition label shown beside the channel account name."
+    },
     "choices": {
      "type": "array",
      "doc": "[{n, label, value}]"
@@ -2782,7 +3004,8 @@
     "posted"
    ],
    "events": [
-    "summary.post(item)"
+    "summary.post(item)",
+    "transcript.open(id)"
    ],
    "props": {
     "decided": {
@@ -2804,6 +3027,14 @@
     "questions": {
      "type": "array",
      "doc": "[]"
+    },
+    "participants": {
+     "type": "string",
+     "doc": "Participant count summary."
+    },
+    "transcript": {
+     "type": "id",
+     "doc": "Transcript reference for opening the viewer projection."
     }
    }
   },
@@ -2881,6 +3112,9 @@
     "voice.record"
    ],
    "props": {
+        "initialText": {"type": "string", "doc": "Initial editable message text, including mention or slash prefix."},
+        "initialRecording": {"type": "boolean", "doc": "Initially show a voice recording; does not start microphone capture."},
+        "initialElapsed": {"type": "number", "doc": "Initial recording duration in seconds, with event provenance."},
     "attachments": {
      "type": "array",
      "doc": "→ vault"
@@ -3030,6 +3264,18 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "seen_count": {
+     "type": "number",
+     "doc": "Number of viewers who have seen the message."
+    },
+    "projection": {
+     "type": "array",
+     "doc": "Viewer-safe text and redaction length spans; never contains hidden text."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Scope caption for the viewer projection."
     }
    }
   },
@@ -3091,6 +3337,22 @@
     "tool": {
      "type": "string",
      "doc": "name"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Elapsed call time in seconds."
+    },
+    "failure": {
+     "type": "string",
+     "doc": "Safe failure reason."
+    },
+    "provenance": {
+     "type": "string",
+     "doc": "Viewer-safe result provenance caption."
+    },
+    "emphasis": {
+     "type": "string",
+     "doc": "Leading summary text to emphasize."
     }
    }
   },
@@ -3109,7 +3371,8 @@
     "call.mute",
     "call.camera",
     "call.share",
-    "call.end"
+    "call.end",
+    "call.captions"
    ],
    "props": {
     "captions": {
@@ -3127,6 +3390,14 @@
     "tiles": {
      "type": "array",
      "doc": "[{participant, kind: person|agent|screen, speaking, muted}]"
+    },
+    "title": {
+     "type": "string",
+     "doc": "Call title."
+    },
+    "elapsed": {
+     "type": "string",
+     "doc": "Formatted elapsed call time."
     }
    }
   },
@@ -3157,6 +3428,18 @@
     "speaking": {
      "type": "id",
      "doc": "participant"
+    },
+    "title": {
+     "type": "string",
+     "doc": "Call title."
+    },
+    "elapsed": {
+     "type": "string",
+     "doc": "Formatted elapsed call time."
+    },
+    "clock": {
+     "type": "string",
+     "doc": "Device time label."
     }
    }
   },
@@ -3295,6 +3578,10 @@
     "purpose": {
      "type": "string",
      "doc": "string"
+    },
+    "preview": {
+     "type": "object",
+     "doc": "Viewer-safe document title and projected rows; hidden values must be omitted."
     }
    }
   },
@@ -3338,7 +3625,8 @@
     "sent"
    ],
    "events": [
-    "form.submit(values)"
+    "form.submit(values)",
+    "form.later"
    ],
    "props": {
     "fields": {
@@ -3353,6 +3641,34 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Explanation above the fields."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Submission audience label."
+    },
+    "submit_label": {
+     "type": "string",
+     "doc": "Submit button label."
+    },
+    "presentation": {
+     "type": "enum",
+     "doc": "Field layout or voice read-back presentation.",
+     "values": [
+      "fields",
+      "voice"
+     ]
+    },
+    "conversation": {
+     "type": "array",
+     "doc": "Viewer-safe voice turns; private answers must be omitted."
+    },
+    "show_schema": {
+     "type": "boolean",
+     "doc": "Display the field schema alongside the rendered form."
     }
    }
   },
@@ -3397,6 +3713,10 @@
     "queries": {
      "type": "array",
      "doc": "[{question, answer, asker, time}]"
+    },
+    "shared_values": {
+     "type": "object",
+     "doc": "Explicitly shared display values keyed by limit id. Private limit values are never included."
     }
    }
   },
@@ -3474,6 +3794,14 @@
     "what": {
      "type": "string",
      "doc": "string"
+    },
+    "target_label": {
+     "type": "string",
+     "doc": "Human-readable target context."
+    },
+    "scope": {
+     "type": "string",
+     "doc": "Audience label."
     }
    }
   },
@@ -3521,6 +3849,18 @@
      "type": "subject",
      "required": true,
      "doc": "{kind, id, revision}: the revision-bound subject of the decision"
+    },
+    "answer_label": {
+     "type": "string",
+     "doc": "Display label for the selected answer; does not authorize a decision."
+    },
+    "subject_label": {
+     "type": "string",
+     "doc": "Human-readable subject label."
+    },
+    "device_label": {
+     "type": "string",
+     "doc": "Device display label."
     }
    }
   },
@@ -3577,7 +3917,9 @@
     "blocked"
    ],
    "events": [
-    "wizard.finish"
+    "wizard.finish",
+    "wizard.edit(step)",
+    "wizard.back"
    ],
    "props": {
     "notice": {
@@ -3707,6 +4049,11 @@
       "offline"
      ],
      "doc": "live|idle|offline"
+    },
+    "nextReadingAt": {
+     "type": "datetime",
+     "required": false,
+     "doc": "Next scheduled reading time, displayed beside idle presence."
     }
    }
   },
@@ -3808,7 +4155,8 @@
    ],
    "events": [
     "invite.send",
-    "invite.revoke"
+    "invite.revoke",
+    "invite.changeRole(participant)"
    ],
    "props": {
     "invitations": {
@@ -4795,7 +5143,8 @@
     "pinned"
    ],
    "events": [
-    "place.pick(ref)"
+    "place.pick(ref)",
+    "place.adjust(ref, x, y)"
    ],
    "props": {
     "pin": {
@@ -4849,6 +5198,16 @@
     "steps": {
      "type": "array",
      "doc": "[{label, state, time}]"
+    },
+    "costPerMember": {
+     "type": "number",
+     "required": false,
+     "doc": "Estimated cost per member in the supplied currency; bound to its source event."
+    },
+    "currency": {
+     "type": "string",
+     "required": false,
+     "doc": "ISO 4217 currency code for the estimated per-member cost."
     }
    }
   },
@@ -4996,6 +5355,10 @@
     "task": {
      "type": "id",
      "doc": "ref"
+    },
+    "charterRevision": {
+     "type": "number",
+     "doc": "Bound current charter revision required to resume a suspended commitment."
     }
    }
   },
@@ -5048,6 +5411,10 @@
     "yourPart": {
      "type": "string",
      "doc": "string"
+    },
+    "acceptLabel": {
+     "type": "string",
+     "doc": "Optional affirmative button label, including a human-readable subject name; defaults to Accept."
     }
    }
   },
@@ -5200,6 +5567,14 @@
     "reveal": {
      "type": "number",
      "doc": "seconds"
+    },
+    "label": {
+     "type": "string",
+     "doc": "Visible field label; never the private value."
+    },
+    "unit": {
+     "type": "string",
+     "doc": "Unit or cadence displayed beside the masked value."
     }
    }
   },
@@ -6013,6 +6388,18 @@
     "threshold": {
      "type": "number",
      "doc": "value"
+    },
+    "firedAt": {
+     "type": "datetime",
+     "doc": "Time the alarm fired."
+    },
+    "ripple": {
+     "type": "string",
+     "doc": "Summary of affected tasks and notified participants."
+    },
+    "unit": {
+     "type": "string",
+     "doc": "Unit of the reading and threshold."
     }
    }
   },
@@ -6093,6 +6480,14 @@
       "vendor app"
      ],
      "doc": "camera|serial|vendor app"
+    },
+    "sourceLabel": {
+     "type": "string",
+     "doc": "Human-readable label of the reader source."
+    },
+    "confidenceWindow": {
+     "type": "number",
+     "doc": "Window in seconds over which confidence was measured."
     }
    }
   },
@@ -6121,6 +6516,10 @@
     "stages": {
      "type": "array",
      "doc": "[{name: capture|read|design|code|attack|publish, state, took, detail, artifacts[]}]"
+    },
+    "elapsedPlaceholder": {
+     "type": "string",
+     "doc": "Explicit placeholder when elapsed time has not been measured."
     }
    }
   },
@@ -6244,6 +6643,14 @@
     "to": {
      "type": "string",
      "doc": "door"
+    },
+    "summary": {
+     "type": "string",
+     "doc": "Human-readable summary of the request being handed off."
+    },
+    "actionLabel": {
+     "type": "string",
+     "doc": "Human-readable action to review at the destination."
     }
    }
   },
@@ -6489,6 +6896,10 @@
     "value": {
      "type": "number",
      "doc": "measured?"
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Explicit placeholder for an unmeasured value; never a measurement."
     }
    }
   },
@@ -6517,6 +6928,10 @@
      "type": "string",
      "required": true,
      "doc": "coalition"
+    },
+    "ageLabel": {
+     "type": "string",
+     "doc": "Relative notification time, for example now or 2 h."
     }
    }
   },
@@ -6570,6 +6985,14 @@
     "templates": {
      "type": "array",
      "doc": "[]"
+    },
+    "usedCount": {
+     "type": "number",
+     "doc": "Number of times this reusable pattern was used."
+    },
+    "summary": {
+     "type": "string",
+     "doc": "Short description of the reusable workflow."
     }
    }
   }

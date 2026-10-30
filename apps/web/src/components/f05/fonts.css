@@ -1,0 +1,10 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The reference loads mono weights 400–500 and synthesizes heavier headings. */
+@font-face {
+  font-family: "F05 Sheet Mono";
+  src: url("@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2")
+    format("woff2");
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+}
