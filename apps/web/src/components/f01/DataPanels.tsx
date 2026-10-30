@@ -73,11 +73,17 @@ export function TablePanel() {
       component="Table"
       props={{
         sortable: true,
+        selection: "many",
+        selected: ["o1"],
+        page: { value: 1, event_ref: "example" },
+        pageSize: { value: 4, event_ref: "example" },
+        total: { value: 12, event_ref: "example" },
+        action: { label: "Add to plan" },
         rows: { path: "/rows" },
         columns: [
           { key: "offer", label: "Offer", sortable: false },
           { key: "from", label: "From", format: "avatar", sortable: false },
-          { key: "when", label: "When" },
+          { key: "when", label: "When", direction: "desc" },
           { key: "scope", label: "Scope", format: "scope", sortable: false },
           { key: "status", label: "Status", format: "status", sortable: false },
           { key: "cost", label: "Cost", align: "right", sortable: false },
@@ -119,7 +125,7 @@ export function TablePanel() {
             when: "21:40",
             scope: "private",
             status: "Private",
-            cost: "[private]",
+            cost: { redacted: true },
           },
         ],
       }}

@@ -57,7 +57,7 @@ const demos: Record<number, () => ReactNode> = {
             pairs: [
               { label: "Offers", value: "2 open · 1 matched" },
               { label: "Agreed share", value: "1 of 3" },
-              { label: "Key", value: "ed25519 · 7f3a…c21" },
+              { label: "Key", value: "ed25519 · 7f3a…c21", format: "mono" },
             ],
           },
           { id: "actions", component: "Row", children: ["message", "offers"] },
@@ -112,7 +112,7 @@ const demos: Record<number, () => ReactNode> = {
         ),
         { id: "actions", component: "Row", children: ["stay", "leave"] },
         button("stay", "Stay"),
-        button("leave", "Leave", "ink"),
+        { ...button("leave", "Leave", "ink"), tone: "danger-fill" },
       ]}
       data={{ open: true }}
     />
@@ -169,7 +169,7 @@ const demos: Record<number, () => ReactNode> = {
         <One component="Card" props={{ title: "Plan A" }} />
         <One component="Card" props={{ title: "Plan B" }} />
       </div>
-      <div style={{ width: "74%", height: "100%" }}>
+      <div className="f01-drawer-mount" style={{ width: "74%", height: "100%" }}>
         <Drawn
           components={[
             {
@@ -196,13 +196,14 @@ const demos: Record<number, () => ReactNode> = {
               id: "question",
               component: "TextArea",
               label: "Ask before accepting",
+              placeholder: "Which size?",
               value: { path: "/question" },
             },
             { id: "actions", component: "Row", children: ["accept", "ask"] },
             button("accept", "Accept offer", "primary"),
             button("ask", "Ask"),
           ]}
-          data={{ question: "Which size?" }}
+          data={{ question: "" }}
         />
       </div>
     </div>

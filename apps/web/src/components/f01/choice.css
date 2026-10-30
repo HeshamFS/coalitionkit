@@ -251,3 +251,137 @@
 .f01-menu kbd {
   color: var(--ink-3);
 }
+
+.f01-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.f01-toggle:has(.f01-toggle-copy .small) {
+  align-items: flex-start;
+}
+.f01-toggle-copy > :first-child {
+  font-weight: 500;
+}
+.f01-setting {
+  justify-content: space-between;
+}
+.f01-setting input {
+  order: 1;
+}
+.f01-root-Switch + .f01-root-Switch {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.f01-field > .f01-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.f01-field-private > .row {
+  padding: 0 10px;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-3);
+}
+.f01-field-private .f01-input {
+  padding: 0;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+}
+.f01-currency {
+  color: var(--ink-3);
+}
+.f01-field .row:has(.f01-currency) {
+  gap: 8px;
+}
+.f01-toggle input[type="checkbox"]:not([role="switch"]),
+.f01-toggle input[type="radio"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  display: grid;
+  place-content: center;
+}
+.f01-toggle input[type="radio"] {
+  border-radius: 50%;
+}
+.f01-toggle input[type="radio"]:checked {
+  border-color: var(--blue);
+}
+.f01-toggle input[type="radio"]:checked::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--blue);
+  border-radius: 50%;
+}
+.f01-toggle input[type="checkbox"]:not([role="switch"]):checked,
+.f01-toggle input:indeterminate {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+.f01-toggle input[type="checkbox"]:not([role="switch"]):checked::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  border: solid var(--on-blue);
+  border-width: 0 0 2px 2px;
+  transform: translateY(-1px) rotate(-45deg);
+}
+.f01-toggle input:indeterminate::after {
+  content: "";
+  width: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--on-blue);
+}
+.f01-split .f01-menu button:disabled {
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  margin-top: 4px;
+  padding-top: 8px;
+  height: 35px;
+}
+.f01 .btn-sm {
+  font-size: 12px;
+  padding-inline: 10px;
+}
+.f01-slider-mark {
+  position: absolute;
+  top: -4px;
+  height: 12px;
+  border-left: 2px solid var(--warn-fg);
+}
+.f01-deadline {
+  padding: 12px;
+  gap: 10px;
+  border-radius: 12px;
+}
+.f01-deadline.f01-warning {
+  border-color: var(--warn-line);
+}
+.f01-deadline .head {
+  gap: 6px;
+}
+.f01-deadline .f01-bar {
+  height: 5px;
+}
+.f01-root-TimeZone .kv {
+  margin: 0;
+}
+.f01-Sheet .f01-dialog {
+  box-shadow: 0 -8px 24px -12px rgba(14, 23, 38, 0.25);
+}
+.f01-command .f01-search-input:focus-within {
+  box-shadow: none;
+  border-color: var(--line);
+}

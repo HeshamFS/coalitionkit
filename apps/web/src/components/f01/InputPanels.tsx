@@ -19,8 +19,14 @@ const demos: Record<number, () => ReactNode> = {
         label="Goal"
         value=""
         placeholder="What should this coalition get done?"
+        help="empty, with placeholder"
       />
-      <Control name="TextField" label="Goal" value="Get the three of us to Place 1 tonight" />
+      <Control
+        name="TextField"
+        label="Goal"
+        value="Get the three of us to Place 1 tonight"
+        help="focus, typing"
+      />
       <One
         component="TextField"
         props={{ label: "Complete by", value: { path: "/value" }, error: { path: "/error" } }}
@@ -28,6 +34,14 @@ const demos: Record<number, () => ReactNode> = {
           value: "tomorow 09:00",
           error: 'Couldn\'t read the date. Try "tomorrow 09:00".',
         }}
+      />
+      <Control
+        name="TextField"
+        label="Record reference"
+        value=""
+        readOnly
+        private
+        help="read only, private"
       />
     </>
   ),
@@ -38,6 +52,10 @@ const demos: Record<number, () => ReactNode> = {
         label="Note for the other agents"
         value="I can share a resource for the task but I need to be back at Place 1 by 06:30. Ask @Member B about the resource transfer."
         maxLength={bound(500)}
+        decorations={[
+          { text: "06:30", kind: "bold" },
+          { text: "@Member B", kind: "mention" },
+        ]}
       />
       <div className="row">
         <One component="Badge" props={{ kind: "vault", label: "Only you and the host" }} />
@@ -59,9 +77,11 @@ const demos: Record<number, () => ReactNode> = {
         name="NumberField"
         label="Most you'll pay for the resource"
         value={140}
-        unit="€ per unit"
+        currency="€"
+        unit="per unit"
+        help={'Only "yes or no" leaves your vault, never the number'}
       />
-      <Control name="NumberField" label="Resource hold time" value={45} unit="min" />
+      <Control name="NumberField" label="Resource hold time" value={45} unit="min at 1 150 units" />
     </>
   ),
   7: () => (
@@ -89,7 +109,7 @@ const demos: Record<number, () => ReactNode> = {
           },
           {
             label: "Needs",
-            items: [{ id: "n1", label: "Resource near place 1, before 01:00", icon: "clock" }],
+            items: [{ id: "n1", label: "A unit near place 1, before 01:00", icon: "clock" }],
           },
         ],
       }}
@@ -100,7 +120,7 @@ const demos: Record<number, () => ReactNode> = {
     <>
       {["all", "two"].map((value) => (
         <div className="field" key={value}>
-          <span className="lbl">Who decides</span>
+          <span className="f01-choice-label">Who decides</span>
           <Control
             name="ChoicePicker"
             value={value}
@@ -118,7 +138,7 @@ const demos: Record<number, () => ReactNode> = {
   ),
   9: () => (
     <div className="field">
-      <span className="lbl">What can you offer</span>
+      <span className="f01-choice-label">What can you offer</span>
       <Control
         name="ChoicePicker"
         value={["a", "b"]}
@@ -134,8 +154,18 @@ const demos: Record<number, () => ReactNode> = {
   ),
   10: () => (
     <>
-      <Control name="CheckBox" label="Share my available time" value={true} />
-      <Control name="CheckBox" label="Share my documents" value="mixed" />
+      <Control
+        name="CheckBox"
+        label="Share my available time"
+        value={true}
+        description="Others see the hour, not the task"
+      />
+      <Control
+        name="CheckBox"
+        label="Share my documents"
+        value="mixed"
+        description="2 of 4 selected"
+      />
       <Control name="CheckBox" label="Share my contact details" value={false} />
       <One component="Divider" props={{}} />
       <Control
@@ -151,9 +181,26 @@ const demos: Record<number, () => ReactNode> = {
   ),
   11: () => (
     <>
-      <Control name="Switch" label="Let your agent propose" value={true} />
-      <Control name="Switch" label="Notify me about changes" value={true} />
-      <Control name="Switch" label="Share your location" value={false} />
+      <Control
+        name="Switch"
+        label="Let my agent answer yes or no"
+        value={true}
+        description="without asking me each time"
+      />
+      <One component="Divider" props={{}} />
+      <Control
+        name="Switch"
+        label="Notify me about changes"
+        value={true}
+        description="only when I need to decide"
+      />
+      <One component="Divider" props={{}} />
+      <Control
+        name="Switch"
+        label="Voice on the glasses"
+        value={false}
+        description="turned off by you"
+      />
     </>
   ),
   12: () => (
@@ -164,11 +211,25 @@ const demos: Record<number, () => ReactNode> = {
       </div>
       <div className="field">
         <span className="lbl f01-slider-label">Available range</span>
-        <Control name="Slider" value={[25, 70]} min={bound(0)} max={bound(100)} unit="%" />
+        <Control
+          name="Slider"
+          value={[1290, 1380]}
+          min={bound(1240)}
+          max={bound(1440)}
+          format="time"
+        />
       </div>
       <div className="field">
         <span className="lbl f01-slider-label">Fair share</span>
-        <Control name="Slider" value={52} min={bound(0)} max={bound(100)} unit="%" />
+        <Control
+          name="Slider"
+          value={52}
+          min={bound(0)}
+          max={bound(100)}
+          unit="%"
+          marks={[{ at: bound(30), label: "floor" }]}
+          valueLabel="your floor 30 %"
+        />
       </div>
     </>
   ),
