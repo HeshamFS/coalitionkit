@@ -132,7 +132,12 @@ addopts = "--import-mode=importlib"
 pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # pysodium 0.7.19 declares a ctypes struct with _pack_ and no _layout_; Python 3.15 warns on
+    # non-Windows platforms. Third-party and harmless until 3.19; drop when pysodium sets it.
+    "ignore:Due to '_pack_':DeprecationWarning:pysodium",
+]
 markers = ["live: calls the real Meta Model API; runs only with COALITIONKIT_LIVE=1 and the provider keys set (COALITIONKIT_META_API_KEY; WhatsApp: token, phone number id, test recipient)"]
 
 [[tool.importlinter.contracts]]

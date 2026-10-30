@@ -8,7 +8,7 @@ Status: v0.1, pre-release. The spec is a draft and will change in response to im
 
 ## Start it
 
-You need [uv](https://docs.astral.sh/uv/) and, for the web room, Node 22.
+You need [uv](https://docs.astral.sh/uv/), the libsodium library (`apt install libsodium23` on Debian or Ubuntu, `brew install libsodium` on macOS), and, for the web room, Node 22.
 
 ```sh
 git clone https://github.com/HeshamFS/coalitionkit
