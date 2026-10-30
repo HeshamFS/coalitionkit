@@ -174,85 +174,6 @@
   font-size: 28px;
   letter-spacing: 3px;
 }
-.ck-stages {
-  list-style: none;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 0;
-  margin: 0;
-}
-.ck-stages li {
-  padding: 4px 9px;
-  background: var(--surface-2);
-  border-radius: 99px;
-  color: var(--ink-2);
-  font-size: 11px;
-}
-.ck-stages [data-state="done"] {
-  background: var(--ok-bg);
-  color: var(--ok-fg);
-}
-.ck-stages [data-state="now"] {
-  background: var(--blue);
-  color: var(--on-blue);
-}
-.ck-Deck nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.ck-Deck .ck-action {
-  justify-content: flex-start;
-  border-color: transparent;
-}
-.ck-RoomShell {
-  padding: 0;
-  overflow: hidden;
-  border-radius: var(--r-panel);
-}
-.ck-room-body {
-  display: grid;
-  grid-template-columns: 188px minmax(0, 1fr) 300px;
-  min-height: 510px;
-}
-.ck-room-body > .ck-Deck {
-  border: 0;
-  border-radius: 0;
-  background: var(--sidebar);
-}
-.ck-canvas {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  background: radial-gradient(var(--bg-dot) 1px, transparent 1px) var(--canvas);
-  background-size: 18px 18px;
-}
-.ck-TopBar {
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-}
-.ck-phone {
-  display: flex;
-  flex-direction: column;
-  min-height: 430px;
-  border: 5px solid var(--phone-frame);
-  border-radius: 26px;
-  overflow: hidden;
-}
-.ck-phone-stack {
-  padding: 12px;
-  flex: 1;
-  background: var(--canvas);
-}
-.ck-phone nav {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  padding: 6px;
-}
 .ck-bubble {
   padding: 10px 12px;
   background: var(--surface-2);
@@ -327,34 +248,5 @@
   .ck-Deck nav {
     flex-direction: row;
     flex-wrap: wrap;
-  }
-}
-
-.ck-room-tray {
-  margin-top: auto;
-}
-.ck-room-agent {
-  border-left: 1px solid var(--line);
-  min-width: 0;
-}
-.ck-room-agent .ck-AgentDock {
-  height: 100%;
-  border: 0;
-  border-radius: 0;
-}
-.ck-room-agent form {
-  margin-top: auto;
-}
-@media (max-width: 900px) {
-  .ck-room-body {
-    grid-template-columns: 140px minmax(0, 1fr);
-  }
-  .ck-room-agent {
-    grid-column: 1 / -1;
-  }
-}
-@media (max-width: 640px) {
-  .ck-room-body {
-    grid-template-columns: 1fr;
   }
 }
