@@ -10,7 +10,14 @@ export const examples: Record<string, Data> = {
   AgentDock: {
     agent: "a1",
     composer: "text",
-    messages: [{ text: "Two plans are ready. Your limits stay private." }],
+    messages: [
+      {
+        text: "Two plans passed the steward. A keeps the three of you together; B is cheaper but splits you up.",
+      },
+      { role: "user", text: "Which one finishes before 10?" },
+      { text: "Both do. A ends 09:05, B 09:40. Your vault said yes to the resource price in A." },
+      { role: "tool", text: "vault.answer(q7) → yes" },
+    ],
   },
   BoardTemplate: {
     columns: ["open", "proposed", "done"],
@@ -87,9 +94,22 @@ export const examples: Record<string, Data> = {
   RoomShell: {
     coalition: "Coalition 1",
     deck: [
-      { id: "now", label: "Now" },
-      { id: "plans", label: "Plans" },
-      { id: "people", label: "People" },
+      { id: "canvas", label: "Canvas", group: "This coalition" },
+      {
+        id: "charter",
+        label: "Charter",
+        prefix: "r",
+        count: { value: 3, event_ref: "example:44" },
+      },
+      { id: "people", label: "People", count: { value: 3, event_ref: "example:44" } },
+      { id: "needs", label: "Needs", count: { value: 2, event_ref: "example:44" } },
+      { id: "offers", label: "Offers", count: { value: 7, event_ref: "example:44" } },
+      { id: "plans", label: "Plans", count: { value: 2, event_ref: "example:44" } },
+      { id: "tasks", label: "Tasks" },
+      { id: "log", label: "Log", count: { value: 42, event_ref: "example:44" } },
+      { id: "vault", label: "Vault", group: "Yours" },
+      { id: "consents", label: "Consents", count: { value: 1, event_ref: "example:44" } },
+      { id: "wiring", label: "Wiring" },
     ],
     presence: [{ label: "A" }, { label: "B" }, { label: "C" }],
     stage: { path: "/stage" },
@@ -162,7 +182,11 @@ export const labels: Record<string, { props: string; events: string }> = {
   },
   AgentDock: { props: "agent \u00b7 composer \u00b7 messages", events: "agent.say(text)" },
   BoardTemplate: { props: "cards \u00b7 columns", events: "card.open(id)" },
-  ConsentTray: { props: "requests", events: "consent.open(subject)" },
+  ConsentTray: {
+    props:
+      "requests[] {kind: plan | tension | commitment | charter, subject, revision, deadline} · sorted by deadline · stored on the host: survives reconnects",
+    events: "consent.open(subject)",
+  },
   Deck: { props: "sections \u00b7 selected", events: "deck.select(id)" },
   EntryComposer: {
     props: "attachments \u00b7 goal \u00b7 packs",

@@ -1,0 +1,422 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.f02-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ck-family.ck-RoomShell {
+  padding: 0;
+  gap: 0;
+  height: 560px;
+  overflow: hidden;
+  border-color: var(--line-strong);
+  border-radius: 12px;
+}
+.ck-family.ck-RoomShell .ck-room-body {
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr) 300px;
+  flex: 1;
+  min-height: 0;
+}
+.ck-family.ck-TopBar {
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  min-height: 44px;
+  justify-content: center;
+}
+.f02-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.f02-topline > b {
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.f02-meta {
+  color: var(--ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ck-family.ck-StageBar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.f02-topline > .ck-family.ck-StageBar {
+  margin-left: 14px;
+}
+.ck-stages {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ck-stages li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--ink-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ck-stages li + li::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  width: 8px;
+  height: 1px;
+  background: var(--line-strong);
+}
+.ck-stages [data-state="done"] {
+  color: var(--ink-2);
+}
+.ck-stages [data-state="now"] {
+  color: var(--blue-text);
+  background: var(--blue-tint);
+  font-weight: 600;
+}
+.f02-live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.f02-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.f02-people {
+  display: flex;
+  padding-right: 4px;
+}
+.f02-people .ck-avatar {
+  position: relative;
+  margin-right: -4px;
+  border: 2px solid var(--surface);
+}
+.f02-people i {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--surface);
+  border-radius: 50%;
+  background: var(--presence-live);
+}
+.f02-people i[data-away] {
+  background: var(--presence-away);
+}
+.f02-top-actions .f02-me {
+  width: 30px;
+  height: 30px;
+}
+.f02-search {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.f02-search kbd {
+  font: 10px var(--font-mono);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+.ck-room-body > .ck-family.ck-Deck {
+  padding: 10px 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--sidebar);
+}
+.ck-family.ck-Deck nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+}
+.f02-deck-heading {
+  padding: 10px 8px 4px;
+  color: var(--ink-3);
+  font: 10px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.f02-deck-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-2);
+  font: 12.5px var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+}
+.f02-deck-item[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.f02-count {
+  margin-left: auto;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  font: 10px / 16px var(--font-mono);
+}
+.ck-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px 16px;
+  min-width: 0;
+  overflow: auto;
+  background: radial-gradient(var(--bg-dot) 1.1px, transparent 1.1px) var(--canvas);
+  background-size: 20px 20px;
+}
+.ck-room-tray {
+  margin-top: auto;
+}
+.ck-room-agent {
+  min-width: 0;
+  border-left: 1px solid var(--line);
+}
+.ck-room-agent > .drawn {
+  height: 100%;
+}
+.ck-family.ck-AgentDock {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.ck-room-agent .ck-family.ck-AgentDock {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+.f02-agent-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.f02-agent-head > span:last-child {
+  margin-left: auto;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.f02-agent-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 11px;
+}
+.f02-messages {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.f02-message {
+  max-width: 86%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px 12px 12px;
+  align-self: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.f02-message-user {
+  align-self: flex-end;
+  border-color: var(--blue);
+  border-radius: 12px 4px 12px 12px;
+  background: var(--blue);
+  color: var(--on-blue);
+}
+.f02-message-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  width: 100%;
+  border-radius: 10px;
+  font: 10.5px var(--font-mono);
+}
+.f02-tool {
+  padding: 2px 5px;
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+.ck-family.ck-AgentDock form {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+.f02-agent-input {
+  display: flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 10px;
+}
+.f02-agent-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 12px var(--font-ui);
+}
+.f02-agent-input button {
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.ck-family.ck-PhoneShell {
+  border: 0;
+  padding: 0;
+  align-items: center;
+}
+.ck-phone {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 260px;
+  height: 430px;
+  border: 6px solid var(--phone-frame);
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.f02-phone-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: none;
+  height: 22px;
+  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ck-phone .ck-family.ck-TopBar {
+  min-height: 32px;
+  padding: 6px 12px;
+}
+.ck-phone .f02-topline {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ck-phone .f02-topline > svg,
+.ck-phone .f02-meta,
+.ck-phone .f02-top-actions {
+  display: none;
+}
+.ck-phone .f02-topline > b {
+  font-size: 12.5px;
+}
+.ck-phone .f02-topline > .ck-family.ck-StageBar {
+  margin-left: 0;
+}
+.ck-phone .ck-stages li:not([aria-current]) {
+  display: none;
+}
+.ck-phone .ck-stages li::before {
+  display: none;
+}
+.ck-phone-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+  background: var(--canvas);
+}
+.ck-phone nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.ck-phone nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font: 9.5px var(--font-ui);
+  cursor: pointer;
+}
+.ck-phone nav button[aria-pressed="true"] {
+  color: var(--blue-text);
+  font-weight: 600;
+}
+.f02-sheet .sheet-title {
+  margin: 0;
+}
+.f02-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.f02-panel-head .door {
+  margin-left: auto;
+}
+@media (max-width: 1000px) {
+  .ck-family.ck-RoomShell .ck-room-body {
+    grid-template-columns: 140px minmax(0, 1fr);
+  }
+  .ck-room-agent {
+    grid-column: 1 / -1;
+  }
+  .f02-topline {
+    flex-wrap: wrap;
+    padding: 6px 0;
+  }
+  .ck-family.ck-RoomShell {
+    height: auto;
+    min-height: 560px;
+  }
+}
