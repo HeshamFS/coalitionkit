@@ -103,7 +103,9 @@ def surface_text(data: dict[str, Any]) -> str:
         None,
     )
     title = surface.get("title") or goal or "Coalition"
-    lines = [str(title), f"Status: {surface.get('status', 'unknown')}"]
+    lines = [str(title)]
+    if surface.get("status"):  # the view carries no status of its own; never invent one
+        lines.append(f"Status: {surface['status']}")
     if events:
         lines.append(f"Log entries: {len(events)}")
         lines.extend(event_line(e) for e in events)

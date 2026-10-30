@@ -72,5 +72,6 @@ async def test_my_view_carries_the_viewers_events_in_order_and_readable_text(rig
     assert text.splitlines()[0] == "Goal 1" and "Log entries: 3" in text
     # A host that reads only the text still sees a note's own words.
     assert "- #3 coalition.observe: Room is free" in text.splitlines()
+    assert "Status:" not in text  # no status field, so no "unknown" that contradicts the list
     assert "never" not in str(result)  # fields no allowlist names are dropped
     assert (result.meta or {})["ui"]["resourceUri"] == VIEW
