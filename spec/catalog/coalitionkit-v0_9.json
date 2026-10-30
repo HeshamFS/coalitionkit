@@ -2205,6 +2205,10 @@
     "coalition.create(goal, pack?)"
    ],
    "props": {
+    "draft": {
+     "type": "string",
+     "doc": "Initial editable goal text; omitted for an empty composer."
+    },
     "attachments": {
      "type": "array",
      "doc": "[ref] → vault"
@@ -2338,6 +2342,10 @@
     "reply(?)"
    ],
    "props": {
+    "title": {
+     "type": "string",
+     "doc": "Coalition label shown beside the channel account name."
+    },
     "choices": {
      "type": "array",
      "doc": "[{n, label, value}]"

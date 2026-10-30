@@ -25,6 +25,7 @@ export const sheetData: Record<string, Data> = {
     ],
   },
   MessageDoor: {
+    title: "Group P12",
     text: "Two plans for Task 1 by 10:00.\n\nDecide by 22:40.",
     choices: [
       {
@@ -65,6 +66,8 @@ export const sheetData: Record<string, Data> = {
     },
   },
   EntryComposer: {
+    draft:
+      "Our 19:20 task is cancelled. Three of us need to finish Task 1 by 10 tomorrow, share a resource and a workspace",
     attachments: [{ label: "request.pdf" }],
     packs: ["Shared project", "Resource coordination", "Community help"],
   },

@@ -48,6 +48,7 @@ export const apis = {
   EntryComposer: {
     name: "EntryComposer",
     schema: z.object({
+      draft: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       attachments: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       goal: z.union([z.enum(["text", "voice"]), CommonSchemas.DataBinding]).optional(),
       packs: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
@@ -87,6 +88,7 @@ export const apis = {
   MessageDoor: {
     name: "MessageDoor",
     schema: z.object({
+      title: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       choices: z.union([z.array(z.unknown()), CommonSchemas.DataBinding]).optional(),
       receipt: z.union([z.string(), CommonSchemas.DataBinding]).optional(),
       text: z.union([z.string(), CommonSchemas.DataBinding]),

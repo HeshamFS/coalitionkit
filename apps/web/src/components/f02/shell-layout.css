@@ -191,6 +191,12 @@
   width: 16px;
   height: 16px;
   font-size: 7.5px;
+  margin-right: 0;
+  box-shadow: none;
+}
+.ck-phone .f02-people {
+  gap: 0;
+  padding-right: 0;
 }
 .ck-phone .f02-people i {
   display: none;
@@ -266,6 +272,7 @@
 
 .f02-panel-head .cell-name {
   line-height: 16px;
+  font-weight: 700;
 }
 .ck-canvas .f01-root-Text > span,
 .ck-phone-stack .f01-root-Text > span {

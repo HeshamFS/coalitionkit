@@ -278,7 +278,23 @@
   white-space: pre;
 }
 .f02-voice-card header .f02-live {
-  box-shadow: 0 0 0 7px var(--blue-tint);
+  animation: f02-voice-pulse 1.4s ease-out infinite;
+}
+@keyframes f02-voice-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(11 99 246 / 35%);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgb(11 99 246 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(11 99 246 / 0%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .f02-voice-card header .f02-live {
+    animation: none;
+  }
 }
 
 .f02-chat-in .ck-meta {
