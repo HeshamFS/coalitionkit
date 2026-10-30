@@ -7,6 +7,7 @@ import { Basic } from "./SectionsBasic";
 import { Lens } from "./SectionsLens";
 import { Shell } from "./SectionsShell";
 import { Work } from "./SectionsWork";
+import { SHEETS } from "./sheets";
 
 type Theme = "light" | "dark";
 
@@ -18,6 +19,7 @@ function initialTheme(): Theme | null {
 /** Every implemented component in every state the sheets show, with its name and props. */
 export function Gallery() {
   const [theme, setTheme] = useState<Theme | null>(initialTheme);
+  const Sheet = SHEETS[location.pathname.split("/")[2] ?? ""];
   useEffect(() => {
     const root = document.documentElement;
     if (theme) root.dataset.theme = theme;
@@ -63,10 +65,23 @@ export function Gallery() {
           </button>
         </div>
       </div>
-      <Basic />
-      <Work />
-      <Shell />
-      <Lens />
+      {Sheet ? (
+        <Sheet />
+      ) : (
+        <>
+          <nav className="gallery-sheets" aria-label="Design sheets">
+            {Object.keys(SHEETS).map((nn) => (
+              <a key={nn} href={`/gallery/${nn}`}>
+                Sheet {nn}
+              </a>
+            ))}
+          </nav>
+          <Basic />
+          <Work />
+          <Shell />
+          <Lens />
+        </>
+      )}
       <div className="small" style={{ marginTop: 18 }}>
         Every value bound by path; numbers carry provenance; nothing renders outside the viewer
         scope.
