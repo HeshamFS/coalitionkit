@@ -2,12 +2,13 @@
 import type { Data } from "../f02/ui";
 export const examples: Record<string, Data> = {
   AgentHandoff: {
-    question: "Would you share Resource 1?",
-    reason: "That is a personal choice, so I did not answer.",
-    rule: "Personal choices go to the owner",
+    question: "B asks whether you’d share a resource.",
+    reason: "That’s a personal choice, so I didn’t answer.",
+    rule: "personal choices go to the owner",
     choices: [
       { label: "Yes, share", value: "yes" },
       { label: "No", value: "no" },
+      { label: "Talk it over", value: "discuss" },
     ],
   },
   AgentStatus: {
@@ -19,7 +20,7 @@ export const examples: Record<string, Data> = {
     },
   },
   AskAgent: {
-    text: "Can Task 1 finish Wednesday by 16:00?",
+    text: "Can the item leave Wednesday by 16:00?",
     kind: "bool",
     to: "Member B",
     task_id: "t1",

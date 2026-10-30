@@ -93,3 +93,365 @@
     grid-template-columns: 1fr;
   }
 }
+/* Panel structure belongs to the sheet; component styling also applies in rooms. */
+.ck-sheet-03 .ck-demo-AgentStatus {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.ck-sheet-03 .sheet-head > .h-right {
+  display: flex;
+  gap: 6px;
+}
+.ck-Message.ck-family {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 8px;
+}
+.f03-bubble {
+  max-width: 86%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.f03-out {
+  align-self: flex-end;
+  background: var(--blue);
+  color: var(--on-blue);
+  border-top-right-radius: 4px;
+}
+.f03-in {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top-left-radius: 4px;
+}
+.ck-Message[data-state="sending"] .f03-bubble {
+  opacity: 0.7;
+}
+.ck-Message[data-state="failed"] .f03-bubble {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  border: 1px solid var(--bad-line);
+}
+.ck-Message[data-state="blocked"] .f03-bubble {
+  border-style: dashed;
+  color: var(--ink-3);
+}
+.f03-message-meta {
+  align-self: flex-end;
+  color: var(--ink-3);
+  font: 11px var(--font-mono);
+}
+.ck-Message[data-state="redacted"] .f03-message-meta,
+.ck-Message[data-state="blocked"] .f03-message-meta {
+  align-self: flex-start;
+}
+.f03-message-error {
+  align-self: flex-end;
+  color: var(--bad-fg);
+  font-size: 11.5px;
+}
+.f03-message-error button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.f03-redaction {
+  display: inline-block;
+  background: var(--ink);
+  opacity: 0.85;
+  height: 12px;
+  width: 70px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.f03-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  flex: none;
+}
+.f03-bubble .f03-spinner {
+  width: 9px;
+  height: 9px;
+  margin-left: 4px;
+}
+.ck-ToolCall.ck-family {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.f03-tool-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 11.5px var(--font-mono);
+  text-align: left;
+  cursor: pointer;
+}
+.f03-tool-head .f03-spinner {
+  color: var(--blue);
+}
+.f03-tool-state {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.f03-tool-mark {
+  color: var(--ok-fg);
+  font-size: 14px;
+}
+.f03-tool-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.f03-text-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--blue-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ck-ToolCall[data-state="failed"] {
+  border-color: var(--bad-line);
+}
+.ck-ToolCall[data-state="failed"] .f03-tool-head {
+  background: var(--bad-bg);
+  border: 0;
+}
+.ck-ToolCall[data-state="failed"] :is(.f03-tool-mark, .f03-tool-state) {
+  color: var(--bad-fg);
+}
+.ck-AgentStatus.ck-family {
+  gap: 6px;
+  line-height: normal;
+}
+.f03-status-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: 12.5px var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.f03-agent-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--ink-inverse);
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  position: relative;
+}
+.f03-status-control .f03-spinner {
+  margin-left: auto;
+  color: var(--blue);
+}
+.f03-status-task {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ck-AgentStatus[data-state="answering"] {
+  border: 2px solid var(--blue);
+  padding: 9px 11px;
+}
+.ck-AgentStatus[data-state="needs-you"] {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+.ck-AgentStatus[data-state="offline"] {
+  border-color: var(--bad-line);
+}
+.ck-AgentStatus:is([data-state="listening"], [data-state="paused"], [data-state="offline"])
+  .f03-agent-avatar::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 2px var(--surface);
+  border-radius: 50%;
+  background: var(--f03-presence);
+}
+.ck-AgentStatus[data-state="paused"] .f03-agent-avatar::after {
+  background: var(--f03-away);
+}
+.ck-AgentStatus[data-state="offline"] .f03-agent-avatar::after {
+  background: var(--line-strong);
+}
+.f03-budget {
+  margin-left: auto;
+  color: var(--ink-2);
+  font: 12px var(--font-mono);
+}
+.f03-budget-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.f03-budget-bar span {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: inherit;
+}
+@media (max-width: 640px) {
+  .ck-sheet-03 .g4,
+  .ck-sheet-03 .ck-demo-AgentStatus {
+    grid-template-columns: 1fr;
+  }
+  .ck-sheet-03 .span2 {
+    grid-column: auto;
+  }
+}
+.ck-sheet-03 .ck-demo-AgentStatus {
+  align-items: start;
+}
+.ck-AgentStatus[data-state="answering"] .f03-agent-avatar {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--blue);
+}
+.ck-AgentStatus .f03-status-control[data-budget] .f03-agent-avatar::after {
+  display: none;
+}
+.ck-AskAgent.ck-family {
+  gap: 6px;
+  font-size: 12px;
+  line-height: normal;
+}
+.f03-query-options {
+  display: inline-flex;
+  align-self: flex-start;
+  height: 30px;
+  padding: 1px;
+  border-radius: 99px;
+  background: var(--surface-3);
+}
+.f03-query-options .ck-action {
+  height: 28px;
+  padding: 0 12px;
+  min-height: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.f03-query-options .ck-action[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.f03-query-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px / 1.5 var(--font-ui);
+  resize: vertical;
+}
+.f03-query-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.f03-query-note svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex: none;
+}
+.f03-query-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.f03-budget-bar {
+  appearance: none;
+  border: 0;
+  width: 100%;
+}
+.f03-budget-bar::-webkit-meter-bar {
+  height: 6px;
+  border: 0;
+  background: var(--surface-3);
+  border-radius: 99px;
+}
+.f03-budget-bar::-webkit-meter-optimum-value {
+  background: var(--blue);
+  border-radius: 99px;
+}
+.f03-budget-bar::-moz-meter-bar {
+  background: var(--blue);
+  border-radius: 99px;
+}
+.ck-sheet-03 .cell-name {
+  font-weight: 700;
+}
+.ck-AgentStatus {
+  --f03-presence: #1e9e5a;
+  --f03-away: #c9a227;
+}
+.ck-AskAgent > b {
+  font-weight: 600;
+}
+.f03-query-input {
+  resize: none;
+}
+.ck-AgentHandoff.ck-family {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  line-height: normal;
+}
+.ck-AgentHandoff .ck-action:last-child:not(:first-child) {
+  background: transparent;
+  border-color: transparent;
+}

@@ -186,53 +186,8 @@ export function OfferForm({ p, send }: View) {
     </Frame>
   );
 }
-export function AvailabilityGrid({ p, send }: View) {
-  const [selected, set] = useState<Set<string>>(
-    new Set(
-      list(p.slots)
-        .filter((s) => s.available)
-        .map((s) => text(s.id)),
-    ),
-  );
-  return (
-    <Frame
-      name="AvailabilityGrid"
-      state={p.source === "calendar" ? "imported" : selected.size ? "painted" : "empty"}
-    >
-      <div className="ck-row">
-        <b>Your availability</b>
-        <span className="ck-tag">Vault · answer-only</span>
-      </div>
-      <div className="ck-availability">
-        {list(p.days).map((day) => (
-          <section key={text(day.id)}>
-            <b>{label(day)}</b>
-            {list(p.slots)
-              .filter((s) => s.day === day.id)
-              .map((slot) => (
-                <Action
-                  key={text(slot.id)}
-                  pressed={selected.has(text(slot.id))}
-                  onClick={() => {
-                    const next = new Set(selected);
-                    const id = text(slot.id);
-                    if (next.has(id)) next.delete(id);
-                    else next.add(id);
-                    set(next);
-                    send("availability.paint", { day: day.id, slot: id, available: next.has(id) });
-                  }}
-                >
-                  {label(slot)}
-                </Action>
-              ))}
-          </section>
-        ))}
-      </div>
-      <Action onClick={() => send("availability.import")}>Import calendar</Action>
-      <small>Only shared availability answers leave your vault.</small>
-    </Frame>
-  );
-}
+export { AvailabilityGrid } from "./availability";
+
 export function LimitField({ p, send }: View) {
   return (
     <Frame name="LimitField" state={list(p.queries).length ? "asked" : "set"}>
