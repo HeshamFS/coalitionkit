@@ -1,0 +1,62 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "./f08.css";
+.f10-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.f10-camera {
+  min-height: 150px;
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--dark-surface);
+  color: var(--dark-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.f10-region {
+  border: 1px solid var(--dark-blue);
+  border-radius: 6px;
+  padding: 10px;
+  align-self: center;
+}
+.f10-stages {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.f10-alarm {
+  border: 2px solid var(--bad-fg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.f10-alarm > b {
+  color: var(--bad-fg);
+}
+.f10-machine {
+  width: 70px;
+}
+.f10-track {
+  position: relative;
+  height: 18px;
+  flex: 1;
+  min-width: 100px;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.f10-booking {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, var(--surface-3) 0 4px, var(--bg) 4px 8px);
+}
+.f10-mine {
+  background: var(--blue);
+}
+@media (max-width: 600px) {
+  .f10-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

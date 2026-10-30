@@ -124,10 +124,6 @@ export const apis = {
       kind: z.enum(["measured", "vault", "signed", "model", "estimate", "example"]).optional(),
     }),
   },
-  ScopeBadge: {
-    name: "ScopeBadge",
-    schema: z.object({ audience: z.string(), redact: z.array(z.string()).max(16).optional() }),
-  },
   Avatar: {
     name: "Avatar",
     schema: z.object({
@@ -293,45 +289,6 @@ export const apis = {
       chosenId: z.string().optional(),
     }),
   },
-  ConsentCard: {
-    name: "ConsentCard",
-    schema: z.object({
-      subject,
-      summary: DynamicString,
-      yourPart: z.string().optional(),
-      cost: z.string().optional(),
-      consequenceOfNo: z.string().optional(),
-      decision_deadline: z.string().optional(),
-      state: z.enum(["open", "answered", "stale", "expired"]).optional(),
-      answer: z.boolean().optional(),
-      currentRevision: Bound.optional(),
-      yesLabel: z.string().optional(),
-      noLabel: z.string().optional(),
-    }),
-  },
-  VoteTally: {
-    name: "VoteTally",
-    schema: z.object({
-      title: DynamicString,
-      rule: z.string().optional(),
-      deciders: z
-        .array(Person.extend({ answered: z.boolean(), answer: z.boolean().optional() }))
-        .max(50),
-      outcome: z.enum(["decided", "refused", "split", "expired"]).optional(),
-      closed: z.boolean().optional(),
-    }),
-  },
-  RippleBanner: {
-    name: "RippleBanner",
-    schema: z.object({
-      ripple: z.object({
-        by: z.string(),
-        change: z.string(),
-        invalidated: z.array(z.string()).max(500),
-        untouched: z.array(z.string()).max(500),
-      }),
-    }),
-  },
   LensCard: {
     name: "LensCard",
     schema: z.object({
@@ -340,56 +297,6 @@ export const apis = {
       body: DynamicString.optional(),
       /** How many gesture hints the card shows (0 to 2). A string on the wire, like every count. */
       gestures: z.enum(["0", "1", "2"]).optional(),
-    }),
-  },
-  ChangedValue: {
-    name: "ChangedValue",
-    schema: z.object({
-      path: z.string().optional(),
-      before: DynamicString.optional(),
-      after: DynamicString,
-      state: z.enum(["flash", "tinted", "seen"]).optional(),
-    }),
-  },
-  ActivityStream: {
-    name: "ActivityStream",
-    schema: z.object({
-      items: lit(
-        z
-          .array(
-            z.object({
-              seq: Bound.optional(),
-              actor: Person,
-              verb: z.string(),
-              object: z.string().optional(),
-              time: z.string(),
-              live: z.boolean().optional(),
-              aboutMe: z.boolean().optional(),
-              decision: z.boolean().optional(),
-            }),
-          )
-          .max(200),
-      ),
-    }),
-  },
-  LogStream: {
-    name: "LogStream",
-    schema: z.object({
-      entries: lit(
-        z
-          .array(
-            z.object({
-              seq: Bound.optional(),
-              ts: z.string(),
-              type: z.string(),
-              summary: z.string(),
-              hash: z.string(),
-              form: z.enum(["original", "projection", "receipt-only"]),
-            }),
-          )
-          .max(500),
-      ),
-      selected: Bound.optional(),
     }),
   },
 } as const;

@@ -2,10 +2,8 @@
 import { createComponentImplementation } from "@a2ui/react/v0_9";
 import type { ComponentContext } from "@a2ui/web_core/v0_9";
 import { Fragment, type ReactNode } from "react";
-import { ConsentCard, VoteTally } from "../components/consent";
 import { Banner, EmptyState, ErrorState, Skeleton, Toast } from "../components/feedback";
 import { LensCard } from "../components/lens";
-import { ActivityStream, ChangedValue, LogStream, RippleBanner } from "../components/live";
 import { PlanCompare, TensionCard } from "../components/plans";
 import {
   Avatar,
@@ -19,7 +17,6 @@ import {
   Panel,
   Row,
   type Scope,
-  ScopeBadge,
   type Seat,
   Tag,
   Text,
@@ -120,12 +117,6 @@ export const implementations = [
   )),
   createComponentImplementation(apis.Badge, ({ props }) => (
     <Badge kind={props.kind} label={props.label ?? ""} />
-  )),
-  createComponentImplementation(apis.ScopeBadge, ({ props }) => (
-    <ScopeBadge
-      audience={props.audience}
-      redact={props.redact as unknown as string[] | undefined}
-    />
   )),
   createComponentImplementation(apis.Avatar, ({ props }) => (
     <Avatar
@@ -271,40 +262,6 @@ export const implementations = [
       onAsk={() => emit(context, "tension.ask", { tension_id: props.tension_id })}
     />
   )),
-  createComponentImplementation(apis.ConsentCard, ({ props, context }) => (
-    <ConsentCard
-      subject={{
-        kind: props.subject.kind,
-        id: props.subject.id,
-        revision: props.subject.revision.value,
-      }}
-      title={props.summary ?? ""}
-      yourPart={props.yourPart}
-      cost={props.cost}
-      consequenceOfNo={props.consequenceOfNo}
-      deadline={props.decision_deadline}
-      state={props.state}
-      answer={props.answer}
-      currentRevision={bv(props.currentRevision)}
-      yesLabel={props.yesLabel}
-      noLabel={props.noLabel}
-      onDecide={(consent) => emit(context, "decide", { subject: props.subject, consent })}
-      onCompare={() => emit(context, "compare", { subject: props.subject })}
-      onReview={() => emit(context, "open", { subject: props.subject })}
-    />
-  )),
-  createComponentImplementation(apis.VoteTally, ({ props }) => (
-    <VoteTally
-      title={props.title ?? ""}
-      rule={props.rule}
-      deciders={props.deciders.map(person)}
-      outcome={props.outcome}
-      closed={props.closed}
-    />
-  )),
-  createComponentImplementation(apis.RippleBanner, ({ props, context }) => (
-    <RippleBanner ripple={props.ripple} onOpen={() => emit(context, "ripple.open")} />
-  )),
   createComponentImplementation(apis.LensCard, ({ props }) => {
     const count = props.gestures === undefined ? 2 : Number(props.gestures);
     const hints = [
@@ -315,27 +272,4 @@ export const implementations = [
       <LensCard eyebrow={props.eyebrow} title={props.title ?? ""} body={props.body} hints={hints} />
     );
   }),
-  createComponentImplementation(apis.ChangedValue, ({ props }) => (
-    <ChangedValue before={props.before} after={props.after ?? ""} state={props.state} />
-  )),
-  createComponentImplementation(apis.ActivityStream, ({ props, context }) => (
-    <ActivityStream
-      items={(Array.isArray(props.items) ? props.items : []).map((i, n) => ({
-        ...i,
-        seq: bv(i.seq) ?? n,
-        actor: person(i.actor),
-      }))}
-      onOpen={(seq) => emit(context, "item.open", { seq })}
-    />
-  )),
-  createComponentImplementation(apis.LogStream, ({ props, context }) => (
-    <LogStream
-      entries={(Array.isArray(props.entries) ? props.entries : []).map((e, n) => ({
-        ...e,
-        seq: bv(e.seq) ?? n,
-      }))}
-      selected={bv(props.selected)}
-      onOpen={(seq) => emit(context, "entry.open", { seq })}
-    />
-  )),
 ];

@@ -1,0 +1,79 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import "./f08.css";
+.f09-media {
+  position: relative;
+  min-height: 148px;
+  border-radius: 8px;
+  background: var(--dark-surface);
+  color: var(--dark-ink);
+  padding: 12px;
+  overflow: hidden;
+}
+.f09-mask {
+  position: absolute;
+  border: 2px solid var(--dark-blue);
+  border-radius: 6px;
+  padding: 6px;
+  left: 12%;
+  top: 28%;
+  width: 40%;
+  min-height: 48px;
+}
+.f09-mask-1 {
+  left: 60%;
+  width: 26%;
+  top: 40%;
+  border-color: var(--seat-2);
+}
+.f09-mask-2 {
+  left: 20%;
+  top: 58%;
+  border-color: var(--seat-1);
+}
+.f09-presence {
+  min-height: 142px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  background: var(--canvas);
+  padding: 16px;
+  border-radius: 10px;
+}
+.f09-cursor {
+  padding: 4px 8px;
+  color: var(--ink-inverse);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+.f09-chain {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+.f09-chain .card {
+  min-width: 120px;
+}
+.f09-broken {
+  border-color: var(--bad-fg);
+}
+.f09-event {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 0;
+  border-left: 3px solid var(--blue);
+  background: var(--blue-tint);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .f09 .ln {
+    flex-wrap: wrap;
+  }
+}
