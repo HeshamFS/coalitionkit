@@ -19,27 +19,6 @@ const Person = z.object({ seat: Seat, label: z.string() });
 export const Gap = z.enum(["4", "8", "12", "16"]);
 const Icons = z.enum(["inbox", "info", "check", "clock", "people", "list", "lock", "shield"]);
 
-const objective = z.object({
-  name: z.string(),
-  value: Bound,
-  unit: z.string().optional(),
-  better: z.enum(["lower", "higher"]).optional(),
-});
-const plan = z.object({
-  id: z.string(),
-  label: z.string(),
-  short: z.string().optional(),
-  objectives: z.array(objective).max(12),
-  tag: z
-    .object({
-      label: z.string(),
-      kind: z.enum(["measured", "vault", "signed", "model", "estimate", "example"]),
-    })
-    .optional(),
-  people: z.array(Person).max(50).optional(),
-  note: z.string().optional(),
-  highlight: z.boolean().optional(),
-});
 const subject = z.object({ kind: z.string(), id: z.string(), revision: Bound });
 
 export const apis = {
@@ -191,106 +170,6 @@ export const apis = {
       value: DynamicString.optional(),
       previous: DynamicString.optional(),
       provenance: z.string().optional(),
-    }),
-  },
-  TaskCard: {
-    name: "TaskCard",
-    schema: z.object({
-      task_id: z.string(),
-      title: DynamicString,
-      assignee: Person.optional(),
-      window: z.string().optional(),
-      status: z.enum([
-        "open",
-        "negotiating",
-        "proposed",
-        "decided",
-        "committed",
-        "done",
-        "withdrawn",
-      ]),
-      deps: z
-        .object({
-          waitsFor: z.array(z.string()).max(50).optional(),
-          unblocks: z.array(z.string()).max(50).optional(),
-        })
-        .optional(),
-      evidence: z.string().optional(),
-    }),
-  },
-  NeedCard: {
-    name: "NeedCard",
-    schema: z.object({
-      need_id: z.string(),
-      owner: Person,
-      text: DynamicString,
-      state: z.enum(["open", "matched", "fulfilled", "withdrawn"]),
-      offers: Bound.optional(),
-      meta: z.string().optional(),
-    }),
-  },
-  OfferCard: {
-    name: "OfferCard",
-    schema: z.object({
-      offer_id: z.string(),
-      what: DynamicString,
-      from: z.string().optional(),
-      target: z.string().optional(),
-      cost: z
-        .object({ amount: Bound, unit: z.string().optional(), kind: z.string().optional() })
-        .optional(),
-      expires: z.string().optional(),
-      state: z.enum(["open", "accepted", "expired", "withdrawn"]),
-      needsYou: z.boolean().optional(),
-      scope: z.string().optional(),
-    }),
-  },
-  Timeline: {
-    name: "Timeline",
-    schema: z.object({
-      items: lit(
-        z
-          .array(
-            z.object({
-              when: z.string(),
-              title: z.string(),
-              assignee: z.string().optional(),
-              state: z.enum(["done", "now", "next"]),
-            }),
-          )
-          .max(200),
-      ),
-    }),
-  },
-  PlanCompare: {
-    name: "PlanCompare",
-    schema: z.object({
-      plans: z.array(plan).max(8),
-      rejected: z
-        .array(z.object({ plan, reason: z.string() }))
-        .max(8)
-        .optional(),
-      state: z.enum(["proposed", "decided", "superseded"]).optional(),
-      proposal_set_id: z.string().optional(),
-      decision_deadline: z.string().optional(),
-      decidedId: z.string().optional(),
-    }),
-  },
-  TensionCard: {
-    name: "TensionCard",
-    schema: z.object({
-      tension_id: z.string(),
-      title: DynamicString,
-      options: z
-        .array(
-          z.object({ id: z.string(), label: z.string(), tradeoffs: z.array(z.string()).max(12) }),
-        )
-        .max(12),
-      deciders: z.array(Person.extend({ answered: z.boolean().optional() })).max(50),
-      answered: Bound,
-      decision_deadline: z.string().optional(),
-      state: z.enum(["open", "decided", "split", "expired"]).optional(),
-      chosenId: z.string().optional(),
     }),
   },
   ConsentCard: {
