@@ -14,7 +14,7 @@ export function MessageDoor({ p, send }: View) {
       <header>
         <span className="f02-channel-avatar">C</span>
         <div>
-          <b>CoalitionKit</b>
+          <b>CoalitionKit{text(p.title) ? ` · ${text(p.title)}` : ""}</b>
           <small>business account · test number</small>
         </div>
       </header>

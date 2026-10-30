@@ -5,7 +5,7 @@ import { expired, Frame, label, list, number, obj, text, type View } from "./ui"
 import "./entry.css";
 
 export function EntryComposer({ p, send }: View) {
-  const [goal, setGoal] = useState("");
+  const [goal, setGoal] = useState(() => text(p.draft));
   const [pack, setPack] = useState("");
   const [pending, setPending] = useState(false);
   return (

@@ -190,7 +190,18 @@
   background: transparent;
 }
 .f02-notification[data-read="true"] {
-  color: var(--ink-2);
+  color: color-mix(in srgb, var(--ink) 65%, var(--surface));
+}
+.f02-notification[data-read="true"] small {
+  color: var(--f02-read-time, #707683);
+}
+[data-theme="dark"] .f02-notification[data-read="true"] small {
+  --f02-read-time: var(--ink-3);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .f02-notification[data-read="true"] small {
+    --f02-read-time: var(--ink-3);
+  }
 }
 .ck-family.ck-AccountMenu {
   padding: 4px;
@@ -223,7 +234,7 @@
 }
 .ck-AccountMenu hr {
   height: 1px;
-  margin: 4px 0;
+  margin: 4px -4px;
   border: 0;
   background: var(--line);
 }
@@ -320,8 +331,12 @@
   padding: 9px 11px;
 }
 .f02-agreed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   align-self: flex-start;
-  padding: 3px 8px;
+  height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
   background: var(--ok-bg);
   color: var(--ok-fg);
@@ -329,9 +344,11 @@
   font-weight: 600;
 }
 .f02-agreed::before {
-  content: "●";
-  font-size: 8px;
-  margin-right: 5px;
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .f02-board-people {
   display: flex;

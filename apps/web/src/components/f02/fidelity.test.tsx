@@ -7,6 +7,28 @@ import { examples } from "./examples";
 import { sheetData } from "./sheet-data";
 
 afterEach(cleanup);
+it("edits a supplied initial goal and submits the edited draft only once", () => {
+  const { container, dispatchAction } = mount("EntryComposer", { draft: "Initial goal" });
+  expect(container.querySelector('[data-component="EntryComposer"]')).toHaveAttribute(
+    "data-state",
+    "typing",
+  );
+  const input = screen.getByRole("textbox", { name: "Your goal" });
+  expect(input).toHaveValue("Initial goal");
+  fireEvent.change(input, { target: { value: "Revised goal" } });
+  const submit = screen.getByRole("button", { name: "Start a coalition" });
+  fireEvent.click(submit);
+  fireEvent.click(submit);
+  expect(dispatchAction).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(dispatchAction.mock.calls)).toContain('"goal":"Revised goal"');
+  expect(submit).toBeDisabled();
+});
+
+it("shows the message coalition label as text", () => {
+  mount("MessageDoor", { title: "Group P12" });
+  expect(screen.getByText("CoalitionKit · Group P12")).toBeInTheDocument();
+});
+
 function mount(component: string, props: Record<string, unknown> = {}) {
   const dispatchAction = vi.fn();
   const book = new SurfaceBook(dispatchAction);
