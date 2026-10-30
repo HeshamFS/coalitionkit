@@ -30,12 +30,18 @@ it("renders room parts from the viewer projection and routes requests to trusted
     </>,
   );
   expect(screen.getByText("Member A")).toBeInTheDocument();
-  expect(screen.getByText("Agent A · Vendor A")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Accept Option A" })).toBeDisabled();
-  for (const name of ["Plan options", "Metrics", "Wiring", "Decisions", "What stayed private"])
+  expect(screen.getByText("Agent A on Vendor A")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Accept A", hidden: true })).toBeDisabled();
+  for (const name of [
+    "Plan options for Coordinate the next step",
+    "Metrics",
+    "Wiring · live",
+    "Decisions",
+    "What stayed private",
+  ])
     expect(screen.getByLabelText(name)).toBeInTheDocument();
   expect(screen.getByText("Private notes")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /Review this option/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Review plan A/ }));
   expect(open).toHaveBeenCalledWith("r1");
 });
 it("never substitutes another member for an unknown viewer", () => {

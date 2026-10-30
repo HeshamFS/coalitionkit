@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { CSSProperties, ReactNode } from "react";
+import { AccountMenu } from "../components/f02/templates";
 import { Banner } from "../components/feedback";
 import { AvatarStack, cx } from "../components/primitives";
+import { RoomIcon, RoomLogo } from "../room/icons";
 import { Icon } from "../ui/Icon";
 import { Deck, type DeckGroup, type PresenceEntry, type Stage, StageBar, TopBar } from "./bars";
 
@@ -33,50 +35,70 @@ export type RoomShellProps = {
   aside?: ReactNode;
 };
 
-export function RoomShell(p: RoomShellProps) {
-  if (p.layout === "stage")
-    return (
-      <div className="room-stage-shell">
-        <nav className="room-rail" aria-label="Room tools">
-          <Icon name="canvas" />
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Stage"
-            onClick={() => p.onSelect?.("Stage")}
-          >
-            <Icon name="canvas" />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Wiring"
-            onClick={() => p.onSelect?.("Wiring")}
-          >
-            <Icon name="terminal" />
-          </button>
-        </nav>
-        <div className="room-main">
-          <div className="room-heading">
-            <TopBar title={p.title} stage={p.stage} presence={[]} room />
-            <span className="room-connection" role="status">
-              <span className="live-dot" />
-              {p.connection ?? "live"}
-            </span>
-            {p.navigation}
-            <button type="button" className="btn btn-sm room-signout" onClick={p.onSignOut}>
-              Sign out
-            </button>
-          </div>
-          <div className="room-columns">
-            <main className="room-canvas">{p.children}</main>
-            <aside className="room-aside" aria-label="Wiring and decisions">
-              {p.aside}
-            </aside>
-          </div>
+function StageShell(p: RoomShellProps) {
+  return (
+    <div className="room-stage-shell">
+      <nav className="room-rail" aria-label="Room tools">
+        <RoomLogo />
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Stage"
+          aria-current={p.selected === "Stage" ? "page" : undefined}
+          onClick={() => p.onSelect?.("Stage")}
+        >
+          <RoomIcon kind="stage" />
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="My part"
+          onClick={() => p.onSelect?.("My part")}
+        >
+          <Icon name="people" />
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Wiring"
+          onClick={() => p.onSelect?.("Wiring")}
+        >
+          <RoomIcon kind="log" />
+        </button>
+      </nav>
+      <div className="room-main">
+        <div className="room-heading">
+          <TopBar title={p.title} stage={p.stage} presence={[]} meta={p.meta} room />
+          <span className="room-connection" role="status">
+            <span className="live-dot" />
+            {p.connection ?? "live"}
+          </span>
+          {p.navigation}
+          <details className="room-account">
+            <summary className="icon-btn" aria-label="Account">
+              <Icon name="people" />
+            </summary>
+            <AccountMenu
+              p={{ identity: { label: "Your account" }, agents: [], channels: [] }}
+              send={(_event, data) => {
+                if (data?.id === "sign-out") p.onSignOut?.();
+              }}
+            />
+          </details>
+        </div>
+        <div className="room-columns">
+          <main className="room-canvas">{p.children}</main>
+          <aside className="room-aside" aria-label="Wiring and decisions">
+            {p.aside}
+          </aside>
         </div>
       </div>
-    );
+    </div>
+  );
+}
+
+export function RoomShell(p: RoomShellProps) {
+  if (p.layout === "stage") return <StageShell {...p} />;
   const connection = p.connection ?? "live";
   const watcher = connection === "watcher";
   const wiringShown = Boolean(p.wiringOpen && p.wiring);

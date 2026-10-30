@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Avatar, cx, type Seat } from "../components/primitives";
+import { RoomLogo } from "../room/icons";
 import { Icon, type IconName, Mark } from "../ui/Icon";
 
 export const STAGES = [
@@ -81,15 +82,23 @@ export function TopBar({
 }) {
   return (
     <header className="topbar">
-      <Mark />
+      {room ? <RoomLogo /> : <Mark />}
       <b style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>{title}</b>
-      {meta && (
+      {meta && !room && (
         <span className="small">
           {"·"} {meta}
         </span>
       )}
       <div style={{ marginLeft: 14 }}>
-        <StageBar current={stage} compact={room} />
+        {room ? (
+          <span className="sg sg-now">
+            <span className="live-dot" />
+            {stage}
+            {meta ? ` · ${meta}` : ""}
+          </span>
+        ) : (
+          <StageBar current={stage} />
+        )}
       </div>
       {!room && (
         <span className="h-right">

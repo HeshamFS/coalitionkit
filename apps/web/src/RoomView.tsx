@@ -3,7 +3,7 @@ import { A2uiSurface } from "@a2ui/react/v0_9";
 import { useState } from "react";
 import { EmptyState, Skeleton } from "./components/feedback";
 import { Card } from "./components/primitives";
-import { deriveRoom } from "./feed/derive";
+import { deriveRoom, humanTime, requestLabel } from "./feed/derive";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
 import { RoomLens } from "./room/lens";
 import { usePhoneRoom } from "./room/media";
@@ -13,6 +13,7 @@ import { type ConsentRequest, ConsentTray } from "./shell/dock";
 import { RoomShell } from "./shell/RoomShell";
 import { TrustedRequest } from "./TrustedRequest";
 import "./styles/room.css";
+import "./room/refinements.css";
 
 /** Fixed fallback remains available to callers and refused composed trees. */
 export function FixedView({ fields }: { fields: { label: string; value: string }[] }) {
@@ -50,7 +51,11 @@ export function RoomView() {
   const consent = open ? (
     <TrustedRequest
       key={`${open.id}:${open.revision}`}
-      request={open}
+      request={{
+        ...open,
+        message: requestLabel(feed.state, open),
+        expiresAt: humanTime(open.expiresAt) || undefined,
+      }}
       state={feed.state}
       onAnswer={(a) => void answer(a)}
     />
@@ -65,6 +70,7 @@ export function RoomView() {
       layout="stage"
       title={room.title}
       stage={room.stage}
+      meta={`${room.members} members`}
       presence={[]}
       groups={[]}
       selected={selected}
@@ -81,16 +87,6 @@ export function RoomView() {
       }
     >
       <div className="room-content" data-section={section}>
-        <ConsentTray
-          requests={agent.requests.map((r) => ({
-            id: r.id,
-            kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
-            title: r.message,
-            revision: r.revision,
-            deadline: r.expiresAt,
-          }))}
-          onOpen={onOpen}
-        />
         {agent.refusal && (
           <Card tone="dashed">
             <span role="alert">The host did not take that answer: {agent.refusal}</span>
@@ -99,9 +95,13 @@ export function RoomView() {
         {feed.status === "connecting" && <Skeleton shape="card" label="Loading your view" />}
         <div className="room-stage-content">
           <div className="room-goal">
-            <b>Goal</b>
-            <span>{room.title}</span>
-            <span className="room-connection">{feed.status}</span>
+            <span>
+              <b>Goal</b> · {room.title}
+            </span>
+            <span className="room-connection">
+              <span className="live-dot" />
+              {feed.status}
+            </span>
           </div>
           <Participants state={feed.state} />
           <Plans state={feed.state} />
@@ -123,6 +123,16 @@ export function RoomView() {
         <div className="room-lens-content">
           <RoomLens state={feed.state} />
         </div>
+        <ConsentTray
+          requests={agent.requests.map((r) => ({
+            id: r.id,
+            kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
+            title: requestLabel(feed.state, r),
+            revision: r.revision,
+            deadline: r.expiresAt ? `decide by ${humanTime(r.expiresAt)}` : undefined,
+          }))}
+          onOpen={onOpen}
+        />
         <div className="surface-host">
           {feed.surfaces.map((s) => (
             <A2uiSurface key={s.id} surface={s.model} />

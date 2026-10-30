@@ -5,14 +5,15 @@ import type { Stage } from "../shell/bars";
 import { STAGES } from "../shell/bars";
 import type { ViewerState } from "./delta";
 
-type Ev = { type: string; seq: number; payload: Record<string, unknown> };
+type Ev = { on_behalf_of?: string; type: string; seq: number; payload: Record<string, unknown> };
 
-/** The viewer projection is `{coalition_id, events: {event_id: {type, seq, payload}}}`. */
+/** The viewer projection contains only delivered events, including their authors. */
 export function eventsOf(state: ViewerState | null): Ev[] {
   const raw = (state?.events ?? {}) as Record<string, Partial<Ev>>;
   return Object.values(raw)
     .map((e) => ({
       type: String(e.type ?? ""),
+      on_behalf_of: e.on_behalf_of,
       seq: Number(e.seq ?? 0),
       payload: (e.payload ?? {}) as Record<string, unknown>,
     }))
@@ -121,7 +122,7 @@ const record = (v: unknown): Record<string, unknown> =>
 const text = (v: unknown): string => (typeof v === "string" ? v : "");
 const records = (v: unknown) => (Array.isArray(v) ? v.map(record) : []);
 
-/** Only explicit identity links are used. The current host projection omits event authors. */
+/** Identity and work are linked only through delivered authors and explicit assignments. */
 export function deriveParticipants(state: ViewerState | null) {
   const events = eventsOf(state);
   const charter = events.findLast((e) => e.type === "coalition.charter")?.payload;
@@ -129,25 +130,91 @@ export function deriveParticipants(state: ViewerState | null) {
   const joined = new Map<string, Record<string, unknown>>();
   for (const e of events.filter((e) => e.type === "coalition.join")) {
     const p = e.payload;
-    const id = text(p.participant) || text(p.card_url) || `join-${e.seq}`;
-    joined.set(id, p);
+    joined.set(
+      text(e.on_behalf_of) || text(p.participant) || text(p.card_url) || `join-${e.seq}`,
+      p,
+    );
   }
+  const proposal = events.findLast((e) => e.type === "coalition.propose");
+  const proposed = records(proposal?.payload.plans);
   return [...joined].map(([id, p], index) => {
     const card = record(p.card);
     const named = names.find((n) => n.id === id || n.card_url === p.card_url);
-    const item = events.findLast(
+    const authored = (e: Ev) =>
+      [e.on_behalf_of, e.payload.participant, e.payload.assignee, e.payload.owner].includes(id);
+    const commit = events.findLast((e) => e.type === "coalition.commit" && authored(e));
+    const vote = events.findLast(
       (e) =>
-        ["coalition.task", "coalition.need", "coalition.offer"].includes(e.type) &&
-        [e.payload.participant, e.payload.assignee, e.payload.owner].includes(id),
+        e.type === "coalition.decide" &&
+        authored(e) &&
+        proposed.some((plan) => plan.plan_id === record(e.payload.subject).id),
     );
+    const plan =
+      proposed.find((plan) => plan.plan_id === record(vote?.payload.subject).id) ??
+      proposed.find((plan) => records(plan.assignments).some((a) => a.assignee === id));
+    const assignment = records(plan?.assignments).find((a) => a.assignee === id);
+    const task =
+      assignment && (proposal?.seq ?? 0) > (commit?.seq ?? 0)
+        ? text(assignment.task_id)
+        : text(commit?.payload.task_id) || text(assignment?.task_id);
+    const item =
+      (task
+        ? events.findLast(
+            (e) =>
+              ["coalition.task", "coalition.need", "coalition.offer"].includes(e.type) &&
+              [e.payload.task_id, e.payload.need_id, e.payload.offer_id].includes(task),
+          )
+        : undefined) ??
+      events.findLast(
+        (e) =>
+          ["coalition.task", "coalition.need", "coalition.offer"].includes(e.type) && authored(e),
+      );
+    const target = record(item?.payload.target).id;
+    const need = target
+      ? events.findLast((e) => e.type === "coalition.need" && e.payload.need_id === target)
+      : undefined;
+    const body = item?.payload ?? {};
+    const decision =
+      commit && commit.payload.task_id === task
+        ? events.findLast(
+            (e) =>
+              e.type === "coalition.decide" &&
+              authored(e) &&
+              record(e.payload.subject).id === commit.payload.commitment_id,
+          )
+        : vote;
+    const ripple = events.findLast(
+      (e) =>
+        e.type === "coalition.ripple" &&
+        Array.isArray(e.payload.invalidates) &&
+        e.payload.invalidates.includes(task),
+    );
+    const changed =
+      ["superseded", "withdrawn", "suspended"].includes(text(commit?.payload.status)) ||
+      Boolean(ripple && ripple.seq > (decision?.seq ?? commit?.seq ?? 0));
+    const agreed = !changed && decision?.payload.consent === true;
+    const status = changed
+      ? "Changed · ripple"
+      : agreed
+        ? "Agreed"
+        : commit || assignment
+          ? "Needs their yes"
+          : "";
     return {
       id,
       seat: (index % 5) + 1,
       label: text(p.display_name) || text(named?.display_name) || `Member ${index + 1}`,
       agent: text(card.name),
       vendor: text(card.vendor),
-      item: text(item?.payload.title) || text(item?.payload.description),
-      status: text(item?.payload.status),
+      item:
+        text(body.title) ||
+        text(body.description) ||
+        text(need?.payload.description) ||
+        (task ? "Assigned item" : ""),
+      detail: text(body.title)
+        ? text(body.description)
+        : text(assignment?.description) || text(ripple?.payload.change),
+      status,
     };
   });
 }
@@ -157,14 +224,16 @@ export function derivePlans(state: ViewerState | null): Plan[] {
   const sourceIds = new Map(
     Object.entries(record(state?.events)).map(([id, raw]) => [record(raw).seq, id]),
   );
-  for (const event of eventsOf(state).filter((e) => e.type === "coalition.propose")) {
+  for (const event of eventsOf(state)
+    .filter((e) => e.type === "coalition.propose")
+    .slice(-1)) {
     for (const p of records(event.payload.plans)) {
       const id = text(p.plan_id);
       if (!id) continue;
       plans.set(id, {
         id,
-        label: text(p.title) || text(p.label) || id,
-        description: text(p.description) || undefined,
+        label: text(p.title) || text(p.label),
+        description: undefined,
         canDecide: false,
         objectives: Object.entries(record(p.objective_scores))
           .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
@@ -175,13 +244,27 @@ export function derivePlans(state: ViewerState | null): Plan[] {
       });
     }
   }
-  return [...plans.values()];
+  return [...plans.values()].map((plan, index) => {
+    const short = String.fromCharCode(65 + index);
+    const vote = eventsOf(state).findLast(
+      (e) =>
+        e.type === "coalition.decide" &&
+        record(e.payload.subject).id === plan.id &&
+        (!state?.viewer || e.on_behalf_of === state.viewer),
+    );
+    return {
+      ...plan,
+      short,
+      label: `${short}${plan.label ? ` · ${plan.label}` : ""}`,
+      note: plan.objectives.map((o) => `${o.name} ${o.value.value}`).join(" · "),
+      highlight: vote?.payload.consent === true,
+    };
+  });
 }
 
 export function deriveMetrics(state: ViewerState | null) {
   const participants = deriveParticipants(state);
-  const events = eventsOf(state);
-  const metrics = [{ label: "Events", value: events.length }];
+  const metrics: { label: string; value: number }[] = [];
   const agents = participants.filter((p) => p.agent);
   const vendors = new Set(participants.map((p) => p.vendor).filter(Boolean));
   if (agents.length) metrics.push({ label: "Agents", value: agents.length });
@@ -204,7 +287,7 @@ export function deriveDecisions(state: ViewerState | null) {
       revision: record(e.payload.subject).revision,
       answer: e.payload.consent === true ? "yes" : e.payload.consent === false ? "no" : "",
       time: text(e.payload.decided_at),
-      participant: text(e.payload.participant),
+      participant: text(e.on_behalf_of) || text(e.payload.participant),
     }));
 }
 
@@ -225,4 +308,22 @@ export function deriveSchedule(state: ViewerState | null) {
       time: text(p.start),
     }))
     .filter((p) => p.title);
+}
+
+/** Display labels never expose opaque protocol identifiers. */
+export function requestLabel(
+  state: ViewerState | null,
+  request: { kind: string; subjectId: string; message: string },
+) {
+  const plan = derivePlans(state).find((p) => p.id === request.subjectId);
+  if (plan) return `Review plan ${plan.label}`;
+  return request.message.replace(/[0-9A-HJKMNP-TV-Z]{26}/gi, "item");
+}
+
+export function humanTime(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 }

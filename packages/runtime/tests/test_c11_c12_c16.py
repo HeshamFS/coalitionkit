@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from coalitionkit_contracts import verify_envelope
-from coalitionkit_runtime.projector import derive_scope, patch
+from coalitionkit_runtime.projector import delivery, derive_scope, patch
 from coalitionkit_runtime.steward import FakeSteward, Verdict
 from coalitionkit_vault.canary import Canaries
 
@@ -124,3 +124,38 @@ def test_canaries_never_enter_host_outputs(world: World) -> None:
     assert not canaries.scan(asdict(world.host.state))
     assert not canaries.scan(world.host.view("observer"))
     assert not canaries.scan(result.receipt)
+
+
+def test_projection_authors_match_only_delivered_events(world: World) -> None:
+    accepted(
+        world.alice.send("observe", {"source": "chat", "content": "private"}, {"audience": "self"})
+    )
+    accepted(world.alice.send("observe", {"source": "chat", "content": "public"}))
+    accepted(
+        world.bob.send(
+            "observe",
+            {"source": "chat", "content": "redacted"},
+            {"audience": "coalition", "redact": ["payload.content"]},
+        )
+    )
+    task = world.need().accepted["payload"]["need_id"]
+    world.query(task)
+    world.propose(task)
+    for viewer in ("alice", "bob", "observer", "host"):
+        document = world.host.view(viewer)
+        assert document["viewer"] == viewer
+        expected = {}
+        for event in world.host.state.events.values():
+            item = delivery(world.host.state, event, viewer, world.host.sign)
+            if item is None:
+                assert event["event_id"] not in document["events"]
+                continue
+            projected = item["type"] == "coalition.projection"
+            source = item["payload"]["source"] if projected else item
+            expected[event["event_id"]] = {
+                "type": source["type"],
+                "seq": source["seq"],
+                "on_behalf_of": source["on_behalf_of"],
+                "payload": item["payload"]["payload"] if projected else item["payload"],
+            }
+        assert document["events"] == expected
