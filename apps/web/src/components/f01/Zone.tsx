@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
+import { Glyph } from "./Glyph";
 import { rows, str, type ViewProps } from "./shared";
 
 function converted(at: string, tz: string, viewer: string) {
@@ -37,20 +38,23 @@ export function Zone({ p, send }: Pick<ViewProps, "p" | "send">) {
     <div className="col">
       <label className="f01-field">
         <span className="lbl">Time zone</span>
-        <select
-          className="f01-input"
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            send("tz.change", { value: e.target.value });
-          }}
-        >
-          {[...new Set([initial, ...rows(p.others).map((o) => str(o.tz))])].map((tz) => (
-            <option key={tz} value={tz}>
-              {tz === initial ? str(p.label, tz) : tz}
-            </option>
-          ))}
-        </select>
+        <span className="f01-zone-select">
+          <select
+            className="f01-input"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              send("tz.change", { value: e.target.value });
+            }}
+          >
+            {[...new Set([initial, ...rows(p.others).map((o) => str(o.tz))])].map((tz) => (
+              <option key={tz} value={tz}>
+                {tz === initial ? str(p.label, tz) : tz}
+              </option>
+            ))}
+          </select>
+          <Glyph name="down" size="sm" />
+        </span>
       </label>
       <dl className="kv">
         {rows(p.others).map((o) => {

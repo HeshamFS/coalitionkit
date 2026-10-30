@@ -156,27 +156,6 @@
   padding: 0 3px;
   border-radius: 3px;
 }
-.f08-sheet [data-panel="ScopeBadge"] .demo {
-  gap: 6px;
-}
-.f08-sheet .sheet-sub {
-  max-width: none;
-}
-.f08-sheet .cell-name {
-  font-family: "Privacy Sheet Mono", var(--font-mono);
-  font-variation-settings: "wght" 500;
-  font-weight: 600;
-}
-.f08-sheet .door {
-  gap: 6px;
-}
-.sheet:has(> .f08-sheet) {
-  padding: 0;
-}
-.sheet:has(> .f08-sheet) > .sheet-head,
-.sheet:has(> .f08-sheet) > .small {
-  display: none;
-}
 .f08 .family-card[data-component="CommitmentCard"][data-state="pending"] {
   background: var(--warn-bg);
   border-color: var(--warn-line);
@@ -302,10 +281,6 @@
 }
 
 .f08 .b-measured {
-  background: var(--ok-bg);
-  color: var(--ok-fg);
-}
-.f08-sheet .head > .b-measured {
   background: var(--ok-bg);
   color: var(--ok-fg);
 }

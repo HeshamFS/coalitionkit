@@ -234,11 +234,6 @@
 .ck-success {
   border-color: var(--ok-line);
 }
-.ck-sheet .ck-examples {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 @media (max-width: 640px) {
   .ck-room-body,
   .ck-split,

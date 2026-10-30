@@ -1,0 +1,28 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.f06-sheet {
+  width: 1440px;
+  min-height: 2050px;
+}
+.sheet:has(> .f06-sheet) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .f06-sheet) > .sheet-head,
+.sheet:has(> .f06-sheet) > .small {
+  display: none;
+}
+@media (max-width: 800px) {
+  .f06-sheet,
+  .sheet:has(> .f06-sheet) {
+    width: 100%;
+  }
+  .f06-sheet .g4 {
+    grid-template-columns: 1fr;
+  }
+  .f06-sheet .cell {
+    grid-column: auto;
+  }
+}
+.f06-sheet .cell-name {
+  font-family: "F06 Mono", var(--font-mono);
+}

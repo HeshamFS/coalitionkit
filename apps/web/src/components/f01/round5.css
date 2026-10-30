@@ -106,3 +106,60 @@
   color: var(--ink-3);
   background: var(--surface-2);
 }
+.f01-choice-entry {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.f01-choice-placeholder {
+  color: var(--ink-3);
+  font-size: 13px;
+  pointer-events: none;
+}
+.f01-choice-entry .f01-choice-trigger {
+  min-width: 0;
+  width: 100%;
+  outline: none;
+  box-shadow: none;
+}
+.f01-zone-select {
+  position: relative;
+  display: flex;
+}
+.f01-zone-select select {
+  appearance: none;
+  padding-right: 30px;
+  width: 100%;
+}
+.f01-zone-select > .ico {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink-3);
+}
+.f01-calendar-previous {
+  display: flex;
+  transform: rotate(180deg);
+}
+.f01-deadline .small {
+  line-height: 1.45;
+}
+.f01-deadline {
+  padding: 10px 12px;
+}
+.f01-deadline .head {
+  line-height: normal;
+  gap: 8px;
+}
+.f01-deadline .f01-bar {
+  height: 6px;
+}
+.f01-root-TimeZone > .col {
+  gap: 8px;
+}
+.f01-root-TimeZone .lbl {
+  font-weight: 400;
+}

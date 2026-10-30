@@ -78,17 +78,23 @@ export function ChoiceMenu({ p, value, pick }: ChoiceProps) {
             </button>
           ))}
         {p.multiple ? (
-          <input
-            {...trigger}
-            value={query}
-            placeholder="add…"
-            onClick={() => setOpen(true)}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setActive(0);
-              setOpen(true);
-            }}
-          />
+          <label className="f01-choice-entry">
+            {!query && (
+              <span aria-hidden="true" className="f01-choice-placeholder">
+                add…
+              </span>
+            )}
+            <input
+              {...trigger}
+              value={query}
+              onClick={() => setOpen(true)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setActive(0);
+                setOpen(true);
+              }}
+            />
+          </label>
         ) : (
           <button {...trigger} type="button" onClick={() => setOpen(!open)}>
             <span>{str(selected[0]?.label, "Choose…")}</span>

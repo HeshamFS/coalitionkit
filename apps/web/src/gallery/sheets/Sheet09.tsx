@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet09.css";
 import type { ReactNode } from "react";
 import { PreviewState } from "../../components/f08/shared";
 import { bound, errors, sheetSamples } from "../../components/f09/sheetSamples";

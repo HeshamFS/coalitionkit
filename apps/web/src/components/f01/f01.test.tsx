@@ -283,11 +283,21 @@ it("CommandPalette runs host-provided results", () => {
     { query: { path: "/query" }, groups: "actions" },
     {
       query: {
-        text: "Plan",
-        groups: [{ label: "Actions", items: [{ id: "p1", label: "Plan details" }] }],
+        text: "Plan  ",
+        groups: [
+          {
+            label: "Actions",
+            items: [
+              { id: "p1", label: "Plan details" },
+              { id: "p2", label: "Other action" },
+            ],
+          },
+        ],
       },
     },
   );
+  expect(screen.queryByRole("button", { name: "Other action" })).toBeNull();
+  expect(screen.getByRole("textbox", { name: "Command" })).toHaveValue("Plan  ");
   fireEvent.click(screen.getByRole("button", { name: "Plan details" }));
   event(dispatch, "command.run", { id: "p1" });
 });

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet05.css";
 
 import { examples } from "../../components/f07/examples";
 import { Family } from "../Cell";

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet03.css";
 import { McpExample } from "../../components/f03/mcp-example";
 import { panels } from "../../components/f03/panels";
 import { variants } from "../../components/f03/variants";

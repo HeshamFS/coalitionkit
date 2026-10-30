@@ -82,7 +82,9 @@ export function Calendar({ p, send }: ViewProps) {
                 aria-label="Previous month"
                 onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
               >
-                ‹
+                <span className="f01-calendar-previous">
+                  <Glyph name="right" size="sm" />
+                </span>
               </button>
               <button
                 className="icon-btn"
@@ -90,7 +92,7 @@ export function Calendar({ p, send }: ViewProps) {
                 aria-label="Next month"
                 onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
               >
-                ›
+                <Glyph name="right" size="sm" />
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet02.css";
 import { groups } from "../../components/f02/examples";
 import { sheetLabels } from "../../components/f02/sheet-data";
 import { sheetNodes } from "../../components/f02/sheet-nodes";

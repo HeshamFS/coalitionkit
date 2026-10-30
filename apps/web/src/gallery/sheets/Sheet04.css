@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-sheet-04 .sheet-head > .h-right {
+  display: flex;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .ck-sheet-04 .g4 {
+    grid-template-columns: 1fr;
+  }
+  .ck-sheet-04 .span2 {
+    grid-column: auto;
+  }
+}
+.ck-sheet-04 .cell-name {
+  font-weight: 700;
+}

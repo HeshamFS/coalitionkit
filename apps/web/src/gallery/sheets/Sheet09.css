@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.f09-sheet {
+  width: 1440px;
+  min-height: 1780px;
+}
+.sheet:has(> .f09-sheet) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .f09-sheet) > .sheet-head,
+.sheet:has(> .f09-sheet) > .small {
+  display: none;
+}
+.f09-sheet .drawn {
+  min-width: 0;
+}
+.f09-sheet .row > .drawn {
+  flex: none;
+}
+
+.f09-sheet .cell-name {
+  font-weight: 600;
+}
+.f09-sheet .f09-task-grid,
+.f09-sheet .f09-errors {
+  gap: 8px;
+}
+.f09-sheet .row.wrap > .drawn {
+  display: flex;
+}
+.f09-sheet {
+  --font-mono: "F09 Mono", ui-monospace, monospace;
+}
+
+.f09-sheet .head .door {
+  gap: 6px;
+}

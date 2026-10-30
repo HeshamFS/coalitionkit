@@ -240,7 +240,7 @@ export function Search({ name, p, send }: ViewProps) {
   useEffect(() => setQuery(incoming), [incoming]);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(true);
-  const groups = searchGroups(p, query);
+  const groups = searchGroups(p, query.trim());
   const items = groups.flatMap((g) => g.items);
   const pick = (id: string) =>
     send(name === "CommandPalette" ? "command.run" : "search.pick", { id });
@@ -290,7 +290,7 @@ export function Search({ name, p, send }: ViewProps) {
                 >
                   {i.icon ? <Glyph name={str(i.icon)} size="sm" /> : null}
                   <span>
-                    <Match text={str(i.label)} query={query} />
+                    <Match text={str(i.label)} query={query.trim()} />
                   </span>
                   {i.hint ? (
                     <>
@@ -312,7 +312,7 @@ export function Search({ name, p, send }: ViewProps) {
               <button type="button" onClick={() => send("command.ask", { text: query })}>
                 <Avatar label="You" seat="steward" size="xs" />
                 <span>
-                  "<b>{query}</b>…" ask your agent in words
+                  "<b>{query.trim()}</b>…" ask your agent in words
                 </span>
                 <kbd className="kbd">⇥</kbd>
               </button>

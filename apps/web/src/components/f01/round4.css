@@ -429,10 +429,6 @@
   opacity: 1;
   color: var(--ink-3);
 }
-.sheet-01 .phone > .col .card {
-  opacity: 1;
-  background: var(--surface-2);
-}
 [data-theme="dark"] .f01 .btn-primary:disabled {
   --f01-disabled-blue: #7d92b4;
 }

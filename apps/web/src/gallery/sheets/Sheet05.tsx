@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet05.css";
 import type { ReactNode } from "react";
 import { examples } from "../../components/f05/examples";
 import { Family } from "../Cell";

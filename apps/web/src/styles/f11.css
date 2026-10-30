@@ -45,17 +45,6 @@
   text-align: center;
 }
 /* Sheet framing is local to this family. */
-.sheet:has(> .sheet-11) {
-  padding: 0;
-  width: 1440px;
-}
-.sheet:has(> .sheet-11) > .sheet-head,
-.sheet:has(> .sheet-11) > .small {
-  display: none;
-}
-.sheet.sheet-11 {
-  width: 1440px;
-}
 .f11 .family-card .row {
   flex-wrap: nowrap;
 }
@@ -146,9 +135,6 @@
   border: solid var(--on-blue);
   border-width: 0 0 2px 2px;
   transform: translate(2px, 3px) rotate(-45deg);
-}
-.sheet-11 .cell-name {
-  font-weight: 700;
 }
 .f11-notification .sh {
   color: var(--on-ink);

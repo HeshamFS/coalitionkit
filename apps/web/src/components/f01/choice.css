@@ -8,12 +8,8 @@
   font-style: normal;
   font-display: swap;
 }
-.sheet-01,
 .f01 {
   --font-mono: "F01 Mono", ui-monospace, monospace;
-}
-.sheet-01 .cell-name {
-  font-weight: 600;
 }
 .f01-tooltip {
   max-width: 220px;

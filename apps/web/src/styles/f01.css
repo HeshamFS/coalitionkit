@@ -421,19 +421,6 @@ textarea.f01-input {
   width: 100%;
   font-size: 11px;
 }
-.sheet.sheet-01 {
-  padding-inline: 0;
-  width: 100%;
-}
-.sheet-01 .demo {
-  gap: 8px;
-}
-.sheet-01 .f01-state-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
 @media (max-width: 600px) {
   .f01-grid {
     grid-template-columns: 1fr !important;

@@ -145,10 +145,6 @@
     grid-template-columns: 1fr;
   }
 }
-.ck-sheet-04 .sheet-head > .h-right {
-  display: flex;
-  gap: 6px;
-}
 .ck-AvailabilityGrid.ck-family {
   padding: 0;
   border: 0;
@@ -221,21 +217,12 @@
   fill: none;
 }
 @media (max-width: 640px) {
-  .ck-sheet-04 .g4 {
-    grid-template-columns: 1fr;
-  }
-  .ck-sheet-04 .span2 {
-    grid-column: auto;
-  }
   .f04-availability-footer {
     flex-wrap: wrap;
   }
   .f04-availability-privacy {
     margin-left: 0;
   }
-}
-.ck-sheet-04 .cell-name {
-  font-weight: 700;
 }
 
 .ck-ConsentSeal.ck-family {

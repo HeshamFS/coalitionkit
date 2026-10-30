@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet04.css";
 
 import { examples } from "../../components/f04/examples";
 import { panels } from "../../components/f04/panels";

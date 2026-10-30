@@ -32,15 +32,6 @@
   color: var(--ink-2);
 }
 /* Panel structure belongs to the sheet; component styling also applies in rooms. */
-.ck-sheet-03 .ck-demo-AgentStatus {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-.ck-sheet-03 .sheet-head > .h-right {
-  display: flex;
-  gap: 6px;
-}
 .ck-Message.ck-family {
   padding: 0;
   border: 0;
@@ -271,18 +262,6 @@
   background: var(--blue);
   border-radius: inherit;
 }
-@media (max-width: 640px) {
-  .ck-sheet-03 .g4,
-  .ck-sheet-03 .ck-demo-AgentStatus {
-    grid-template-columns: 1fr;
-  }
-  .ck-sheet-03 .span2 {
-    grid-column: auto;
-  }
-}
-.ck-sheet-03 .ck-demo-AgentStatus {
-  align-items: start;
-}
 .ck-AgentStatus[data-state="answering"] .f03-agent-avatar {
   box-shadow:
     0 0 0 2px var(--surface),
@@ -374,9 +353,6 @@
   background: var(--blue);
   border-radius: 99px;
 }
-.ck-sheet-03 .cell-name {
-  font-weight: 700;
-}
 .ck-AgentStatus {
   --f03-presence: #1e9e5a;
   --f03-away: #c9a227;
@@ -427,11 +403,5 @@
 @media (prefers-reduced-motion: reduce) {
   .f03-spinner {
     animation: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .ck-sheet-03 .head {
-    flex-wrap: wrap;
   }
 }

@@ -238,24 +238,6 @@
 .f09-error {
   padding: 8px 10px;
 }
-.f09-sheet {
-  width: 1440px;
-  min-height: 1780px;
-}
-.sheet:has(> .f09-sheet) {
-  padding: 0;
-  width: 1440px;
-}
-.sheet:has(> .f09-sheet) > .sheet-head,
-.sheet:has(> .f09-sheet) > .small {
-  display: none;
-}
-.f09-sheet .drawn {
-  min-width: 0;
-}
-.f09-sheet .row > .drawn {
-  flex: none;
-}
 .f09-task-grid,
 .f09-errors {
   gap: 8px;
@@ -296,14 +278,6 @@
     min-height: 28px;
   }
 }
-
-.f09-sheet .cell-name {
-  font-weight: 600;
-}
-.f09-sheet .f09-task-grid,
-.f09-sheet .f09-errors {
-  gap: 8px;
-}
 .f09 .f09-verify {
   gap: 10px;
 }
@@ -318,9 +292,6 @@
 .f09-step-running > .grow > b {
   font-size: inherit;
 }
-.f09-sheet .row.wrap > .drawn {
-  display: flex;
-}
 
 .f09-masks .h-right.st {
   max-width: 90px;
@@ -334,17 +305,12 @@
   font-style: normal;
   font-display: swap;
 }
-.f09,
-.f09-sheet {
+.f09 {
   --font-mono: "F09 Mono", ui-monospace, monospace;
 }
 .f09[data-component="ReceiptBadge"],
 .f09[data-component="ProvenanceTag"] {
   display: flex;
-}
-
-.f09-sheet .head .door {
-  gap: 6px;
 }
 .f09 .av,
 .f09 .cursor-tag {

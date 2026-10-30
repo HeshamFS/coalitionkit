@@ -40,7 +40,7 @@ export function CommandPanel() {
       props={{ query: { path: "/query" }, groups: "actions" }}
       data={{
         query: {
-          text: "prop",
+          text: "prop  ",
           groups: [
             {
               label: "Actions",

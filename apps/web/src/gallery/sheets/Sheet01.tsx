@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet01.css";
 import { apis } from "../../catalog/families/f01";
 import { PanelDemo, Sample } from "../../components/f01/PanelDemo";
 import { panels } from "../../components/f01/panels";

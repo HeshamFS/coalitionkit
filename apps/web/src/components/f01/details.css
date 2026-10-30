@@ -325,18 +325,6 @@
 .f01-root-Drawer > .f01-overlay {
   height: 100%;
 }
-.sheet-01 .cell-name {
-  font-weight: 700;
-}
-.sheet-01 .phone-bar {
-  flex-shrink: 0;
-}
-.sheet-01 .phone > .col {
-  min-height: 0;
-}
-.sheet-01 .phone > .col .card {
-  opacity: 0.6;
-}
 .f01-menu .is-active,
 .f01-split .f01-menu button:has(.ico) {
   background: var(--surface-2);
@@ -449,15 +437,4 @@
   height: 10px;
   background: inherit;
   transform: rotate(45deg);
-}
-@media (max-width: 760px) {
-  .sheet-01 .g4 {
-    grid-template-columns: 1fr;
-  }
-  .sheet-01 .span2 {
-    grid-column: auto;
-  }
-  .sheet-01 .sheet-head {
-    flex-wrap: wrap;
-  }
 }

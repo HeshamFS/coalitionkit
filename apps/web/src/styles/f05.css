@@ -222,17 +222,6 @@ meter.f-meter::-moz-meter-bar {
 }
 
 /* Family sheet composition; component styles remain shared with live surfaces. */
-.f05-sheet .sheet-sub,
-.f07-sheet .sheet-sub {
-  font-size: 13px;
-  color: var(--ink-2);
-  margin-top: 4px;
-}
-.f05-sheet .panel-ParticipantCard {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
 .f05-vendors {
   display: flex;
   flex-direction: column;
@@ -278,16 +267,6 @@ meter.f-meter::-moz-meter-bar {
 }
 .f05-charter .row:last-child button {
   flex: none;
-}
-@media (max-width: 600px) {
-  .f05-sheet .panel-ParticipantCard {
-    grid-template-columns: 1fr;
-  }
-}
-.f05-sheet.sheet,
-.f07-sheet.sheet {
-  width: calc(100% + 72px);
-  margin-inline: -36px;
 }
 .f05-ring {
   width: 220px;
@@ -374,11 +353,6 @@ meter.f-meter::-moz-meter-bar {
 .f05-participant > .f05-text-action,
 .f07-text-action {
   align-self: flex-start;
-}
-.f05-sheet .cell-name,
-.f07-sheet .cell-name {
-  font-family: "F05 Sheet Mono", var(--font-mono);
-  font-weight: 600;
 }
 .f05-ring-legend {
   justify-content: center;

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import "./Sheet06.css";
 import { examples as allExamples } from "../../components/f06/examples";
 import { panelProps } from "../../components/f06/panel-props";
 import { objectiveExamples } from "../../components/f06/plan-examples";

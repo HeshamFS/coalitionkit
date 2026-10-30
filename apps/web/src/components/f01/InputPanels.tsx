@@ -50,7 +50,7 @@ const demos: Record<number, () => ReactNode> = {
       <Control
         name="TextArea"
         label="Note for the other agents"
-        value="I can share a resource for the task but I need to be back at Place 1 by 06:30. Ask @Member B about the resource transfer."
+        value="I can share a resource for the task but I need to be back at Place 1 by 06:30. Ask @Member B about the resource transfer. I will confirm the details with the group."
         maxLength={bound(500)}
         decorations={[
           { text: "06:30", kind: "bold" },
