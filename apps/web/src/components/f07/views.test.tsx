@@ -5,6 +5,53 @@ import { One } from "../../gallery/Drawn";
 
 afterEach(cleanup);
 
+it("aligns working hours across zones and splits a range across midnight", () => {
+  const bound = (value: number) => ({ value, event_ref: "e1" });
+  const { container } = render(
+    <One
+      component="TimeZoneStrip"
+      props={{
+        now: "2030-06-05T09:20:00Z",
+        people: [
+          { participant: "p1", tz: "UTC", workingHours: [{ start: bound(8), end: bound(18) }] },
+          {
+            participant: "p2",
+            tz: "Asia/Tokyo",
+            workingHours: [{ start: bound(8), end: bound(18) }],
+          },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText("09:20")).toBeVisible();
+  expect(screen.getByText("18:20")).toBeVisible();
+  const tracks = container.querySelectorAll(".f07-zonebar");
+  expect(tracks[1]?.querySelectorAll("span")).toHaveLength(2);
+  expect(tracks[1]?.querySelector("i")?.style.left).toBe(tracks[0]?.querySelector("i")?.style.left);
+});
+
+it("does not draw invalid time-zone coordinates", () => {
+  const { container } = render(
+    <One
+      component="TimeZoneStrip"
+      props={{
+        now: "invalid",
+        people: [
+          {
+            participant: "p1",
+            tz: "invalid",
+            workingHours: [
+              { start: { value: 0, event_ref: "e1" }, end: { value: 24, event_ref: "e1" } },
+            ],
+          },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText("—")).toBeVisible();
+  expect(container.querySelectorAll(".f07-zonebar span, .f07-zonebar i")).toHaveLength(0);
+});
+
 it("formats arrival timestamps while preserving the machine-readable value", () => {
   const arrivedAt = "2030-06-05T22:58:00Z";
   const { container } = render(

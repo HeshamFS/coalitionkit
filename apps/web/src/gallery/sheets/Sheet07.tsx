@@ -46,6 +46,7 @@ export function Sheet07() {
         <Panel
           name="MapView"
           title="MapView · points, route, areas"
+          events="→ map.select(point) · map.area(polygon)"
           summary={
             "points[] {id, label, kind, lat, lng, ref?} \u00b7 routes[] {path, mode, eta} \u00b7 areas[] {polygon, label} \u00b7 you {position, precision} \u00b7 selected \u00b7 tiles from a configured provider; agents never send coordinates of others beyond their shared precision"
           }

@@ -14,6 +14,10 @@ export const examples: Record<string, { state: string; props: Record<string, unk
           cap: { value: 3, event_ref: "example:1" },
         },
         counts: {
+          days: {
+            elapsed: { value: 2, event_ref: "example:1" },
+            total: { value: 6, event_ref: "example:1" },
+          },
           people: { value: 3, event_ref: "example:1" },
           agents: { value: 5, event_ref: "example:1" },
           watchers: { value: 1, event_ref: "example:1" },
@@ -33,7 +37,12 @@ export const examples: Record<string, { state: string; props: Record<string, unk
           { id: "Germinate", label: "Germinate", state: "done" },
           { id: "Gather", label: "Gather", state: "done" },
           { id: "Negotiate", label: "Negotiate", state: "done" },
-          { id: "Decide", label: "Decide", state: "now" },
+          {
+            id: "Decide",
+            label: "Decide",
+            state: "now",
+            deciders: { value: 3, event_ref: "example:1" },
+          },
           { id: "Act", label: "Act", state: "next" },
           { id: "Live", label: "Live", state: "next" },
           { id: "Dissolve", label: "Dissolve", state: "next" },
@@ -166,30 +175,37 @@ export const examples: Record<string, { state: string; props: Record<string, unk
       props: {
         acting: "Agent B",
         people: [
-          { participant: "Member A", ownerKid: "owner-A" },
-          { participant: "Member B", ownerKid: "owner-B" },
-          { participant: "Member C", ownerKid: "owner-C" },
+          { participant: "Member A", ownerKid: "3b9e…71f" },
+          { participant: "Member B", ownerKid: "91c2…0ad" },
+          { participant: "Member C", ownerKid: "5e07…c3b" },
         ],
         agents: [
           {
             card: "Agent A",
             cardKid: "card-A",
-            vendor: "A2A",
-            runtime: "member service",
+            vendor: "hosted",
+            runtime: "Muse Spark",
+            actsFor: "Member A",
+          },
+          {
+            card: "Agent A2",
+            cardKid: "card-A2",
+            vendor: "",
+            runtime: "Modal sandbox",
             actsFor: "Member A",
           },
           {
             card: "Agent B",
             cardKid: "card-B",
-            vendor: "A2A",
-            runtime: "member service",
+            vendor: "",
+            runtime: "member server · A2A",
             actsFor: "Member B",
           },
           {
             card: "Agent C",
             cardKid: "card-C",
-            vendor: "A2A",
-            runtime: "member service",
+            vendor: "",
+            runtime: "desktop app",
             actsFor: "Member C",
           },
         ],
@@ -208,7 +224,7 @@ export const examples: Record<string, { state: string; props: Record<string, unk
     {
       state: "live",
       props: {
-        agent: "Agent B",
+        agent: "B · ADK agent",
         state: "live",
         latencyMs: { value: 140, event_ref: "example:1" },
         pinnedKid: "7f3a\u2026",
@@ -217,19 +233,15 @@ export const examples: Record<string, { state: string; props: Record<string, unk
     {
       state: "idle",
       props: {
-        agent: "Agent B",
+        agent: "A · Resource 1",
         state: "idle",
-        latencyMs: { value: 140, event_ref: "example:1" },
-        pinnedKid: "7f3a\u2026",
       },
     },
     {
       state: "offline",
       props: {
-        agent: "Agent B",
+        agent: "C · chat client",
         state: "offline",
-        latencyMs: { value: 140, event_ref: "example:1" },
-        pinnedKid: "7f3a\u2026",
       },
     },
   ],
@@ -277,8 +289,8 @@ export const examples: Record<string, { state: string; props: Record<string, unk
         members: [
           {
             participant: "Member A",
-            roles: ["member"],
-            agents: { value: 1, event_ref: "example:1" },
+            roles: ["organizer", "member"],
+            agents: { value: 2, event_ref: "example:1" },
             acceptedRevision: { value: 2, event_ref: "example:1" },
             load: { value: 14, event_ref: "example:1" },
             state: "agreed",
@@ -299,6 +311,14 @@ export const examples: Record<string, { state: string; props: Record<string, unk
             load: { value: 11, event_ref: "example:1" },
             state: "owes",
           },
+          {
+            participant: "Member D",
+            roles: ["watcher"],
+            agents: { value: 0, event_ref: "example:1" },
+            acceptedRevision: { value: 2, event_ref: "example:1" },
+            load: { value: 0, event_ref: "example:1" },
+            state: "watcher",
+          },
         ],
       },
     },
@@ -310,6 +330,9 @@ export const examples: Record<string, { state: string; props: Record<string, unk
         pack: {
           id: "pack1",
           name: "Shared resources",
+          description:
+            "Adds words (item, run, check), views (resource readings, field maps) and two policies. The core stays the same.",
+          alternatives: [{ id: "pack2", name: "Shared planning" }],
           version: "0.1",
           views: ["v1", "v2", "v3", "v4"],
           policies: ["allow", "redact"],
@@ -343,7 +366,7 @@ export const examples: Record<string, { state: string; props: Record<string, unk
             expires: "22 h",
             state: "invited",
           },
-          { participant: "Member D", role: "watcher", state: "joined" },
+          { participant: "Member D", role: "watcher", state: "joined", sentAt: "09:02" },
         ],
         openSeats: ["member"],
       },
