@@ -117,16 +117,78 @@ function Panel({ panel }: { panel: (typeof panels)[number] }) {
     <div className={`cell${panel.span > 1 ? ` span${panel.span}` : ""}`} data-panel={panel.title}>
       <div className="head">
         <span className="cell-name">{panel.title}</span>
+        {panel.name === "DissolveSummary" && (
+          <span className="h-right badge b-signed">log sealed #88</span>
+        )}
+        {panel.name === "DoorMatrix" && (
+          <span className="h-right badge b-signed">same A2UI node, six renderers</span>
+        )}
+        {panel.name === "MessageTemplate" && (
+          <span className="h-right door">
+            <span>message</span>
+          </span>
+        )}
+        {panel.name === "NotificationCard" && (
+          <span className="h-right door">
+            <span>push</span>
+          </span>
+        )}
+        {panel.name === "Scorecard" && <span className="h-right badge b-measured">acceptance</span>}
         {panel.name === "CostMeter" && <span className="h-right badge b-measured">meter</span>}
         {panel.name === "LessonReview" && (
           <span className="h-right badge b-model">suggested by your agent</span>
         )}
       </div>
       <div className="demo">
-        {state && (
-          <PreviewState value={state.state}>
-            <One component={panel.name} props={state.props} />
-          </PreviewState>
+        {panel.name === "NotificationCard" ? (
+          <div className="f11-lockscreen">
+            <div className="f11-lockscreen-clock">
+              <div>11:58</div>
+              <span>Thursday 5 November</span>
+            </div>
+            <One
+              component="NotificationCard"
+              props={{
+                title: "Coalition 1",
+                body: "Plan A needs your answer by 14:00.",
+                link: "/room/1",
+              }}
+            />
+            <One
+              component="NotificationCard"
+              props={{
+                title: "Coalition 2",
+                body: "Everyone agreed. The plan is signed.",
+                link: "/room/2",
+              }}
+            />
+          </div>
+        ) : (
+          state && (
+            <PreviewState value={state.state}>
+              <One
+                component={panel.name}
+                props={
+                  panel.name === "MessageTemplate"
+                    ? {
+                        ...state.props,
+                        quickReplies: { value: 2, event_ref: "example:1" },
+                        params: [
+                          "Coalition 1",
+                          "A decision needs you: Plan A, by 14:00 today.",
+                          {
+                            replies: [
+                              { id: "open", label: "Open" },
+                              { id: "remind", label: "Remind me at 13:00" },
+                            ],
+                          },
+                        ],
+                      }
+                    : state.props
+                }
+              />
+            </PreviewState>
+          )
         )}
       </div>
       <div className="props">{panel.props}</div>
@@ -148,6 +210,7 @@ export function Sheet11() {
         </div>
         <div className="h-right">
           <span className="badge b-example">Example data</span>
+          <span className="scope">doors · notifications · dissolve · lessons</span>
         </div>
       </div>
       <Family n="11a" title="One component, every door">
@@ -171,7 +234,11 @@ export function Sheet11() {
           <div key={example.name}>
             {example.states
               .slice(
-                example.name === "CoalitionArchive" ? 2 : example.name === "MetricTile" ? 0 : 1,
+                example.name === "CoalitionArchive" || example.name === "NotificationCard"
+                  ? 2
+                  : example.name === "MetricTile"
+                    ? 0
+                    : 1,
               )
               .map((state) => (
                 <PreviewState key={state.state} value={state.state}>

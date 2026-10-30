@@ -86,6 +86,26 @@ function Panel({ panel }: { panel: (typeof panels)[number] }) {
     <div className={`cell${panel.span > 1 ? ` span${panel.span}` : ""}`} data-panel={panel.title}>
       <div className="head">
         <span className="cell-name">{panel.title}</span>
+        {panel.name === "DeviceReading" && (
+          <span className="h-right badge b-measured">device agent</span>
+        )}
+        {panel.name === "DeviceAlarm" && (
+          <span className="h-right door">
+            <span>lens</span>
+            <span>message</span>
+          </span>
+        )}
+        {panel.name === "MintPipeline" && (
+          <span className="h-right">
+            <span className="badge b-measured">measured</span>
+            <span className="st">target under 90 s</span>
+          </span>
+        )}
+        {panel.name === "CaptureCard" && (
+          <span className="h-right door">
+            <span>compact</span>
+          </span>
+        )}
       </div>
       <div className="demo">
         {state && (
