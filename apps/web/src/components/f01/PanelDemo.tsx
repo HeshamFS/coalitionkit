@@ -4,7 +4,7 @@ import { Drawn, One } from "../../gallery/Drawn";
 import { CommandPanel, ListPanel, TablePanel } from "./DataPanels";
 import { examples } from "./examples";
 import { InputPanels } from "./InputPanels";
-import { Files, Images } from "./MediaPanels";
+import { Files, Images, VideoPanel, VoiceNote } from "./MediaPanels";
 import { OverlayPanels } from "./OverlayPanels";
 import { SlotsPanel } from "./SlotsPanel";
 import type { Props } from "./shared";
@@ -69,6 +69,40 @@ const groups: Record<number, string[]> = {
   39: ["FileDrop"],
 };
 export function PanelDemo({ index }: { index: number }) {
+  if (index === 14)
+    return (
+      <Sample
+        name="FilterBar"
+        props={{
+          placeholder: "Filter offers",
+          resultLabel: "12 offers · 4 match your needs",
+          options: [
+            {
+              field: "Owner",
+              options: [
+                { value: "Member A", label: "Member A" },
+                { value: "Member B", label: "Member B" },
+              ],
+            },
+            { field: "Task", options: [{ value: "t1", label: "Task 1" }] },
+            { field: "Scope", options: [{ value: "coalition", label: "Coalition" }] },
+          ],
+        }}
+      />
+    );
+  if (index === 15)
+    return (
+      <One
+        component="DateTimeInput"
+        props={{
+          range: true,
+          mode: "date",
+          value: { path: "/range" },
+          busy: ["2026-11-10", "2026-11-11"],
+        }}
+        data={{ range: ["2026-11-12", "2026-11-14"] }}
+      />
+    );
   if (index === 18) return <TooltipPanel />;
   if (index === 16) return <SlotsPanel />;
   if (index === 26)
@@ -79,7 +113,14 @@ export function PanelDemo({ index }: { index: number }) {
           component="Progress"
           props={{ label: "Waiting for answers", value: bound(2), max: bound(3), steps: bound(3) }}
         />
-        <Sample name="Meter" props={{ label: "Resource at 64 % of hold" }} />
+        <One
+          component="Progress"
+          props={{ label: "Workflow", value: bound(2), stepLabels: ["Join", "Offer", "Decide"] }}
+        />
+        <Sample
+          name="Meter"
+          props={{ label: "Resource at 64 % of hold", caption: "29 of 45 min" }}
+        />
       </>
     );
   if (index === 17)
@@ -90,16 +131,31 @@ export function PanelDemo({ index }: { index: number }) {
           props={{
             label: "Decide by 22:40",
             deadline: "2026-10-30T22:40:00Z",
+            startedAt: "2026-10-30T21:51:35Z",
             consequence: "After this the plan goes back to planning",
           }}
         />
-        <Sample name="TimeZone" />
+        <One
+          component="TimeZone"
+          props={{
+            value: "Europe/Lisbon",
+            label: "Place 1 · WET, UTC+0",
+            at: "2026-11-12T22:40:00Z",
+            others: [
+              { participant: "Member B", tz: "Europe/Berlin" },
+              { participant: "Member C", tz: "Asia/Tokyo" },
+            ],
+          }}
+        />
       </>
     );
+  if (index === 29) return <Sample name="ErrorState" props={{ missedEvents: bound(3) }} />;
   if (index === 30) return <CommandPanel />;
   if (index === 31) return <TablePanel />;
   if (index === 32) return <ListPanel />;
   if (index === 36) return <Images />;
+  if (index === 37) return <VideoPanel />;
+  if (index === 38) return <VoiceNote />;
   if (index === 39) return <Files />;
   if (index >= 4 && index <= 13) return <InputPanels index={index} />;
   if (index >= 19 && index <= 24) return <OverlayPanels index={index} />;
@@ -115,9 +171,12 @@ const demos: Record<number, () => ReactNode> = {
       </div>
       <div className="row wrap">
         <B label="Sign as owner" variant="ink" />
+        <B label="Suggest a change" tone="soft" />
       </div>
       <div className="row wrap">
         <B label="Not now" variant="ghost" />
+        <B label="Leave coalition" tone="danger" />
+        <B label="Revoke" tone="danger-fill" />
       </div>
     </>
   ),
@@ -150,18 +209,18 @@ const demos: Record<number, () => ReactNode> = {
         <B label="Large 44" size="lg" variant="primary" />
       </div>
       <div className="row wrap">
-        <B label="Add an offer" />
-        <B label="Continue" />
+        <B label="Add an offer" icon="plus" />
+        <B label="Continue" trailingIcon="arrow" />
       </div>
-      <div className="row">
-        {[
-          ["More actions", "more"],
-          ["Copy the invite link", "copy"],
-          ["Close", "x"],
-        ].map(([ariaLabel, icon]) => (
-          <One key={icon} component="IconButton" props={{ ariaLabel, icon }} />
-        ))}
-      </div>
+      <Drawn
+        components={[
+          { id: "root", component: "Row", children: ["more", "copy", "close", "tip"] },
+          { id: "more", component: "IconButton", ariaLabel: "More actions", icon: "more" },
+          { id: "copy", component: "IconButton", ariaLabel: "Copy the invite link", icon: "copy" },
+          { id: "close", component: "IconButton", ariaLabel: "Close", icon: "x" },
+          { id: "tip", component: "Tooltip", target: "copy", tip: "Copy the invite link" },
+        ]}
+      />
     </>
   ),
   3: () => (
@@ -172,6 +231,7 @@ const demos: Record<number, () => ReactNode> = {
           ...["day", "week", "month"].map((id) => ({
             id,
             component: "Button",
+            ...(id === "week" ? { tone: "soft" } : {}),
             label: id[0]?.toUpperCase() + id.slice(1),
           })),
         ]}
@@ -238,6 +298,30 @@ const demos: Record<number, () => ReactNode> = {
           <One key={kind} component="Badge" props={{ kind, label }} />
         ))}
       </div>
+    </>
+  ),
+  35: () => (
+    <>
+      <div className="row wrap">
+        <One component="Chip" props={{ label: "Task" }} />
+        <One component="Chip" props={{ label: "Place ✓", selected: true }} />
+        <One component="Chip" props={{ label: "Set B", seat: "2" }} />
+        <One component="Chip" props={{ label: "+ Add a need", dashed: true }} />
+        <One component="Chip" props={{ label: "Blocked by charter", disabled: true }} />
+      </div>
+      <div className="row wrap small">
+        <One
+          component="Link"
+          props={{ text: "Read the charter", href: "https://example.invalid/charter" }}
+        />
+        <span>·</span>
+        <One component="Link" props={{ text: "log #42", href: "https://example.invalid/log/42" }} />
+        <span>·</span>
+        <span>
+          Press <kbd className="kbd">⌘</kbd> <kbd className="kbd">K</kbd> to jump anywhere
+        </span>
+      </div>
+      <One component="Divider" props={{ label: "earlier today" }} />
     </>
   ),
   34: () => (

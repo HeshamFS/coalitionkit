@@ -50,3 +50,36 @@ export function Files() {
     />
   );
 }
+
+const bound = (value: number) => ({ value, event_ref: "example" });
+export function VoiceNote() {
+  return (
+    <One
+      component="AudioPlayer"
+      props={{
+        duration: bound(19),
+        elapsed: bound(7),
+        waveform: [8, 16, 22, 12, 18, 26, 14, 9, 20, 24, 12, 17, 8, 22, 14, 10, 19, 7, 15, 11].map(
+          (n) => bound(n / 26),
+        ),
+        transcript: { path: "/transcript" },
+      }}
+      data={{ transcript: '"I can take the early task but not the later transfer…"' }}
+    />
+  );
+}
+const poster = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 150"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#24324a"/><stop offset="1" stop-color="#0e1726"/></linearGradient></defs><path fill="url(#g)" d="M0 0h300v150H0z"/><rect x="110" y="40" width="80" height="60" rx="6" fill="#33445f"/><rect x="122" y="52" width="56" height="36" rx="3" fill="#e0703a" opacity=".85"/></svg>')}`;
+export function VideoPanel() {
+  return (
+    <One
+      component="Video"
+      props={{
+        duration: bound(37),
+        elapsed: bound(14),
+        poster: { path: "/poster" },
+        caption: "Resource leaving the station at 1 150 units",
+      }}
+      data={{ poster }}
+    />
+  );
+}

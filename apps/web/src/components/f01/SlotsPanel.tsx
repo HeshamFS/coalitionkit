@@ -16,13 +16,14 @@ export function SlotsPanel() {
         days: days.map(([date, times, states]) => ({
           date,
           slots: times.map((time, i) => ({
-            start: `2026-11-${date.slice(-2)}T${time}:00Z`,
+            start: `2025-11-${date.slice(-2)}T${time}:00Z`,
             state: states[i],
           })),
         })),
-        selected: "2026-11-13T09:00:00Z",
+        selected: "2025-11-13T09:00:00Z",
         duration: { value: 30, event_ref: "example" },
         source: "psi_match",
+        participants: { value: 3, event_ref: "example" },
       }}
     />
   );

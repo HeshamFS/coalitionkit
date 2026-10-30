@@ -4,6 +4,8 @@ import { number, obj, shown, str } from "./shared";
 import { shortTime } from "./time";
 export function DataCell({ value, format }: { value: unknown; format?: string }) {
   const record = obj(value);
+  if (record.redacted)
+    return <span className="f01-redacted" role="img" aria-label="Private value" />;
   if (format === "scope") return <ScopeBadge audience={shown(value)} />;
   if (format === "status") {
     const label = shown(value);

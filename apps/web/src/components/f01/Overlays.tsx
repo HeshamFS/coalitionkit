@@ -269,6 +269,12 @@ export function Tooltip({ p }: ViewProps) {
   return (
     <span id={id} role="tooltip" className="f01-tooltip" hidden={!open}>
       {str(p.tip)}
+      {p.shortcut ? (
+        <>
+          {" "}
+          <kbd className="kbd">{str(p.shortcut)}</kbd>
+        </>
+      ) : null}
     </span>
   );
 }

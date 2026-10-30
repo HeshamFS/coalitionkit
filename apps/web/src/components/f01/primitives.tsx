@@ -235,6 +235,8 @@ export function Button({
   forceState,
   fill,
   hint,
+  icon,
+  trailingIcon,
 }: {
   label: string;
   variant?: ButtonVariant;
@@ -246,6 +248,8 @@ export function Button({
   forceState?: ForcedState;
   fill?: boolean;
   hint?: string;
+  icon?: ReactNode;
+  trailingIcon?: ReactNode;
 }) {
   const cls = cx(
     "btn",
@@ -268,7 +272,9 @@ export function Button({
       onClick={busy ? undefined : onClick}
     >
       {busy && <span className="spinner" aria-hidden="true" />}
+      {!busy && icon}
       {label}
+      {trailingIcon}
     </button>
   );
 }

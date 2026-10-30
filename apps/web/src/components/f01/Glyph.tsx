@@ -3,6 +3,14 @@ import type { ReactNode } from "react";
 import { Icon } from "../../ui/Icon";
 
 const extra: Record<string, ReactNode> = {
+  calendar: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
+  filter: <path d="M4 5h16l-6 8v6l-4-2v-4z" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   edit: <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />,
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />,
   right: <path d="M9 6l6 6-6 6" />,

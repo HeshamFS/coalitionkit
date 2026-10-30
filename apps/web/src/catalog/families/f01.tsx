@@ -15,7 +15,14 @@ const children = CommonSchemas.ChildList;
 const choice = (values: [string, ...string[]]) => literal(z.enum(values));
 const api = (name: string, shape: z.ZodRawShape) => ({ name, schema: z.object(shape) });
 export const apis = [
-  api("AudioPlayer", { src: binding.optional(), title: text.optional() }),
+  api("AudioPlayer", {
+    src: binding.optional(),
+    title: text.optional(),
+    duration: literal(Bound).optional(),
+    elapsed: literal(Bound).optional(),
+    waveform: array.optional(),
+    transcript: binding.optional(),
+  }),
   api("Avatar", {
     label: text,
     presence: choice(["live", "away", "off"]).optional(),
@@ -35,6 +42,9 @@ export const apis = [
     tone: choice(["info", "ask", "blocked", "agreed"]).optional(),
   }),
   api("Button", {
+    tone: choice(["soft", "danger", "danger-fill"]).optional(),
+    icon: text.optional(),
+    trailingIcon: text.optional(),
     action: object.optional(),
     busy: flag.optional(),
     disabled: flag.optional(),
@@ -52,8 +62,19 @@ export const apis = [
     title: text.optional(),
     tone: choice(["default", "live", "ask", "dashed"]).optional(),
   }),
-  api("CheckBox", { label: text, value: binding.optional() }),
-  api("Chip", { label: text, seat: text.optional(), selected: flag.optional() }),
+  api("CheckBox", {
+    label: text,
+    value: binding.optional(),
+    description: text.optional(),
+    disabled: flag.optional(),
+  }),
+  api("Chip", {
+    disabled: flag.optional(),
+    dashed: flag.optional(),
+    label: text,
+    seat: text.optional(),
+    selected: flag.optional(),
+  }),
   api("ChoicePicker", {
     display: choice(["chips", "menu"]).optional(),
     multiple: flag.optional(),
@@ -66,12 +87,21 @@ export const apis = [
     query: binding.optional(),
   }),
   api("DateTimeInput", {
+    range: flag.optional(),
+    busy: array.optional(),
+    min: text.optional(),
+    max: text.optional(),
     mode: choice(["date", "time", "datetime"]).optional(),
     tz: text.optional(),
     value: binding.optional(),
   }),
-  api("Deadline", { consequence: text, deadline: text.optional(), label: text }),
-  api("Divider", {}),
+  api("Deadline", {
+    startedAt: text.optional(),
+    consequence: text,
+    deadline: text.optional(),
+    label: text,
+  }),
+  api("Divider", { label: text.optional() }),
   api("Drawer", {
     body: children.optional(),
     footer: children.optional(),
@@ -86,6 +116,7 @@ export const apis = [
     title: text,
   }),
   api("ErrorState", {
+    missedEvents: literal(Bound).optional(),
     cause: text.optional(),
     details: object.optional(),
     lastSeen: text.optional(),
@@ -97,6 +128,9 @@ export const apis = [
     target: binding.optional(),
   }),
   api("FilterBar", {
+    options: array.optional(),
+    placeholder: text.optional(),
+    resultLabel: text.optional(),
     filters: array.optional(),
     groupBy: text.optional(),
     query: binding.optional(),
@@ -137,6 +171,7 @@ export const apis = [
   }),
   api("Menu", { items: array.optional() }),
   api("Meter", {
+    caption: text.optional(),
     bands: array.optional(),
     label: text,
     max: literal(Bound).optional(),
@@ -152,6 +187,8 @@ export const apis = [
     title: text,
   }),
   api("NumberField", {
+    currency: text.optional(),
+    help: text.optional(),
     label: text,
     max: literal(Bound).optional(),
     min: literal(Bound).optional(),
@@ -174,6 +211,7 @@ export const apis = [
     title: text,
   }),
   api("Progress", {
+    stepLabels: array.optional(),
     label: text,
     max: literal(Bound).optional(),
     min: literal(Bound).optional(),
@@ -209,6 +247,9 @@ export const apis = [
     state: choice(["skeleton", "filled", "live", "rest", "changed"]).optional(),
   }),
   api("Slider", {
+    marks: array.optional(),
+    format: choice(["number", "time"]).optional(),
+    valueLabel: text.optional(),
     max: literal(Bound).optional(),
     min: literal(Bound).optional(),
     step: literal(Bound).optional(),
@@ -216,6 +257,7 @@ export const apis = [
     value: binding.optional(),
   }),
   api("SlotPicker", {
+    participants: literal(Bound).optional(),
     days: array.optional(),
     duration: literal(Bound).optional(),
     selected: text.optional(),
@@ -223,8 +265,23 @@ export const apis = [
   }),
   api("Spinner", { label: text.optional() }),
   api("SplitButton", { items: array.optional(), primary: text.optional() }),
-  api("Switch", { label: text, value: binding.optional() }),
-  api("Table", { columns: array.optional(), rows: binding.optional(), sortable: flag.optional() }),
+  api("Switch", {
+    label: text,
+    value: binding.optional(),
+    description: text.optional(),
+    disabled: flag.optional(),
+  }),
+  api("Table", {
+    selection: choice(["none", "one", "many"]).optional(),
+    selected: array.optional(),
+    total: literal(Bound).optional(),
+    page: literal(Bound).optional(),
+    pageSize: literal(Bound).optional(),
+    action: object.optional(),
+    columns: array.optional(),
+    rows: binding.optional(),
+    sortable: flag.optional(),
+  }),
   api("Tabs", {
     options: array.optional(),
     panels: children.optional(),
@@ -241,27 +298,40 @@ export const apis = [
     variant: choice(["body", "caption"]).optional(),
   }),
   api("TextArea", {
+    decorations: array.optional(),
+    placeholder: text.optional(),
     error: binding.optional(),
     label: text,
     maxLength: literal(Bound).optional(),
     value: binding.optional(),
   }),
   api("TextField", {
+    help: text.optional(),
+    readOnly: flag.optional(),
+    private: flag.optional(),
     error: binding.optional(),
     label: text,
     maxLength: literal(Bound).optional(),
     placeholder: text.optional(),
     value: binding.optional(),
   }),
-  api("TimeZone", { others: array.optional(), value: text.optional() }),
+  api("TimeZone", {
+    at: text.optional(),
+    label: text.optional(),
+    others: array.optional(),
+    value: text.optional(),
+  }),
   api("Toast", {
     action: object.optional(),
     text: text,
     tone: choice(["done", "change", "error"]).optional(),
     undoWindow: literal(Bound).optional(),
   }),
-  api("Tooltip", { target: text.optional(), tip: text.optional() }),
+  api("Tooltip", { shortcut: text.optional(), target: text.optional(), tip: text.optional() }),
   api("Video", {
+    duration: literal(Bound).optional(),
+    elapsed: literal(Bound).optional(),
+    caption: text.optional(),
     captions: binding.optional(),
     poster: binding.optional(),
     src: binding.optional(),

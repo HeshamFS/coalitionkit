@@ -98,7 +98,7 @@ describe("catalog actions", () => {
     const { dispatch } = draw("FilterBar");
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "open" } });
     event(dispatch, "filter.change");
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: "Newest first" }));
     event(dispatch, "sort.change", { dir: "asc" });
   });
   it.each(["Modal", "Sheet", "Drawer", "Popover"])("%s closes by keyboard", (name) => {

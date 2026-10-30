@@ -48,6 +48,22 @@
     "title": {
      "type": "string",
      "doc": "string?"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Bound media duration in seconds."
+    },
+    "elapsed": {
+     "type": "number",
+     "doc": "Bound initial playback position in seconds."
+    },
+    "waveform": {
+     "type": "array",
+     "doc": "Bound amplitude samples for the voice waveform, from zero to one."
+    },
+    "transcript": {
+     "type": "binding",
+     "doc": "Plain-text transcript from the host."
     }
    }
   },
@@ -253,6 +269,23 @@
       "ghost"
      ],
      "doc": "primary | secondary | ink | ghost"
+    },
+    "tone": {
+     "type": "enum",
+     "values": [
+      "soft",
+      "danger",
+      "danger-fill"
+     ],
+     "doc": "Optional soft or destructive treatment shown by the control sheet."
+    },
+    "icon": {
+     "type": "string",
+     "doc": "Optional leading icon name."
+    },
+    "trailingIcon": {
+     "type": "string",
+     "doc": "Optional trailing icon name."
     }
    }
   },
@@ -367,6 +400,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Supporting description beneath the label."
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disable changes to the value."
     }
    }
   },
@@ -399,6 +440,14 @@
     "selected": {
      "type": "boolean",
      "doc": "boolean?"
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disabled chip."
+    },
+    "dashed": {
+     "type": "boolean",
+     "doc": "Dashed add-item treatment."
     }
    }
   },
@@ -535,6 +584,22 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "range": {
+     "type": "boolean",
+     "doc": "Select a start and end date from the calendar."
+    },
+    "busy": {
+     "type": "array",
+     "doc": "Unavailable ISO dates from the private calendar match, without names."
+    },
+    "min": {
+     "type": "datetime",
+     "doc": "Earliest selectable date."
+    },
+    "max": {
+     "type": "datetime",
+     "doc": "Latest selectable date."
     }
    }
   },
@@ -567,6 +632,10 @@
      "type": "string",
      "required": true,
      "doc": "string"
+    },
+    "startedAt": {
+     "type": "datetime",
+     "doc": "Start of the decision window, used for elapsed progress."
     }
    }
   },
@@ -583,7 +652,12 @@
     "default"
    ],
    "events": [],
-   "props": {}
+   "props": {
+    "label": {
+     "type": "string",
+     "doc": "Optional text between the dividing rules."
+    }
+   }
   },
   "Drawer": {
    "family": "01",
@@ -685,6 +759,10 @@
     "retry": {
      "type": "boolean",
      "doc": "bool"
+    },
+    "missedEvents": {
+     "type": "number",
+     "doc": "Bound count of missed events that will replay during reconnection."
     }
    }
   },
@@ -752,6 +830,18 @@
     "sort": {
      "type": "object",
      "doc": "{field, dir}"
+    },
+    "options": {
+     "type": "array",
+     "doc": "Available filter groups {field, label, options: [{value, label}]}."
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Search input placeholder."
+    },
+    "resultLabel": {
+     "type": "string",
+     "doc": "Host-provided summary of the current result count and matches."
     }
    }
   },
@@ -1114,6 +1204,10 @@
      "type": "number",
      "required": true,
      "doc": "path"
+    },
+    "caption": {
+     "type": "string",
+     "doc": "Secondary measurement caption below the label."
     }
    }
   },
@@ -1191,6 +1285,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "currency": {
+     "type": "string",
+     "doc": "Currency prefix before the number."
+    },
+    "help": {
+     "type": "string",
+     "doc": "Supporting text beneath the numeric input."
     }
    }
   },
@@ -1328,6 +1430,10 @@
      "type": "number",
      "required": true,
      "doc": "path (0..1)"
+    },
+    "stepLabels": {
+     "type": "array",
+     "doc": "Ordered labels for a numbered workflow; value is the active step."
     }
    }
   },
@@ -1606,6 +1712,22 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "marks": {
+     "type": "array",
+     "doc": "Tick marks {at: bound number, label, tone?}."
+    },
+    "format": {
+     "type": "enum",
+     "values": [
+      "number",
+      "time"
+     ],
+     "doc": "Format numeric values as numbers or minutes since midnight."
+    },
+    "valueLabel": {
+     "type": "string",
+     "doc": "Optional output caption, such as the participant floor."
     }
    }
   },
@@ -1641,6 +1763,10 @@
     "source": {
      "type": "string",
      "doc": "psi_match"
+    },
+    "participants": {
+     "type": "number",
+     "doc": "Bound participant count from the private calendar match."
     }
    }
   },
@@ -1709,6 +1835,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "description": {
+     "type": "string",
+     "doc": "Supporting description beneath the label."
+    },
+    "disabled": {
+     "type": "boolean",
+     "doc": "Disable changes to the value."
     }
    }
   },
@@ -1726,7 +1860,10 @@
    ],
    "events": [
     "sort(key)",
-    "open(row)"
+    "open(row)",
+    "table.action(ids)",
+    "table.page(page)",
+    "select(ids)"
    ],
    "props": {
     "columns": {
@@ -1740,6 +1877,35 @@
     "sortable": {
      "type": "boolean",
      "doc": "boolean?"
+    },
+    "selection": {
+     "type": "enum",
+     "values": [
+      "none",
+      "one",
+      "many"
+     ],
+     "doc": "Row selection mode."
+    },
+    "selected": {
+     "type": "array",
+     "doc": "Selected row identifiers."
+    },
+    "total": {
+     "type": "number",
+     "doc": "Bound total result count from the host."
+    },
+    "page": {
+     "type": "number",
+     "doc": "Bound current page, starting at one."
+    },
+    "pageSize": {
+     "type": "number",
+     "doc": "Bound maximum rows per page."
+    },
+    "action": {
+     "type": "object",
+     "doc": "Optional bulk action {label}; invokes table.action with selected identifiers."
     }
    }
   },
@@ -1892,6 +2058,14 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "decorations": {
+     "type": "array",
+     "doc": "Plain-text decorations {text, kind: bold | mention}; editing remains plain text."
+    },
+    "placeholder": {
+     "type": "string",
+     "doc": "Placeholder while the text area is empty."
     }
    }
   },
@@ -1935,6 +2109,18 @@
     "value": {
      "type": "binding",
      "doc": "path"
+    },
+    "help": {
+     "type": "string",
+     "doc": "Supporting text beneath the input."
+    },
+    "readOnly": {
+     "type": "boolean",
+     "doc": "Read-only input."
+    },
+    "private": {
+     "type": "boolean",
+     "doc": "Display a vault placeholder instead of the bound value."
     }
    }
   },
@@ -1958,6 +2144,14 @@
     "value": {
      "type": "string",
      "doc": "IANA tz"
+    },
+    "at": {
+     "type": "datetime",
+     "doc": "Instant shown in each participant time zone."
+    },
+    "label": {
+     "type": "string",
+     "doc": "Viewer time-zone display label."
     }
    }
   },
@@ -2020,6 +2214,10 @@
     "tip": {
      "type": "string",
      "doc": "string"
+    },
+    "shortcut": {
+     "type": "string",
+     "doc": "Optional keyboard shortcut displayed in the tooltip."
     }
    }
   },
@@ -2050,6 +2248,18 @@
     "src": {
      "type": "binding",
      "doc": "path"
+    },
+    "duration": {
+     "type": "number",
+     "doc": "Bound media duration in seconds."
+    },
+    "elapsed": {
+     "type": "number",
+     "doc": "Bound initial playback position in seconds."
+    },
+    "caption": {
+     "type": "string",
+     "doc": "Current plain-text caption supplied by the host."
     }
    }
   },

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
 import { Glyph } from "./Glyph";
+import { Player } from "./Player";
 import { number, rows, str, type ViewProps } from "./shared";
 
 export function Media({ name, p, send }: ViewProps) {
@@ -36,30 +37,7 @@ export function Media({ name, p, send }: ViewProps) {
         ) : null}
       </figure>
     );
-  const events = {
-    onPlay: () => send("media.play"),
-    onPause: () => send("media.pause"),
-    onSeeked: (e: React.SyntheticEvent<HTMLMediaElement>) =>
-      send("media.seek", { t: e.currentTarget.currentTime }),
-  };
-  return name === "Video" ? (
-    <video
-      className="f01-video"
-      controls
-      src={src || undefined}
-      poster={str(p.poster) || undefined}
-      {...events}
-    >
-      <track kind="captions" src={str(p.captions) || undefined} label="Captions" default />
-    </video>
-  ) : (
-    <div className="card">
-      <span className="small">{str(p.title)}</span>
-      <audio controls src={src || undefined} {...events}>
-        <track kind="captions" />
-      </audio>
-    </div>
-  );
+  return <Player name={name} p={p} send={send} />;
 }
 
 export function FileDrop({ p, send }: ViewProps) {
@@ -131,7 +109,7 @@ export function FileDrop({ p, send }: ViewProps) {
       {rows(p.target).map((file) => (
         <div className="f01-file" key={str(file.id, str(file.name))}>
           <span className="f01-file-ext">{str(file.name).split(".").pop()?.toUpperCase()}</span>
-          <div className="col grow" style={{ gap: 3 }}>
+          <div className="col grow" style={{ gap: file.progress !== undefined ? 3 : 0 }}>
             <span className="h-title">{str(file.name)}</span>
             {file.progress !== undefined ? (
               <div

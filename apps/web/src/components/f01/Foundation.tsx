@@ -2,8 +2,10 @@
 import type { ComponentContext } from "@a2ui/web_core/v0_9";
 import type { ComponentProps } from "react";
 import type { IconName } from "../../ui/Icon";
+import { Calendar } from "./Calendar";
 import { DataDisplay, Gauge, Rich, Slots, Time } from "./Data";
-import { Choices, Field, Filter, Search, Toggle } from "./Forms";
+import { Filter } from "./Filter";
+import { Choices, Field, Search, Toggle } from "./Forms";
 import { Banner, EmptyState, ErrorState, Skeleton, Toast } from "./feedback";
 import { Glyph as Icon } from "./Glyph";
 import { FileDrop, Media } from "./Media";
@@ -14,6 +16,9 @@ import { Children, dispatch, number, obj, type Props, rows, str, type ViewProps 
 import "../../styles/f01.css";
 import "./details.css";
 import "./choice.css";
+import "./calendar.css";
+import "./round4.css";
+import "./media.css";
 
 export function Foundation({
   name,
@@ -90,7 +95,9 @@ function primitive(args: ViewProps) {
       return (
         <P.Button
           label={str(p.label)}
-          variant={p.variant as P.ButtonVariant}
+          variant={(p.tone ?? p.variant) as P.ButtonVariant}
+          icon={p.icon ? <Icon name={str(p.icon)} /> : undefined}
+          trailingIcon={p.trailingIcon ? <Icon name={str(p.trailingIcon)} /> : undefined}
           size={p.size as "sm" | "md" | "lg"}
           disabled={!!p.disabled}
           busy={!!p.busy}
@@ -240,15 +247,25 @@ function feedback(args: ViewProps) {
       );
     case "ErrorState":
       return (
-        <ErrorState
-          cause={str(p.cause)}
-          retry={p.retry !== false}
-          lastSeen={str(p.lastSeen)}
-          details={
-            p.details ? { code: str(obj(p.details).code), ref: str(obj(p.details).ref) } : undefined
-          }
-          onRetry={() => send("error.retry")}
-        />
+        <>
+          <ErrorState
+            cause={str(p.cause)}
+            retry={p.retry !== false}
+            lastSeen={str(p.lastSeen)}
+            details={
+              p.details
+                ? { code: str(obj(p.details).code), ref: str(obj(p.details).ref) }
+                : undefined
+            }
+            onRetry={() => send("error.retry")}
+          />
+          {p.missedEvents !== undefined && (
+            <div className="f01-reconnecting" role="status">
+              <span className="spinner" />
+              Reconnecting · <b>{number(p.missedEvents)} missed events</b> will replay
+            </div>
+          )}
+        </>
       );
     case "Skeleton":
       return (
@@ -264,12 +281,22 @@ function feedback(args: ViewProps) {
     case "Spinner":
       return <span role="status" aria-label={str(p.label, "Loading")} className="spinner" />;
     case "Divider":
-      return <hr className="f01-divider" />;
+      return p.label ? (
+        <div className="row">
+          <hr className="f01-divider" />
+          <span className="st f01-divider-label">{str(p.label)}</span>
+          <hr className="f01-divider" />
+        </div>
+      ) : (
+        <hr className="f01-divider" />
+      );
     case "Chip":
       return (
         <button
           type="button"
           className={`chip ${p.selected ? "chip-on" : ""}`}
+          disabled={!!p.disabled}
+          style={p.dashed ? { borderStyle: "dashed" } : undefined}
           aria-pressed={!!p.selected}
           onClick={() => send("select", { id: p.id })}
         >
@@ -301,8 +328,9 @@ function interactive(args: ViewProps) {
     case "TextField":
     case "TextArea":
     case "NumberField":
-    case "DateTimeInput":
       return <Field {...args} />;
+    case "DateTimeInput":
+      return args.p.range ? <Calendar {...args} /> : <Field {...args} />;
     case "Slider":
       return <Slider {...args} />;
     case "CheckBox":

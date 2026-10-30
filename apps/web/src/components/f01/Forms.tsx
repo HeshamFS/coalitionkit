@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ChoiceMenu } from "./ChoiceMenu";
 import { Glyph } from "./Glyph";
 import { Avatar } from "./primitives";
 import { number, obj, rows, shown, str, type ViewProps } from "./shared";
+import { Textarea } from "./Textarea";
 
 export function Field({ name, p, send }: ViewProps) {
   const id = useId();
@@ -19,24 +20,21 @@ export function Field({ name, p, send }: ViewProps) {
   };
   const common = {
     id,
-    value,
+    value: p.private ? "Kept in your vault" : value,
+    readOnly: !!p.readOnly || !!p.private,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       change(e.target.value),
     "aria-invalid": !!error,
-    "aria-describedby": error ? `${id}-error` : undefined,
+    "aria-describedby":
+      [error && `${id}-error`, p.help && `${id}-help`].filter(Boolean).join(" ") || undefined,
     className: "f01-input",
     maxLength: number(p.maxLength) || undefined,
   };
   return (
-    <div className="f01-field">
-      <label htmlFor={id}>
-        {str(
-          p.label,
-          name === "DateTimeInput" ? "Date and time" : name === "Slider" ? "Value" : name,
-        )}
-      </label>
+    <div className={`f01-field${p.private ? " f01-field-private" : ""}`}>
+      <label htmlFor={id}>{str(p.label, name === "DateTimeInput" ? "Date and time" : name)}</label>
       {name === "TextArea" ? (
-        <textarea {...common} rows={3} />
+        <Textarea common={common} p={p} />
       ) : (
         <div className={name === "NumberField" && !p.unit ? "f01-number" : "row"}>
           {name === "NumberField" && !p.unit && (
@@ -53,6 +51,8 @@ export function Field({ name, p, send }: ViewProps) {
               −
             </button>
           )}
+          {p.private ? <Glyph name="lock" size="sm" /> : null}
+          {p.currency ? <span className="f01-currency">{str(p.currency)}</span> : null}
           <input
             {...common}
             placeholder={str(p.placeholder)}
@@ -67,11 +67,24 @@ export function Field({ name, p, send }: ViewProps) {
                       : str(p.mode, "date")
                     : "text"
             }
-            min={p.min === undefined ? undefined : number(p.min)}
-            max={p.max ? number(p.max) : undefined}
+            min={
+              p.min === undefined
+                ? undefined
+                : name === "DateTimeInput"
+                  ? str(p.min)
+                  : number(p.min)
+            }
+            max={
+              p.max === undefined
+                ? undefined
+                : name === "DateTimeInput"
+                  ? str(p.max)
+                  : number(p.max)
+            }
             step={number(p.step, 1)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && name === "TextField") send("submit", { value });
+              if (e.key === "Enter" && name === "TextField" && !p.private)
+                send("submit", { value });
             }}
           />
           {name === "NumberField" && !p.unit && (
@@ -92,9 +105,15 @@ export function Field({ name, p, send }: ViewProps) {
       {p.tz ? <span className="small">{str(p.tz)}</span> : null}
       {error && (
         <span id={`${id}-error`} className="f01-error" role="alert">
+          <Glyph name="information" size="sm" />
           {error}
         </span>
       )}
+      {p.help ? (
+        <span id={`${id}-help`} className="f01-help">
+          {str(p.help)}
+        </span>
+      ) : null}
       {name === "TextArea" && number(p.maxLength) > 0 && (
         <span className="st">
           {value.length} / {number(p.maxLength)}
@@ -108,14 +127,15 @@ export function Toggle({ name, p, send }: ViewProps) {
   const [value, setValue] = useState(p.value);
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => setValue(p.value), [p.value]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (ref.current) ref.current.indeterminate = value === "mixed";
-  }, [value]);
+  });
   return (
-    <label className="f01-toggle">
+    <label className={`f01-toggle${name === "Switch" ? " f01-setting" : ""}`}>
       <input
         type="checkbox"
         ref={ref}
+        disabled={!!p.disabled}
         role={name === "Switch" ? "switch" : undefined}
         checked={value === true}
         aria-checked={value === "mixed" ? "mixed" : value === true}
@@ -124,7 +144,10 @@ export function Toggle({ name, p, send }: ViewProps) {
           send("change", { value: e.target.checked });
         }}
       />
-      <span>{str(p.label)}</span>
+      <span className="f01-toggle-copy">
+        <span>{str(p.label)}</span>
+        {p.description ? <span className="small">{str(p.description)}</span> : null}
+      </span>
     </label>
   );
 }
@@ -189,20 +212,35 @@ export function Choices({ name, p, send, build }: ViewProps) {
   );
 }
 
+function searchGroups(p: ViewProps["p"], query: string) {
+  return rows(obj(p.query).groups ?? p.groups)
+    .map((group) => ({
+      label: str(group.label),
+      items: rows(group.items)
+        .filter(
+          (i) =>
+            !query.trim() ||
+            query
+              .toLowerCase()
+              .split(/\s+/)
+              .some((word) => str(i.label).toLowerCase().includes(word)),
+        )
+        .sort(
+          (a, b) =>
+            Number(str(b.label).toLowerCase().includes(query.toLowerCase())) -
+            Number(str(a.label).toLowerCase().includes(query.toLowerCase())),
+        ),
+    }))
+    .filter((group) => group.items.length);
+}
+
 export function Search({ name, p, send }: ViewProps) {
   const incoming = str(p.query, str(obj(p.query).text));
   const [query, setQuery] = useState(incoming);
   useEffect(() => setQuery(incoming), [incoming]);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(true);
-  const groups = rows(obj(p.query).groups ?? p.groups)
-    .map((group) => ({
-      label: str(group.label),
-      items: rows(group.items).filter((i) =>
-        str(i.label).toLowerCase().includes(query.toLowerCase()),
-      ),
-    }))
-    .filter((group) => group.items.length);
+  const groups = searchGroups(p, query);
   const items = groups.flatMap((g) => g.items);
   const pick = (id: string) =>
     send(name === "CommandPalette" ? "command.run" : "search.pick", { id });
@@ -274,9 +312,9 @@ export function Search({ name, p, send }: ViewProps) {
               <button type="button" onClick={() => send("command.ask", { text: query })}>
                 <Avatar label="You" seat="steward" size="xs" />
                 <span>
-                  <b>“{query}…”</b> ask your agent in words
+                  "<b>{query}</b>…" ask your agent in words
                 </span>
-                <kbd className="kbd">↵</kbd>
+                <kbd className="kbd">⇥</kbd>
               </button>
             </>
           )}
@@ -300,51 +338,17 @@ export function Search({ name, p, send }: ViewProps) {
 }
 
 function Match({ text, query }: { text: string; query: string }) {
-  const index = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
+  const match = text.toLowerCase().includes(query.toLowerCase())
+    ? query
+    : (query.split(/\s+/).find((word) => text.toLowerCase().includes(word.toLowerCase())) ?? "");
+  const index = match ? text.toLowerCase().indexOf(match.toLowerCase()) : -1;
   return index < 0 ? (
     text
   ) : (
     <>
       {text.slice(0, index)}
-      <b>{text.slice(index, index + query.length)}</b>
-      {text.slice(index + query.length)}
+      <b>{text.slice(index, index + match.length)}</b>
+      {text.slice(index + match.length)}
     </>
-  );
-}
-
-export function Filter({ p, send }: ViewProps) {
-  const [query, setQuery] = useState(str(p.query));
-  useEffect(() => setQuery(str(p.query)), [p.query]);
-  return (
-    <div className="f01-filter">
-      <input
-        className="f01-input"
-        aria-label="Filter"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          send("filter.change", { query: e.target.value, filters: p.filters });
-        }}
-      />
-      {rows(p.filters).map((f) => (
-        <span className="chip chip-on" key={str(f.field)}>
-          {str(f.field)} {str(f.op)} {shown(f.value)}
-        </span>
-      ))}
-      <button
-        className="btn btn-sm"
-        type="button"
-        onClick={() =>
-          send("sort.change", {
-            field: obj(p.sort).field,
-            dir: obj(p.sort).dir === "asc" ? "desc" : "asc",
-          })
-        }
-      >
-        Sort: {str(obj(p.sort).field, "Updated")}
-      </button>
-      <span className="small">{shown(p.resultCount)} results</span>
-      {p.groupBy ? <span className="chip">Group: {str(p.groupBy)}</span> : null}
-    </div>
   );
 }

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
-import { DataCell } from "./DataCell";
+import { Glyph } from "./Glyph";
 import { Avatar, Badge, type BadgeKind, ScopeBadge, type Seat } from "./primitives";
 import { number, obj, rows, shown, str, type ViewProps } from "./shared";
+import { TableView } from "./TableView";
 import { shortTime } from "./time";
+import { Zone } from "./Zone";
 
 export function DataDisplay({ name, p, send, build }: ViewProps) {
   if (name === "KeyValue")
@@ -12,7 +14,7 @@ export function DataDisplay({ name, p, send, build }: ViewProps) {
         {rows(p.pairs).map((r) => (
           <div className="f01-pair" key={str(r.label)}>
             <dt>{str(r.label)}</dt>
-            <dd>
+            <dd className={r.format === "mono" ? "f01-kv-mono" : undefined}>
               {shown(r.value)}
               {typeof r.provenance === "string" && (
                 <>
@@ -31,49 +33,7 @@ export function DataDisplay({ name, p, send, build }: ViewProps) {
         ))}
       </dl>
     );
-  if (name === "Table")
-    return (
-      <div className="f01-table-scroll">
-        <table className="f01-table">
-          <thead>
-            <tr>
-              {rows(p.columns).map((c) => (
-                <th key={str(c.key)} style={{ textAlign: c.align === "right" ? "right" : "left" }}>
-                  {p.sortable && c.sortable !== false ? (
-                    <button type="button" onClick={() => send("sort", { key: c.key })}>
-                      {str(c.label)} ↕
-                    </button>
-                  ) : (
-                    str(c.label)
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows(p.rows).map((r, index) => (
-              <tr key={str(r.id, String(index))}>
-                {rows(p.columns).map((c, i) => (
-                  <td
-                    key={str(c.key)}
-                    style={{ textAlign: c.align === "right" ? "right" : "left" }}
-                  >
-                    {i === 0 ? (
-                      <button type="button" onClick={() => send("open", { row: r })}>
-                        <DataCell value={r[str(c.key)]} format={str(c.format)} />
-                      </button>
-                    ) : (
-                      <DataCell value={r[str(c.key)]} format={str(c.format)} />
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!rows(p.rows).length && <span className="small">No rows</span>}
-      </div>
-    );
+  if (name === "Table") return <TableView p={p} send={send} />;
   const items = rows(p.items).slice(0, Math.max(0, number(p.max, 50)));
   return (
     <div className="f01-list">
@@ -126,6 +86,21 @@ export function Gauge({ name, p }: ViewProps) {
   const provenance = p.provenance ? (
     <Badge kind={p.provenance as BadgeKind} label={str(p.provenance)} />
   ) : null;
+  if (Array.isArray(p.stepLabels))
+    return (
+      <ol className="f01-steps" aria-label={str(p.label)}>
+        {p.stepLabels.map((label, index) => (
+          <li
+            key={str(label)}
+            className={index + 1 < value ? "is-done" : index + 1 === value ? "is-current" : ""}
+            aria-current={index + 1 === value ? "step" : undefined}
+          >
+            <i>{index + 1 < value ? "✓" : index + 1}</i>
+            {str(label)}
+          </li>
+        ))}
+      </ol>
+    );
   if (name === "Meter")
     return (
       <div className={`row f01-gauge f01-meter f01-tone-${str(band?.tone, "ok")}`}>
@@ -163,6 +138,7 @@ export function Gauge({ name, p }: ViewProps) {
         </svg>
         <div className="col" style={{ gap: 0 }}>
           <span className="lbl">{str(p.label)}</span>
+          {p.caption ? <span className="small">{str(p.caption)}</span> : null}
           {provenance}
         </div>
       </div>
@@ -237,7 +213,7 @@ export function Slots({ p, send }: ViewProps) {
       <div className="row wrap f01-slot-legend">
         <span className="row small">
           <i className="f01-slot f01-slot-shared" />
-          free for everyone
+          {p.participants ? `free for all ${number(p.participants)} members` : "free for everyone"}
         </span>
         <span className="row small">
           <i className="f01-slot" />
@@ -247,6 +223,16 @@ export function Slots({ p, send }: ViewProps) {
           <i className="f01-slot f01-slot-off" />
           not free (nobody learns why)
         </span>
+        {p.participants && selected ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-primary f01-slot-hold"
+            onClick={() => send("slot.hold", { start: selected })}
+          >
+            Hold {new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(new Date(selected))}{" "}
+            {shortTime(selected)} for {number(p.participants)}
+          </button>
+        ) : null}
       </div>
       <span className="sr-only">
         {number(p.duration, 30)} min ·{" "}
@@ -262,30 +248,7 @@ export function Time({ name, p, send }: ViewProps) {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  if (name === "TimeZone")
-    return (
-      <div className="col">
-        <label>
-          Time zone{" "}
-          <select
-            className="f01-input"
-            defaultValue={str(p.value, "UTC")}
-            onChange={(e) => send("tz.change", { value: e.target.value })}
-          >
-            {[...new Set([str(p.value, "UTC"), ...rows(p.others).map((o) => str(o.tz))])].map(
-              (tz) => (
-                <option key={tz}>{tz}</option>
-              ),
-            )}
-          </select>
-        </label>
-        {rows(p.others).map((o) => (
-          <span className="small" key={str(o.participant)}>
-            {str(o.participant)} · {str(o.tz)}
-          </span>
-        ))}
-      </div>
-    );
+  if (name === "TimeZone") return <Zone p={p} send={send} />;
   const deadline = str(p.deadline);
   const left = new Date(deadline).getTime() - now;
   const seconds = Math.max(0, Math.ceil(left / 1000));
@@ -298,14 +261,30 @@ export function Time({ name, p, send }: ViewProps) {
   return (
     <div className={`f01-deadline ${left < 0 ? "f01-error" : left < 3600000 ? "f01-warning" : ""}`}>
       <div className="head">
+        <Glyph name="clock" />
         <b>{str(p.label)}</b>
         {Number.isFinite(left) && <span className="h-right mono">{remaining}</span>}
       </div>
-      {deadline && (
-        <time dateTime={deadline} title={deadline}>
-          {shortTime(deadline)}
-        </time>
+      {!!p.startedAt && Number.isFinite(left) && (
+        <div
+          className="f01-bar"
+          role="progressbar"
+          aria-label="Decision window elapsed"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={elapsed(str(p.startedAt), deadline, now)}
+        >
+          <span
+            style={{
+              width: `${elapsed(str(p.startedAt), deadline, now)}%`,
+              background: "currentColor",
+            }}
+          />
+        </div>
       )}
+      <time className="sr-only" dateTime={deadline} title={deadline}>
+        {deadline}
+      </time>
       <span className="small">{str(p.consequence)}</span>
     </div>
   );
@@ -358,4 +337,10 @@ export function Rich({ p, send }: ViewProps) {
       })}
     </span>
   );
+}
+
+function elapsed(start: string, end: string, now: number) {
+  const from = new Date(start).getTime();
+  const duration = new Date(end).getTime() - from;
+  return duration > 0 ? Math.min(100, Math.max(0, Math.round(((now - from) / duration) * 100))) : 0;
 }
