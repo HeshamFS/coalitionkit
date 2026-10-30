@@ -248,6 +248,12 @@ function shortTime(value: string) {
     : date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
+/** A currency symbol goes before the amount ("€38"); any other unit after it ("12 min"). */
+export function costText(value: number, unit?: string): string {
+  if (!unit) return String(value);
+  return /^\p{Sc}+$/u.test(unit) ? `${unit}${value}` : `${value} ${unit}`;
+}
+
 export function OfferCard({
   offerId,
   what,
@@ -316,9 +322,8 @@ export function OfferCard({
       )}
       {cost && !dead && (
         <div className="row">
-          <span className="num small" title={cost.amount.event_ref}>
-            {cost.unit}
-            {cost.amount.value}
+          <span className="num small" title={`from event ${cost.amount.event_ref}`}>
+            {costText(cost.amount.value, cost.unit)}
           </span>
           {expires && !dead && (
             <span className="h-right small">
