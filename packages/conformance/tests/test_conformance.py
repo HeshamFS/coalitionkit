@@ -40,9 +40,12 @@ async def test_reference_host(running: Running) -> None:
     verify_report(report)
     by_id = {t["id"]: t for t in report["tests"]}
     assert not [t for t in report["tests"] if t["status"] == "fail"], str(report["tests"])
-    for test_id in ("C-01", "C-13", "C-14"):
+    assert {f"C-0{n}" for n in range(1, 6)}.isdisjoint(by_id), (
+        "member tests belong to --level member"
+    )
+    for test_id in ("C-13", "C-14"):
         assert by_id[test_id]["status"] == "pass", by_id[test_id]
-    for test_id in ("C-05", "C-09", "C-11", "C-20"):
+    for test_id in ("C-09", "C-11", "C-20"):
         assert by_id[test_id].get("evidence"), by_id[test_id]
     assert all(t.get("reason") for t in report["tests"] if t["status"] == "not run")
     assert exit_code(report) == 1
@@ -139,7 +142,7 @@ async def test_reference_operator_cli(running: Running, tmp_path: Any) -> None:
     report = json.loads(result.stdout)
     verify_report(report)
     by_id = {t["id"]: t for t in report["tests"]}
-    for test_id in ("C-01", "C-02", "C-09", "C-11", "C-12", "C-13", "C-14", "C-16"):
+    for test_id in ("C-09", "C-11", "C-12", "C-13", "C-14", "C-16"):
         assert by_id[test_id]["status"] == "pass", by_id[test_id]
     for test_id in ("C-10", "C-15", "C-20", "C-21"):
         assert by_id[test_id]["status"] == "fail", by_id[test_id]

@@ -33,6 +33,6 @@ async def test_scripted_lifecycle(running: Running, monkeypatch: pytest.MonkeyPa
     by_id = {t["id"]: t for t in report["tests"]}
     for test_id in ("C-10", "C-11", "C-12", "C-15", "C-16", "C-20"):
         assert by_id[test_id]["status"] == "pass", by_id[test_id]
-    for test_id in ("C-03", "C-04", "C-05", "C-21"):
-        assert by_id[test_id]["status"] == "not run", by_id[test_id]
+    assert by_id["C-21"]["status"] == "not run", by_id["C-21"]
+    assert "C-03" not in by_id  # a member test, not part of the host level
     assert complete.await_count > 0

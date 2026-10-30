@@ -9,7 +9,7 @@ from coalitionkit_edges.a2a.identity import CardKey, card_keys, fetch_card, veri
 from .feed_probes import charter, observer
 from .operator import Operator
 from .probes import chain, host_probes, run_probe
-from .report import Document, results, signed_report
+from .report import Document, at_level, results, signed_report
 from .scenarios import (
     Scenario,
     authorization_rows,
@@ -79,7 +79,9 @@ async def run(
                     redeem_url = operator.redeem_url
                 except Exception as exc:
                     tests[1].update(status="fail", reason=f"Operator setup failed: {exc}")
-                    return signed_report(target, level, tests, key or Ed25519PrivateKey.generate())
+                    return signed_report(
+                        target, level, at_level(level, tests), key or Ed25519PrivateKey.generate()
+                    )
             if level in {"host", "member"} and invites and redeem_url:
                 try:
                     for invite in invites:
@@ -102,7 +104,7 @@ async def run(
                 finally:
                     for person in people:
                         await person.client.close()
-    return signed_report(target, level, tests, key or Ed25519PrivateKey.generate())
+    return signed_report(target, level, at_level(level, tests), key or Ed25519PrivateKey.generate())
 
 
 async def operator_probes(

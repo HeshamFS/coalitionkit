@@ -42,6 +42,20 @@ TITLES = [
 ]
 
 
+LEVEL_TESTS = {
+    "member": frozenset(range(1, 6)),
+    "vault": frozenset({6, 7, 8}),
+    "host": frozenset({*range(9, 17), 20, 21}),
+    "surface": frozenset({17, 18, 19}),
+}
+
+
+def at_level(level: str, tests: list[Document]) -> list[Document]:
+    """Each test belongs to exactly one level (the spec's Level column). Enrolling runs the member
+    probes at every level, but a report lists, and is judged on, its own level's tests only."""
+    return [t for t in tests if int(str(t["id"])[2:]) in LEVEL_TESTS[level]]
+
+
 def results(level: str) -> list[Document]:
     selected = list(range(1, 6))
     selected += {
