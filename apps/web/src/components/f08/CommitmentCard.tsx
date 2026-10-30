@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
+import { useContext } from "react";
+import { PrivacyCharterRevision } from "./presentation";
 import { Action, type Props, type Send, text } from "./shared";
 export function CommitmentCard({ p, send }: { p: Props; send: Send }) {
   const status = text(p.status);
+  const charterRevision = useContext(PrivacyCharterRevision);
   const tag =
     status === "pending"
       ? ["needs", "Needs you"]
@@ -20,7 +23,7 @@ export function CommitmentCard({ p, send }: { p: Props; send: Send }) {
           : status === "approved"
             ? `approved · ${text(p.assignee)} · due ${text(p.due)}`
             : status === "suspended"
-              ? "suspended until you accept the current charter"
+              ? `suspended until you accept ${charterRevision ? `charter r${charterRevision}` : "the current charter"}`
               : `${status} · task back to negotiating`}
       </span>
       {status === "pending" && (

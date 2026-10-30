@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { ConsentCard as Consent } from "./legacy";
+import { DisclosurePreviews, PrivacyDoor } from "./presentation";
 import { num, obj, type Props, type Send, text, usePreviewState } from "./shared";
 import "../../styles/f08.css";
 
 export function Disclosure({ p, send }: { p: Props; send: Send }) {
   const levels = ["none", "bool", "range", "exact"];
+  const preview = useContext(DisclosurePreviews)[text(p.field)];
   return (
     <>
       <div className="f08-ladder">
@@ -29,9 +31,15 @@ export function Disclosure({ p, send }: { p: Props; send: Send }) {
               {
                 [
                   "Agents can't ask",
-                  "A question within your limit → yes",
+                  preview ? (
+                    <>
+                      {preview.question} → <b>{preview.answer}</b>
+                    </>
+                  ) : (
+                    "A question within your limit → yes"
+                  ),
                   text(p.buckets),
-                  "Exact value",
+                  preview?.exact ?? "Exact value",
                 ][i]
               }
             </span>
@@ -65,9 +73,17 @@ export function Disclosure({ p, send }: { p: Props; send: Send }) {
   );
 }
 export function Approval({ p, send }: { p: Props; send: Send }) {
+  const door = useContext(PrivacyDoor);
   const preview = usePreviewState();
   const [signing, setSigning] = useState(preview === "signing");
   const expired = Date.parse(text(p.decision_deadline)) <= Date.now();
+  if (door === "lens")
+    return (
+      <div className="f08-approval-lens" role="note">
+        <span>{text(p.label)}</span>
+        <span className="mono">money: confirm on your phone</span>
+      </div>
+    );
   return (
     <>
       <button
@@ -112,6 +128,8 @@ export function ConsentView({ p, send }: { p: Props; send: Send }) {
       cost={text(p.cost)}
       consequenceOfNo={text(p.consequenceOfNo)}
       deadline={deadlineLabel(text(p.decision_deadline))}
+      yesLabel={`Accept ${text(subject.id)}`}
+      noLabel={subject.kind === "plan" ? "Not this plan" : "Not this one"}
       state={expired ? "expired" : preview === "answered" || preview === "stale" ? preview : "open"}
       answer={preview === "answered"}
       currentRevision={preview === "stale" ? num(subject.revision) + 1 : undefined}

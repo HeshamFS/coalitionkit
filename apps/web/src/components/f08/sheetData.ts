@@ -3,6 +3,16 @@ import { obj, type Props } from "./shared";
 
 const bound = (value: number) => ({ value, event_ref: "example:1" });
 export function sheetData(name: string, state: string, p: Props): Props {
+  if (name === "ConsentCard" && state !== "expired")
+    return { ...p, decision_deadline: new Date(Date.now() + 134 * 60000).toISOString() };
+  if (name === "StaleNotice")
+    return {
+      ...p,
+      diff: [
+        { label: "− t2 handoff Wed 16:00", description: "Member B moved the handoff to 17:00." },
+        { label: "+ t2 handoff Wed 17:00" },
+      ],
+    };
   if (name === "ProjectionNote")
     return {
       ...p,
@@ -162,6 +172,7 @@ function decisionData(name: string, p: Props): Props {
           revision: bound(2),
           answer: "yes",
           reason: "Plan B superseded",
+          closed: true,
           seq: bound(54),
           verified: true,
         },

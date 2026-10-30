@@ -299,3 +299,34 @@
 .f08-ladder {
   align-items: start;
 }
+
+.f08-field-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.f08-field .f08-eye {
+  margin-left: auto;
+}
+.f08-field .unit + .f08-eye {
+  margin-left: 0;
+}
+.f08-approval-lens {
+  --f08-lens-bg: #0e1726;
+  --f08-lens-ink: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: var(--f08-lens-bg);
+  color: var(--f08-lens-ink);
+  font-size: 15px;
+}
+.f08-approval-lens .mono {
+  font-size: 10.5px;
+  opacity: 0.75;
+}
+.f08 [data-component="DurableConsent"] .f08-link {
+  font-size: 12px;
+  line-height: 1.45;
+}
