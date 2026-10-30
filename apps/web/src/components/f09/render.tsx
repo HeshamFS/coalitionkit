@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { ComponentContext } from "@a2ui/web_core/v0_9";
-import { Card, type Props, type Send, sendFor, text } from "../f08/shared";
+import { type Props, type Send, sendFor, text } from "../f08/shared";
 import { ActivityStream } from "./ActivityStream";
 import { CanvasPresence } from "./CanvasPresence";
 import { ChainView } from "./ChainView";
@@ -44,10 +44,13 @@ const components: Record<string, (props: { p: Props; send: Send }) => React.Reac
 export function render(name: string, p: Props, context: ComponentContext) {
   const Component = components[name];
   return (
-    <div className="f09">
-      <Card name={name} state={text(p.status ?? p.state ?? p.feed ?? p.health)}>
-        {Component && <Component p={p} send={sendFor(context)} />}
-      </Card>
-    </div>
+    <section
+      className="f09"
+      data-component={name}
+      data-state={text(p.status ?? p.state ?? p.feed ?? p.health)}
+      aria-label={name}
+    >
+      {Component && <Component p={p} send={sendFor(context)} />}
+    </section>
   );
 }
