@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Action, Frame, list, num, obj, type Props, rows, str, texts } from "../f05/shared";
+import { Frame, list, num, obj, type Props, rows, str, texts } from "../f05/shared";
 import * as Plans from "./plans";
 import * as Work from "./work";
 import "../../styles/f06.css";
 
-const person = (name: unknown) => ({ label: str(name), seat: 1 as const });
+const person = (name: unknown) => ({
+  label: str(name),
+  seat: (str(name).endsWith("A") ? 3 : str(name).endsWith("C") ? 5 : 1) as 1 | 3 | 5,
+});
 export function NeedCard({ p, send }: Props) {
   return (
     <Frame name="NeedCard">
@@ -14,7 +17,7 @@ export function NeedCard({ p, send }: Props) {
         text={str(p.text)}
         state={(p.state ?? "open") as Work.NeedState}
         offers={num(p.offers)}
-        meta={[str(p.by), texts(p.constraints)].filter(Boolean).join(" · ")}
+        meta={texts(p.constraints) || str(p.by)}
         onOpen={() => send("need.open", { need_id: p.need_id })}
         onWithdraw={() => send("need.withdraw", { need_id: p.need_id })}
       />
@@ -28,7 +31,7 @@ export function OfferCard({ p, send }: Props) {
       <Work.OfferCard
         offerId={str(p.offer_id)}
         what={str(p.what)}
-        target={str(p.target)}
+        from={texts(p.conditions)}
         cost={
           cost.amount
             ? {
@@ -40,15 +43,12 @@ export function OfferCard({ p, send }: Props) {
         }
         expires={str(p.expires)}
         state={(p.state ?? "open") as Work.OfferState}
-        needsYou={p.state === "open"}
+        needsYou={p.state === "open" && p.target === "task" && p.scope !== "private"}
         scope={str(p.scope)}
         onAccept={() => send("offer.accept", { offer_id: p.offer_id })}
         onAsk={() => send("offer.ask", { offer_id: p.offer_id })}
+        onWithdraw={() => send("offer.withdraw", { offer_id: p.offer_id })}
       />
-      {p.state === "open" && (
-        <Action onClick={() => send("offer.withdraw", { offer_id: p.offer_id })}>Withdraw</Action>
-      )}
-      <small>{texts(p.conditions)}</small>
     </Frame>
   );
 }
@@ -136,29 +136,7 @@ export function TensionCard({ p, send }: Props) {
     </Frame>
   );
 }
-export function AnswerCard({ p }: Props) {
-  const answer = p.answer,
-    state = answer === undefined ? "waiting" : answer === null ? "declined" : "answered";
-  return (
-    <Frame
-      name="AnswerCard"
-      state={state}
-      className={`card ${state === "waiting" ? "card-dashed" : ""}`}
-    >
-      <small>
-        {str(p.kind)} · from {str(p.from)}
-      </small>
-      <p>{str(p.query)}</p>
-      <b className="f06-answer">
-        {state !== "answered"
-          ? state
-          : p.kind === "number-range"
-            ? `${str(obj(answer).min)} – ${str(obj(answer).max)} ${str(obj(answer).unit)}`
-            : str(answer)}
-      </b>
-    </Frame>
-  );
-}
+export { AnswerCard } from "./answers";
 export function Checklist({ p, send }: Props) {
   return (
     <Frame name="Checklist" className="card">
@@ -228,7 +206,7 @@ export function CostSplit({ p }: Props) {
 export function MatchView({ p, send }: Props) {
   const offers = rows(p.offers),
     height = Math.max(210, offers.length * 70),
-    middle = height / 2;
+    middle = height / 2 - 1;
   return (
     <Frame name="MatchView">
       <svg
@@ -283,7 +261,10 @@ export function MatchView({ p, send }: Props) {
           </g>
         ))}
       </svg>
-      <small>Best fit: {str(p.chosen)}</small>
+      <div className="row small">
+        <span className="badge b-model">Gardener</span>best fit:{" "}
+        {texts(offers.find((offer) => offer.offer === p.chosen)?.reasons)}
+      </div>
     </Frame>
   );
 }

@@ -180,3 +180,77 @@
 .f06-match-offer.blocked small {
   color: var(--bad-fg);
 }
+
+.f06-sheet {
+  width: 1440px;
+}
+.sheet:has(> .f06-sheet) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .f06-sheet) > .sheet-head,
+.sheet:has(> .f06-sheet) > .small {
+  display: none;
+}
+.f06-need:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.f06-answer-card {
+  gap: 6px;
+}
+.f06-query {
+  color: var(--ink);
+}
+@media (max-width: 800px) {
+  .f06-sheet,
+  .sheet:has(> .f06-sheet) {
+    width: 100%;
+  }
+  .f06-sheet .g4 {
+    grid-template-columns: 1fr;
+  }
+  .f06-sheet .cell {
+    grid-column: auto;
+  }
+}
+
+.f-catalog.f06-answer-card {
+  gap: 6px;
+  line-height: normal;
+}
+.f06-answer-card .small {
+  line-height: 1.45;
+}
+.f06-match-diagram {
+  height: 210px;
+  min-height: 0;
+}
+.f06-match-offer {
+  line-height: normal;
+  padding: 4px 9px;
+}
+.f06-match-offer small {
+  font-size: 9.5px;
+  color: var(--ink-3);
+}
+.f06-match-offer.chosen small {
+  color: var(--blue-text);
+}
+.f06-match-offer.blocked {
+  color: var(--ink-3);
+}
+
+.f06-need[data-state="withdrawn"] .badge {
+  align-self: stretch;
+}
+[data-theme="dark"] .f06-need,
+[data-theme="dark"] [data-offer] {
+  --f06-inactive-opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .f06-need,
+  :root:not([data-theme="light"]) [data-offer] {
+    --f06-inactive-opacity: 1;
+  }
+}
