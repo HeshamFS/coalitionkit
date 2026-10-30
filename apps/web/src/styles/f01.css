@@ -5,13 +5,13 @@
   color: var(--ink);
   font-size: 13px;
 }
-.f01 button,
 .f01 input,
 .f01 select,
 .f01 textarea {
   font: inherit;
 }
 .f01 button {
+  font-family: inherit;
   cursor: pointer;
 }
 .f01 :focus-visible {
@@ -235,9 +235,33 @@ textarea.f01-input {
   font-size: 11px;
 }
 .f01-button-group {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: inline-flex;
+}
+.f01-button-group > :not(:first-child) .btn,
+.f01-button-group > .btn:not(:first-child) {
+  margin-left: -1px;
+}
+.f01-button-group .btn {
+  border-radius: 0;
+}
+.f01-button-group > :first-child .btn,
+.f01-button-group > .btn:first-child {
+  border-radius: var(--r-control) 0 0 var(--r-control);
+}
+.f01-button-group > :last-child .btn,
+.f01-button-group > .btn:last-child {
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+}
+.f01-split-toggle {
+  padding: 0 8px;
+  border-left-color: var(--blue-line);
+}
+.f01-split .f01-menu {
+  width: 230px;
+}
+.f01-menu-check {
+  width: 14px;
+  flex: none;
 }
 .f01-grid {
   display: grid;

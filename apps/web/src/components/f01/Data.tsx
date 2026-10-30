@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useState } from "react";
-import { Badge, type BadgeKind } from "./primitives";
-import { number, rows, shown, str, type ViewProps } from "./shared";
+import { useEffect, useState } from "react";
+import { DataCell } from "./DataCell";
+import { Avatar, Badge, type BadgeKind, ScopeBadge, type Seat } from "./primitives";
+import { number, obj, rows, shown, str, type ViewProps } from "./shared";
+import { shortTime } from "./time";
 
-export function DataDisplay({ name, p, send }: ViewProps) {
+export function DataDisplay({ name, p, send, build }: ViewProps) {
   if (name === "KeyValue")
     return (
       <dl className="kv">
@@ -18,6 +20,12 @@ export function DataDisplay({ name, p, send }: ViewProps) {
                   <Badge kind={r.provenance as BadgeKind} label={r.provenance} />
                 </>
               )}
+              {r.scope ? (
+                <>
+                  {" "}
+                  <ScopeBadge audience={str(r.scope)} />
+                </>
+              ) : null}
             </dd>
           </div>
         ))}
@@ -30,8 +38,8 @@ export function DataDisplay({ name, p, send }: ViewProps) {
           <thead>
             <tr>
               {rows(p.columns).map((c) => (
-                <th key={str(c.key)}>
-                  {p.sortable ? (
+                <th key={str(c.key)} style={{ textAlign: c.align === "right" ? "right" : "left" }}>
+                  {p.sortable && c.sortable !== false ? (
                     <button type="button" onClick={() => send("sort", { key: c.key })}>
                       {str(c.label)} ↕
                     </button>
@@ -52,10 +60,10 @@ export function DataDisplay({ name, p, send }: ViewProps) {
                   >
                     {i === 0 ? (
                       <button type="button" onClick={() => send("open", { row: r })}>
-                        {shown(r[str(c.key)])}
+                        <DataCell value={r[str(c.key)]} format={str(c.format)} />
                       </button>
                     ) : (
-                      shown(r[str(c.key)])
+                      <DataCell value={r[str(c.key)]} format={str(c.format)} />
                     )}
                   </td>
                 ))}
@@ -66,12 +74,18 @@ export function DataDisplay({ name, p, send }: ViewProps) {
         {!rows(p.rows).length && <span className="small">No rows</span>}
       </div>
     );
-  const items = rows(p.items).slice(0, number(p.max, 50));
+  const items = rows(p.items).slice(0, Math.max(0, number(p.max, 50)));
   return (
     <div className="f01-list">
       {items.length ? (
         items.map((r, index) => (
           <div key={str(r.id, String(index))} className="head">
+            {r.leading ? (
+              <Avatar
+                label={str(obj(r.leading).label, str(r.title))}
+                seat={(obj(r.leading).seat ?? "host") as Seat}
+              />
+            ) : null}
             {!!p.selectable && (
               <input
                 type="checkbox"
@@ -79,11 +93,19 @@ export function DataDisplay({ name, p, send }: ViewProps) {
                 onChange={() => send("select", { item: r })}
               />
             )}
-            <button type="button" onClick={() => send("open", { item: r })}>
-              <b>{str(r.title, str(r.label))}</b>
-              <span className="small">{str(r.meta)}</span>
-            </button>
-            <span className="small">{str(r.trailing)}</span>
+            {p.template ? (
+              build(str(p.template))
+            ) : (
+              <button type="button" onClick={() => send("open", { item: r })}>
+                <b>{str(r.title, str(r.label))}</b>
+                <span className="small">{str(r.meta)}</span>
+              </button>
+            )}
+            {r.trailing === "live" ? (
+              <span className="live-dot" role="img" aria-label="Live" />
+            ) : (
+              <span className="st">{str(r.trailing)}</span>
+            )}
           </div>
         ))
       ) : (
@@ -99,70 +121,147 @@ export function Gauge({ name, p }: ViewProps) {
   const max = number(p.max, 100);
   const percent = Math.max(0, Math.min(100, ((value - min) / Math.max(1, max - min)) * 100));
   const band = rows(p.bands).find((b) => value <= number(b.upTo));
+  const steps = Math.max(0, Math.min(20, Math.round(number(p.steps))));
+  const complete = Math.round((percent / 100) * steps);
+  const provenance = p.provenance ? (
+    <Badge kind={p.provenance as BadgeKind} label={str(p.provenance)} />
+  ) : null;
+  if (name === "Meter")
+    return (
+      <div className={`row f01-gauge f01-meter f01-tone-${str(band?.tone, "ok")}`}>
+        <meter
+          className="sr-only"
+          aria-label={`${str(p.label)} ${str(p.unit)}`}
+          value={value}
+          min={min}
+          max={max}
+        />
+        <svg className="ring" viewBox="0 0 44 44" aria-hidden="true">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface-3)" strokeWidth="5" />
+          <circle
+            cx="22"
+            cy="22"
+            r="18"
+            fill="none"
+            stroke="var(--gauge-color)"
+            strokeWidth="5"
+            strokeDasharray="113.097"
+            strokeDashoffset={113.097 * (1 - percent / 100)}
+            strokeLinecap="round"
+            transform="rotate(-90 22 22)"
+          />
+          <text
+            x="22"
+            y="26"
+            textAnchor="middle"
+            fontFamily="var(--font-mono)"
+            fontSize="11"
+            fill="var(--ink)"
+          >
+            {value}
+          </text>
+        </svg>
+        <div className="col" style={{ gap: 0 }}>
+          <span className="lbl">{str(p.label)}</span>
+          {provenance}
+        </div>
+      </div>
+    );
   return (
-    <div className={`f01-gauge f01-tone-${str(band?.tone, "ok")}`}>
+    <div className="f01-gauge">
       <div className="head">
-        <span>{str(p.label)}</span>
-        <span className="h-right mono">
-          {value} {str(p.unit)}
+        <span className="lbl">{str(p.label)}</span>
+        <span className="h-right mono small">
+          {steps ? `${complete} of ${steps}` : `${value} ${str(p.unit)}`}
         </span>
       </div>
-      {name === "Meter" ? (
-        <meter aria-label={str(p.label)} min={min} max={max} value={value} />
-      ) : (
-        <div
-          role="progressbar"
-          aria-label={str(p.label)}
-          aria-valuemin={min}
-          aria-valuemax={max}
-          aria-valuenow={value}
-          className="f01-bar"
-        >
+      <div
+        role="progressbar"
+        aria-label={str(p.label)}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        className={steps ? "f01-segments" : "f01-bar"}
+      >
+        {steps ? (
+          Array.from({ length: steps }, (_, index) => index + 1).map((step) => (
+            <div className="f01-bar" key={step}>
+              <span style={{ width: step <= complete ? "100%" : "0%" }} />
+            </div>
+          ))
+        ) : (
           <span style={{ width: `${percent}%` }} />
-        </div>
-      )}
-      {number(p.steps) > 0 && (
-        <span className="small">
-          {Math.round((percent / 100) * number(p.steps))} of {number(p.steps)}
-        </span>
-      )}
+        )}
+      </div>
+      {provenance}
     </div>
   );
 }
 
 export function Slots({ p, send }: ViewProps) {
   const [selected, setSelected] = useState(str(p.selected));
+  useEffect(() => setSelected(str(p.selected)), [p.selected]);
+  const days = rows(p.days);
   return (
-    <div className="f01-slots">
-      {rows(p.days).map((day) => (
-        <div className="col" key={str(day.date)}>
-          <b>{str(day.date)}</b>
-          {rows(day.slots).map((slot) => (
-            <button
-              type="button"
-              className={`f01-slot f01-slot-${str(slot.state)}`}
-              key={str(slot.start)}
-              disabled={slot.state === "off"}
-              aria-pressed={selected === slot.start}
-              onClick={() => {
-                send(selected === slot.start ? "slot.release" : "slot.hold", { start: slot.start });
-                setSelected(selected === slot.start ? "" : str(slot.start));
-              }}
-            >
-              {str(slot.start).slice(-5)}
-            </button>
-          ))}
-        </div>
-      ))}
-      {!rows(p.days).length && <span className="small">No shared times</span>}
-      <span className="small">
-        {number(p.duration, 30)} min · {str(p.source)}
+    <div className="col">
+      <div
+        className="f01-slot-days"
+        style={{
+          gridTemplateColumns: `repeat(${Math.max(1, Math.min(7, days.length))}, minmax(0, 1fr))`,
+        }}
+      >
+        {days.map((day) => (
+          <div className="col" key={str(day.date)}>
+            <span className="lbl">{str(day.date)}</span>
+            {rows(day.slots).map((slot) => (
+              <button
+                type="button"
+                className={`f01-slot f01-slot-${str(slot.state)}`}
+                key={str(slot.start)}
+                disabled={slot.state === "off"}
+                aria-pressed={selected === slot.start}
+                onClick={() => {
+                  send(selected === slot.start ? "slot.release" : "slot.hold", {
+                    start: slot.start,
+                  });
+                  setSelected(selected === slot.start ? "" : str(slot.start));
+                }}
+              >
+                {shortTime(str(slot.start))}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+      {!days.length && <span className="small">No shared times</span>}
+      <div className="row wrap f01-slot-legend">
+        <span className="row small">
+          <i className="f01-slot f01-slot-shared" />
+          free for everyone
+        </span>
+        <span className="row small">
+          <i className="f01-slot" />
+          free for you
+        </span>
+        <span className="row small">
+          <i className="f01-slot f01-slot-off" />
+          not free (nobody learns why)
+        </span>
+      </div>
+      <span className="sr-only">
+        {number(p.duration, 30)} min ·{" "}
+        {p.source === "psi_match" ? "Private calendar match" : str(p.source)}
       </span>
     </div>
   );
 }
 
 export function Time({ name, p, send }: ViewProps) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   if (name === "TimeZone")
     return (
       <div className="col">
@@ -187,11 +286,26 @@ export function Time({ name, p, send }: ViewProps) {
         ))}
       </div>
     );
-  const left = new Date(str(p.deadline)).getTime() - Date.now();
+  const deadline = str(p.deadline);
+  const left = new Date(deadline).getTime() - now;
+  const seconds = Math.max(0, Math.ceil(left / 1000));
+  const remaining =
+    left <= 0
+      ? "Passed"
+      : left > 3600000
+        ? `${Math.floor(seconds / 3600)} h ${Math.floor((seconds % 3600) / 60)} m`
+        : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   return (
     <div className={`f01-deadline ${left < 0 ? "f01-error" : left < 3600000 ? "f01-warning" : ""}`}>
-      <b>{str(p.label)}</b>
-      <time dateTime={str(p.deadline)}>{str(p.deadline)}</time>
+      <div className="head">
+        <b>{str(p.label)}</b>
+        {Number.isFinite(left) && <span className="h-right mono">{remaining}</span>}
+      </div>
+      {deadline && (
+        <time dateTime={deadline} title={deadline}>
+          {shortTime(deadline)}
+        </time>
+      )}
       <span className="small">{str(p.consequence)}</span>
     </div>
   );

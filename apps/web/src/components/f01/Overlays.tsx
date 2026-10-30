@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useId, useRef, useState } from "react";
+import { Glyph as Icon } from "./Glyph";
 import { Children, number, rows, str, type ViewProps } from "./shared";
 
 export function Overlay({ name, p, send, build }: ViewProps) {
@@ -20,14 +21,28 @@ export function Overlay({ name, p, send, build }: ViewProps) {
     ref.current?.focus();
     return () => previous?.focus();
   }, [visible, modal]);
+  useOverlayAnchor({
+    ref,
+    anchorId: str(p.anchor),
+    title,
+    visible,
+    dismissible,
+    name,
+    modal,
+    send,
+    setDismissed,
+  });
+
   if (!visible) return null;
   return (
     <div className={`f01-overlay f01-${name}`}>
       <div
         ref={ref}
+        id={`${title}-dialog`}
         role="dialog"
         aria-modal={modal || undefined}
-        aria-labelledby={title}
+        aria-labelledby={p.title ? title : undefined}
+        aria-label={p.title ? undefined : "Details"}
         tabIndex={-1}
         className="f01-dialog"
         style={
@@ -67,9 +82,9 @@ export function Overlay({ name, p, send, build }: ViewProps) {
         }}
       >
         {name === "Sheet" && <span className="f01-handle" />}
-        <div className="head">
+        <div className="head" hidden={!p.title && name !== "Drawer"}>
           <h3 id={title}>{str(p.title)}</h3>
-          {dismissible && (
+          {dismissible && name === "Drawer" && (
             <button
               type="button"
               className="icon-btn h-right"
@@ -89,6 +104,47 @@ export function Overlay({ name, p, send, build }: ViewProps) {
   );
 }
 
+function useOverlayAnchor({
+  ref,
+  anchorId,
+  title,
+  visible,
+  dismissible,
+  name,
+  modal,
+  send,
+  setDismissed,
+}: {
+  ref: React.RefObject<HTMLDivElement | null>;
+  anchorId: string;
+  title: string;
+  visible: boolean;
+  dismissible: boolean;
+  name: string;
+  modal: boolean;
+  send: ViewProps["send"];
+  setDismissed: (value: boolean) => void;
+}) {
+  useEffect(() => {
+    const anchor = document.getElementById(anchorId);
+    const previous = anchor?.getAttribute("aria-details");
+    if (visible) anchor?.setAttribute("aria-details", `${title}-dialog`);
+    const outside = (event: PointerEvent) => {
+      if (!visible || !dismissible || name === "Drawer") return;
+      if (ref.current?.contains(event.target as Node) || anchor?.contains(event.target as Node))
+        return;
+      setDismissed(true);
+      send(modal ? "dismiss" : "popover.close");
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      if (previous) anchor?.setAttribute("aria-details", previous);
+      else anchor?.removeAttribute("aria-details");
+    };
+  }, [anchorId, visible, dismissible, name, modal, send, title, ref, setDismissed]);
+}
+
 export function Menu({ p, send }: ViewProps) {
   return (
     <div className="f01-menu">
@@ -96,7 +152,13 @@ export function Menu({ p, send }: ViewProps) {
         <div key={str(item.id, str(item.label))}>
           {Array.isArray(item.submenu) ? (
             <details>
-              <summary>{str(item.label)}</summary>
+              <summary>
+                {item.icon ? <Icon name={str(item.icon)} size="sm" /> : null}
+                {str(item.label)}
+                <span className="h-right">
+                  <Icon name="right" size="sm" />
+                </span>
+              </summary>
               <Menu name="Menu" p={{ items: item.submenu }} send={send} build={() => null} />
             </details>
           ) : (
@@ -106,6 +168,7 @@ export function Menu({ p, send }: ViewProps) {
               className={item.tone === "danger" ? "f01-error" : ""}
               onClick={() => send("menu.pick", { id: item.id ?? item.label })}
             >
+              {item.icon ? <Icon name={str(item.icon)} size="sm" /> : null}
               <span>{str(item.label)}</span>
               {item.shortcut ? <kbd>{str(item.shortcut)}</kbd> : null}
             </button>
@@ -122,7 +185,7 @@ export function Split({ p, send }: ViewProps) {
   const primary = items.find((i) => i.value === p.primary) ?? items[0];
   return (
     <div className="f01-split">
-      <div className="row">
+      <div className="f01-button-group">
         <button
           type="button"
           className="btn btn-primary"
@@ -133,12 +196,14 @@ export function Split({ p, send }: ViewProps) {
         </button>
         <button
           type="button"
-          className="btn"
+          className="btn btn-primary f01-split-toggle"
           aria-label="More actions"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
-          ⌄
+          <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
         </button>
       </div>
       {open && (
@@ -153,7 +218,10 @@ export function Split({ p, send }: ViewProps) {
                 setOpen(false);
               }}
             >
-              {str(i.label)}
+              <span className="f01-menu-check">
+                {i === primary && <Icon name="check" size="sm" />}
+              </span>
+              <span>{str(i.label)}</span>
               {i.hint ? <small>{str(i.hint)}</small> : null}
             </button>
           ))}
@@ -180,6 +248,8 @@ export function Tooltip({ p }: ViewProps) {
       setOpen(false);
     };
     const old = target.getAttribute("aria-describedby");
+    const tabIndex = target.getAttribute("tabindex");
+    if (target === root && tabIndex === null) target.tabIndex = 0;
     target.setAttribute("aria-describedby", id);
     target.addEventListener("mouseenter", hover);
     target.addEventListener("mouseleave", hide);
@@ -189,6 +259,7 @@ export function Tooltip({ p }: ViewProps) {
       hide();
       if (old) target.setAttribute("aria-describedby", old);
       else target.removeAttribute("aria-describedby");
+      if (target === root && tabIndex === null) target.removeAttribute("tabindex");
       target.removeEventListener("mouseenter", hover);
       target.removeEventListener("mouseleave", hide);
       target.removeEventListener("focus", show);

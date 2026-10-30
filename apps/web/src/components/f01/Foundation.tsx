@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { ComponentContext } from "@a2ui/web_core/v0_9";
 import type { ComponentProps } from "react";
-import { Icon, type IconName } from "../../ui/Icon";
+import type { IconName } from "../../ui/Icon";
 import { DataDisplay, Gauge, Rich, Slots, Time } from "./Data";
 import { Choices, Field, Filter, Search, Toggle } from "./Forms";
 import { Banner, EmptyState, ErrorState, Skeleton, Toast } from "./feedback";
+import { Glyph as Icon } from "./Glyph";
 import { FileDrop, Media } from "./Media";
 import { Menu, Overlay, Split, Tooltip } from "./Overlays";
 import * as P from "./primitives";
+import { Slider } from "./Slider";
 import { Children, dispatch, number, obj, type Props, rows, str, type ViewProps } from "./shared";
 import "../../styles/f01.css";
+import "./details.css";
+import "./choice.css";
 
 export function Foundation({
   name,
@@ -30,6 +34,9 @@ export function Foundation({
       ...p,
       id: context.componentModel.id,
       ...(name === "Tooltip" ? { target: `${prefix}${encodeURIComponent(str(p.target))}` } : {}),
+      ...(name === "Popover" && p.anchor
+        ? { anchor: `${prefix}${encodeURIComponent(str(p.anchor))}` }
+        : {}),
     },
     send,
     build,
@@ -60,11 +67,16 @@ function primitive(args: ViewProps) {
   switch (name) {
     case "Text":
       return (
-        <P.Text
-          text={str(p.text)}
-          variant={p.variant as "body" | "caption"}
-          tone={p.tone as "default" | "muted" | "blue"}
-        />
+        <>
+          <P.Text
+            text={str(p.text)}
+            variant={p.variant as "body" | "caption"}
+            tone={p.tone as "default" | "muted" | "blue"}
+          />
+          {p.provenance ? (
+            <P.Badge kind={p.provenance as P.BadgeKind} label={str(p.provenance)} />
+          ) : null}
+        </>
       );
     case "Heading":
       return (
@@ -202,7 +214,7 @@ function feedback(args: ViewProps) {
           tone={(p.tone as ComponentProps<typeof Banner>["tone"]) ?? "info"}
           action={str(action.label) || undefined}
           onAction={() => send("banner.action")}
-          onDismiss={() => send("banner.dismiss")}
+          onDismiss={action.dismissible === true ? () => send("banner.dismiss") : undefined}
         />
       );
     case "Toast":
@@ -246,6 +258,7 @@ function feedback(args: ViewProps) {
           lines={number(p.lines, 2)}
           reserves={p.reserves ? number(p.reserves) : undefined}
           previous={str(p.previous)}
+          provenance={p.provenance as P.BadgeKind}
         />
       );
     case "Spinner":
@@ -289,8 +302,9 @@ function interactive(args: ViewProps) {
     case "TextArea":
     case "NumberField":
     case "DateTimeInput":
-    case "Slider":
       return <Field {...args} />;
+    case "Slider":
+      return <Slider {...args} />;
     case "CheckBox":
     case "Switch":
       return <Toggle {...args} />;

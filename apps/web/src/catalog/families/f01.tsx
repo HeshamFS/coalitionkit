@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createComponentImplementation } from "@a2ui/react/v0_9";
-import { CommonSchemas } from "@a2ui/web_core/v0_9";
+import { CommonSchemas, componentId } from "@a2ui/web_core/v0_9";
 import { z } from "zod";
 import { Foundation } from "../../components/f01/Foundation";
 import { Bound } from "../schemas";
@@ -131,7 +131,9 @@ export const apis = [
     items: binding.optional(),
     max: literal(Bound).optional(),
     selectable: flag.optional(),
-    template: text.optional(),
+    template: literal(componentId())
+      .describe("REF:common_types.json#/$defs/ComponentId")
+      .optional(),
   }),
   api("Menu", { items: array.optional() }),
   api("Meter", {

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChoiceMenu } from "./ChoiceMenu";
+import { Glyph } from "./Glyph";
+import { Avatar } from "./primitives";
 import { number, obj, rows, shown, str, type ViewProps } from "./shared";
 
 export function Field({ name, p, send }: ViewProps) {
@@ -35,7 +38,21 @@ export function Field({ name, p, send }: ViewProps) {
       {name === "TextArea" ? (
         <textarea {...common} rows={3} />
       ) : (
-        <div className="row">
+        <div className={name === "NumberField" && !p.unit ? "f01-number" : "row"}>
+          {name === "NumberField" && !p.unit && (
+            <button
+              type="button"
+              aria-label={`Decrease ${str(p.label)}`}
+              disabled={p.min !== undefined && Number(value) <= number(p.min)}
+              onClick={() =>
+                change(
+                  String(Math.max(number(p.min, -Infinity), Number(value) - number(p.step, 1))),
+                )
+              }
+            >
+              −
+            </button>
+          )}
           <input
             {...common}
             placeholder={str(p.placeholder)}
@@ -50,13 +67,25 @@ export function Field({ name, p, send }: ViewProps) {
                       : str(p.mode, "date")
                     : "text"
             }
-            min={number(p.min)}
+            min={p.min === undefined ? undefined : number(p.min)}
             max={p.max ? number(p.max) : undefined}
             step={number(p.step, 1)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && name === "TextField") send("submit", { value });
             }}
           />
+          {name === "NumberField" && !p.unit && (
+            <button
+              type="button"
+              aria-label={`Increase ${str(p.label)}`}
+              disabled={p.max !== undefined && Number(value) >= number(p.max)}
+              onClick={() =>
+                change(String(Math.min(number(p.max, Infinity), Number(value) + number(p.step, 1))))
+              }
+            >
+              +
+            </button>
+          )}
           {p.unit ? <span className="small">{str(p.unit)}</span> : null}
         </div>
       )}
@@ -66,19 +95,30 @@ export function Field({ name, p, send }: ViewProps) {
           {error}
         </span>
       )}
+      {name === "TextArea" && number(p.maxLength) > 0 && (
+        <span className="st">
+          {value.length} / {number(p.maxLength)}
+        </span>
+      )}
     </div>
   );
 }
 
 export function Toggle({ name, p, send }: ViewProps) {
-  const [value, setValue] = useState(Boolean(p.value));
-  useEffect(() => setValue(Boolean(p.value)), [p.value]);
+  const [value, setValue] = useState(p.value);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => setValue(p.value), [p.value]);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = value === "mixed";
+  }, [value]);
   return (
     <label className="f01-toggle">
       <input
         type="checkbox"
+        ref={ref}
         role={name === "Switch" ? "switch" : undefined}
-        checked={value}
+        checked={value === true}
+        aria-checked={value === "mixed" ? "mixed" : value === true}
         onChange={(e) => {
           setValue(e.target.checked);
           send("change", { value: e.target.checked });
@@ -103,22 +143,8 @@ export function Choices({ name, p, send, build }: ViewProps) {
     setValue(v);
     send(name === "RadioGroup" ? "change" : "select", { value: v });
   };
-  if (p.display === "menu")
-    return (
-      <select
-        className="f01-input"
-        aria-label="Choose an option"
-        value={str(value)}
-        onChange={(e) => pick(e.target.value)}
-      >
-        <option value="">Choose…</option>
-        {options.map((o) => (
-          <option key={str(o.id)} value={str(o.id)} disabled={!!o.disabled}>
-            {str(o.label)}
-          </option>
-        ))}
-      </select>
-    );
+  if (name === "ChoicePicker" && (p.display === "menu" || p.multiple))
+    return <ChoiceMenu p={p} value={value} pick={pick} />;
   return (
     <div>
       <div className={`f01-options f01-${name}`} role={name === "Tabs" ? "tablist" : undefined}>
@@ -135,6 +161,8 @@ export function Choices({ name, p, send, build }: ViewProps) {
                 disabled={!!o.disabled}
               />
               {str(o.label)}
+              {o.hint ? <span className="small">{str(o.hint)}</span> : null}
+              {o.count !== undefined && <span className="count">{shown(o.count)}</span>}
             </label>
           ) : (
             <button
@@ -147,6 +175,7 @@ export function Choices({ name, p, send, build }: ViewProps) {
               onClick={() => pick(key)}
             >
               {str(o.label)}
+              {o.count !== undefined && <span className="count">{shown(o.count)}</span>}
             </button>
           );
         })}
@@ -166,62 +195,120 @@ export function Search({ name, p, send }: ViewProps) {
   useEffect(() => setQuery(incoming), [incoming]);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(true);
-  const items = rows(obj(p.query).groups ?? p.groups)
-    .flatMap((g) => rows(g.items))
-    .filter((i) => str(i.label).toLowerCase().includes(query.toLowerCase()));
+  const groups = rows(obj(p.query).groups ?? p.groups)
+    .map((group) => ({
+      label: str(group.label),
+      items: rows(group.items).filter((i) =>
+        str(i.label).toLowerCase().includes(query.toLowerCase()),
+      ),
+    }))
+    .filter((group) => group.items.length);
+  const items = groups.flatMap((g) => g.items);
   const pick = (id: string) =>
     send(name === "CommandPalette" ? "command.run" : "search.pick", { id });
   return (
-    <div className="f01-search">
-      <input
-        className="f01-input"
-        aria-label={name === "CommandPalette" ? "Command" : "Search"}
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-          setActive(0);
-          if (name !== "CommandPalette") send("search.change", { q: e.target.value });
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpen(false);
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setActive((v) => Math.min(items.length - 1, v + 1));
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setActive((v) => Math.max(0, v - 1));
-          }
-          if (e.key === "Enter") {
-            if (items[active]) pick(str(items[active].id));
-            else if (name === "CommandPalette") send("command.ask", { text: query });
-          }
-        }}
-      />
+    <div className={`f01-search ${name === "CommandPalette" ? "f01-command" : ""}`}>
+      <div className="f01-search-input">
+        <Glyph name="search" size={name === "CommandPalette" ? undefined : "sm"} />
+        <input
+          className="f01-input"
+          aria-label={name === "CommandPalette" ? "Command" : "Search"}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setActive(0);
+            if (name !== "CommandPalette") send("search.change", { q: e.target.value });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActive((v) => Math.min(items.length - 1, v + 1));
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActive((v) => Math.max(0, v - 1));
+            }
+            if (e.key === "Enter") {
+              if (items[active]) pick(str(items[active].id));
+              else if (name === "CommandPalette") send("command.ask", { text: query });
+            }
+          }}
+        />
+        <kbd className="kbd">{name === "CommandPalette" ? "⌘K" : "esc"}</kbd>
+      </div>
       {open && (
         <div className="f01-menu">
-          {items.map((i, index) => (
-            <button
-              className={index === active ? "is-active" : ""}
-              type="button"
-              key={str(i.id)}
-              onClick={() => pick(str(i.id))}
-            >
-              {str(i.label)}
-            </button>
+          {groups.map((group) => (
+            <div key={str(group.label)}>
+              <div className="f01-menu-heading">{str(group.label)}</div>
+              {group.items.map((i) => (
+                <button
+                  className={items.indexOf(i) === active ? "is-active" : ""}
+                  type="button"
+                  key={str(i.id)}
+                  onClick={() => pick(str(i.id))}
+                >
+                  {i.icon ? <Glyph name={str(i.icon)} size="sm" /> : null}
+                  <span>
+                    <Match text={str(i.label)} query={query} />
+                  </span>
+                  {i.hint ? (
+                    <>
+                      {" "}
+                      <small>{str(i.hint)}</small>
+                    </>
+                  ) : null}
+                  {i.shortcut ? <kbd className="kbd">{str(i.shortcut)}</kbd> : null}
+                </button>
+              ))}
+            </div>
           ))}
           {!items.length && (
             <span className="small">{query ? "No results" : "Type to search"}</span>
           )}
           {name === "CommandPalette" && (
-            <button type="button" onClick={() => send("command.ask", { text: query })}>
-              Ask your agent: {query}
-            </button>
+            <>
+              <div className="f01-menu-heading">Ask your agent</div>
+              <button type="button" onClick={() => send("command.ask", { text: query })}>
+                <Avatar label="You" seat="steward" size="xs" />
+                <span>
+                  <b>“{query}…”</b> ask your agent in words
+                </span>
+                <kbd className="kbd">↵</kbd>
+              </button>
+            </>
           )}
         </div>
       )}
+      {name === "CommandPalette" && (
+        <div className="f01-command-footer">
+          <span>
+            <kbd className="kbd">↑↓</kbd> move
+          </span>
+          <span>
+            <kbd className="kbd">↵</kbd> run
+          </span>
+          <span>
+            <kbd className="kbd">esc</kbd> close
+          </span>
+        </div>
+      )}
     </div>
+  );
+}
+
+function Match({ text, query }: { text: string; query: string }) {
+  const index = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
+  return index < 0 ? (
+    text
+  ) : (
+    <>
+      {text.slice(0, index)}
+      <b>{text.slice(index, index + query.length)}</b>
+      {text.slice(index + query.length)}
+    </>
   );
 }
 
@@ -257,6 +344,7 @@ export function Filter({ p, send }: ViewProps) {
         Sort: {str(obj(p.sort).field, "Updated")}
       </button>
       <span className="small">{shown(p.resultCount)} results</span>
+      {p.groupBy ? <span className="chip">Group: {str(p.groupBy)}</span> : null}
     </div>
   );
 }

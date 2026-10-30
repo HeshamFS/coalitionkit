@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { type ReactNode, useEffect, useState } from "react";
-import { Icon, type IconName } from "../../ui/Icon";
-import { cx } from "./primitives";
+import type { IconName } from "../../ui/Icon";
+import { Glyph as Icon } from "./Glyph";
+import { Badge, type BadgeKind, cx } from "./primitives";
+import { shortTime } from "./time";
 
 /* ---------- Banner ---------- */
 
@@ -13,9 +15,9 @@ const BANNER_CLASS: Record<BannerTone, string> = {
   agreed: "bn-ok",
 };
 const BANNER_ICON: Record<BannerTone, IconName> = {
-  info: "info",
-  ask: "info",
-  blocked: "shield",
+  info: "information",
+  ask: "warning",
+  blocked: "blocked",
   agreed: "check",
 };
 
@@ -237,12 +239,22 @@ export function ErrorState({
           color: "var(--bad-fg)",
         }}
       >
-        <Icon name="info" size="lg" />
+        <Icon name="offline" size="lg" />
       </div>
       <b style={{ fontSize: 14 }}>{cause}</b>
       <span className="small">
-        {lastSeen ? `It last answered at ${lastSeen}. ` : ""}Nothing is lost; the host keeps your
-        place.
+        {lastSeen ? (
+          <>
+            It last answered at{" "}
+            <time dateTime={lastSeen} title={lastSeen}>
+              {shortTime(lastSeen)}
+            </time>
+            .{" "}
+          </>
+        ) : (
+          ""
+        )}
+        Nothing is lost; the host keeps your place.
       </span>
       <div className="row">
         {retry && (
@@ -275,11 +287,26 @@ export function ErrorState({
 
 export type SkeletonState = "skeleton" | "filled" | "live" | "rest" | "changed";
 
-function Bone({ w, h, round }: { w: number | string; h: number; round?: boolean }) {
+function Bone({
+  w,
+  h,
+  round,
+  pill,
+}: {
+  w: number | string;
+  h: number;
+  round?: boolean;
+  pill?: boolean;
+}) {
   return (
     <span
       className="skel"
-      style={{ width: w, height: h, borderRadius: round ? "50%" : undefined, display: "block" }}
+      style={{
+        width: w,
+        height: h,
+        borderRadius: pill ? 999 : round ? "50%" : undefined,
+        display: "block",
+      }}
     />
   );
 }
@@ -291,6 +318,7 @@ export function Skeleton({
   state = "skeleton",
   value,
   previous,
+  provenance,
   label = "Loading",
 }: {
   shape?: "line" | "block" | "avatar" | "card";
@@ -300,6 +328,7 @@ export function Skeleton({
   state?: SkeletonState;
   value?: string;
   previous?: string;
+  provenance?: BadgeKind;
   label?: string;
 }) {
   const lines = clamp(linesRaw, 1, 20);
@@ -321,6 +350,7 @@ export function Skeleton({
     return (
       <div className="small" data-state={state} style={{ minHeight: reserves }}>
         {body}
+        {provenance && <Badge kind={provenance} label={provenance} />}
       </div>
     );
   }
@@ -334,7 +364,7 @@ export function Skeleton({
           <Bone w={22} h={22} round />
           <Bone w={120} h={12} />
           <span className="h-right">
-            <Bone w={56} h={18} />
+            <Bone w={56} h={18} pill />
           </span>
         </div>
         {Array.from({ length: lines }, (_, i) => (

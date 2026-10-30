@@ -1,0 +1,253 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The reference sheet supplies only the 400 and 500 mono weights. */
+@font-face {
+  font-family: "F01 Mono";
+  src: url("@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2")
+    format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+.sheet-01,
+.f01 {
+  --font-mono: "F01 Mono", ui-monospace, monospace;
+}
+.sheet-01 .cell-name {
+  font-weight: 600;
+}
+.f01-tooltip {
+  max-width: 220px;
+}
+.f01-choice-control {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+.f01-choice-control.is-open {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(var(--blue-rgb), 0.16);
+}
+.f01-choice-control .chip {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 12px;
+}
+.f01-choice-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  height: 30px;
+  font-size: 13px;
+}
+.f01-choice .f01-menu {
+  margin-top: 4px;
+}
+.f01-choice .box .ico {
+  width: 11px;
+  height: 11px;
+}
+.f01-choice .f01-menu button[aria-selected="true"] {
+  color: var(--blue-text);
+}
+.f01-choice .f01-menu button[aria-selected="true"] .box-on {
+  color: var(--on-blue);
+}
+.f01-Tabs button[aria-selected="true"] .count {
+  color: var(--on-blue);
+  background: var(--blue);
+}
+.f01-ChoicePicker button {
+  padding: 0 10px;
+  height: 26px;
+}
+.f01-toggle input {
+  margin: 0;
+  flex: none;
+}
+.f01-toggle:has(input:disabled) {
+  color: var(--ink-3);
+}
+.f01-toggle:has(input:disabled) .small {
+  opacity: 0.6;
+}
+.f01-number input {
+  width: 64px;
+  flex: none;
+  border-inline: 1px solid var(--line);
+}
+.f01-number button {
+  background: var(--surface);
+}
+.f01-field .row:has(input[type="number"]) {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+.f01-field .row:has(input[type="number"]) input {
+  border: 0;
+  padding: 0;
+  height: 30px;
+}
+.f01-field .row:has(input[type="number"]) .small {
+  font: 11px var(--font-mono);
+  color: var(--ink-3);
+}
+.f01-field:has(textarea) > .st {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-size: 9px;
+}
+.f01-field textarea {
+  min-height: 92px;
+  padding-bottom: 22px;
+}
+.f01-Drawer .f01-field textarea {
+  min-height: 52px;
+  height: 52px;
+  padding-bottom: 6px;
+  resize: none;
+}
+.f01-Drawer .kv {
+  margin: 0;
+}
+.f01-dialog:focus {
+  outline: none;
+}
+.f01-dialog .f01-root-Text > span {
+  line-height: 1.45;
+}
+.f01-choice-trigger[aria-expanded="true"] > .ico {
+  transform: rotate(180deg);
+}
+.f01-choice [aria-multiselectable="true"] button[aria-selected="true"] {
+  color: var(--ink);
+}
+.f01-root-Menu > .f01-menu {
+  margin-top: 0;
+}
+.f01-menu button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.f01-menu > div:has(> button.f01-error) {
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+.f01-choice .f01-menu button:disabled {
+  margin-top: 4px;
+  padding-top: 4px;
+  height: 35px;
+}
+.f01-choice:has([aria-multiselectable="true"]) .f01-choice-control {
+  border-color: var(--blue);
+}
+.f01-choice:has([role="listbox"]:not([aria-multiselectable="true"])) .f01-choice-control {
+  border-color: var(--line-strong);
+}
+.f01 .av.sh {
+  color: var(--surface);
+}
+.f01-dialog .head[hidden] {
+  display: none;
+}
+.f01-Popover .f01-dialog {
+  gap: 8px;
+  position: relative;
+  border-radius: 12px;
+  padding: 12px;
+}
+.f01-Popover .kv {
+  margin: 0;
+}
+.f01-Popover .f01-dialog::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  position: absolute;
+  top: -6px;
+  left: 22px;
+  transform: rotate(45deg);
+}
+.f01-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.f01-slider output {
+  text-align: right;
+}
+.f01-slider-track {
+  position: relative;
+  height: 4px;
+  margin: 4px 0 12px;
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+.f01-slider-fill {
+  position: absolute;
+  height: 4px;
+  background: var(--blue);
+  border-radius: 4px;
+}
+.f01-slider input {
+  appearance: none;
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.f01-slider input::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.f01-slider input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.f01-slider input:focus-visible {
+  z-index: 1;
+}
+.field:has(> .f01-slider-label) {
+  position: relative;
+}
+.f01-slider-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.f01-search-input input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.f01-menu small {
+  font-size: 11.5px;
+}
+.f01-menu kbd {
+  color: var(--ink-3);
+}
