@@ -12,7 +12,7 @@ export function NotificationCard({ p, send }: { p: Props; send: Send }) {
       <span className="col grow">
         <span className="row">
           <b>{text(p.title)}</b>
-          <span className="h-right st">now</span>
+          <span className="h-right st">{text(p.ageLabel ?? "now")}</span>
         </span>
         <span>{text(p.body)}</span>
       </span>

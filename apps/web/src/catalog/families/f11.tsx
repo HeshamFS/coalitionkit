@@ -11,6 +11,8 @@ export const apis = {
   ChannelHandoff: {
     name: "ChannelHandoff",
     schema: z.object({
+      summary: lit(z.string()).optional(),
+      actionLabel: lit(z.string()).optional(),
       from: lit(z.string()).optional(),
       reason: lit(z.enum(["money", "identity", "too long"])).optional(),
       subject: lit(subject).optional(),
@@ -80,6 +82,7 @@ export const apis = {
   MetricTile: {
     name: "MetricTile",
     schema: z.object({
+      placeholder: lit(z.string()).optional(),
       context: lit(z.string()).optional(),
       label: lit(z.string()),
       run: lit(z.string()).optional(),
@@ -90,6 +93,7 @@ export const apis = {
   NotificationCard: {
     name: "NotificationCard",
     schema: z.object({
+      ageLabel: lit(z.string()).optional(),
       body: lit(z.string()).optional(),
       link: lit(z.string()).optional(),
       title: lit(z.string()),
@@ -104,6 +108,8 @@ export const apis = {
   SkillCard: {
     name: "SkillCard",
     schema: z.object({
+      usedCount: lit(Bound).optional(),
+      summary: lit(z.string()).optional(),
       name: lit(z.string()),
       roles: lit(z.array(z.unknown())).optional(),
       rules: lit(z.array(z.unknown())).optional(),

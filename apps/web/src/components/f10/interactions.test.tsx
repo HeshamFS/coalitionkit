@@ -48,3 +48,23 @@ it("exposes chart values in a table and preserves the export source", () => {
   fireEvent.click(screen.getByRole("button", { name: "chart view" }));
   expect(screen.getByRole("img")).toBeVisible();
 });
+it("aligns timestamp ticks with readings and keeps original values available", () => {
+  const { container } = render(
+    draw(
+      "DeviceReading",
+      {
+        unit: "u",
+        series: [
+          { t: "2026-11-05T09:30:00Z", value: { value: 300, event_ref: "e1" } },
+          { t: "2026-11-05T11:00:00Z", value: { value: 1200, event_ref: "e2" } },
+        ],
+      },
+      { dispatchAction: vi.fn() } as unknown as ComponentContext,
+    ),
+  );
+  expect(screen.getByText("09:30")).toBeVisible();
+  expect(screen.getByText("11:00")).toBeVisible();
+  expect(container.querySelector("circle")).toHaveAttribute("cx", "520");
+  fireEvent.click(screen.getByRole("button", { name: "table view" }));
+  expect(screen.getByRole("cell", { name: "1200" })).toBeVisible();
+});

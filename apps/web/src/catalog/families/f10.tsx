@@ -25,6 +25,9 @@ export const apis = {
   DeviceAlarm: {
     name: "DeviceAlarm",
     schema: z.object({
+      firedAt: lit(z.string()).optional(),
+      ripple: lit(z.string()).optional(),
+      unit: lit(z.string()).optional(),
       autoAction: lit(z.string()).optional(),
       device: lit(z.string()).optional(),
       duration: lit(Bound).optional(),
@@ -46,6 +49,8 @@ export const apis = {
   EdgeReaderStatus: {
     name: "EdgeReaderStatus",
     schema: z.object({
+      sourceLabel: lit(z.string()).optional(),
+      confidenceWindow: lit(Bound).optional(),
       confidence: lit(Bound).optional(),
       fallback: lit(z.string()).optional(),
       framesKept: lit(z.string()).optional(),
@@ -56,6 +61,7 @@ export const apis = {
   MintPipeline: {
     name: "MintPipeline",
     schema: z.object({
+      elapsedPlaceholder: lit(z.string()).optional(),
       cost: lit(z.string()).optional(),
       elapsed: lit(Bound).optional(),
       stages: lit(z.array(z.unknown())).optional(),

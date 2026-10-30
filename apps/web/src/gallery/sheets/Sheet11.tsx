@@ -160,6 +160,7 @@ function Panel({ panel }: { panel: (typeof panels)[number] }) {
                 title: "Coalition 2",
                 body: "Everyone agreed. The plan is signed.",
                 link: "/room/2",
+                ageLabel: "2 h",
               }}
             />
           </div>

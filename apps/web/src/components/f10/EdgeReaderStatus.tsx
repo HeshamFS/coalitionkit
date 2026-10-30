@@ -18,8 +18,8 @@ export function EdgeReaderStatus({ p }: { p: Props; send: Send }) {
       <Fields
         values={{
           [p.source === "camera" ? "Camera" : "Source"]:
-            `${text(p.source)} · ${text(p.rate)} ${p.source === "camera" ? "fps" : "Hz"}`,
-          Confidence: text(p.confidence),
+            `${text(p.sourceLabel ?? p.source)} · ${text(p.rate)} ${p.source === "camera" ? "fps" : "Hz"}`,
+          Confidence: `${text(p.confidence)}${p.confidenceWindow ? ` (last ${text(p.confidenceWindow)} s)` : ""}`,
           "Frames kept": p.framesKept ?? "none",
           Fallback: p.fallback,
         }}

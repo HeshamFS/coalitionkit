@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Fields, list, type Props, type Send, text } from "../f08/shared";
+import { Fields, list, num, type Props, type Send, text } from "../f08/shared";
 import "../../styles/f11.css";
 export function SkillCard({ p, send }: { p: Props; send: Send }) {
   return (
@@ -12,15 +12,17 @@ export function SkillCard({ p, send }: { p: Props; send: Send }) {
         <span className="h-right badge b-estimate">pack draft</span>
       </div>
       <span className="small">
-        {list(p.templates).map(text).join(" → ")}
-        {list(p.rules).length ? `, ${text(list(p.rules)[0])}.` : "."}
+        {text(p.summary) ||
+          `${list(p.templates).map(text).join(" → ")}${list(p.rules).length ? `, ${text(list(p.rules)[0])}.` : "."}`}
       </span>
       <Fields
         values={{
           Roles: `${list(p.roles).length} members`,
           Tasks: `${list(p.templates).length} templates`,
           Rules: `${list(p.rules).length} from this charter`,
-          Source: p.source,
+          ...(p.usedCount === undefined
+            ? { Source: p.source }
+            : { Used: num(p.usedCount) === 1 ? "once" : `${text(p.usedCount)} times` }),
         }}
       />
       <div className="row">

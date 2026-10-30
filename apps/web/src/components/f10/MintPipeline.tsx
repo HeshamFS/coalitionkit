@@ -2,6 +2,22 @@
 import { list, num, obj, type Props, rows, type Send, text } from "../f08/shared";
 import "../../styles/f10.css";
 
+function SpecLine({ value }: { value: string }) {
+  return [...value.matchAll(/"[^"]*"|\b[a-z_]+(?=:)|./g)].map((match) => (
+    <span
+      key={match.index}
+      className={
+        match[0].startsWith('"')
+          ? "f10-code-string"
+          : /^[a-z_]+$/.test(match[0])
+            ? "f10-code-key"
+            : undefined
+      }
+    >
+      {match[0]}
+    </span>
+  ));
+}
 export function MintPipeline({ p, send }: { p: Props; send: Send }) {
   const stages = rows(p.stages);
   return (
@@ -35,7 +51,7 @@ export function MintPipeline({ p, send }: { p: Props; send: Send }) {
                   ? "next"
                   : i === 0
                     ? "—"
-                    : `${text(stage.took)} s`}
+                    : `${text(stage.timingPlaceholder ?? stage.took)} s`}
             </span>
           </button>
         ))}
@@ -70,10 +86,10 @@ export function MintPipeline({ p, send }: { p: Props; send: Send }) {
                         aria-label={text(frame.label)}
                       >
                         <rect
-                          x={10 + i * 3}
-                          y={10 - i * 2}
-                          width={22 + i * 4}
-                          height={14 + i * 8}
+                          x={[10, 6, 20][i % 3]}
+                          y={[10, 8, 6][i % 3]}
+                          width={[22, 30, 28][i % 3]}
+                          height={[14, 20, 30][i % 3]}
                           fill="none"
                           stroke="var(--dark-blue)"
                           strokeWidth="1.5"
@@ -94,7 +110,7 @@ export function MintPipeline({ p, send }: { p: Props; send: Send }) {
                 )}
                 {list(preview.lines).map((line) => (
                   <span key={text(line)} className={preview.kind === "code" ? "mono small" : "st"}>
-                    {text(line)}
+                    {preview.kind === "spec" ? <SpecLine value={text(line)} /> : text(line)}
                   </span>
                 ))}
                 {Boolean(preview.footer) && <span className="st">{text(preview.footer)}</span>}
@@ -104,7 +120,7 @@ export function MintPipeline({ p, send }: { p: Props; send: Send }) {
       </div>
       <div className="row small">
         <span>
-          Elapsed <b className="num">{text(p.elapsed)} s</b>
+          Elapsed <b className="num">{text(p.elapsed ?? p.elapsedPlaceholder)} s</b>
         </span>
         <span className="grow">{text(stages.find((s) => s.runtime)?.runtime)}</span>
         <span className="badge b-estimate">{text(p.cost)}</span>

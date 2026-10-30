@@ -44,7 +44,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-
 /* Sheet framing is local to this family. */
 .sheet:has(> .sheet-10) {
   padding: 0;
@@ -60,7 +59,6 @@
 .f10 .family-card .row {
   flex-wrap: nowrap;
 }
-
 .f10 [data-component="AttackTests"] {
   border: 0;
   padding: 0;
@@ -109,11 +107,9 @@
   cursor: pointer;
   text-align: left;
 }
-
 .sheet-10 .cell-name {
   font-weight: 700;
 }
-
 .f10 {
   --f10-device: #56637a;
   --f10-display: #0e1726;
@@ -223,7 +219,6 @@
   border-radius: 4px;
   background: var(--f10-record-red);
 }
-
 .f10 [data-component="MintPipeline"] {
   border: 0;
   padding: 0;
@@ -311,7 +306,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 .f10-publish-title {
   font-size: 14px;
 }
@@ -353,7 +347,6 @@
 .f10-readings .answer {
   font-size: 18px;
 }
-
 .f10 [data-component="DeviceReading"],
 .f10 [data-component="DeviceAlarm"],
 .f10 [data-component="ScheduleTwin"] {
@@ -408,9 +401,8 @@
 .f10-alarm .btn:first-child {
   background: var(--bad-fg);
   border-color: var(--bad-fg);
-  color: #fff;
+  color: var(--on-fill);
 }
-
 .f10-machine {
   width: 56px;
   flex: none;
@@ -446,7 +438,6 @@
 .f10-local-2 {
   background: #dcd3f0;
 }
-
 .f10-stages {
   align-items: start;
 }
@@ -455,4 +446,35 @@
 }
 .f10-thumbnails svg:last-child rect {
   stroke: var(--f10-preview-green);
+}
+.f10-spec {
+  background: #0e1726;
+  color: #c8d1e0;
+  font-family: var(--font-mono);
+  border: 0;
+}
+.f10-spec .st {
+  color: inherit;
+}
+.f10-spec .eyebrow {
+  color: #72819a;
+}
+.f10-code-key {
+  color: #8db8ff;
+}
+.f10-code-string {
+  color: #9fe0b8;
+}
+.f10-thumbnails svg:last-child rect {
+  stroke: #9fe0b8;
+}
+.f10-artifact:has(.f10-thumbnails) {
+  gap: 6px;
+}
+.f10-callout-time {
+  font: 9px var(--font-ui);
+  fill: var(--ink-3);
+}
+.f10 [data-component="DeviceReading"] .f10-link {
+  color: var(--ink-2);
 }
