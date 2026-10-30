@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Icon } from "../ui/Icon";
+import { RoomIcon } from "./icons";
 export function RoomNavigation({
   selected,
   onSelect,
@@ -20,7 +21,11 @@ export function RoomNavigation({
           >
             <span className="room-wide-label">{tab}</span>
             <span className="room-phone-label">
-              <Icon name={tab === "My part" ? "people" : tab === "Plans" ? "canvas" : "list"} />
+              {tab === "Plans" ? (
+                <Icon name="canvas" />
+              ) : (
+                <RoomIcon kind={tab === "My part" ? "home" : "log"} />
+              )}
               {tab === "Wiring" ? "What happened" : tab}
             </span>
           </button>

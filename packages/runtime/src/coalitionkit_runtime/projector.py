@@ -140,9 +140,10 @@ def projection(
             visible[event["event_id"]] = {
                 "type": event["type"],
                 "seq": event["seq"],
+                "on_behalf_of": event["on_behalf_of"],
                 "payload": body["payload"] if item["type"] == "coalition.projection" else body,
             }
-    return {"coalition_id": state.coalition_id, "events": visible}
+    return {"coalition_id": state.coalition_id, "viewer": viewer, "events": visible}
 
 
 def patch(previous: Document, current: Document) -> list[Document]:
