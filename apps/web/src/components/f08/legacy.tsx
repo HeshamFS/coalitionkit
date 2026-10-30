@@ -96,7 +96,7 @@ export function ConsentCard({
     >
       <div className="row">
         <span className="eyebrow" style={{ color: "var(--warn-fg)" }}>
-          Decide {"·"} {word} {"·"} revision {subject.revision}
+          Decide {"·"} {subject.id} {"·"} revision {subject.revision}
         </span>
         {deadline && open && (
           <span className="h-right num small" style={{ color: "var(--warn-fg)" }}>

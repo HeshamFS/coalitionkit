@@ -2,6 +2,7 @@
 
 import type { Props } from "../f08/shared";
 import { stateProps } from "../f08/stateProps";
+import { sheetData } from "./sheetData";
 
 type Example = {
   name: string;
@@ -410,6 +411,6 @@ export const examples: Example[] = drawn
     ...example,
     states: example.states.map((s) => ({
       ...s,
-      props: stateProps(example.name, s.state, s.props),
+      props: sheetData(example.name, s.state, stateProps(example.name, s.state, s.props)),
     })),
   }));
