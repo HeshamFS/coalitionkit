@@ -1,0 +1,95 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-turn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ck-turn > .ck-bubble {
+  flex: 1;
+  min-width: 0;
+}
+.ck-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.ck-VideoCall {
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+  border-color: var(--dark-line);
+}
+.ck-VideoCall small {
+  color: var(--dark-ink-2);
+}
+.ck-call-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ck-video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.ck-video-tile {
+  min-height: 130px;
+  background: var(--dark-surface);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.ck-video-tile .ck-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+}
+.ck-speaking {
+  border-color: var(--dark-blue);
+}
+.ck-captions {
+  background: var(--dark-surface);
+  padding: 8px;
+  border-radius: 6px;
+}
+.ck-VoiceCall {
+  align-items: center;
+  text-align: center;
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+  padding: 24px 14px;
+}
+.ck-call-people {
+  display: flex;
+  gap: 10px;
+}
+.ck-call-people .ck-avatar {
+  width: 42px;
+  height: 42px;
+}
+.ck-extract {
+  padding: 10px;
+  background: var(--blue-tint);
+  border: 1px solid var(--blue-line);
+  border-radius: 8px;
+}
+.ck-McpAppView {
+  border-color: var(--blue-line);
+}
+.ck-ChannelDigest header {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.ck-Message[data-state="redacted"] .ck-bubble {
+  color: var(--ink-2);
+}
+@media (max-width: 480px) {
+  .ck-video-grid {
+    grid-template-columns: 1fr;
+  }
+}
