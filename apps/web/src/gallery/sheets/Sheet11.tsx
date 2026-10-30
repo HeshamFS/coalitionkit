@@ -1,95 +1,186 @@
 // SPDX-License-Identifier: Apache-2.0
 import { PreviewState } from "../../components/f08/shared";
 import { examples } from "../../components/f11/examples";
-import { Cell, Family, State } from "../Cell";
+import { Family } from "../Cell";
 import { One } from "../Drawn";
 import "../../styles/f11.css";
 
-const sections = [
+const panels = [
   {
-    number: "11a",
-    heading: "One component, every door",
-    cells: [
-      { names: ["DoorMatrix"], span: 4 },
-      { names: ["NotificationCard"], span: null },
-      { names: ["ChannelSettings"], span: null },
-      { names: ["ChannelHandoff"], span: null },
-      { names: ["MessageTemplate"], span: null },
-    ],
+    title: "DoorMatrix · ConsentCard on six doors",
+    name: "DoorMatrix",
+    span: 4,
+    props:
+      "component · doors[]: wide | compact | message | voice | lens | mcp-app · per-door rules: targets 44 px (compact), ≤ 1 024 chars (message), ≤ 3 sentences + confirm (voice), ≤ 2 gestures, no money (lens)",
+    empty: false,
   },
   {
-    number: "11b",
-    heading: "Ending: dissolve, results and cost",
-    cells: [
-      { names: ["DissolveSummary"], span: 2 },
-      { names: ["CostMeter"], span: null },
-      { names: ["Scorecard", "MetricTile"], span: null },
-    ],
+    title: "NotificationCard · lock screen",
+    name: "NotificationCard",
+    span: 1,
+    props:
+      'title (coalition) · body ≤ 90 chars, no private values · deep link · collapse by coalition · only "needs you" and outcomes notify',
+    empty: false,
   },
   {
-    number: "11c",
-    heading: "What you keep: export, lessons and skills",
-    cells: [
-      { names: ["ExportControl"], span: null },
-      { names: ["LessonReview"], span: 2 },
-      { names: ["SkillCard"], span: null },
-      { names: ["CoalitionArchive"], span: 2 },
-    ],
+    title: "ChannelSettings · quiet hours",
+    name: "ChannelSettings",
+    span: 1,
+    props:
+      "channels[] {kind, level: everything | needs-you | next-step | digest | off} · quiet {from, to, tz} · per-coalition override · durable consent per channel",
+    empty: false,
   },
-] as const;
-const drawnCounts: Record<string, number> = {};
-function Samples({ name }: { name: string }) {
-  const example = examples.find((e) => e.name === name);
-  if (!example) return null;
-  const count = drawnCounts[name] ?? 1;
-  const draw = (s: (typeof example.states)[number]) => (
-    <State key={s.state} label={s.state}>
-      <PreviewState value={s.state}>
-        <One component={name} props={s.props} />
-      </PreviewState>
-    </State>
-  );
+  {
+    title: "ChannelHandoff · move to a door that can",
+    name: "ChannelHandoff",
+    span: 1,
+    props:
+      "from door · to door · reason (money | identity | too long) · same subject + revision carried over · expires with the request",
+    empty: false,
+  },
+  {
+    title: "MessageTemplate · WhatsApp business",
+    name: "MessageTemplate",
+    span: 1,
+    props:
+      "template id · params[] (no private fields) · quick replies[] ≤ 3 · 24 h session rule · opt-out",
+    empty: false,
+  },
+  {
+    title: "DissolveSummary · what we did",
+    name: "DissolveSummary",
+    span: 2,
+    props:
+      "goal · outcome: reached | partly | not | deadline · counts (from log) · contributions[] {participant, tasks, hours} · cost (meter) · sealed log ref · each number bound to its events",
+    empty: false,
+  },
+  {
+    title: "CostMeter · by role and model",
+    name: "CostMeter",
+    span: 1,
+    props:
+      "total · budget · rows[] {role, model, tokens, cost} · per participant (own only) · warning 80 % · hard stop 100 % · source: meter, never estimates",
+    empty: false,
+  },
+  {
+    title: "Scorecard · MetricTile",
+    name: "Scorecard",
+    span: 1,
+    props:
+      'tiles[] {label, value, unit, context, source run} · empty state "not run yet" · targets shown as targets, never as results',
+    empty: false,
+  },
+  {
+    title: "ExportControl · take it or wipe it",
+    name: "ExportControl",
+    span: 1,
+    props:
+      "items[] {kind, size, included} · export → download · wipe → vault only, with confirm · log immutability stated",
+    empty: false,
+  },
+  {
+    title: "LessonReview · what your agent should remember",
+    name: "LessonReview",
+    span: 2,
+    props:
+      "lessons[] {text, from (event refs), scope: private | shareable, kind} · never stores judgements about people · person approves each · → agent memory (vault)",
+    empty: false,
+  },
+  {
+    title: "SkillCard · a reusable pattern",
+    name: "SkillCard",
+    span: 1,
+    props:
+      "name · source coalition · charter rules[] · task templates[] · roles[] · shareable as a pack draft (author-signed) · used count",
+    empty: false,
+  },
+  {
+    title: "CoalitionArchive · past coalitions",
+    name: "CoalitionArchive",
+    span: 2,
+    props:
+      "items[] {coalition, pack, ended, outcome, yourCost, log ref} · read-only · search · delete local copy",
+    empty: false,
+  },
+  {
+    title: "EmptyArchive · first time",
+    name: "CoalitionArchive",
+    span: 2,
+    props: "the archive's empty state · same mark as the entry composer, seats empty",
+    empty: true,
+  },
+];
+function Panel({ panel }: { panel: (typeof panels)[number] }) {
+  const example = examples.find((e) => e.name === panel.name);
+  const state = panel.empty ? example?.states.find((s) => s.state === "empty") : example?.states[0];
   return (
-    <>
-      {example.states.slice(0, count).map(draw)}
-      {example.states.length > count && (
-        <details className="family-extra">
-          <summary>Other states</summary>
-          {example.states.slice(count).map(draw)}
-        </details>
-      )}
-    </>
+    <div className={`cell${panel.span > 1 ? ` span${panel.span}` : ""}`} data-panel={panel.title}>
+      <div className="head">
+        <span className="cell-name">{panel.title}</span>
+        {panel.name === "CostMeter" && <span className="h-right badge b-measured">meter</span>}
+        {panel.name === "LessonReview" && (
+          <span className="h-right badge b-model">suggested by your agent</span>
+        )}
+      </div>
+      <div className="demo">
+        {state && (
+          <PreviewState value={state.state}>
+            <One component={panel.name} props={state.props} />
+          </PreviewState>
+        )}
+      </div>
+      <div className="props">{panel.props}</div>
+    </div>
   );
 }
 export function Sheet11() {
   return (
-    <div className="sheet" data-testid="sheet-11">
+    <div className="sheet sheet-11" data-testid="sheet-11">
       <div className="sheet-head">
         <div>
           <div className="eyebrow">coalitionkit/v0_9 · family 11 · example data</div>
-          <div className="sheet-title">Doors, memory and ending</div>
+          <div className="sheet-title">Channels, ending and memory</div>
+          <div className="sheet-sub">
+            How one component reaches each door, how people are told without being nagged, and how a
+            coalition ends: what it achieved, what it cost, what each person keeps and what their
+            agent learns.
+          </div>
+        </div>
+        <div className="h-right">
+          <span className="badge b-example">Example data</span>
         </div>
       </div>
-      {sections.map((section) => (
-        <Family key={section.number} n={section.number} title={section.heading}>
-          {section.cells.map((cell) => {
-            const selected = cell.names.map((name) => examples.find((e) => e.name === name));
-            return (
-              <Cell
-                key={cell.names.join(" · ")}
-                name={cell.names.join(" · ")}
-                span={cell.span ?? undefined}
-                props={selected.map((e) => e?.props).join(" · ")}
-                events={selected.map((e) => e?.events).join(" · ")}
-              >
-                {cell.names.map((name) => (
-                  <Samples key={name} name={name} />
-                ))}
-              </Cell>
-            );
-          })}
-        </Family>
-      ))}
+      <Family n="11a" title="One component, every door">
+        {panels.slice(0, 5).map((panel) => (
+          <Panel key={panel.title} panel={panel} />
+        ))}
+      </Family>
+      <Family n="11b" title="Ending: dissolve, results and cost">
+        {panels.slice(5, 8).map((panel) => (
+          <Panel key={panel.title} panel={panel} />
+        ))}
+      </Family>
+      <Family n="11c" title="What you keep: export, lessons and skills">
+        {panels.slice(8, 13).map((panel) => (
+          <Panel key={panel.title} panel={panel} />
+        ))}
+      </Family>
+      <details className="family-extra">
+        <summary>Additional catalog states</summary>
+        {examples.map((example) => (
+          <div key={example.name}>
+            {example.states
+              .slice(
+                example.name === "CoalitionArchive" ? 2 : example.name === "MetricTile" ? 0 : 1,
+              )
+              .map((state) => (
+                <PreviewState key={state.state} value={state.state}>
+                  <One component={example.name} props={state.props} />
+                </PreviewState>
+              ))}
+          </div>
+        ))}
+      </details>
     </div>
   );
 }

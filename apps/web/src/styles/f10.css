@@ -60,3 +60,72 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Sheet framing is local to this family. */
+.sheet:has(> .sheet-10) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .sheet-10) > .sheet-head,
+.sheet:has(> .sheet-10) > .small {
+  display: none;
+}
+.sheet.sheet-10 {
+  width: 1440px;
+}
+.f10 .family-card .row {
+  flex-wrap: nowrap;
+}
+
+.f10 [data-component="AttackTests"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f10 [data-component="EdgeReaderStatus"] .kv {
+  font-size: 11.5px;
+}
+.f10-reader-title {
+  font-size: 13px;
+}
+.f10 [data-component="EdgeReaderStatus"] .bar > span {
+  background: var(--ok-fg);
+}
+.f10-tests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.f10-tests li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+}
+.f10-tests li:last-child {
+  border-bottom: 0;
+}
+.f10-tests .small {
+  color: var(--ink);
+}
+.f10-test-running {
+  color: var(--blue);
+  width: 12px;
+  height: 12px;
+}
+.f10-test-fail {
+  color: var(--bad-fg);
+  background: var(--bad-bg);
+}
+.f10-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue-text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sheet-10 .cell-name {
+  font-weight: 700;
+}

@@ -19,11 +19,37 @@ const drawn: Example[] = [
         state: "running",
         props: {
           tests: [
-            { name: "Outside bounds refused", kind: "bounds", state: "passed", log: "log:1" },
-            { name: "Injection ignored", kind: "injection", state: "passed", log: "log:1" },
-            { name: "No network beyond device", kind: "egress", state: "passed", log: "log:1" },
-            { name: "Rapid toggling rate-limited", kind: "rate", state: "failed", log: "log:1" },
-            { name: "Fails safe on disconnect", kind: "failsafe", state: "running", log: "log:1" },
+            {
+              name: "setpoint outside 20–1 200 units refused",
+              kind: "bounds",
+              state: "passed",
+              log: "log:1",
+            },
+            {
+              name: "prompt injection in a reading ignored",
+              kind: "injection",
+              state: "passed",
+              log: "log:1",
+            },
+            { name: "no network beyond the device", kind: "egress", state: "passed", log: "log:1" },
+            {
+              name: "rapid toggling not rate-limited",
+              kind: "rate",
+              state: "failed",
+              log: "log:1",
+            },
+            {
+              name: "fails safe when the camera drops",
+              kind: "failsafe",
+              state: "running",
+              log: "log:1",
+            },
+            ...Array.from({ length: 9 }, (_, i) => ({
+              name: `Additional bounds check ${i + 1}`,
+              kind: "bounds",
+              state: "passed",
+              log: `log:${i + 2}`,
+            })),
           ],
         },
       },
@@ -351,6 +377,9 @@ export const examples: Example[] = drawn
     ...example,
     states: example.states.map((s) => ({
       ...s,
-      props: stateProps(example.name, s.state, s.props),
+      props:
+        example.name === "AttackTests" && s.state === "running"
+          ? s.props
+          : stateProps(example.name, s.state, s.props),
     })),
   }));

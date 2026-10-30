@@ -77,3 +77,118 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Sheet framing is local to this family. */
+.sheet:has(> .sheet-11) {
+  padding: 0;
+  width: 1440px;
+}
+.sheet:has(> .sheet-11) > .sheet-head,
+.sheet:has(> .sheet-11) > .small {
+  display: none;
+}
+.sheet.sheet-11 {
+  width: 1440px;
+}
+.f11 .family-card .row {
+  flex-wrap: nowrap;
+}
+
+.f11 [data-component="CostMeter"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f11-cost-total {
+  font-size: 20px;
+}
+.f11 [data-component="CostMeter"] .bar {
+  height: 8px;
+}
+.f11 .tbl .f11-right {
+  text-align: right;
+}
+
+.f11 [data-component="CoalitionArchive"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f11-link {
+  color: var(--blue-text);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+.f11-empty {
+  padding: 22px;
+  align-items: center;
+  gap: 8px;
+}
+.f11-empty > b {
+  font-size: 14px;
+}
+.f11-empty a {
+  text-decoration: none;
+}
+
+.f11 [data-component="LessonReview"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+}
+.f11-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.f11-lesson {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.f11-lesson .col {
+  gap: 2px;
+}
+.f11-lesson .small {
+  color: var(--ink);
+}
+.f11-lesson.card-dashed .small {
+  color: var(--ink-2);
+}
+.f11-lesson input {
+  appearance: none;
+  flex: none;
+  margin: 2px 0 0;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.f11-lesson input:checked {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.f11-lesson input:checked::after {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 4px;
+  border: solid var(--on-blue);
+  border-width: 0 0 2px 2px;
+  transform: translate(2px, 3px) rotate(-45deg);
+}
+
+.sheet-11 .cell-name {
+  font-weight: 700;
+}
+
+.f11-notification .sh {
+  color: var(--on-ink);
+}
