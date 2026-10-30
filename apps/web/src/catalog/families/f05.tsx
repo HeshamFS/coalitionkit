@@ -23,6 +23,7 @@ export const apis = {
     schema: z.object({
       agent: literal(z.string()).optional(),
       latencyMs: literal(Bound).optional(),
+      nextReadingAt: literal(z.string()).optional(),
       pinnedKid: literal(z.string()).optional(),
       state: literal(z.enum(["live", "idle", "offline"])).optional(),
     }),

@@ -189,6 +189,15 @@ export function InviteList({ p, send }: Props) {
       <span className={`badge ${r.state === "joined" ? "b-signed" : "b-estimate"}`}>
         {str(r.state)}
       </span>
+      {r.state === "joined" && (
+        <button
+          className="btn btn-sm btn-ghost"
+          type="button"
+          onClick={() => send("invite.changeRole", { participant: r.participant })}
+        >
+          Change role
+        </button>
+      )}
       {r.state === "invited" && (
         <button
           className="btn btn-sm btn-ghost"

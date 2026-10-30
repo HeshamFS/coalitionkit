@@ -59,7 +59,7 @@
 .f07-zonebar {
   position: relative;
   height: 14px;
-  background: var(--surface-3);
+  background: var(--f07-zone-bg, #eef1f4);
   border-radius: 4px;
   overflow: visible;
 }
@@ -334,6 +334,7 @@
   color: var(--ink);
 }
 .f07-lens > small {
+  color: var(--dark-ink);
   font-family: var(--font-mono);
   font-size: 10.5px;
   opacity: 0.7;

@@ -10,6 +10,19 @@ const clock = (value: unknown) => {
 };
 
 export { IndoorMap, MapView, PlacePicker } from "./maps";
+
+function formatCost(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${value} ${currency}`;
+  }
+}
 export function RouteCard({ p }: Props) {
   const progress = num(p.progress);
   const state = progress >= 1 ? "arrived" : progress > 0 ? "moving" : "planned";
@@ -60,7 +73,12 @@ export function RouteCard({ p }: Props) {
             </span>
           ))}
         </div>
-        <span className="small">{list(p.participants).length} members</span>
+        <span className="small">
+          {list(p.participants).length} members
+          {p.costPerMember != null && Boolean(p.currency) && (
+            <> · ≈ {formatCost(num(p.costPerMember), str(p.currency))} each</>
+          )}
+        </span>
       </div>
     </Frame>
   );
@@ -264,12 +282,17 @@ export function TimeZoneStrip({ p }: Props) {
                 <span
                   key={start}
                   style={{
-                    left: `${(start / 24) * 100}%`,
-                    width: `${((end - start) / 24) * 100}%`,
+                    left: `${Math.floor((start / 24) * 100)}%`,
+                    width: `${end === 24 ? 100 - Math.floor((start / 24) * 100) : Math.round(((end - start) / 24) * 100)}%`,
                   }}
                 />
               ))}
-              {Number.isFinite(viewerHour) && <i style={{ left: `${(viewerHour / 24) * 100}%` }} />}
+              {Number.isFinite(viewerHour) && (
+                <i
+                  title={localTime(now, people[0]?.tz)}
+                  style={{ left: `${Math.round((Math.floor(viewerHour) / 24) * 100)}%` }}
+                />
+              )}
             </div>
             <time className="num">{time}</time>
           </div>

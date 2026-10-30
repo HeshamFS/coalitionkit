@@ -196,6 +196,15 @@ export function AgentPresence({ p }: Props) {
           <span className="lbl">{str(p.agent)}</span>
           <div className="st">
             {str(p.state)}
+            {p.state === "idle" && Boolean(p.nextReadingAt) && (
+              <>
+                {" "}
+                · next reading{" "}
+                <time dateTime={str(p.nextReadingAt)} title={str(p.nextReadingAt)}>
+                  {str(p.nextReadingAt).match(/T(\d{2}:\d{2})/)?.[1] ?? str(p.nextReadingAt)}
+                </time>
+              </>
+            )}
             {p.latencyMs ? ` · ${str(p.latencyMs)} ms` : ""}
             {p.pinnedKid
               ? ` · card pinned ${str(p.pinnedKid)}`
@@ -242,7 +251,10 @@ export function CharterCard({ p, send }: Props) {
         <span className="small">
           Roles:{" "}
           {rows(p.roles)
-            .map((r) => str(r.name))
+            .map(
+              (r) =>
+                `${str(r.name)}${num(r.min) > 1 && num(r.min) === num(r.max) ? ` ×${num(r.min)}` : ""}`,
+            )
             .join(", ")}
         </span>
         <button

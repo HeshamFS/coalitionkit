@@ -3832,6 +3832,11 @@
       "offline"
      ],
      "doc": "live|idle|offline"
+    },
+    "nextReadingAt": {
+     "type": "datetime",
+     "required": false,
+     "doc": "Next scheduled reading time, displayed beside idle presence."
     }
    }
   },
@@ -3933,7 +3938,8 @@
    ],
    "events": [
     "invite.send",
-    "invite.revoke"
+    "invite.revoke",
+    "invite.changeRole(participant)"
    ],
    "props": {
     "invitations": {
@@ -4920,7 +4926,8 @@
     "pinned"
    ],
    "events": [
-    "place.pick(ref)"
+    "place.pick(ref)",
+    "place.adjust(ref, x, y)"
    ],
    "props": {
     "pin": {
@@ -4974,6 +4981,16 @@
     "steps": {
      "type": "array",
      "doc": "[{label, state, time}]"
+    },
+    "costPerMember": {
+     "type": "number",
+     "required": false,
+     "doc": "Estimated cost per member in the supplied currency; bound to its source event."
+    },
+    "currency": {
+     "type": "string",
+     "required": false,
+     "doc": "ISO 4217 currency code for the estimated per-member cost."
     }
    }
   },

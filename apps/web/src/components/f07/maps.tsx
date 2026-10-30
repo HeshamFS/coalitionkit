@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useState } from "react";
 import { Frame, list, num, obj, type Props, rows, str } from "../f05/shared";
+import { PlacePinMap } from "./place-pin-map";
 
 const xy = (v: unknown) => {
   const r = obj(v);
@@ -137,7 +138,12 @@ function MapCanvas({ p, send, zoom }: Props & { zoom: number }) {
               rx="6"
               fill="var(--f07-landmark)"
             />
-            <text x={num(point.lng) - 68} y={num(point.lat) - 30} fontSize="10" fill="var(--ink-3)">
+            <text
+              x={num(point.lng) - 68}
+              y={num(point.lat) - 30}
+              fontSize="10"
+              fill="var(--f07-landmark-label)"
+            >
               {str(point.label)}
             </text>
           </g>
@@ -375,7 +381,8 @@ export function PlacePicker({ p, send }: Props) {
                 <span className="col grow">
                   <b>{str(r.place)}</b>
                   <span className="small">
-                    {str(r.distance)} km · {list(r.facts).map(str).join(" · ")}
+                    {r.distance != null && <>{str(r.distance)} km · </>}
+                    {list(r.facts).map(str).join(" · ")}
                   </span>
                   <span
                     className={`badge ${r.limitCheck === "over your limit" ? "f07-over" : r.limitCheck === "no limit asked" ? "b-estimate" : "b-vault"}`}
@@ -386,44 +393,7 @@ export function PlacePicker({ p, send }: Props) {
               </button>
             ))}
         </div>
-        <div className="f07-pin-map">
-          <svg viewBox="0 0 280 260" aria-label="Place search map">
-            <g stroke="var(--surface)" strokeWidth="7">
-              <path d="M0 90 280 120M110 0 130 260" />
-            </g>
-            <g stroke="var(--surface)" strokeWidth="3">
-              <path d="M0 200 280 210M220 0 240 260" />
-            </g>
-            {rows(p.results).map((r, i) => {
-              const x = [150, 60, 236][i % 3],
-                y = [96, 170, 40][i % 3];
-              return (
-                <g key={str(r.place)} transform={`translate(${x} ${y})`}>
-                  <path
-                    d={
-                      picked === r.place
-                        ? "M-14 0a14 14 0 1 1 28 0c0 11-14 24-14 24S-14 13-14 0"
-                        : "M-9 0a9 9 0 1 1 18 0c0 7-9 15-9 15S-9 8-9 0"
-                    }
-                    fill={picked === r.place ? "var(--blue)" : "var(--ink-3)"}
-                  />
-                  {picked === r.place && <circle r="5" fill="var(--on-blue)" />}
-                </g>
-              );
-            })}
-          </svg>
-          <div className="f07-pin-actions">
-            <span className="dock">Choose a place</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              disabled={!picked}
-              onClick={() => send("place.pick", { ref: picked })}
-            >
-              Use this place
-            </button>
-          </div>
-        </div>
+        <PlacePinMap results={rows(p.results)} picked={picked} pin={obj(p.pin)} send={send} />
       </div>
     </Frame>
   );

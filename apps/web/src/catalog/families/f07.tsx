@@ -73,6 +73,8 @@ export const apis = {
     name: "RouteCard",
     schema: z.object({
       distance: literal(Bound).optional(),
+      costPerMember: literal(Bound).optional(),
+      currency: literal(z.string()).optional(),
       eta: literal(z.string()).optional(),
       mode: literal(z.string()).optional(),
       participants: literal(z.array(WireValue).max(200)).optional(),
