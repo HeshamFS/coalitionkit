@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     bind_host: str = "127.0.0.1"
     bind_port: int = Field(default=8000, ge=1, le=65535)
     surfaces: set[Literal["mcp", "feed", "agent"]] = {"mcp", "feed", "agent"}
+    genesis: Literal["off", "local", "admin"] = "off"
     admin_token: SecretStr | None = None
     # WhatsApp message door: mounted only when all four are set.
     whatsapp_token: SecretStr | None = None

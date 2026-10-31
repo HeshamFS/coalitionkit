@@ -265,6 +265,9 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     app.router.lifespan_context = lifespan
     app.state.server = server
     admin_routes(app, server)
+    from .genesis import mount_genesis
+
+    mount_genesis(app, server)
 
     @app.get("/healthz", response_model=None)
     def health() -> Document | JSONResponse:  # pyright: ignore[reportUnusedFunction]

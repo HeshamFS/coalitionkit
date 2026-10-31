@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import secrets
+from datetime import UTC, datetime, timedelta
 from threading import RLock
 from urllib.parse import quote
 
@@ -44,6 +45,99 @@ class Registry(CredentialRegistry):
                 "CREATE TABLE IF NOT EXISTS server_credentials "
                 "(digest TEXT PRIMARY KEY, coalition TEXT, participant TEXT, "
                 "card_url TEXT, hosted TEXT, card TEXT, UNIQUE(coalition, participant))"
+            )
+
+            for statement in (
+                "CREATE TABLE IF NOT EXISTS server_start_codes "
+                "(digest TEXT PRIMARY KEY, expires TEXT)",
+                "CREATE TABLE IF NOT EXISTS server_owners "
+                "(coalition TEXT PRIMARY KEY, participant TEXT, digest TEXT UNIQUE)",
+                "CREATE TABLE IF NOT EXISTS server_invitation_info "
+                "(id TEXT PRIMARY KEY, digest TEXT UNIQUE, coalition TEXT, kind TEXT)",
+                "CREATE TABLE IF NOT EXISTS server_dissolutions "
+                "(coalition TEXT PRIMARY KEY, progress TEXT)",
+            ):
+                tx.execute(statement)
+
+    def issue_start(self) -> str:
+        token = secrets.token_urlsafe(32)
+        with self.store.transaction("") as tx:
+            tx.execute(
+                "INSERT INTO server_start_codes VALUES (?, ?)",
+                (digest(token), (datetime.now(UTC) + timedelta(hours=24)).isoformat()),
+            )
+        return token
+
+    def consume_start(self, token: str) -> bool:
+        with self.store.transaction("") as tx:
+            return bool(
+                tx.execute(
+                    "DELETE FROM server_start_codes WHERE digest = ? "
+                    "AND expires > ? RETURNING digest",
+                    (digest(token), datetime.now(UTC).isoformat()),
+                ).fetchone()
+            )
+
+    def record_owner(self, coalition: str, participant: str, token: str) -> None:
+        with self.store.transaction(coalition) as tx:
+            tx.execute(
+                "INSERT INTO server_owners VALUES (?, ?, ?)",
+                (coalition, participant, digest(token)),
+            )
+
+    def owner_coalition(self, token: str) -> str | None:
+        with self.store.transaction("") as tx:
+            row = tx.execute(
+                "SELECT coalition FROM server_owners WHERE digest = ?", (digest(token),)
+            ).fetchone()
+        return row[0] if row else None
+
+    def issue_invitation(self, coalition: str, kind: str) -> Document:
+        from coalitionkit_contracts import new_ulid
+
+        identifier = new_ulid()
+        # Fill the charter's planned slots first, then allocate fresh participant IDs.
+        with self.lock, self.store.transaction(coalition) as tx:
+            used = {
+                r[0]
+                for r in tx.execute(
+                    "SELECT participant FROM server_invites WHERE coalition = ? UNION "
+                    "SELECT participant FROM server_credentials WHERE coalition = ?",
+                    (coalition, coalition),
+                ).fetchall()
+            }
+            reserved = tx.execute(
+                "SELECT digest, participant FROM server_invites WHERE coalition = ? "
+                "AND digest NOT IN (SELECT digest FROM server_invitation_info)",
+                (coalition,),
+            ).fetchall()
+            # Server.create made these secret slots; replace the unused secret.
+            participant = (
+                sorted((r[1] for r in reserved), key=lambda p: int(p[1:]))[0]
+                if reserved
+                else f"p{max([int(p[1:]) for p in used if p[1:].isdigit()] + [0]) + 1}"
+            )
+            tx.execute(
+                "DELETE FROM server_invites WHERE coalition = ? AND participant = ?",
+                (coalition, participant),
+            )
+            secret = secrets.token_urlsafe(32)
+            tx.execute(
+                "INSERT INTO server_invites VALUES (?, ?, ?)",
+                (digest(secret), coalition, participant),
+            )
+            tx.execute(
+                "INSERT INTO server_invitation_info VALUES (?, ?, ?, ?)",
+                (identifier, digest(secret), coalition, kind),
+            )
+        return {"id": identifier, "kind": kind, "link": self.base + "/join#" + secret}
+
+    def revoke_invitation(self, coalition: str, identifier: str) -> None:
+        with self.lock, self.store.transaction(coalition) as tx:
+            tx.execute(
+                "DELETE FROM server_invites WHERE digest IN "
+                "(SELECT digest FROM server_invitation_info WHERE id = ? AND coalition = ?)",
+                (identifier, coalition),
             )
 
     def issue(self, coalition: str, participant: str) -> str:
@@ -115,6 +209,14 @@ class Registry(CredentialRegistry):
             if invitation is None:
                 raise ValueError("invalid invitation")
             coalition, participant = invitation
+            with self.store.transaction(coalition) as tx:
+                info = tx.execute(
+                    "SELECT kind FROM server_invitation_info WHERE digest = ?", (digest(token),)
+                ).fetchone()
+            if info and info[0] == "business" and not (card_url and card_data):
+                raise ValueError("business invitation requires a signed card")
+            if ports[coalition].host.state.stage == "Dissolve":
+                raise ValueError("coalition dissolved")
             hosted = ""
             if card_url is None and card_data is None:
                 agent, owner = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
