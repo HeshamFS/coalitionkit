@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The feed session: state and surfaces for one viewer. It never interrupts."""
+"""The feed session: state and surfaces for one viewer. It never interrupts.
+
+The hub supplies ``log`` and sender-only ``refusals`` as AG-UI state keys:
+the initial snapshot includes them, and subsequent wakes send JSON Patch deltas.
+Log entries use the same host replay delivery path as the MCP log resource.
+"""
 
 from __future__ import annotations
 
@@ -53,6 +58,7 @@ class FeedSession:
         catalog: Catalog | None = None,
         keep_alive: float = KEEP_ALIVE_SECONDS,
         rotate_after: float = ROTATE_SECONDS,
+        extra_state: Callable[[bool, bool], Document] | None = None,
     ) -> None:
         self.source, self.viewer, self.clock, self.new_id = source, viewer, clock, new_id
         self.catalog, self.keep_alive, self.rotate_after = catalog, keep_alive, rotate_after
@@ -66,6 +72,8 @@ class FeedSession:
         self._created: set[str] = set()
         self._closed = False
         self._projection = ViewerProjection(viewer)
+        self.extra_state = extra_state
+        self._extra: Document = {}
 
     # -- the run -----------------------------------------------------------------------------
 
@@ -83,6 +91,9 @@ class FeedSession:
             RunStartedEvent(thread_id=self.thread_id, run_id=self.run_id),
             StateSnapshotEvent(snapshot=deepcopy(self._previous)),
         ]
+        if self.extra_state is not None:
+            self._extra = deepcopy(self.extra_state(True, True))
+            frames[1] = StateSnapshotEvent(snapshot={**deepcopy(self._previous), **self._extra})
         for surface_id, messages in self._surfaces.items():
             frames.append(self._activity(surface_id, messages))
         return self._sent(frames)
@@ -99,6 +110,43 @@ class FeedSession:
             ops = json_patch(self._previous, current)
             self._previous = current
         frames: list[Frame] = self._drain()
+        if self.extra_state is not None:
+            current_extra = deepcopy(
+                self.extra_state(bool(ops), any(op["path"] == "" for op in ops))
+            )
+            # Replay may freshly sign an unchanged projection. Keep its previous
+            # valid envelope so a new log entry does not churn the entire history.
+            old_log, new_log = self._extra.get("log", {}), current_extra.get("log", {})
+            if old_log.get("host_key") == new_log.get("host_key"):
+                for index, (old, new) in enumerate(
+                    zip(old_log.get("entries", []), new_log.get("entries", []), strict=False)
+                ):
+                    if (
+                        old.get("type") == new.get("type") == "coalition.projection"
+                        and old.get("payload") == new.get("payload")
+                        and old.get("scope") == new.get("scope")
+                    ):
+                        new_log["entries"][index] = deepcopy(old)
+            # Membership changes can replace the whole projection document.
+            for op in ops:
+                if op["path"] == "":
+                    op["value"] = {**op["value"], **self._extra}
+            old_entries, new_entries = old_log.get("entries", []), new_log.get("entries", [])
+            if "log" in current_extra and new_entries[: len(old_entries)] == old_entries:
+                # The common case is an append-only prefix. Avoid asking the
+                # general list differ to compare the whole verified history.
+                unchanged_entries = {
+                    **current_extra,
+                    "log": {**new_log, "entries": old_entries},
+                }
+                ops += json_patch(self._extra, unchanged_entries)
+                ops += [
+                    {"op": "add", "path": "/log/entries/-", "value": entry}
+                    for entry in new_entries[len(old_entries) :]
+                ]
+            else:
+                ops += json_patch(self._extra, current_extra)
+            self._extra = current_extra
         if ops:
             frames.insert(0, StateDeltaEvent(delta=cast(Any, ops)))
         return self._sent(frames)
@@ -119,6 +167,9 @@ class FeedSession:
         if not frames and now - self._last_sent >= self.keep_alive:
             frames.append(KeepAlive())
         return self._sent(frames)
+
+    def refusals_changed(self, refusals: list[Document]) -> bool:
+        return self._extra.get("refusals", []) != refusals
 
     def fail(self, message: str, code: str | None = None) -> list[Frame]:
         """End the run with RUN_ERROR. The renderer keeps its last good surface and reconnects."""

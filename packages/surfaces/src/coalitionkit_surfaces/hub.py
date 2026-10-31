@@ -4,19 +4,21 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections import deque
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import suppress
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
-from coalitionkit_contracts import new_ulid
+from coalitionkit_contracts import new_ulid, public_key_to_jwk
 from coalitionkit_runtime import CoalitionHost, SubscriberDropped, Subscription
 
 from .agent import AgentSession
 from .catalog import Catalog
+from .compose import compose_surface
 from .feed import FeedSession
-from .frames import Frame, encode
+from .frames import Document, Frame, encode
 from .ports import OwnerSigner, ViewerAuth
 
 
@@ -51,6 +53,112 @@ class SurfaceHub:
         self.poll_interval, self.max_ticks = poll_interval, max_ticks
         self.outboxes: dict[str, deque[str]] = {}
         self.feeds: dict[str, list[FeedSession]] = {}
+        self.refusals: dict[str, list[Document]] = {}
+
+    def log(
+        self,
+        viewer: str,
+        *,
+        fresh: bool = True,
+        retained_entries: list[Document] | None = None,
+        advance: bool = False,
+    ) -> Document:
+        # A fresh replay also exposes edits to stored rows rather than masking them
+        # behind the runtime's incremental projection cache.
+        host = self.host
+        reader = (
+            CoalitionHost(
+                host.store,
+                host.coalition_id,
+                host.card_url,
+                host.private_key,
+                host.kid,
+                clock=host.clock,
+            )
+            if fresh
+            else host
+        )
+        entries = reader.replay(viewer) if retained_entries is None else retained_entries
+        if retained_entries is not None and advance:
+            last = entries[-1] if entries else {}
+            since = (
+                last["payload"]["source"]["seq"]
+                if last.get("type") == "coalition.projection"
+                else last.get("seq", 0)
+            )
+            entries = [*entries, *reader.replay(viewer, since=since)]
+        replay_length = len(entries) if retained_entries is None else None
+        # Hidden events cannot announce themselves, even as hash-only stubs.
+        # Retain intervening stubs when a later visible delivery closes the gap.
+        while entries and "type" not in entries[-1]:
+            entries.pop()
+        with host.store.transaction(host.coalition_id) as tx:
+            row = tx.execute(
+                "SELECT created_at, seq FROM coalitions WHERE id = ?", (host.coalition_id,)
+            ).fetchone()
+            rows = tx.execute(
+                "SELECT e.body, r.body FROM events e JOIN receipts r "
+                "ON e.coalition_id = r.coalition_id AND e.event_id = r.event_id "
+                "WHERE e.coalition_id = ? AND e.seq <= ? ORDER BY e.seq",
+                (host.coalition_id, replay_length if replay_length is not None else row[1]),
+            ).fetchall()
+        return {
+            "coalition_id": host.coalition_id,
+            "host_card_url": host.card_url,
+            "created_at": row[0] if row else None,
+            "host_key": public_key_to_jwk(host.private_key.public_key(), host.kid),
+            "entries": entries,
+            "receipts": [
+                json.loads(receipt)
+                for event, receipt in rows
+                if json.loads(event)["on_behalf_of"] == viewer
+            ],
+        }
+
+    def refused(self, viewer: str, kind: str, error: Document) -> None:
+        """Keep only safe refusal metadata, never the refused payload or error detail."""
+        if error.get("code") != "steward_blocked":
+            return
+        item: Document = {"type": kind, "code": "steward_blocked", "at": self.host.clock()}
+        policy = error.get("detail", {}).get("policy_id")
+        if isinstance(policy, str):
+            item["policy"] = policy
+        self.refusals.setdefault(viewer, []).append(item)
+
+    def view_as(self, viewer: str, target: str) -> list[Document]:
+        """Compose only values present in both projections; never merge their scopes."""
+        member = self.host.state.members.get(target)
+        if member is None:
+            raise KeyError(target)
+        own = self.host.view(viewer)["events"]
+        other = self.host.view(target)["events"]
+        events = {
+            key: intersect(own[key], other[key])
+            for key in own.keys() & other.keys()
+            if own[key]["type"] not in {"coalition.join", "coalition.charter"}
+            and not (
+                own[key]["type"] == "coalition.decide"
+                and own[key]["payload"].get("subject", {}).get("kind") == "charter"
+            )
+        }
+        summary = {"seat": target, "role": member["roles_requested"], "status": "joined"}
+        data: Document = {"summary": summary}
+        if events:
+            # Display numbers carry their provenance, as required by the catalog.
+            data["events"] = {key: bound(value, key) for key, value in events.items()}
+        from .a2ui import CATALOG_ID
+        from .catalog import ComponentSpec, PropSpec
+
+        catalog = self.catalog or Catalog(
+            CATALOG_ID, {"Card": ComponentSpec({"title": PropSpec("string", required=True)})}
+        )
+        return compose_surface(
+            catalog,
+            "view-as",
+            [{"id": "root", "component": "Card", "title": target}],
+            data,
+            set(events),
+        ).messages
 
     # -- what the rest of the system calls ---------------------------------------------------
 
@@ -67,8 +175,23 @@ class SurfaceHub:
             session.step_finished(name)
 
     def feed_session(self, viewer: str) -> FeedSession:
+        log: Document | None = None
+
+        def extra_state(visible_changed: bool, reset: bool) -> Document:
+            nonlocal log
+            # Hidden bus wakes still refresh the viewer's own receipts, but must
+            # neither advance nor re-sign the log's last visible prefix.
+            retained = log["entries"] if log is not None and not reset else None
+            log = self.log(viewer, fresh=reset, retained_entries=retained, advance=visible_changed)
+            return {"log": log, "refusals": self.refusals.get(viewer, [])}
+
         return FeedSession(
-            self.host, viewer, clock=self.clock, new_id=self.new_id, catalog=self.catalog
+            self.host,
+            viewer,
+            clock=self.clock,
+            new_id=self.new_id,
+            catalog=self.catalog,
+            extra_state=extra_state,
         )
 
     def agent_session(self, viewer: str) -> AgentSession:
@@ -79,6 +202,7 @@ class SurfaceHub:
             clock=self.clock,
             new_id=self.new_id,
             outbox=self.outboxes.setdefault(viewer, deque()),
+            on_refusal=self.refused,
         )
 
     # -- streams -----------------------------------------------------------------------------
@@ -132,4 +256,36 @@ class SurfaceHub:
         if sub.wake.is_set():
             sub.read(self.host.store)  # advances the cursor and clears the wake
             frames += session.changed()
+        elif isinstance(session, FeedSession) and session.refusals_changed(
+            self.refusals.get(session.viewer, [])
+        ):
+            frames += session.changed()
         return frames + session.tick()
+
+
+def intersect(left: Any, right: Any) -> Any:
+    """Conservative structural intersection, including viewer-specific list items."""
+    if isinstance(left, dict) and isinstance(right, dict):
+        left, right = cast(Document, left), cast(Document, right)
+        return {
+            key: intersect(value, right[key])
+            for key, value in left.items()
+            if key in right
+            and (
+                value == right[key]
+                or (isinstance(value, (dict, list)) and type(cast(Any, value)) is type(right[key]))
+            )
+        }
+    if isinstance(left, list) and isinstance(right, list):
+        return [value for value in cast(list[Any], left) if value in right]
+    return cast(Any, left) if left == right else None
+
+
+def bound(value: Any, event: str) -> Any:
+    if isinstance(value, dict):
+        return {key: bound(item, event) for key, item in cast(Document, value).items()}
+    if isinstance(value, list):
+        return [bound(item, event) for item in cast(list[Any], value)]
+    if isinstance(value, (float, int)) and not isinstance(value, bool):
+        return {"value": value, "event_ref": event}
+    return value

@@ -86,6 +86,7 @@ class AgentSession:
         new_id: Callable[[], str] = new_ulid,
         outbox: deque[str] | None = None,
         keep_alive: float = KEEP_ALIVE_SECONDS,
+        on_refusal: Callable[[str, str, Document], None] | None = None,
     ) -> None:
         self.host, self.viewer, self.signer = host, viewer, signer
         self.clock, self.new_id, self.keep_alive = clock, new_id, keep_alive
@@ -94,6 +95,7 @@ class AgentSession:
         self._shown: frozenset[str] = frozenset()
         self._last_sent = 0.0
         self._closed = False
+        self.on_refusal = on_refusal
 
     def say(self, text: str) -> None:
         """Queue a message from an agent to this person (the caller addresses it to them)."""
@@ -180,6 +182,8 @@ class AgentSession:
         self._verify(envelope, request, chosen, consent, member["owner_key"])
         result = self.host.accept(envelope, AuthenticatedSender(member["sender"], self.viewer))
         if isinstance(result, dict):
+            if self.on_refusal is not None:
+                self.on_refusal(self.viewer, "coalition.decide", result["payload"])
             raise ConsentError(result["payload"]["code"], "the host refused the decision")
         accepted = result.accepted
         assert accepted is not None
