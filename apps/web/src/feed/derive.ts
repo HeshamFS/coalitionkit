@@ -139,7 +139,8 @@ export function deriveParticipants(state: ViewerState | null) {
   const proposed = records(proposal?.payload.plans);
   return [...joined].map(([id, p], index) => {
     const card = record(p.card);
-    const named = names.find((n) => n.id === id || n.card_url === p.card_url);
+    const url = text(p.card_url);
+    const named = names.find((n) => n.id === id || (url !== "" && text(n.card_url) === url));
     const authored = (e: Ev) =>
       [e.on_behalf_of, e.payload.participant, e.payload.assignee, e.payload.owner].includes(id);
     const commit = events.findLast((e) => e.type === "coalition.commit" && authored(e));
