@@ -95,6 +95,7 @@ def run(args: argparse.Namespace) -> int:
             public_base_url=base,
             bind_host="127.0.0.1",
             bind_port=port,
+            genesis="local",
         )
         app = create_server(settings)
         server: Server = app.state.server
@@ -106,6 +107,8 @@ def run(args: argparse.Namespace) -> int:
             )
             print(f"Mode: {mode}", flush=True)
             print(f"Host: {base} | MCP: {base}/mcp", flush=True)
+            code = server.registry.issue_start()
+            print(f"Start a coalition: {base}/#start={code}", flush=True)
             if args.demo:
                 demo_start(server, data, args.members, base)
             if dist is None:
