@@ -806,3 +806,10 @@
     display: none;
   }
 }
+
+/* moments mounted in the room */
+.room-moment {
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  min-width: 0;
+}

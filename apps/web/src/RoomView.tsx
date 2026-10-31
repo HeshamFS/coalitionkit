@@ -6,6 +6,14 @@ import { deriveParticipants, deriveRoom, humanTime, requestLabel } from "./feed/
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
 import { RoomLens } from "./room/lens";
 import { usePhoneRoom } from "./room/media";
+import {
+  AgentsMoment,
+  ChainMoment,
+  DissolveMoment,
+  dissolvedEvent,
+  OverlapMoment,
+  RippleMoment,
+} from "./room/moments";
 import { MyPart } from "./room/mypart";
 import { PhoneNav, RoomNavigation } from "./room/navigation";
 import { Decisions, MeasuredStrip, Participants, Plans, Privacy, Wiring } from "./room/parts";
@@ -44,6 +52,7 @@ export function RoomView() {
   const n = Math.max(deriveParticipants(feed.state).length, 1);
   const open = agent.requests.find((r) => r.id === agent.focus);
   const section = agent.focus ? "My part" : phone && selected === "Stage" ? "My part" : selected;
+  const ended = dissolvedEvent(feed.state) !== null && section !== "Wiring";
   const select = (tab: string) => {
     agentStore.setFocus(null);
     if (tab !== "Stage") prism.reset();
@@ -161,12 +170,32 @@ export function RoomView() {
             <span role="alert">The host did not take that answer: {agent.refusal}</span>
           </Card>
         )}
-        {section === "Stage" && stage}
-        {section === "My part" && myPart}
-        {section === "Plans" && (
-          <Plans state={feed.state} ready={ready} requests={agent.requests} onOpen={onOpen} />
+        {ended ? (
+          <DissolveMoment state={feed.state} />
+        ) : (
+          <>
+            {section === "Stage" && stage}
+            {section === "My part" && (
+              <div className="room-stack">
+                {myPart}
+                <OverlapMoment state={feed.state} />
+              </div>
+            )}
+            {section === "Agents" && <AgentsMoment state={feed.state} />}
+            {section === "Plans" && (
+              <div className="room-stack">
+                <Plans state={feed.state} ready={ready} requests={agent.requests} onOpen={onOpen} />
+                <RippleMoment state={feed.state} />
+              </div>
+            )}
+          </>
         )}
-        {section === "Wiring" && <div className="room-stack">{wiring}</div>}
+        {section === "Wiring" && (
+          <div className="room-stack">
+            <ChainMoment state={feed.state} />
+            {wiring}
+          </div>
+        )}
         {section === "Lens" && <RoomLens state={feed.state} />}
         {!phone && (
           <ConsentTray

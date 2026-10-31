@@ -8,6 +8,7 @@ import { Genesis } from "./genesis/Genesis";
 import { Join } from "./genesis/Join";
 import { LensView } from "./lens/LensView";
 import { RoomView } from "./RoomView";
+import { GlassesRoute } from "./room/glasses";
 import { SignIn } from "./SignIn";
 
 export const EXPIRED_NOTICE = "Your session ended. Sign in again.";
@@ -52,6 +53,8 @@ export function App() {
         <ConfirmRoute code={code} config={config} />
       ) : path.startsWith("/lens") ? (
         <LensView />
+      ) : path.startsWith("/glasses") ? (
+        <GlassesRoute />
       ) : (
         <RoomView />
       )}

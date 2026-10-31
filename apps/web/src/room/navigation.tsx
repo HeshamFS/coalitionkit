@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Icon } from "../ui/Icon";
 import { RoomIcon } from "./icons";
 
-/** Desktop: the segmented Stage | My part | Wiring, then whatever sits beside it (View as). */
+/** Desktop: the segmented Stage | My part | Agents | Plans | What happened, then whatever sits beside it (View as). */
 export function RoomNavigation({
   selected,
   onSelect,
@@ -16,14 +16,14 @@ export function RoomNavigation({
   return (
     <div className="room-nav">
       <nav className="room-tabs" aria-label="Room sections">
-        {["Stage", "My part", "Wiring"].map((tab) => (
+        {["Stage", "My part", "Agents", "Plans", "Wiring"].map((tab) => (
           <button
             type="button"
             key={tab}
             aria-pressed={selected === tab}
             onClick={() => onSelect(tab)}
           >
-            {tab}
+            {tab === "Wiring" ? "What happened" : tab}
           </button>
         ))}
       </nav>
@@ -34,6 +34,7 @@ export function RoomNavigation({
 
 const PHONE_TABS = [
   { tab: "My part", label: "My part" },
+  { tab: "Agents", label: "Agents" },
   { tab: "Plans", label: "Plans" },
   { tab: "Wiring", label: "What happened" },
 ] as const;
@@ -57,6 +58,8 @@ export function PhoneNav({
         >
           {tab === "Plans" ? (
             <Icon name="canvas" />
+          ) : tab === "Agents" ? (
+            <Icon name="people" />
           ) : (
             <RoomIcon kind={tab === "My part" ? "home" : "log"} />
           )}
