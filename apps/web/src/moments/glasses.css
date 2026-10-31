@@ -1,0 +1,166 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The glasses board: black on purpose, so these colours are fixed and not themed.
+   Sizes are in container units of the 600px card, so the card scales to any viewport. */
+.ck-gl-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: #000000;
+}
+
+.ck-gl {
+  container-type: size;
+  box-sizing: border-box;
+  width: min(600px, 100vw, 100dvh);
+  aspect-ratio: 1;
+  padding: 7.33cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 3.67cqw;
+  overflow: hidden;
+  background: #000000;
+  color: #ffffff;
+  font-family: var(--font-ui, "Geist Variable", Geist, system-ui, sans-serif);
+}
+
+.ck-gl-top {
+  display: flex;
+  align-items: center;
+  gap: 1.67cqw;
+}
+
+.ck-gl-mark {
+  width: 4.33cqw;
+  height: 4.33cqw;
+  flex: none;
+}
+
+.ck-gl-count {
+  font-size: 3.33cqw;
+  color: #a9b4c6;
+}
+
+.ck-gl-instruction {
+  margin: 0;
+  font-size: 7.67cqw;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.ck-gl-row {
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+}
+
+.ck-gl-glyph {
+  width: 18.33cqw;
+  height: 18.33cqw;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0.5cqw solid #4d8dff;
+  border-radius: 3.33cqw;
+  color: #4d8dff;
+  font-size: 8cqw;
+  animation: ck-gl-press 3s ease-out infinite;
+}
+
+.ck-gl-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1cqw;
+  min-width: 0;
+}
+
+.ck-gl-detail {
+  font-size: 3.67cqw;
+  overflow-wrap: anywhere;
+}
+
+.ck-gl-note {
+  font-size: 3cqw;
+  color: #a9b4c6;
+}
+
+.ck-gl-steps,
+.ck-gl-bar {
+  margin-top: auto;
+  display: flex;
+  gap: 1.67cqw;
+}
+
+.ck-gl-bar {
+  height: 1.67cqw;
+  border-radius: 0.83cqw;
+  background: #314263;
+}
+
+.ck-gl-fill {
+  display: block;
+  height: 100%;
+  border-radius: 0.83cqw;
+  background: #4d8dff;
+}
+
+.ck-gl-seg {
+  flex: 1;
+  height: 1.67cqw;
+  border-radius: 0.83cqw;
+  background: #314263;
+}
+
+.ck-gl-seg.is-done {
+  background: #4d8dff;
+}
+
+.ck-gl-seg.is-now {
+  animation: ck-gl-step 6s ease-out infinite;
+}
+
+.ck-gl-say {
+  font-size: 3cqw;
+  color: #a9b4c6;
+}
+
+@keyframes ck-gl-step {
+  0%,
+  30% {
+    background: #314263;
+  }
+  40%,
+  100% {
+    background: #4d8dff;
+  }
+}
+
+@keyframes ck-gl-press {
+  0%,
+  35% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(77, 141, 255, 0.5);
+  }
+  45% {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 2cqw rgba(77, 141, 255, 0);
+  }
+  55%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-gl-glyph {
+    animation: none;
+  }
+
+  .ck-gl-seg.is-now {
+    animation: none;
+    background: #4d8dff;
+  }
+}
