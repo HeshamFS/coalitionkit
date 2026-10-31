@@ -197,7 +197,7 @@ export function RoomView() {
                   />
                 )}
                 {myPart}
-                <OverlapMoment state={feed.state} />
+                <OverlapMoment state={feed.state} lines={agent.lines} />
               </div>
             )}
             {section === "Agents" && <AgentsMoment state={feed.state} />}

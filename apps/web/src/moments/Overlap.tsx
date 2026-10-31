@@ -11,7 +11,7 @@ export type OverlapProps = {
   /** A count for the other side, if the host may state one. Never their entries. */
   theirCount?: number;
   /** Arrives only on the requester's own channel. Never derived from the log. */
-  result?: { shared: string; keptPrivate: number };
+  result?: { shared: string; keptPrivate?: number };
 };
 
 export function Overlap({ crossings, vault, theirCount, result }: OverlapProps) {
@@ -67,7 +67,11 @@ export function Overlap({ crossings, vault, theirCount, result }: OverlapProps) 
         {result ? (
           <>
             <span className="mo-o-strong">Shared: {result.shared}</span>
-            <span className="mo-o-soft">your other {result.keptPrivate} stayed private</span>
+            <span className="mo-o-soft">
+              {result.keptPrivate === undefined
+                ? "everything else stayed private"
+                : `your other ${result.keptPrivate} stayed private`}
+            </span>
           </>
         ) : (
           <span className="mo-o-soft">

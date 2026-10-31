@@ -22,12 +22,41 @@ export function AgentsMoment({ state }: { state: ViewerState | null }) {
   );
 }
 
+/**
+ * A hosted vault's match result, which reaches only its own member as an agent line
+ * `{"vault_result": {match_id, overlap?, count}}`. It is never in the log.
+ */
+export function vaultResult(lines: { text: string }[]) {
+  for (const line of [...lines].reverse()) {
+    try {
+      const body = (JSON.parse(line.text) as { vault_result?: unknown }).vault_result;
+      if (body && typeof body === "object") {
+        const r = body as { overlap?: unknown; count?: unknown };
+        const overlap = Array.isArray(r.overlap)
+          ? r.overlap.filter((x) => typeof x === "string")
+          : [];
+        const count = typeof r.count === "number" ? r.count : overlap.length;
+        return { shared: overlap.length ? overlap.join(", ") : `${count} in common` };
+      }
+    } catch {
+      // Not a vault result line.
+    }
+  }
+  return undefined;
+}
+
 /** Shown in My part once a private match involving the viewer has started. */
-export function OverlapMoment({ state }: { state: ViewerState | null }) {
+export function OverlapMoment({
+  state,
+  lines = [],
+}: {
+  state: ViewerState | null;
+  lines?: { text: string }[];
+}) {
   if (!has(state, "coalition.match")) return null;
   return (
     <section className="room-moment" aria-label="Private matching">
-      <Overlap {...overlapFrom(state)} />
+      <Overlap {...overlapFrom(state, { result: vaultResult(lines) })} />
     </section>
   );
 }

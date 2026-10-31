@@ -4,11 +4,13 @@ import type { ViewerState } from "../feed/delta";
 /** Neutral feed state for review pages and tests. Viewer is p1; no scenario data. */
 export const momentsFixture: ViewerState = {
   viewer: "p1",
-  steward_interventions: [
+  // The host's sender-only refusals: what the Steward blocked for this viewer's own agent.
+  refusals: [
     {
-      seq: 14,
+      type: "coalition.offer",
+      code: "steward_blocked",
       policy: "no-contact-before-consent",
-      summary: "blocked a request for contact details",
+      at: "2026-10-31T12:00:00Z",
     },
   ],
   events: {

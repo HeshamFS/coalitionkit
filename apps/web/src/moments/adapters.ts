@@ -95,16 +95,15 @@ export function theatreFrom(state: ViewerState | null): TheatreProps {
       }));
     return { id: p.id, seat: p.seat, label: p.label, vendor: p.vendor, bubbles };
   });
-  const steward: StewardBubble[] = (
-    Array.isArray(state?.steward_interventions) ? state.steward_interventions : []
-  )
+  // The host gives each viewer only their own agent's refusals (sender-only `refusals`).
+  const steward: StewardBubble[] = (Array.isArray(state?.refusals) ? state.refusals : [])
     .map(record)
-    .filter((s) => text(s.policy))
+    .filter((s) => text(s.code) === "steward_blocked")
     .map((s, i) => ({
-      key: `${typeof s.seq === "number" ? s.seq : "s"}-${i}`,
-      policy: text(s.policy),
-      summary: text(s.summary) || undefined,
-      message: { seq: typeof s.seq === "number" ? s.seq : 0, type: "steward.verdict", payload: s },
+      key: `${text(s.at) || "r"}-${i}`,
+      policy: text(s.policy) || "policy not named",
+      summary: `blocked your agent's ${text(s.type).replace(/^coalition\./, "") || "message"}`,
+      message: { seq: 0, type: "steward.blocked", payload: s },
     }));
   return {
     gardener: { doing: (host && HOST_DOING[host.type]) || "waiting" },
