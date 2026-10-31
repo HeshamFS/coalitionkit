@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "./components/primitives";
 import { deriveParticipants, deriveRoom, humanTime, requestLabel } from "./feed/derive";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
+import { sheetFor } from "./room/consentSheet";
 import { RoomLens } from "./room/lens";
 import { usePhoneRoom } from "./room/media";
 import {
@@ -18,6 +19,7 @@ import { MyPart } from "./room/mypart";
 import { PhoneNav, RoomNavigation } from "./room/navigation";
 import { Decisions, MeasuredStrip, Participants, Plans, Privacy, Wiring } from "./room/parts";
 import { usePrism } from "./room/prism";
+import { SignedNotice } from "./room/signed";
 import { ViewAsMenu, ViewAsPanel } from "./room/viewAsPanel";
 import { type ConsentRequest, ConsentTray } from "./shell/dock";
 import { RoomShell } from "./shell/RoomShell";
@@ -45,6 +47,7 @@ export function RoomView() {
   const agent = useAgentSnapshot();
   const { answer, agent: agentStore, signOut } = useFeedApi();
   const [selected, setSelected] = useState("Stage");
+  const [signed, setSigned] = useState<{ question: string; seq: number; signature: string }>();
   const phone = usePhoneRoom();
   const prism = usePrism();
   const room = deriveRoom(feed.state);
@@ -76,7 +79,11 @@ export function RoomView() {
         expiresAt: humanTime(open.expiresAt) || undefined,
       }}
       state={feed.state}
-      onAnswer={(a) => answer(a)}
+      onAnswer={async (a) => {
+        const ack = await answer(a);
+        if (ack && a.consent) setSigned({ question: sheetFor(open, feed.state).question, ...ack });
+        return ack;
+      }}
       onSeePlans={() => {
         agentStore.setFocus(null);
         setSelected(phone ? "Plans" : "Stage");
@@ -181,6 +188,14 @@ export function RoomView() {
             {section === "Stage" && stage}
             {section === "My part" && (
               <div className="room-stack">
+                {signed && (
+                  <SignedNotice
+                    question={signed.question}
+                    seq={signed.seq}
+                    signature={signed.signature}
+                    onClose={() => setSigned(undefined)}
+                  />
+                )}
                 {myPart}
                 <OverlapMoment state={feed.state} />
               </div>

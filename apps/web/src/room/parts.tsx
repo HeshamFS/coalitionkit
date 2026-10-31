@@ -239,7 +239,14 @@ export function Decisions({
             <span className="room-dot" aria-hidden="true" />
             <span>
               {names.get(e.participant) ?? "A member"} said {e.answer || "something"} to{" "}
-              {plans.find((p) => p.id === e.subject)?.label ?? "an item"}
+              {plans.find((p) => p.id === e.subject)?.label ??
+                (e.kind === "charter"
+                  ? "the goal"
+                  : e.kind === "commitment"
+                    ? "their part"
+                    : e.kind === "tension"
+                      ? "a choice"
+                      : "an item")}
             </span>
             <span className="room-decision-time">{humanTime(e.time)}</span>
           </div>

@@ -285,6 +285,7 @@ export function deriveDecisions(state: ViewerState | null) {
     .map((e) => ({
       seq: e.seq,
       subject: text(record(e.payload.subject).id),
+      kind: text(record(e.payload.subject).kind),
       revision: record(e.payload.subject).revision,
       answer: e.payload.consent === true ? "yes" : e.payload.consent === false ? "no" : "",
       time: text(e.payload.decided_at),

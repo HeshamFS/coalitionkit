@@ -813,3 +813,27 @@
   overflow: hidden;
   min-width: 0;
 }
+
+.room-signed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--ok-line);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+.room-signed-text {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 14px;
+}
+.room-signed-receipt {
+  flex-basis: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
