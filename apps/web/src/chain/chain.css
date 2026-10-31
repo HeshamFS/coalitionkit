@@ -1,0 +1,262 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The Chain board. Colours come from the tokens, so dark follows the theme. */
+.ck-chain {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--bg-dot) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.ck-chain-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ck-chain-eyebrow {
+  margin: 0;
+  font: 400 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.ck-chain-title {
+  margin: 0;
+  font: 400 42px / 1.05 var(--font-display);
+}
+
+.ck-chain-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ck-chain-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ck-chain-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ck-chain-verify {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--blue);
+  color: var(--on-blue);
+  font: 600 13px var(--font-ui);
+  cursor: pointer;
+}
+
+.ck-chain-verify:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+.ck-chain-verify:focus-visible {
+  outline: 2px solid var(--blue-text);
+  outline-offset: 2px;
+}
+
+.ck-chain-verify:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ck-chain-scroll {
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+}
+
+.ck-chain-row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  width: max-content;
+}
+
+.ck-chain-card {
+  width: 160px;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  animation: ck-chain-in 0.5s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.ck-chain-card.is-stub {
+  background: var(--surface-2);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.ck-chain-card.is-broken {
+  border-color: var(--bad-fg);
+  background: var(--bad-bg);
+}
+
+.ck-chain-seq,
+.ck-chain-hash {
+  font: 400 11px var(--font-mono);
+}
+
+.ck-chain-seq {
+  color: var(--ink-3);
+}
+
+.ck-chain-type {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ck-chain-hash {
+  color: var(--blue-text);
+}
+
+.is-stub .ck-chain-hash {
+  color: var(--ink-3);
+}
+
+.is-broken .ck-chain-hash {
+  color: var(--bad-fg);
+}
+
+.ck-chain-pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.ck-chain-join {
+  width: 22px;
+  height: 2px;
+  flex: none;
+  background: var(--line-strong);
+}
+
+.ck-chain-join.is-ok {
+  background: var(--blue);
+}
+
+.ck-chain-join.is-broken {
+  background: var(--bad-fg);
+}
+
+.ck-chain-receipt {
+  margin-left: 14px;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ck-chain-result {
+  margin: 0;
+  min-height: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ok-fg);
+}
+
+.ck-chain-result.is-broken {
+  color: var(--bad-fg);
+}
+
+.ck-chain-empty,
+.ck-chain-none {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.ck-chain-notes {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ck-chain-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+
+.ck-chain-note-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ck-chain-note-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+@keyframes ck-chain-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .ck-chain {
+    padding: 20px 16px;
+  }
+
+  .ck-chain-title {
+    font-size: 32px;
+  }
+
+  .ck-chain-notes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-chain-card {
+    animation: none;
+  }
+}

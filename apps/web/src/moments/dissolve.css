@@ -1,0 +1,335 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The Dissolve board. Colours come from the tokens, so dark follows the theme. */
+.ck-dis {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 800px;
+  padding: 28px 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: auto 1fr;
+  column-gap: 60px;
+  row-gap: 24px;
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--bg-dot) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.ck-dis-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ck-dis-eyebrow {
+  margin: 0;
+  font: 400 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.ck-dis-title {
+  margin: 0;
+  font: 400 42px / 1.05 var(--font-display);
+}
+
+.ck-dis-stage {
+  position: relative;
+  width: 640px;
+  height: 500px;
+  max-width: 100%;
+  margin-left: 80px;
+  margin-top: 20px;
+}
+
+.ck-dis-fold {
+  position: absolute;
+  box-sizing: border-box;
+  width: 200px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  font-size: 12.5px;
+  animation: ck-dis-fold 5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.ck-dis-mark {
+  position: absolute;
+  left: 245px;
+  top: 140px;
+}
+
+.ck-dis-seat {
+  fill: var(--ink);
+  animation: ck-dis-seat 5s ease-out both;
+}
+
+.ck-dis-goal {
+  fill: var(--blue);
+  animation: ck-dis-goal 5s ease-out both;
+}
+
+.ck-dis-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.ck-dis-heading {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ck-dis-closing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ck-dis-claims {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ck-dis-claims li {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ck-dis-kept {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ok-fg);
+}
+
+.ck-dis-pending {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.ck-dis-failed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--bad-line);
+  border-radius: var(--r-card);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ck-dis-failed p {
+  margin: 0;
+  flex: 1;
+}
+
+.ck-dis-retry {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--blue);
+  color: var(--on-blue);
+  font: 600 13px var(--font-ui);
+  cursor: pointer;
+}
+
+.ck-dis-retry:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ck-dis-retry:focus-visible {
+  outline: 2px solid var(--blue-text);
+  outline-offset: 2px;
+}
+
+.ck-dis-skill {
+  animation: ck-dis-skill 5s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.ck-dis-lesson {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+}
+
+.ck-dis-file {
+  font: 400 11px var(--font-mono);
+  color: var(--blue-text);
+}
+
+.ck-dis-lesson-title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ck-dis-lesson-body {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.ck-dis-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ck-dis-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+
+.ck-dis-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ck-dis-label {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+@keyframes ck-dis-fold {
+  0%,
+  20% {
+    opacity: 1;
+    transform: none;
+  }
+  55%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.2);
+  }
+}
+
+@keyframes ck-dis-seat {
+  0%,
+  50% {
+    fill: var(--ink);
+  }
+  70%,
+  100% {
+    fill: var(--line-strong);
+  }
+}
+
+@keyframes ck-dis-goal {
+  0%,
+  55% {
+    fill: var(--blue);
+  }
+  75%,
+  100% {
+    fill: var(--ok-fg);
+  }
+}
+
+@keyframes ck-dis-skill {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  70%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .ck-dis {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px 16px;
+    min-height: 0;
+  }
+
+  .ck-dis-title {
+    font-size: 32px;
+  }
+
+  .ck-dis-stage {
+    margin-left: 0;
+    width: 100%;
+    height: auto;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .ck-dis-fold,
+  .ck-dis-mark {
+    position: static;
+    width: 100%;
+    animation-name: ck-dis-fade;
+  }
+
+  .ck-dis-mark {
+    width: 150px;
+    order: -1;
+    animation: none;
+  }
+}
+
+@keyframes ck-dis-fade {
+  0%,
+  20% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-dis-fold,
+  .ck-dis-skill {
+    animation: none;
+  }
+
+  .ck-dis-seat {
+    animation: none;
+    fill: var(--line-strong);
+  }
+
+  .ck-dis-goal {
+    animation: none;
+    fill: var(--ok-fg);
+  }
+}
