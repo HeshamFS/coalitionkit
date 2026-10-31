@@ -2,6 +2,7 @@
 """Local composition, without a server child process."""
 
 import argparse
+import asyncio
 import os
 import shutil
 import signal
@@ -18,6 +19,7 @@ from coalitionkit_server import Settings, create_server
 from coalitionkit_server.app import Server
 
 from .demo import demo_start
+from .demo_agents import demo_gateway, demo_runner
 from .storage import admin_token, prepare
 from .web import Room
 
@@ -97,13 +99,22 @@ def run(args: argparse.Namespace) -> int:
             bind_port=port,
             genesis="local",
         )
-        app = create_server(settings)
+        app = create_server(
+            settings,
+            model_gateway=(
+                demo_gateway(live=bool(os.environ.get("COALITIONKIT_META_API_KEY")))
+                if args.demo
+                else None
+            ),
+        )
         server: Server = app.state.server
         try:
             mode = (
                 "Meta API configured"
                 if os.environ.get("COALITIONKIT_META_API_KEY")
-                else "no model key required (model features unavailable without configured keys)"
+                else "scripted demo (no model key required)"
+                if args.demo
+                else "no model key configured"
             )
             print(f"Mode: {mode}", flush=True)
             print(f"Host: {base} | MCP: {base}/mcp", flush=True)
@@ -139,6 +150,29 @@ def run(args: argparse.Namespace) -> int:
 
         if os.name == "nt":
             signal.signal(signal.SIGBREAK, stop)
+
+        async def play(coalition: str) -> None:
+            try:
+                print("Demo: accept each member's charter in the room to begin.", flush=True)
+                await demo_runner(server, coalition, getattr(args, "pace", 2)).run()
+            except Exception as exc:
+                print(f"Demo stopped: {exc}", flush=True)
+
+        async def serve() -> None:
+            activity = None
+            if args.demo:
+                coalition = (data / "demo-coalition").read_text(encoding="utf-8")
+                # Existing demos retain their log; never duplicate a partially played script.
+                if not server.hosts[coalition].state.tasks:
+                    activity = asyncio.create_task(play(coalition))
+            try:
+                await worker.serve(sockets=[sock])
+            finally:
+                if activity is not None:
+                    activity.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await activity
+
         with suppress(KeyboardInterrupt):
-            worker.run(sockets=[sock])
+            asyncio.run(serve())
     return 0
