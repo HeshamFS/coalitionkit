@@ -52,6 +52,7 @@ class SurfaceHub:
         self.clock, self.new_id, self.sleep = clock, new_id, sleep
         self.poll_interval, self.max_ticks = poll_interval, max_ticks
         self.outboxes: dict[str, deque[str]] = {}
+        self.active_agents: dict[str, int] = {}
         self.feeds: dict[str, list[FeedSession]] = {}
         self.refusals: dict[str, list[Document]] = {}
 
@@ -163,8 +164,13 @@ class SurfaceHub:
     # -- what the rest of the system calls ---------------------------------------------------
 
     def say(self, viewer: str, text: str) -> None:
-        """An agent-to-person message, delivered on that person's agent session only."""
-        self.outboxes.setdefault(viewer, deque()).append(text)
+        """Deliver only to this viewer, independently on the feed and legacy agent channel."""
+        sessions = self.feeds.get(viewer, [])
+        if not sessions or self.active_agents.get(viewer, 0):
+            self.outboxes.setdefault(viewer, deque()).append(text)
+        for session in sessions:
+            if session.agent is not None:
+                session.agent.say(text)
 
     def step_started(self, viewer: str, name: str) -> None:
         for session in self.feeds.get(viewer, []):
@@ -185,6 +191,13 @@ class SurfaceHub:
             log = self.log(viewer, fresh=reset, retained_entries=retained, advance=visible_changed)
             return {"log": log, "refusals": self.refusals.get(viewer, [])}
 
+        agent = AgentSession(
+            self.host,
+            viewer,
+            self.signer_for(viewer),
+            clock=self.clock,
+            new_id=self.new_id,
+        )
         return FeedSession(
             self.host,
             viewer,
@@ -192,6 +205,7 @@ class SurfaceHub:
             new_id=self.new_id,
             catalog=self.catalog,
             extra_state=extra_state,
+            agent=agent,
         )
 
     def agent_session(self, viewer: str) -> AgentSession:
@@ -224,6 +238,15 @@ class SurfaceHub:
         registered = isinstance(session, FeedSession) and viewer is not None
         if registered and viewer is not None and isinstance(session, FeedSession):
             self.feeds.setdefault(viewer, []).append(session)
+            # Pending messages belong to the next connected channel. Active feed
+            # tabs get independent queues; do not retain an unused legacy copy.
+            if session.agent is not None and not self.active_agents.get(viewer, 0):
+                pending = self.outboxes.setdefault(viewer, deque())
+                while pending:
+                    session.agent.say(pending.popleft())
+        agent_viewer = session.viewer if isinstance(session, AgentSession) else None
+        if agent_viewer is not None:
+            self.active_agents[agent_viewer] = self.active_agents.get(agent_viewer, 0) + 1
         try:
             try:
                 for frame in await asyncio.to_thread(session.start):
@@ -248,6 +271,8 @@ class SurfaceHub:
                     yield encode(frame)
         finally:
             bus.unsubscribe(sub)
+            if agent_viewer is not None:
+                self.active_agents[agent_viewer] -= 1
             if registered and viewer is not None and isinstance(session, FeedSession):
                 self.feeds[viewer].remove(session)
 

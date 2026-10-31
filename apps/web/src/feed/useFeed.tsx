@@ -15,7 +15,7 @@ import { AgentStore } from "./agent";
 import type { HostConfig } from "./config";
 import { type Fetch, openStream, postAnswer } from "./connection";
 import { fixedFields } from "./derive";
-import { FeedStore } from "./store";
+import { type FeedEvent, FeedStore } from "./store";
 
 export type FeedApi = {
   feed: FeedStore;
@@ -108,27 +108,19 @@ export function FeedProvider({
       delay,
       onAuthError: expired,
       onEvent: (e) => {
+        if (e.type === "CUSTOM" && e.name === "coalitionkit.agent") {
+          return agent.handle(e.value as FeedEvent);
+        }
         const keep = feed.handle(e);
         if (e.type === "STATE_SNAPSHOT" || e.type === "STATE_DELTA") {
           feed.book.setFallbackFields(fixedFields(feed.getSnapshot().state));
+          if (keep) agent.syncRefusals(feed.getSnapshot().state?.refusals);
         }
         return keep;
       },
       onStatus: (s) => feed.setStatus(s),
     });
-    const stopAgent = openStream({
-      config,
-      path: "/v1/agent",
-      fetchFn,
-      delay,
-      onAuthError: expired,
-      onEvent: (e) => agent.handle(e),
-      onStatus: () => {},
-    });
-    return () => {
-      stopFeed();
-      stopAgent();
-    };
+    return stopFeed;
   }, [config, fetchFn, delay, feed, agent, expired]);
 
   const api = useMemo<FeedApi>(
