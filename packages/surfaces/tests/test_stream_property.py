@@ -83,4 +83,4 @@ async def test_stream_driver_sends_snapshot_then_delta_on_bus_wake(
     hub.sleep = sleep
     chunks = [c async for c in hub.stream(hub.feed_session("alice"), "alice")]
     kinds = [c.split('"type":"')[1].split('"')[0] for c in chunks if c.startswith("data:")]
-    assert kinds == ["RUN_STARTED", "STATE_SNAPSHOT", "STATE_DELTA"]
+    assert kinds == ["RUN_STARTED", "STATE_SNAPSHOT", "CUSTOM", "CUSTOM", "STATE_DELTA"]

@@ -108,6 +108,14 @@ function mockHost(posts: unknown[], messages: unknown[], interrupt: object = pla
         { type: "RUN_STARTED", threadId: "t", runId: "r" },
         { type: "STATE_SNAPSHOT", snapshot: { events: {} } },
         {
+          type: "CUSTOM",
+          name: "coalitionkit.agent",
+          value: {
+            type: "RUN_FINISHED",
+            outcome: { type: "interrupt", interrupts: [interrupt] },
+          },
+        },
+        {
           type: "ACTIVITY_SNAPSHOT",
           messageId: "a2ui:s1",
           activityType: "a2ui-surface",

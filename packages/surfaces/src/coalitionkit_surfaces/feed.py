@@ -4,6 +4,8 @@
 The hub supplies ``log`` and sender-only ``refusals`` as AG-UI state keys:
 the initial snapshot includes them, and subsequent wakes send JSON Patch deltas.
 Log entries use the same host replay delivery path as the MCP log resource.
+Viewer-scoped agent runs travel inside ``coalitionkit.agent`` CUSTOM events so
+their interrupts never finish or reset the enclosing feed run.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ from typing import Any, Protocol, cast
 
 from ag_ui.core import (
     ActivitySnapshotEvent,
+    CustomEvent,
     RunErrorEvent,
     RunFinishedEvent,
     RunFinishedSuccessOutcome,
@@ -29,6 +32,7 @@ from coalitionkit_runtime import CoalitionHost
 from coalitionkit_runtime.projector import ViewerProjection
 
 from .a2ui import ACTIVITY_TYPE
+from .agent import AgentSession
 from .catalog import Catalog
 from .compose import compose_surface
 from .frames import Document, Frame, KeepAlive, json_patch
@@ -59,6 +63,7 @@ class FeedSession:
         keep_alive: float = KEEP_ALIVE_SECONDS,
         rotate_after: float = ROTATE_SECONDS,
         extra_state: Callable[[bool, bool], Document] | None = None,
+        agent: AgentSession | None = None,
     ) -> None:
         self.source, self.viewer, self.clock, self.new_id = source, viewer, clock, new_id
         self.catalog, self.keep_alive, self.rotate_after = catalog, keep_alive, rotate_after
@@ -72,6 +77,7 @@ class FeedSession:
         self._created: set[str] = set()
         self._closed = False
         self._projection = ViewerProjection(viewer)
+        self.agent = agent
         self.extra_state = extra_state
         self._extra: Document = {}
 
@@ -96,6 +102,8 @@ class FeedSession:
             frames[1] = StateSnapshotEvent(snapshot={**deepcopy(self._previous), **self._extra})
         for surface_id, messages in self._surfaces.items():
             frames.append(self._activity(surface_id, messages))
+        if self.agent is not None:
+            frames += self._agent_frames(self.agent.start())
         return self._sent(frames)
 
     def changed(self) -> list[Frame]:
@@ -147,6 +155,8 @@ class FeedSession:
             else:
                 ops += json_patch(self._extra, current_extra)
             self._extra = current_extra
+        if self.agent is not None:
+            frames += self._agent_frames(self.agent.changed())
         if ops:
             frames.insert(0, StateDeltaEvent(delta=cast(Any, ops)))
         return self._sent(frames)
@@ -164,9 +174,20 @@ class FeedSession:
             )
             return [done, *self.start()]
         frames: list[Frame] = self._drain()
+        if self.agent is not None:
+            frames += self._agent_frames(self.agent.tick())
         if not frames and now - self._last_sent >= self.keep_alive:
             frames.append(KeepAlive())
         return self._sent(frames)
+
+    @staticmethod
+    def _agent_frames(frames: list[Frame]) -> list[Frame]:
+        # Nested run boundaries must not finish or reset the feed run.
+        return [
+            CustomEvent(name="coalitionkit.agent", value=frame.model_dump(by_alias=True))
+            for frame in frames
+            if not isinstance(frame, KeepAlive)
+        ]
 
     def refusals_changed(self, refusals: list[Document]) -> bool:
         return self._extra.get("refusals", []) != refusals

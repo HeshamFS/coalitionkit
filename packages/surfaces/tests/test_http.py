@@ -68,3 +68,29 @@ def test_agent_stream_and_answer_endpoint(client: TestClient, world: World) -> N
     )
     assert again.status_code == 409 and again.json()["error"] == "not_open"
     assert client.post("/v1/agent/answers", headers=auth("alice"), json={}).status_code == 422
+
+
+def test_feed_carries_only_its_viewers_agent_channel(
+    client: TestClient, world: World, hub: SurfaceHub
+) -> None:
+    plans = {name: world.propose(world.need(), [name]) for name in ("alice", "bob")}
+    for name in plans:
+        hub.say(name, f"private-{name}")
+        hub.say(name, json.dumps({"vault_result": {"owner": name}}))
+        hub.refused(name, "coalition.decide", {"code": "steward_blocked"})
+    for name, other in (("alice", "bob"), ("bob", "alice")):
+        frames = events(client.get("/v1/feed", headers=auth(name)).text)
+        agent = [e["value"] for e in frames if e.get("name") == "coalitionkit.agent"]
+        lines = [e["delta"] for e in agent if e["type"] == "TEXT_MESSAGE_CONTENT"]
+        assert lines == [f"private-{name}", json.dumps({"vault_result": {"owner": name}})]
+        requests = agent[-1]["outcome"]["interrupts"]
+        assert f"plan:{plans[name]}:1:{name}" in [r["id"] for r in requests]
+        assert all(r["id"].endswith(f":{name}") for r in requests)
+        assert f"private-{other}" not in json.dumps(frames)
+        assert frames[1]["snapshot"]["refusals"][0]["code"] == "steward_blocked"
+        # Legacy clients still receive the same event format and pending text.
+        hub.say(name, "legacy message")
+        legacy = events(client.get("/v1/agent", headers=auth(name)).text)
+        assert [e["delta"] for e in legacy if e["type"] == "TEXT_MESSAGE_CONTENT"] == [
+            "legacy message"
+        ]
