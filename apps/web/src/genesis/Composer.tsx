@@ -44,13 +44,17 @@ export function Composer({
   onSubmit,
   busy,
   locked,
+  canSubmit,
 }: {
   value: string;
   onChange: (v: string) => void;
   reading: Reading[];
   onSubmit: () => void;
   busy: boolean;
+  /** The coalition is starting or started: the sentence can no longer change. */
   locked: boolean;
+  /** A draft exists and the start code is held. */
+  canSubmit: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const mirror = useRef<HTMLDivElement>(null);
@@ -65,7 +69,7 @@ export function Composer({
   };
   const submit = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (value.trim() && !locked) onSubmit();
+    if (value.trim() && !locked && canSubmit) onSubmit();
   };
   const listen = () => {
     if (!Speech) return;
@@ -141,7 +145,7 @@ export function Composer({
         type="submit"
         className="gn-send"
         aria-label="Set the goal"
-        disabled={!value.trim() || locked}
+        disabled={!value.trim() || locked || !canSubmit}
       >
         <svg
           width="16"

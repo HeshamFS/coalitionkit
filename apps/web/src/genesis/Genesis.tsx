@@ -198,7 +198,8 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
           reading={spans}
           onSubmit={start}
           busy={reading}
-          locked={locked || !startCode || !draft}
+          locked={locked}
+          canSubmit={Boolean(startCode && draft)}
         />
         <p className="gn-foot">
           {startCode || phase === "started" ? (
