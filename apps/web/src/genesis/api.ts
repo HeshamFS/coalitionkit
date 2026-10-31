@@ -16,9 +16,19 @@ export type Draft = {
 export type ReadingKind = "role" | "need" | "deadline" | "count";
 export type Reading = { span: [number, number]; kind: ReadingKind };
 export type DraftReply = { draft: Draft; source: "reader" | "model"; reading: Reading[] };
-export type Started = { coalition_id: string; owner: { participant: string; token: string } };
+export type HostKey = { kty: string; crv: string; x: string; kid?: string };
+export type Started = {
+  coalition_id: string;
+  owner: { participant: string; token: string };
+  host_key?: HostKey;
+};
 export type Invitation = { id: string; kind: "member" | "business"; link: string };
-export type Joined = { coalition_id: string; participant: string; token: string };
+export type Joined = {
+  coalition_id: string;
+  participant: string;
+  token: string;
+  host_key?: HostKey;
+};
 
 export class HostError extends Error {
   constructor(

@@ -2,6 +2,7 @@
 // Joining from a link (story J-04): no token box. The invitation in the link's fragment is
 // exchanged for a viewer token and dies.
 import { useState } from "react";
+import { pinAtJoin } from "../chain/pin";
 import { saveToken } from "../feed/config";
 import { acceptInvitation, HostError } from "./api";
 import { takeInvitation } from "./fragment";
@@ -20,6 +21,7 @@ export function Join({ onJoined }: { onJoined: () => void }) {
     try {
       const joined = await acceptInvitation(invitation, name);
       saveToken(joined.token);
+      pinAtJoin(joined.coalition_id, joined.host_key);
       onJoined();
     } catch (e) {
       setError(

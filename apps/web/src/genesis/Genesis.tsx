@@ -2,6 +2,7 @@
 // The first screen (board: Genesis, story J-01 to J-03). Type or say a goal; the Gardener reads it
 // live, seats arrive at the table and the draft germinates beside it; Start creates the coalition.
 import { useEffect, useRef, useState } from "react";
+import { pinAtJoin } from "../chain/pin";
 import { saveToken } from "../feed/config";
 import {
   type Draft,
@@ -104,6 +105,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
       const started = await startCoalition({ ...draft, goal: goal.trim() }, startCode);
       forgetStartCode();
       saveToken(started.owner.token);
+      pinAtJoin(started.coalition_id, started.host_key);
       setOwner(started.owner.token);
       setPhase("started");
       setError("");

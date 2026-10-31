@@ -8,6 +8,9 @@ import { forgetStartCode, takeInvitation, takeStartCode } from "./fragment";
 import { Genesis } from "./Genesis";
 import { Join } from "./Join";
 
+// Typing whole sentences takes a few seconds under a busy test run.
+vi.setConfig({ testTimeout: 15000 });
+
 const CODE = "abcdefghijklmnopqrstuvwxyz012345";
 
 const reply: DraftReply = {
@@ -78,7 +81,7 @@ describe("fragment secrets", () => {
   });
 });
 
-describe("Genesis", { timeout: 15000 }, () => {
+describe("Genesis", () => {
   it("reads the goal, fills seats and germinates the draft cards", async () => {
     const calls = host({ "/v1/genesis/draft": () => json(reply) });
     render(<Genesis onEnter={() => {}} />);
@@ -109,7 +112,11 @@ describe("Genesis", { timeout: 15000 }, () => {
     const calls = host({
       "/v1/genesis/draft": () => json(reply),
       "/v1/genesis/start": () =>
-        json({ coalition_id: "c1", owner: { participant: "p1", token: "owner-token-1" } }),
+        json({
+          coalition_id: "c1",
+          owner: { participant: "p1", token: "owner-token-1" },
+          host_key: { kty: "OKP", crv: "Ed25519", x: "host-x-1", kid: "host" },
+        }),
     });
     const onEnter = vi.fn();
     render(<Genesis onEnter={onEnter} />);
@@ -131,6 +138,7 @@ describe("Genesis", { timeout: 15000 }, () => {
     const body = JSON.parse(String(start?.init.body));
     expect(body.draft.roles[0].label).toBe("reviewer");
     expect(readConfig("", {})?.token).toBe("owner-token-1");
+    expect(localStorage.getItem("ck.hostkey.c1")).toBe("host-x-1");
     expect(sessionStorage.getItem("ck.start")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Enter the room" }));
     expect(onEnter).toHaveBeenCalled();
@@ -212,7 +220,7 @@ describe("Join", () => {
   });
 });
 
-describe("Genesis draft freshness", { timeout: 15000 }, () => {
+describe("Genesis draft freshness", () => {
   it("never starts with a draft of an older sentence", async () => {
     history.replaceState(null, "", `/#start=${CODE}`);
     host({ "/v1/genesis/draft": () => json(reply) });

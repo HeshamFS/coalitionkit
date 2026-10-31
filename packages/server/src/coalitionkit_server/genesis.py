@@ -369,6 +369,8 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             return {
                 "coalition_id": created["coalition_id"],
                 "owner": {"participant": redeemed["participant"], "token": redeemed["token"]},
+                # The key members pin at join; the browser verifies the log against it.
+                "host_key": created["host_key"],
             }
 
     @app.post("/v1/invitations", dependencies=[Depends(gate)])
@@ -395,7 +397,10 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 await enroll_member(server, redeemed, roles[0]["id"])
             except ValueError, KeyError:
                 raise HTTPException(400, "invitation refused") from None
-            return {k: redeemed[k] for k in ("coalition_id", "participant", "token")}
+            return {
+                **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
+                "host_key": public_key_to_jwk(server.key.public_key(), "host"),
+            }
 
     @app.post("/v1/coalition/dissolve", dependencies=[Depends(gate)], response_model=None)
     async def dissolve(request: Request, body: Dissolve) -> Document | JSONResponse:

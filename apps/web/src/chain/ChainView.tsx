@@ -145,6 +145,7 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
   // The input a result belongs to: a result for an earlier log is never shown against a newer one.
   const current = useRef(input);
   current.current = input;
+  const [pinned, setPinned] = useState(true);
   const rows = useRows(input, given);
   // A new log is a new question: forget the last answer.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the input changes
@@ -162,6 +163,7 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
       });
       return;
     }
+    setPinned(pin.pinned);
     const result = await verifyLog(asked).catch(
       (error): VerifyResult => ({
         ok: false,
@@ -192,6 +194,12 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
         </h2>
       </header>
 
+      {run.state === "done" && run.result.ok && !pinned && (
+        <p className="ck-chain-note" role="note">
+          Checked against the key this log carries. This browser did not see the host key when you
+          joined, so a host that swapped its key would not show here.
+        </p>
+      )}
       {input === null ? (
         <p className="ck-chain-empty" role="status">
           The log is not in your feed yet

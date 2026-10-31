@@ -1,31 +1,36 @@
 // SPDX-License-Identifier: Apache-2.0
-// The host key, pinned per coalition the first time this browser sees it. A later log signed with
-// another key fails verification instead of being trusted because it arrived with the log.
-// Limit: the pin starts at first sight in this browser, not at join.
+// The host key, pinned per coalition when this browser joins (Genesis start or an invitation),
+// from the host's join response. Verification checks the log's key against that pin. Without a
+// pin (signed in with a pasted token) the result says the key was not seen at join.
 
 const PREFIX = "ck.hostkey.";
 
-function storage(): Storage | undefined {
+export type PinResult = { ok: true; pinned: boolean } | { ok: false; detail: string };
+
+/** Pins the host key at join. Returns false when the browser cannot store it. */
+export function pinAtJoin(coalitionId: string, key: { x?: unknown } | undefined): boolean {
+  const x = typeof key?.x === "string" ? key.x : "";
+  if (!x) return false;
   try {
-    return globalThis.localStorage;
+    globalThis.localStorage.setItem(PREFIX + coalitionId, x);
+    return true;
   } catch {
-    return undefined;
+    return false;
   }
 }
 
-export type PinResult = { ok: true; firstSight: boolean } | { ok: false; detail: string };
-
-/** Compares `x` (the Ed25519 public key) with the pinned one; pins it when none is pinned yet. */
+/** Compares the log's host key with the key pinned at join. Never pins on its own. */
 export function checkPin(coalitionId: string, key: { x?: unknown }): PinResult {
   const x = typeof key.x === "string" ? key.x : "";
   if (!x) return { ok: false, detail: "the host key has no public value" };
-  const store = storage();
-  const pinned = store?.getItem(PREFIX + coalitionId);
-  if (!pinned) {
-    store?.setItem(PREFIX + coalitionId, x);
-    return { ok: true, firstSight: true };
+  let pinned: string | null;
+  try {
+    pinned = globalThis.localStorage.getItem(PREFIX + coalitionId);
+  } catch {
+    return { ok: false, detail: "the key pinned at join could not be read in this browser" };
   }
+  if (!pinned) return { ok: true, pinned: false };
   return pinned === x
-    ? { ok: true, firstSight: false }
-    : { ok: false, detail: "the host key changed since this browser first saw this coalition" };
+    ? { ok: true, pinned: true }
+    : { ok: false, detail: "the host key differs from the one pinned when you joined" };
 }

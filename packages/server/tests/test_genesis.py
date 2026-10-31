@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from coalitionkit_contracts import new_ulid
+from coalitionkit_contracts import new_ulid, public_key_to_jwk
 from coalitionkit_models import FakeModel, ModelGateway, ScriptedResponse
 from coalitionkit_models.settings import Settings as ModelSettings
 from coalitionkit_runtime import Acknowledgement
@@ -116,6 +116,8 @@ def start(client: TestClient) -> Document:
         "/v1/genesis/start", json={"draft": draft}, headers={"Authorization": "Start " + code}
     )
     assert result.status_code == 200, result.text
+    host = public_key_to_jwk(server_for(client).key.public_key(), "host")
+    assert result.json()["host_key"] == host  # pinned by the browser at join
     return result.json()
 
 
@@ -158,6 +160,9 @@ def test_invitations_and_dissolve(client: TestClient) -> None:
     secret = first["link"].split("#")[1]
     joined = client.post("/v1/invitations/accept", json={"invitation": secret})
     assert joined.status_code == 200, joined.text
+    assert joined.json()["host_key"] == public_key_to_jwk(
+        server_for(client).key.public_key(), "host"
+    )
     member = {"Authorization": "Bearer " + joined.json()["token"]}
     assert client.post("/v1/invitations/accept", json={"invitation": secret}).status_code == 400
     assert (

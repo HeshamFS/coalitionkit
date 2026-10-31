@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ChainView, chainInputFrom } from "./ChainView";
 import { type Envelope, entryHash, type VerifyInput } from "./verify";
 
@@ -116,8 +116,26 @@ describe("pinned host key and stale results", () => {
     localStorage.setItem(`ck.hostkey.${input().coalitionId}`, "a-different-key");
     render(<ChainView input={input()} />);
     await userEvent.click(screen.getByRole("button", { name: "Verify" }));
-    expect(await screen.findByText(/host key changed/)).toBeInTheDocument();
+    expect(await screen.findByText(/differs from the one pinned/)).toBeInTheDocument();
     expect(screen.queryByText("Verified")).toBeNull();
     localStorage.clear();
+  });
+
+  it("a storage error ends the run with a visible failure", async () => {
+    const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    render(<ChainView input={input()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByText(/could not be read/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verify again" })).toHaveProperty("disabled", false);
+    spy.mockRestore();
+  });
+
+  it("says so when the key was not pinned at join", async () => {
+    localStorage.clear();
+    render(<ChainView input={input()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByRole("note")).toHaveTextContent(/did not see the host key/);
   });
 });
