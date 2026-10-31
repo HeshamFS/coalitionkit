@@ -34,7 +34,9 @@ class Room:
             path == prefix or path.startswith(prefix + "/") for prefix in reserved
         ):
             await self.server(scope, receive, send)
-        elif path == "/" or path.startswith(("/confirm/", "/lens", "/gallery")):
+        elif path == "/" or path.startswith(
+            ("/confirm/", "/lens", "/gallery", "/join", "/signin", "/glasses")
+        ):
             await FileResponse(self.dist / "index.html")(scope, receive, send)
         else:
             await self.static(scope, receive, send)
