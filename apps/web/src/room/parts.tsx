@@ -97,10 +97,17 @@ export function Participants({ state, ready, index = 0 }: { state: ViewerState |
               {p.item ? (
                 <p className="room-current-item">{p.item}</p>
               ) : (
-                <p className="room-current-item room-quiet">Nothing shared with you yet</p>
+                <p className="room-current-item room-quiet">
+                  {own ? "Your part appears here" : "Nothing shared with you yet"}
+                </p>
               )}
               <p className="room-item-detail">
-                {p.detail || (p.item ? "" : "What this member holds stays private to them.")}
+                {p.detail ||
+                  (p.item
+                    ? ""
+                    : own
+                      ? "Only you see it. Others learn what you agree to share."
+                      : "What this member holds stays private to them.")}
               </p>
               <PillTag pill={pill} />
             </article>

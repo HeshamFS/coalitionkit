@@ -77,6 +77,10 @@ export function RoomView() {
       }}
       state={feed.state}
       onAnswer={(a) => answer(a)}
+      onSeePlans={() => {
+        agentStore.setFocus(null);
+        setSelected(phone ? "Plans" : "Stage");
+      }}
     />
   ) : null;
   const wiring = (

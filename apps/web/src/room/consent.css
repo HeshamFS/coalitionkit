@@ -1,0 +1,78 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Consent board: question, what a yes does, what stays private, press and hold. */
+.ck-consent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+}
+.ck-consent-eyebrow {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ck-consent-q {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.ck-consent-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--bg);
+}
+.ck-consent-k {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ck-consent-yes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.ck-consent-yes li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+}
+.ck-consent-yes li::before {
+  content: "→";
+  color: var(--blue-text);
+}
+.ck-consent-p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.ck-consent-seal {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.ck-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ck-consent-actions .btn {
+  flex: 1;
+  min-height: 44px;
+}

@@ -161,7 +161,7 @@ const KIND_BADGE: Record<ConsentRequest["kind"], string> = {
   plan: "Decide",
   tension: "Choose",
   commitment: "Approve",
-  charter: "Charter",
+  charter: "Review",
 };
 
 export function ConsentTray({
@@ -199,7 +199,6 @@ export function ConsentTray({
           </span>
         </div>
         <button type="button" className="btn btn-sm btn-primary" onClick={() => onOpen?.(first.id)}>
-          <span aria-hidden="true">Read / </span>
           {KIND_BADGE[first.kind]}
         </button>
       </section>

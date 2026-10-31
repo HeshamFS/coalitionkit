@@ -26,7 +26,8 @@ export function deriveStrip(state: ViewerState | null): Strip {
       ? `${meter.spent}${typeof meter.currency === "string" && meter.currency ? ` ${meter.currency}` : ""}`
       : MEASURED;
   return {
-    agents: count(people.filter((p) => p.agent).length),
+    // Every participant takes part through an agent (its own, or one the host runs for it).
+    agents: count(people.length),
     vendors: count(vendors.size),
     calendars: MEASURED,
     elapsed: MEASURED,

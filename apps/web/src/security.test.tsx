@@ -167,7 +167,7 @@ describe("fix 1: consent only from trusted UI", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("1 decision waits for you")).toBeInTheDocument());
     await userEvent.click(await screen.findByRole("button", { name: "Accept A" }));
-    await screen.findByRole("region", { name: /Plan to decide: Decide on Plan A/ });
+    await screen.findByRole("region", { name: /Your yes is needed: Choose (plan A|this plan)/ });
     expect(posts).toEqual([]);
   });
 
@@ -176,7 +176,8 @@ describe("fix 1: consent only from trusted UI", () => {
     vi.stubGlobal("fetch", mockHost(posts, planTree));
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Decide" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Accept" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Review and approve" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Confirm approval" }));
     await waitFor(() => expect(posts).toEqual([{ interrupt_id: "plan:p1:2:u1", consent: true }]));
   });
 });

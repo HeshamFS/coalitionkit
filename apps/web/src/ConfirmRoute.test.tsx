@@ -80,7 +80,7 @@ describe("the /confirm/<code> route", () => {
     saveToken("tok-1");
     const calls = host(() => json(granted));
     render(<App />);
-    expect(await screen.findByText("Your decision is needed on a plan")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: /Your yes is needed/ })).toBeInTheDocument();
     const redeem = calls.filter((c) => c.url.endsWith("/v1/confirm/redeem"));
     expect(redeem).toHaveLength(1);
     expect(redeem[0]?.init.method).toBe("POST");
@@ -89,7 +89,8 @@ describe("the /confirm/<code> route", () => {
     // The code is out of the address once it was used.
     expect(location.pathname).toBe("/confirm/");
 
-    await userEvent.click(screen.getByRole("button", { name: /agree|yes|accept/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Review and approve" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm approval" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/v1/agent/answers"))).toBe(true));
     const answer = calls.find((c) => c.url.endsWith("/v1/agent/answers"));
     expect(JSON.parse(String(answer?.init.body))).toMatchObject({
@@ -111,7 +112,7 @@ describe("the /confirm/<code> route", () => {
     status = 200;
     saveToken("tok-new");
     render(<App />);
-    expect(await screen.findByText("Your decision is needed on a plan")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: /Your yes is needed/ })).toBeInTheDocument();
     const redeem = calls.filter((c) => c.url.endsWith("/v1/confirm/redeem"));
     expect(redeem).toHaveLength(2);
     expect(new Headers(redeem[1]?.init.headers).get("Authorization")).toBe("Bearer tok-new");
@@ -127,6 +128,6 @@ describe("the /confirm/<code> route", () => {
     host(() => json({ detail: "x" }, status));
     render(<App />);
     expect(await screen.findByText(FAILURE_TEXT[reason])).toBeInTheDocument();
-    expect(screen.queryByText("Your decision is needed on a plan")).toBeNull();
+    expect(screen.queryByRole("region", { name: /Your yes is needed/ })).toBeNull();
   });
 });
