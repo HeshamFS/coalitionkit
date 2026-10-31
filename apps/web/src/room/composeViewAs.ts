@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // "View as": what another participant's public summary looks like to this viewer.
 //
-// Everything here is read from the viewer's own feed state, so nothing appears that the viewer
-// does not already hold. The richer intersection view (the viewer's scope against the target's)
-// is composed on the host later (slice S1b); `composeViewAs` is the seam where that response will
-// replace this local summary.
+// The browser cannot see another participant's scope, so it cannot compute the intersection of
+// the viewer's scope and the target's. Locally it shows only public membership facts (seat, agent,
+// status). Anything richer comes from the host's intersection view (slice S1b), and
+// `composeViewAs` is the seam where that response replaces this summary.
 import type { ViewerState } from "../feed/delta";
-import { deriveParticipants, derivePrivateNotes } from "../feed/derive";
+import { deriveParticipants } from "../feed/derive";
 import { agentLine, type Pill, pillFor } from "./status";
 
 export type ViewAsView = {
@@ -34,10 +34,8 @@ export function composeViewAs(state: ViewerState | null, target: string): ViewAs
     own,
     agent: agentLine(person.agent, person.vendor),
     pill: pillFor(person.status, { own, hasItem: Boolean(person.item) }),
-    shared: person.item ? { item: person.item, detail: person.detail } : null,
-    notes: derivePrivateNotes(state)
-      .filter((n) => n.participant === person.id)
-      .map(({ knows, notKnows, because }) => ({ knows, notKnows, because })),
-    caption: `as ${person.label} would see it, limited to what you may see`,
+    shared: null,
+    notes: [],
+    caption: `as ${person.label} appears to everyone: seat, agent and status`,
   };
 }

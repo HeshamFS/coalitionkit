@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import "./chain.css";
 import { type ChainRow, chainRows, shortHash } from "./input";
+import { checkPin } from "./pin";
 import { type CheckName, type VerifyInput, type VerifyResult, verifyLog } from "./verify";
 
 export { chainInputFrom } from "./input";
@@ -141,6 +142,9 @@ function useRows(input: VerifyInput | null, given: ChainRow[] | undefined): Chai
 
 export function ChainView({ input, rows: given }: ChainViewProps) {
   const [run, setRun] = useState<Run>({ state: "idle" });
+  // The input a result belongs to: a result for an earlier log is never shown against a newer one.
+  const current = useRef(input);
+  current.current = input;
   const rows = useRows(input, given);
   // A new log is a new question: forget the last answer.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the input changes
@@ -148,8 +152,17 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
 
   const verify = async () => {
     if (!input) return;
+    const asked = input;
     setRun({ state: "running" });
-    const result = await verifyLog(input).catch(
+    const pin = checkPin(asked.coalitionId, asked.hostKey as { x?: unknown });
+    if (!pin.ok) {
+      setRun({
+        state: "done",
+        result: { ok: false, seq: 0, check: "signature", detail: pin.detail },
+      });
+      return;
+    }
+    const result = await verifyLog(asked).catch(
       (error): VerifyResult => ({
         ok: false,
         seq: 0,
@@ -157,6 +170,7 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
         detail: error instanceof Error ? error.message : "the check could not run",
       }),
     );
+    if (current.current !== asked) return;
     setRun({ state: "done", result });
   };
 

@@ -73,9 +73,17 @@ export function TrustedRequest({
         state={state}
         declined={declined === request.id}
         onApprove={() => onAnswer(answerFor(request, true))}
-        onDecline={() => {
+        onDecline={async () => {
+          // Locked only while the veto is in flight: if it fails, it can be sent again.
           setDeclined(request.id);
-          send(false);
+          try {
+            await onAnswer(answerFor(request, false));
+            setProblem(null);
+          } catch (error) {
+            setProblem(error instanceof Error ? error.message : "could not send the answer");
+          } finally {
+            setDeclined(undefined);
+          }
         }}
         onSeePlans={onSeePlans}
       />

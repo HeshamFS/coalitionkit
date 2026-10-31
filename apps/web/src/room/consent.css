@@ -76,3 +76,8 @@
   flex: 1;
   min-height: 44px;
 }
+.ck-consent-sign {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}

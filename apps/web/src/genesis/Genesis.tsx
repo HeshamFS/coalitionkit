@@ -47,6 +47,8 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
   const [goal, setGoal] = useState("");
   const [reply, setReply] = useState<DraftReply | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** The sentence the current draft was read from, so Start never sends a draft of older text. */
+  const [readFrom, setReadFrom] = useState("");
   const [edited, setEdited] = useState(false);
   const [reading, setReading] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -75,6 +77,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
         if (ctl.signal.aborted) return;
         setReply(r);
         setDraft(r.draft);
+        setReadFrom(text);
         setError("");
       } catch (e) {
         if (!ctl.signal.aborted) setError(refusal(e));
@@ -87,6 +90,9 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
 
   const edit = (patch: Partial<Draft>) => {
     if (!draft) return;
+    // An edit wins over any reading still on its way.
+    asked.current?.abort();
+    setReading(false);
     setEdited(true);
     setDraft({ ...draft, ...patch });
   };
@@ -199,7 +205,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
           onSubmit={start}
           busy={reading}
           locked={locked}
-          canSubmit={Boolean(startCode && draft)}
+          canSubmit={Boolean(startCode && draft && (edited || readFrom === goal.trim()))}
         />
         <p className="gn-foot">
           {startCode || phase === "started" ? (

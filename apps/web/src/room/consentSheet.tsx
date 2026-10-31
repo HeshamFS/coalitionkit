@@ -42,7 +42,7 @@ export function sheetFor(request: OpenRequest, state: ViewerState | null): Sheet
     return {
       question: "Commit to your part?",
       yes: [
-        "Your agent books your part as the plan describes",
+        `You commit to: ${request.message}`,
         "The people working with you see that you committed",
       ],
       privateNote,
@@ -62,7 +62,7 @@ export function ConsentSheet({
   request: OpenRequest;
   state: ViewerState | null;
   onApprove: (() => void) | (() => Promise<ConsentAcknowledgement | undefined>);
-  onDecline: () => void;
+  onDecline: () => void | Promise<void>;
   onSeePlans?: () => void;
   declined: boolean;
 }) {
@@ -80,6 +80,10 @@ export function ConsentSheet({
         </ul>
         <span className="ck-consent-k">What stays private</span>
         <p className="ck-consent-p">{sheet.privateNote}</p>
+        <span className="ck-consent-k">What you sign</span>
+        <p className="ck-consent-p ck-consent-sign">
+          {request.message} · {request.kind} · revision {request.revision}
+        </p>
       </div>
       <div className="ck-consent-seal">
         <TrustedConsentSeal

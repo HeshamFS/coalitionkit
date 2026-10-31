@@ -110,3 +110,14 @@ describe("ChainView", () => {
     await waitFor(() => expect(screen.getByText(/Verified up to seq 4/)).toBeInTheDocument());
   });
 });
+
+describe("pinned host key and stale results", () => {
+  it("refuses a log whose host key differs from the one first seen", async () => {
+    localStorage.setItem(`ck.hostkey.${input().coalitionId}`, "a-different-key");
+    render(<ChainView input={input()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByText(/host key changed/)).toBeInTheDocument();
+    expect(screen.queryByText("Verified")).toBeNull();
+    localStorage.clear();
+  });
+});

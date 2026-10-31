@@ -211,3 +211,50 @@ describe("Join", () => {
     expect(screen.getByRole("button", { name: "Join" })).toHaveProperty("disabled", true);
   });
 });
+
+describe("Genesis draft freshness", { timeout: 15000 }, () => {
+  it("never starts with a draft of an older sentence", async () => {
+    history.replaceState(null, "", `/#start=${CODE}`);
+    host({ "/v1/genesis/draft": () => json(reply) });
+    render(<Genesis onEnter={() => {}} />);
+    const input = screen.getByLabelText("What should get done?");
+    await userEvent.type(input, reply.draft.goal);
+    await screen.findByText("Read without a model", undefined, { timeout: 3000 });
+    expect(screen.getByRole("button", { name: "Set the goal" })).toHaveProperty("disabled", false);
+    await userEvent.type(input, " and more");
+    expect(screen.getByRole("button", { name: "Set the goal" })).toHaveProperty("disabled", true);
+  });
+
+  it("a reading that arrives after an edit does not overwrite the edit", async () => {
+    let release: (r: Response) => void = () => {};
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        calls += 1;
+        if (calls === 1) return json(reply);
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      }),
+    );
+    render(<Genesis onEnter={() => {}} />);
+    const input = screen.getByLabelText("What should get done?");
+    await userEvent.type(input, reply.draft.goal);
+    const seat = await screen.findByDisplayValue("member", undefined, { timeout: 3000 });
+    await userEvent.type(input, "!");
+    await act(() => new Promise((r) => setTimeout(r, 800)));
+    await userEvent.clear(seat);
+    await userEvent.type(seat, "reviewer");
+    await act(async () =>
+      release(
+        json({
+          ...reply,
+          draft: { ...reply.draft, roles: [{ id: "x", label: "late", count: 2 }] },
+        }),
+      ),
+    );
+    expect(screen.getByDisplayValue("reviewer")).toBeTruthy();
+    expect(screen.queryByDisplayValue("late")).toBeNull();
+  });
+});

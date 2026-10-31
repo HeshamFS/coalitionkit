@@ -31,10 +31,9 @@ const withSecret = {
 it("composes the target from the viewer's own state only", () => {
   const view = composeViewAs(withSecret, CARD);
   expect(view).toMatchObject({ label: "Member 2", seat: 2, shared: null, agent: "" });
-  expect(view?.caption).toBe("as Member 2 would see it, limited to what you may see");
-  expect(view?.notes).toEqual([
-    { knows: "Availability", notKnows: "Private notes", because: "Consent" },
-  ]);
+  expect(view?.caption).toBe("as Member 2 appears to everyone: seat, agent and status");
+  // Notes and items the viewer holds about the target are not shown: the target may not see them.
+  expect(view?.notes).toEqual([]);
   expect(JSON.stringify(view)).not.toContain("SECRET");
   expect(composeViewAs(roomFixture, "someone-outside-my-scope")).toBeNull();
 });
@@ -46,7 +45,7 @@ it("renders no field the viewer's state lacks", async () => {
     </Now>,
   );
   expect(
-    await screen.findByText("as Member 2 would see it, limited to what you may see"),
+    await screen.findByText("as Member 2 appears to everyone: seat, agent and status"),
   ).toBeInTheDocument();
   expect(
     await screen.findByText("Private to them. Nothing is shared with you."),
