@@ -61,7 +61,7 @@ export function ConsentSheet({
 }: {
   request: OpenRequest;
   state: ViewerState | null;
-  onApprove: () => void | Promise<ConsentAcknowledgement | undefined>;
+  onApprove: (() => void) | (() => Promise<ConsentAcknowledgement | undefined>);
   onDecline: () => void;
   onSeePlans?: () => void;
   declined: boolean;
