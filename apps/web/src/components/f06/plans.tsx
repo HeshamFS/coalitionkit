@@ -26,6 +26,8 @@ export type Plan = {
   tag?: { label: string; kind: BadgeKind };
   people?: Participant[];
   note?: string;
+  /** What this plan is best at compared with the others, in words. */
+  strength?: string;
   highlight?: boolean;
   canDecide?: boolean;
 };

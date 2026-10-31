@@ -26,3 +26,12 @@
     animation: none;
   }
 }
+
+.room-plan .room-plan-strength {
+  color: var(--ink);
+  font-weight: 600;
+}
+.room-plan .room-quiet {
+  color: var(--ink-3);
+  font-weight: 400;
+}

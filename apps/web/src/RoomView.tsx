@@ -2,7 +2,13 @@
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import { useState } from "react";
 import { Card } from "./components/primitives";
-import { deriveParticipants, deriveRoom, humanTime, requestLabel } from "./feed/derive";
+import {
+  deriveParticipants,
+  deriveRoom,
+  humanTime,
+  requestLabel,
+  visibleRequests,
+} from "./feed/derive";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
 import { sheetFor } from "./room/consentSheet";
 import { RoomLens } from "./room/lens";
@@ -53,6 +59,7 @@ export function RoomView() {
   const room = deriveRoom(feed.state);
   const ready = feed.state !== null;
   const n = Math.max(deriveParticipants(feed.state).length, 1);
+  const asks = visibleRequests(feed.state, agent.requests);
   const open = agent.requests.find((r) => r.id === agent.focus);
   const section = agent.focus ? "My part" : phone && selected === "Stage" ? "My part" : selected;
   const ended = dissolvedEvent(feed.state) !== null && section !== "Wiring";
@@ -79,6 +86,7 @@ export function RoomView() {
         expiresAt: humanTime(open.expiresAt) || undefined,
       }}
       state={feed.state}
+      related={agent.requests.filter((r) => r.id !== open.id)}
       onAnswer={async (a) => {
         const ack = await answer(a);
         if (ack && a.consent) setSigned({ question: sheetFor(open, feed.state).question, ...ack });
@@ -135,7 +143,7 @@ export function RoomView() {
     <MyPart
       state={feed.state}
       ready={ready}
-      requests={agent.requests}
+      requests={asks}
       consent={consent}
       onApprove={onOpen}
       onSeePlans={() => select(phone ? "Plans" : "Stage")}
@@ -218,7 +226,7 @@ export function RoomView() {
         {section === "Lens" && <RoomLens state={feed.state} />}
         {!phone && (
           <ConsentTray
-            requests={agent.requests.map((r) => ({
+            requests={asks.map((r) => ({
               id: r.id,
               kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
               title: requestLabel(feed.state, r),
