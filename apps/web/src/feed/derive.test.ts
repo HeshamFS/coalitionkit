@@ -40,7 +40,15 @@ describe("room projection derivations", () => {
   });
   it("derives consent without inventing signer or verification", () => {
     expect(deriveDecisions(roomFixture)).toEqual([
-      { seq: 6, subject: "plan-1", revision: 1, answer: "yes", time: "", participant: "" },
+      {
+        seq: 6,
+        subject: "plan-1",
+        kind: "",
+        revision: 1,
+        answer: "yes",
+        time: "",
+        participant: "",
+      },
     ]);
   });
   it("does not attribute anonymous needs to an arbitrary participant", () => {

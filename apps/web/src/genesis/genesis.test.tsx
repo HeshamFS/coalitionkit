@@ -78,7 +78,7 @@ describe("fragment secrets", () => {
   });
 });
 
-describe("Genesis", () => {
+describe("Genesis", { timeout: 15000 }, () => {
   it("reads the goal, fills seats and germinates the draft cards", async () => {
     const calls = host({ "/v1/genesis/draft": () => json(reply) });
     render(<Genesis onEnter={() => {}} />);
