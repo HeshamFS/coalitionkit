@@ -3,7 +3,9 @@ import type { LogEntry } from "../components/live";
 import type { Plan } from "../components/plans";
 import type { Stage } from "../shell/bars";
 import { STAGES } from "../shell/bars";
+import type { OpenRequest } from "./agent";
 import type { ViewerState } from "./delta";
+import { measuredPhrase, planStrengths } from "./planWords";
 
 type Ev = { on_behalf_of?: string; type: string; seq: number; payload: Record<string, unknown> };
 
@@ -106,10 +108,17 @@ export function tensionView(
   if (typeof rev === "number" && rev !== revision) return null;
   const raw = found.payload.options;
   if (!Array.isArray(raw)) return null;
+  const plans = derivePlans(state);
   const options = raw
     .map((o) => o as { option_id?: unknown; summary?: unknown })
     .filter((o) => typeof o.option_id === "string" && typeof o.summary === "string")
-    .map((o) => ({ id: o.option_id as string, label: o.summary as string }));
+    .map((o) => {
+      const plan = plans.find((p) => p.id === o.option_id);
+      const label = plan
+        ? `Plan ${plan.label}${plan.strength ? ` · ${plan.strength}` : ""}`
+        : (o.summary as string);
+      return { id: o.option_id as string, label };
+    });
   if (options.length < 2) return null;
   const tradeoffs = Array.isArray(found.payload.tradeoffs)
     ? found.payload.tradeoffs.filter((t): t is string => typeof t === "string")
@@ -206,7 +215,7 @@ export function deriveParticipants(state: ViewerState | null) {
       seat: (index % 5) + 1,
       label: text(p.display_name) || text(named?.display_name) || `Member ${index + 1}`,
       agent: text(card.name),
-      vendor: text(card.vendor),
+      vendor: text(card.vendor) || text(record(card.provider).organization),
       item:
         text(body.title) ||
         text(body.description) ||
@@ -245,7 +254,11 @@ export function derivePlans(state: ViewerState | null): Plan[] {
       });
     }
   }
-  return [...plans.values()].map((plan, index) => {
+  const listed = [...plans.values()];
+  const strengths = planStrengths(
+    listed.map((p) => p.objectives.map((o) => ({ name: o.name, value: o.value.value }))),
+  );
+  return listed.map((plan, index) => {
     const short = String.fromCharCode(65 + index);
     const vote = eventsOf(state).findLast(
       (e) =>
@@ -257,7 +270,10 @@ export function derivePlans(state: ViewerState | null): Plan[] {
       ...plan,
       short,
       label: `${short}${plan.label ? ` · ${plan.label}` : ""}`,
-      note: plan.objectives.map((o) => `${o.name} ${o.value.value}`).join(" · "),
+      strength: strengths[index] ?? "",
+      note: plan.objectives
+        .map((o) => measuredPhrase({ name: o.name, value: o.value.value }))
+        .join(" · "),
       highlight: vote?.payload.consent === true,
     };
   });
@@ -312,20 +328,70 @@ export function deriveSchedule(state: ViewerState | null) {
     .filter((p) => p.title);
 }
 
+/** The plan requests a tension stands for: its options are plan ids, so they are one choice. */
+function tensionPlanIds(state: ViewerState | null, request: OpenRequest): string[] {
+  if (request.kind !== "tension_option") return [];
+  const view = tensionView(state, request.subjectId, request.revision);
+  const known = new Set(derivePlans(state).map((p) => p.id));
+  return view ? view.options.map((o) => o.id).filter((id) => known.has(id)) : [];
+}
+
+/**
+ * The requests to show as asks. A plan request that a listed tension also covers is folded into
+ * that tension, so one choice is one ask. Answering is unchanged: only the tension is answered.
+ */
+export function visibleRequests(state: ViewerState | null, requests: OpenRequest[]): OpenRequest[] {
+  const folded = new Set(requests.flatMap((r) => tensionPlanIds(state, r)));
+  return requests.filter((r) => !(r.kind === "plan" && folded.has(r.subjectId)));
+}
+
+/** The open request a plan card should lead to: its own, or the tension choice that covers it. */
+export function askForPlan(
+  state: ViewerState | null,
+  requests: OpenRequest[],
+  planId: string,
+): OpenRequest | undefined {
+  return (
+    requests.find((r) => r.kind !== "plan" && tensionPlanIds(state, r).includes(planId)) ??
+    requests.find((r) => r.subjectId === planId)
+  );
+}
+
 /** Display labels never expose opaque protocol identifiers. */
 export function requestLabel(
   state: ViewerState | null,
-  request: { kind: string; subjectId: string; message: string },
+  request: { kind: string; subjectId: string; message: string; revision?: number },
 ) {
   const plan = derivePlans(state).find((p) => p.id === request.subjectId);
   if (plan) return `Review plan ${plan.label}`;
+  if (request.kind === "tension_option" && request.revision !== undefined) {
+    const shorts = tensionPlanIds(state, request as OpenRequest).map(
+      (id) => derivePlans(state).find((p) => p.id === id)?.short,
+    );
+    if (shorts.length > 1) return `Choose a plan · ${shorts.join(" or ")}`;
+  }
   return request.message.replace(/[0-9A-HJKMNP-TV-Z]{26}/gi, "item");
 }
 
-export function humanTime(value?: string) {
+const HOUR_MIN = { hour: "2-digit", minute: "2-digit", hour12: false } as const;
+const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/**
+ * A time with its day when it is not today: "today 14:30", "tomorrow 09:00", "Sun 01:00", or the
+ * date for anything further off. Uses the viewer's locale and time zone.
+ */
+export function humanTime(value?: string, now: Date = new Date()) {
   if (!value) return "";
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  if (Number.isNaN(date.getTime())) return value;
+  const clock = date.toLocaleTimeString([], HOUR_MIN);
+  const days = Math.round((dayStart(date) - dayStart(now)) / 86_400_000);
+  if (days === 0) return `today ${clock}`;
+  if (days === 1) return `tomorrow ${clock}`;
+  if (days === -1) return `yesterday ${clock}`;
+  const day =
+    Math.abs(days) < 7
+      ? date.toLocaleDateString([], { weekday: "short" })
+      : date.toLocaleDateString([], { day: "numeric", month: "short" });
+  return `${day} ${clock}`;
 }

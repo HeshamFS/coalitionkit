@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { OpenRequest } from "../feed/agent";
 import type { ViewerState } from "../feed/delta";
 import {
+  askForPlan,
   deriveDecisions,
   deriveParticipants,
   derivePlans,
@@ -12,6 +13,7 @@ import {
   eventsOf,
   humanTime,
   requestLabel,
+  visibleRequests,
 } from "../feed/derive";
 import { Germ } from "./germ";
 import { deriveStrip } from "./measured";
@@ -139,14 +141,15 @@ export function Plans({
         {plans.length ? (
           <ul className="room-plan-options">
             {plans.map((plan) => {
-              const ask = requests.find((r) => r.subjectId === plan.id);
+              const ask = askForPlan(state, requests, plan.id);
               return (
                 <li key={plan.id} className="room-plan" data-chosen={plan.highlight || undefined}>
                   <b>{plan.label}</b>
-                  <span>{plan.note || "No trade-offs listed"}</span>
+                  {plan.strength && <span className="room-plan-strength">{plan.strength}</span>}
+                  <span className="room-quiet">{plan.note || "No trade-offs listed"}</span>
                   {ask && onOpen && (
                     <button type="button" className="btn btn-sm" onClick={() => onOpen(ask.id)}>
-                      Review plan {plan.short}
+                      {ask.kind === "plan" ? `Review plan ${plan.short}` : "Choose a plan"}
                     </button>
                   )}
                 </li>
@@ -168,7 +171,13 @@ export function MeasuredStrip({ state, ready, index = 0 }: { state: ViewerState 
     <Germ index={index} ready={ready} label="MetricStrip" className="room-strip-cell">
       <section className="room-strip" aria-label="Measured">
         <span className="room-chip">
-          <b>{s.agents}</b> agents · <b>{s.vendors}</b> vendors
+          <b>{s.agents}</b> agents
+          {s.vendors && (
+            <>
+              {" "}
+              · <b>{s.vendors}</b> vendors
+            </>
+          )}
         </span>
         <span className="room-chip">
           calendars shared <b>{s.calendars}</b>
@@ -251,7 +260,7 @@ export function Decisions({
             <span className="room-decision-time">{humanTime(e.time)}</span>
           </div>
         ))}
-        {requests.map((r) => (
+        {visibleRequests(state, requests).map((r) => (
           <button
             type="button"
             className="room-decision room-request"

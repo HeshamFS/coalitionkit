@@ -28,7 +28,7 @@ export function deriveStrip(state: ViewerState | null): Strip {
   return {
     // Every participant takes part through an agent (its own, or one the host runs for it).
     agents: count(people.length),
-    vendors: count(vendors.size),
+    vendors: vendors.size > 0 ? String(vendors.size) : "",
     calendars: MEASURED,
     elapsed: MEASURED,
     seq: events.length ? String(events[events.length - 1]?.seq) : MEASURED,
