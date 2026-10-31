@@ -85,7 +85,10 @@ describe("Genesis", { timeout: 15000 }, () => {
     await userEvent.type(screen.getByLabelText("What should get done?"), reply.draft.goal);
     await screen.findByRole("img", { name: "3 of 7 seats found so far" }, { timeout: 3000 });
     const draftCall = calls.find((c) => c.url.endsWith("/v1/genesis/draft"));
-    expect(JSON.parse(String(draftCall?.init.body))).toEqual({ goal: reply.draft.goal });
+    expect(JSON.parse(String(draftCall?.init.body))).toEqual({
+      goal: reply.draft.goal,
+      utc_offset_minutes: -new Date().getTimezoneOffset(),
+    });
     expect(new Headers(draftCall?.init.headers).get("authorization")).toBeNull();
     await screen.findByDisplayValue("member", undefined, { timeout: 2000 });
     expect(await screen.findByText("agree on a plan")).toBeTruthy();

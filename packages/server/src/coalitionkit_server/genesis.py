@@ -8,7 +8,7 @@ import ipaddress
 import json
 import os
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -35,6 +35,8 @@ if TYPE_CHECKING:
 class Goal(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     goal: str = Field(min_length=1, max_length=500)
+    # The writer's offset from UTC, so "tonight" and "by Friday" mean their evening, not UTC's.
+    utc_offset_minutes: int | None = Field(default=None, ge=-840, le=840)
 
 
 class Role(BaseModel):
@@ -126,9 +128,12 @@ def number(value: str) -> int:
     return int(value) if value.isdigit() else WORDS.get(value.lower(), 1)
 
 
-def read_goal(goal: str, now: datetime | None = None) -> DraftResponse:
+def read_goal(
+    goal: str, now: datetime | None = None, utc_offset_minutes: int | None = None
+) -> DraftResponse:
     goal = Goal(goal=goal).goal
-    now = now or datetime.now(UTC)
+    local = timezone(timedelta(minutes=utc_offset_minutes or 0))
+    now = (now or datetime.now(UTC)).astimezone(local)
     spans: list[Reading] = []
     deadline = None
     match = DEADLINE.search(goal)
@@ -147,13 +152,14 @@ def read_goal(goal: str, now: datetime | None = None) -> DraftResponse:
                 if day in WEEKDAYS:
                     deadline = now + timedelta(days=(WEEKDAYS.index(day) - now.weekday()) % 7)
                 else:
-                    deadline = datetime.fromisoformat(day).replace(tzinfo=UTC)
+                    deadline = datetime.fromisoformat(day).replace(tzinfo=local)
                 deadline = deadline.replace(hour=23, minute=59, second=59, microsecond=0)
             else:
                 deadline = (now + timedelta(days=int(phrase == "tomorrow"))).replace(
                     hour=23, minute=59, second=59, microsecond=0
                 )
             spans.append(Reading(span=match.span(), kind="deadline"))
+            deadline = deadline.astimezone(UTC)
         except ValueError, OverflowError:
             deadline = None
     roles: dict[str, Role] = {}
@@ -203,8 +209,11 @@ def read_goal(goal: str, now: datetime | None = None) -> DraftResponse:
     )
 
 
-async def draft_goal(goal: str, gateway: ModelGateway) -> DraftResponse:
-    fallback = read_goal(goal)
+async def draft_goal(
+    goal: str, gateway: ModelGateway, utc_offset_minutes: int | None = None
+) -> DraftResponse:
+    fallback = read_goal(goal, utc_offset_minutes=utc_offset_minutes)
+    local_now = datetime.now(UTC).astimezone(timezone(timedelta(minutes=utc_offset_minutes or 0)))
     if not os.environ.get("COALITIONKIT_META_API_KEY"):
         return fallback
     try:
@@ -216,8 +225,9 @@ async def draft_goal(goal: str, gateway: ModelGateway) -> DraftResponse:
                         "role": "system",
                         "content": "Read a coalition goal into the requested JSON schema. "
                         "Preserve the goal exactly. "
-                        "Use character offsets into that goal for reading spans. Use UTC deadlines "
-                        f"relative to {datetime.now(UTC).isoformat()}. "
+                        "Use character offsets into that goal for reading spans. Give deadlines in "
+                        "UTC, reading day words in the writer's local time, now "
+                        f"{local_now.isoformat()}. "
                         "Default role member, count 1. "
                         "Use deciders all, pack null, source model. Never invent a deadline.",
                     },
@@ -321,7 +331,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             from .app import admin
 
             admin(request, server.settings)
-        return await draft_goal(body.goal, server.gateway)
+        return await draft_goal(body.goal, server.gateway, body.utc_offset_minutes)
 
     @app.post("/v1/genesis/start", dependencies=[Depends(gate)])
     async def start(request: Request, body: Start) -> Document:

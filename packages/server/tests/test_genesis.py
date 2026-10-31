@@ -422,3 +422,19 @@ def test_refused_charter(client: TestClient) -> None:
         )
     assert response.status_code == 422
     assert "invalid_state" in response.json()["detail"]
+
+
+def test_day_words_follow_the_writers_time_zone() -> None:
+    # 22:30 UTC on a Thursday: 23:30 an hour east, 17:30 five hours west,
+    # and already Friday 00:30 two hours east.
+    now = datetime(2026, 11, 5, 22, 30, tzinfo=UTC)
+    east = read_goal("Two members need a plan by Friday", now, utc_offset_minutes=60).draft
+    west = read_goal("Two members need a plan by Friday", now, utc_offset_minutes=-300).draft
+    utc = read_goal("Two members need a plan by Friday", now).draft
+    assert east.deadline == datetime(2026, 11, 6, 22, 59, 59, tzinfo=UTC)
+    assert west.deadline == datetime(2026, 11, 7, 4, 59, 59, tzinfo=UTC)
+    assert utc.deadline == datetime(2026, 11, 6, 23, 59, 59, tzinfo=UTC)
+    tonight = read_goal("Two members need a plan tonight", now, utc_offset_minutes=60).draft
+    assert tonight.deadline == datetime(2026, 11, 5, 22, 59, 59, tzinfo=UTC)
+    past_midnight = read_goal("Two members need a plan tonight", now, utc_offset_minutes=120)
+    assert past_midnight.draft.deadline == datetime(2026, 11, 6, 21, 59, 59, tzinfo=UTC)

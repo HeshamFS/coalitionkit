@@ -68,7 +68,15 @@ async function post<T>(
 const defaultFetch: Fetch = (url, init) => fetch(url, init);
 
 export function draftGoal(goal: string, signal?: AbortSignal, fetchFn = defaultFetch) {
-  return post<DraftReply>("/v1/genesis/draft", { goal }, undefined, fetchFn, signal);
+  // Day words ("tonight", "by Friday") are read in the writer's own time zone.
+  const utc_offset_minutes = -new Date().getTimezoneOffset();
+  return post<DraftReply>(
+    "/v1/genesis/draft",
+    { goal, utc_offset_minutes },
+    undefined,
+    fetchFn,
+    signal,
+  );
 }
 
 export function startCoalition(draft: Draft, startCode: string, fetchFn = defaultFetch) {
