@@ -138,4 +138,14 @@ describe("pinned host key and stale results", () => {
     await userEvent.click(screen.getByRole("button", { name: "Verify" }));
     expect(await screen.findByRole("note")).toHaveTextContent(/did not see the host key/);
   });
+
+  it("a re-render with the same log keeps the result (no reset, no loop)", async () => {
+    localStorage.clear();
+    const view = render(<ChainView input={input()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByText("Verified")).toBeInTheDocument();
+    view.rerender(<ChainView input={{ ...input() }} />);
+    view.rerender(<ChainView input={{ ...input() }} />);
+    expect(screen.getByText("Verified")).toBeInTheDocument();
+  });
 });

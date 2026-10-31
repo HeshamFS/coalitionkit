@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // The journey's moments, mounted in the room from the viewer's own feed state
 // (docs/ux/journey.md: Theatre J-07, Overlap J-06, Ripple J-10, Chain J-12, Dissolve J-13).
+import { useMemo } from "react";
 import { ChainView } from "../chain/ChainView";
 import { chainInputFrom } from "../chain/input";
 import type { ViewerState } from "../feed/delta";
@@ -73,9 +74,12 @@ export function RippleMoment({ state }: { state: ViewerState | null }) {
 }
 
 export function ChainMoment({ state }: { state: ViewerState | null }) {
+  const log = state?.log;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the input is derived from the log only
+  const input = useMemo(() => chainInputFrom(state), [log]);
   return (
     <section className="room-moment" aria-label="What happened">
-      <ChainView input={chainInputFrom(state)} />
+      <ChainView input={input} />
     </section>
   );
 }

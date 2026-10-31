@@ -124,9 +124,21 @@ function Chain({ rows, run }: { rows: ChainRow[]; run: Run }) {
   );
 }
 
+/** What the log is, by content: a new object for the same log is not a new log. */
+function logKey(input: VerifyInput | null): string {
+  if (!input) return "";
+  const last = input.entries[input.entries.length - 1] as { seq?: unknown } | undefined;
+  return `${input.coalitionId}:${input.entries.length}:${String(last?.seq ?? "")}:${input.receipts.length}:${input.hostKey.x}`;
+}
+
 function useRows(input: VerifyInput | null, given: ChainRow[] | undefined): ChainRow[] {
   const [rows, setRows] = useState<ChainRow[]>([]);
+  const key = logKey(input);
+  const latest = useRef(input);
+  latest.current = input;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: recompute only when the log changes
   useEffect(() => {
+    const input = latest.current;
     if (given || !input) return;
     let live = true;
     chainRows(input.entries).then(
@@ -136,20 +148,20 @@ function useRows(input: VerifyInput | null, given: ChainRow[] | undefined): Chai
     return () => {
       live = false;
     };
-  }, [input, given]);
+  }, [key, given]);
   return given ?? rows;
 }
 
 export function ChainView({ input, rows: given }: ChainViewProps) {
   const [run, setRun] = useState<Run>({ state: "idle" });
   // The input a result belongs to: a result for an earlier log is never shown against a newer one.
-  const current = useRef(input);
-  current.current = input;
+  const current = useRef(logKey(input));
+  current.current = logKey(input);
   const [pinned, setPinned] = useState(true);
   const rows = useRows(input, given);
   // A new log is a new question: forget the last answer.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the input changes
-  useEffect(() => setRun({ state: "idle" }), [input]);
+  useEffect(() => setRun({ state: "idle" }), [logKey(input)]);
 
   const verify = async () => {
     if (!input) return;
@@ -172,7 +184,7 @@ export function ChainView({ input, rows: given }: ChainViewProps) {
         detail: error instanceof Error ? error.message : "the check could not run",
       }),
     );
-    if (current.current !== asked) return;
+    if (current.current !== logKey(asked)) return;
     setRun({ state: "done", result });
   };
 
