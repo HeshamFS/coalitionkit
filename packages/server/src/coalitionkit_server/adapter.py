@@ -4,6 +4,7 @@
 import asyncio
 import json
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from a2a.types import AgentCard
@@ -24,6 +25,7 @@ class HostPort:
     def __init__(self, host: CoalitionHost) -> None:
         self.host = host
         self.cards = CardRegistry(host.coalition_id)
+        self.on_refusal: Callable[[str, str, Document], None] | None = None
         hook.watch(host.bus)
 
     def invite(self, participant: str, card_url: str, card: AgentCard) -> None:
@@ -68,4 +70,6 @@ class HostPort:
         logger.info(
             json.dumps({"event_id": reply["payload"]["ref"], "code": reply["payload"]["code"]})
         )
+        if self.on_refusal is not None:
+            self.on_refusal(pin.participant, str(envelope_json.get("type", "")), reply["payload"])
         return {"error": reply["payload"]}

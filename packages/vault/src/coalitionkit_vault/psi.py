@@ -12,7 +12,7 @@ import base64
 import hashlib
 import secrets
 import struct
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -303,11 +303,14 @@ class Requester(_Party):
         values: Iterable[str],
         signing_key: Ed25519PrivateKey,
         peer_key: Ed25519PublicKey,
+        *,
+        on_result: Callable[[list[str] | int], None] | None = None,
         **test_only: bytes | bool | None,
     ) -> None:
         super().__init__(context, values, signing_key, peer_key, **test_only)  # type: ignore[arg-type]
         self._own_id = context.requester
         self._peer_id = context.responder
+        self._on_result = on_result
 
     def request(self, setup: MatchPayload) -> MatchPayload:
         self._require("new")
@@ -332,9 +335,14 @@ class Requester(_Party):
         tokens = {sodium.crypto_scalarmult_ristretto255(self._scalar, p) for p in other}
         if self.context.reveal == "count":
             self._state = "done"
-            return len(tokens.intersection(doubled))
+            count = len(tokens.intersection(doubled))
+            if self._on_result is not None:
+                self._on_result(count)
+            return count
         overlap = sorted(
             value for value, point in zip(self._values, doubled, strict=True) if point in tokens
         )
         self._state = "done"
+        if self._on_result is not None:
+            self._on_result(overlap.copy())
         return overlap

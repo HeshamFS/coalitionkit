@@ -4,7 +4,7 @@
 import asyncio
 import json
 import secrets
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
@@ -84,6 +84,7 @@ class Server:
             lambda participant: OwnerSigner(self.registry, coalition, participant),
         )
         self.surfaces[coalition] = surfaces_app(hub)
+        self.ports[coalition].on_refusal = hub.refused
         return host
 
     def create(self, charter: Document) -> Document:
@@ -104,6 +105,27 @@ class Server:
             "host_key": public_key_to_jwk(self.key.public_key(), "host"),
             "host_card_url": self.signer.card_url,
         }
+
+    def vault_result_sink(
+        self, coalition: str, participant: str, match_id: str
+    ) -> Callable[[list[str] | int], None]:
+        """Bind a hosted Requester's on_result to its owner's private agent channel.
+
+        Hosted runners pass this callback when constructing the PSI Requester.
+        There is no protocol event: neither the log nor Steward sees the result.
+        """
+        self.registry.hosted_for(coalition, participant)
+        hub: SurfaceHub = self.surfaces[coalition].state.hub
+
+        def deliver(result: list[str] | int) -> None:
+            body: Document = {"match_id": match_id}
+            if isinstance(result, int):
+                body["count"] = result
+            else:
+                body.update(overlap=result, count=len(result))
+            hub.say(participant, json.dumps({"vault_result": body}))
+
+        return deliver
 
     async def accept(self, envelope_json: Document, authenticated_sender: str) -> Document:
         port = self.ports.get(str(envelope_json.get("coalition_id", "")))
@@ -223,7 +245,7 @@ class Dispatch:
         if path == "/mcp" and "mcp" in enabled:
             await self.mcp(scope, receive, send)
             return
-        allowed = (path == "/v1/feed" and "feed" in enabled) or (
+        allowed = (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled) or (
             path in {"/v1/agent", "/v1/agent/answers"} and "agent" in enabled
         )
         if not allowed:
