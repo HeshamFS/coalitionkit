@@ -29,6 +29,7 @@ import {
 } from "./room/moments";
 import { MY_PART_PANELS, MyPart } from "./room/mypart";
 import { PhoneNav, RoomNavigation } from "./room/navigation";
+import { OfferPanel } from "./room/offerPanel";
 import { Decisions, MeasuredStrip, Participants, Plans, Privacy, Wiring } from "./room/parts";
 import { usePrism } from "./room/prism";
 import { SignedNotice } from "./room/signed";
@@ -170,6 +171,7 @@ export function RoomView() {
       onApprove={onOpen}
       onSeePlans={() => select(phone ? "Plans" : "Stage")}
       order={orderPanels(feed.state, device, MY_PART_PANELS)}
+      offerForm={<OfferPanel state={feed.state} />}
     />
   );
   return (
