@@ -520,7 +520,7 @@ expect:
 | `roles` | The roles the charter may use and what each may do. A member's message needs an ability its role grants; otherwise `not_authorized` |
 | `vocabulary` | Words delivered to surfaces with each viewer's projection; never part of any signed payload |
 | `schemas` | Needs, offers, tasks and resources validate against the core schema and then the pack's extension; failing the extension is `schema_invalid`. A pack schema may reference only files in its own folder and the core schemas by their `https://coalitionkit.dev/schemas/` ids |
-| `policies` | Checked deterministically at step (12) of the check order, after every core check and before the Steward: `block` is `pack_violation` with the policy id; `escalate` asks a person before the message counts; `redact` adds the policy's paths to the event's `scope.redact` before it is stored; `allow` changes nothing. The most severe matching action wins |
+| `policies` | Checked deterministically at step (12) of the check order, after every core check and before the Steward: `block` is `pack_violation` with the policy id; `escalate` holds the message (it does not count), tells the sender it was held with the policy id, and asks the sender's person to review it, who may revise and resubmit; `redact` adds the policy's paths to the event's `scope.redact` before it is stored; `allow` changes nothing. The most severe matching action wins |
 | `strategy` | The Gardener's allocation strategy and fairness settings for this Coalition |
 | `task_templates` | Needs the Gardener may draft first from the charter |
 | `views` | Component order per role and device for composed surfaces; components from the core catalog or the pack's catalog extension |
