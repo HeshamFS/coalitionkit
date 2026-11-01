@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
@@ -112,6 +112,28 @@ class _Outcome:
         self.explain = explain
         self.redact = redact
         self.model_audited = model_audited
+
+
+@dataclass(frozen=True)
+class PackOutcome:
+    action: Literal["allow", "redact", "block", "escalate"] = "allow"
+    policy_id: str = "default"
+    paths: tuple[str, ...] = ()
+
+
+class PackPolicy:
+    """Bind a pack's deterministic rules to the host policy hook."""
+
+    def __init__(self, policies: PolicySet, context: StewardContext | None = None) -> None:
+        if any(p.then not in PACK_ACTIONS for p in policies):
+            raise ValueError("pack policies cannot quarantine")
+        self.policies, self.context = policies, context or StewardContext()
+
+    def __call__(self, event: dict[str, Any]) -> PackOutcome:
+        subject = Subject.from_envelope(Envelope.model_validate(event))
+        outcome = combine(evaluate_all(self.policies, subject, self.context))
+        assert outcome.action != "quarantine"
+        return PackOutcome(outcome.action, outcome.policy_id, outcome.redact)
 
 
 def combine(matches: Sequence[Match]) -> _Outcome:

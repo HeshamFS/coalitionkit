@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
+from jsonschema.exceptions import ValidationError
 from packs_support import CORE_VERSION, append, copy_pack, core_catalog, rewrite
 
 from coalitionkit_contracts import Scope
@@ -52,11 +54,107 @@ def test_core_range_is_checked(tmp_path: Path) -> None:
     assert caught.value.rules() == {"core_range"}
 
 
-@pytest.mark.parametrize("action", ["block", "quarantine"])
-def test_pack_cannot_block_or_quarantine(tmp_path: Path, action: str) -> None:
+@pytest.mark.parametrize("action", ["quarantine"])
+def test_pack_cannot_quarantine(tmp_path: Path, action: str) -> None:
     root = copy_pack("pack-alpha", tmp_path)
     rewrite(root / "policies" / "flag-keyword.yaml", "then: escalate", f"then: {action}")
     assert rules_of(root) & {"policy_action", "policy"}
+
+
+def test_pack_can_block(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    rewrite(root / "policies/flag-keyword.yaml", "then: escalate", "then: block")
+    assert load(root).policies[0].then == "block"
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        "file:///outside.json",
+        "http://evil/schema.json",
+        "../../outside.json",
+        "../outside.json",
+        "/outside.json",
+        "C:/outside.json",
+        "//evil/schema.json",
+        "%2e%2e/%2e%2e/outside.json",
+        "https://evil/schema.json",
+        "https://coalitionkit.dev/schemas/unknown.json",
+    ],
+)
+def test_schema_reference_escape_is_reported(tmp_path: Path, ref: str) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text(json.dumps({"$ref": ref}))
+    assert "schema_ref" in rules_of(root)
+
+
+def test_schema_registry_uses_snapshot_and_core(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    sibling = root / "schemas/sibling.json"
+    sibling.write_text(json.dumps({"type": "string"}))
+    (root / "schemas/need-ext.json").write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "properties": {
+                    "value": {"$ref": "sibling.json"},
+                    "core": {
+                        "$ref": "https://coalitionkit.dev/schemas/coalition/v0/common.json#/$defs/ulid"
+                    },
+                },
+                "$defs": {
+                    "core": {"$ref": "https://coalitionkit.dev/schemas/coalition/v0/need.json"}
+                },
+            }
+        )
+    )
+    pack = load(root)
+    sibling.write_text(json.dumps({"type": "number"}))
+    pack.validate_schema("need", {"value": "still a string"})
+    with pytest.raises(ValidationError):
+        pack.validate_schema("need", {"value": 5})
+    with pytest.raises(ValidationError):
+        pack.validate_schema("need", {"core": "invalid"})
+
+
+def test_transitive_schema_reference_escape_is_reported(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text('{"$ref": "sibling.json"}')
+    (root / "schemas/sibling.json").write_text('{"$ref": "file:///outside.json"}')
+    assert "schema_ref" in rules_of(root)
+
+
+def test_schema_literal_data_is_not_rewritten(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    literal = {"$id": "literal", "$ref": "file:///literal"}
+    (root / "schemas/need-ext.json").write_text(json.dumps({"const": literal}))
+    load(root).validate_schema("need", literal)
+
+
+def test_nested_dynamic_reference_escape_is_reported(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text(
+        json.dumps({"$defs": {"nested": {"$dynamicRef": "file:///outside.json"}}})
+    )
+    assert "schema_ref" in rules_of(root)
+
+
+def test_schema_cannot_switch_reference_dialect(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text(
+        json.dumps({"$schema": "http://json-schema.org/draft-07/schema#"})
+    )
+    assert "schema" in rules_of(root)
+
+
+def test_relative_parent_reference_inside_snapshot(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "shared.json").write_text('{"type": "string"}')
+    (root / "schemas/need-ext.json").write_text('{"$ref": "../shared.json"}')
+    pack = load(root)
+    pack.validate_schema("need", "valid")
+    with pytest.raises(ValidationError):
+        pack.validate_schema("need", 1)
 
 
 def test_pack_policy_cannot_reuse_a_core_id(tmp_path: Path) -> None:
@@ -200,9 +298,9 @@ def test_missing_evals_and_bad_yaml(tmp_path: Path) -> None:
 
 def test_every_problem_is_reported_at_once(tmp_path: Path) -> None:
     root = copy_pack("pack-alpha", tmp_path)
-    rewrite(root / "policies" / "flag-keyword.yaml", "then: escalate", "then: block")
+    rewrite(root / "policies" / "flag-keyword.yaml", "then: escalate", "then: quarantine")
     rewrite(root / "views.yaml", "compact: [StepList]", "compact: [Nowhere]")
-    assert rules_of(root) >= {"policy_action", "unknown_component"}
+    assert rules_of(root) >= {"policy", "unknown_component"}
 
 
 def test_pack_words_stay_out_of_the_core_denylist(tmp_path: Path) -> None:

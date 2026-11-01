@@ -8,6 +8,7 @@ from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from typing import Literal, Protocol
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
@@ -59,6 +60,17 @@ class AuthenticatedSender:
     participant: str
 
 
+class PolicyOutcome(Protocol):
+    @property
+    def action(self) -> Literal["allow", "redact", "block", "escalate"]: ...
+
+    @property
+    def policy_id(self) -> str: ...
+
+    @property
+    def paths(self) -> tuple[str, ...]: ...
+
+
 @dataclass(frozen=True)
 class Acknowledgement[T = Document | None]:
     accepted: T
@@ -90,8 +102,22 @@ class CoalitionHost:
         self.cards = self._identities.cards
         self.invitations = self._identities.invitations
         self._cache = HostCache(store, coalition_id)
-        self.policy: Callable[[Document], str | None] = lambda _: None
+        self.policy: Callable[[Document], PolicyOutcome | None] = lambda _: None
+        self._policy_reviews: dict[str, Document] = {}
+        # Adapters notify the owner; the owner can also poll pending_policy_reviews.
+        self.policy_escalation: Callable[[Document, str], None] = lambda event, policy_id: None
         self.rate_limit: Callable[[AuthenticatedSender], int | None] = lambda _: None
+
+    def pending_policy_reviews(self, viewer: str) -> list[Document]:
+        """Owner-only requests for review; held submissions are never delivered.
+
+        Like the notification hook, this queue belongs to this host instance. An
+        adapter that needs durable notifications must persist them in its hook.
+        Review does not bypass policy: the person must revise and resubmit.
+        """
+        return deepcopy(
+            [item for item in self._policy_reviews.values() if item["participant"] == viewer]
+        )
 
     def create(self) -> None:
         self.store.create(self.coalition_id, self.card_url, self.clock())
@@ -225,9 +251,23 @@ class CoalitionHost:
                     body["subject"], subject["revision"], sender.participant, body["consent"]
                 )
             )
-        policy_id = self.policy(event)
-        if policy_id:
-            raise Refusal("pack_violation", {"policy_id": policy_id})
+        policy = self.policy(deepcopy(event))
+        if policy is not None and policy.action == "block":
+            raise Refusal("pack_violation", {"policy_id": policy.policy_id})
+        if policy is not None and policy.action == "escalate":
+            self._policy_reviews[event["event_id"]] = {
+                "participant": sender.participant,
+                "event_id": event["event_id"],
+                "policy_id": policy.policy_id,
+                "question": "Please review and revise this submission before resubmitting.",
+            }
+            self.policy_escalation(deepcopy(event), policy.policy_id)
+            raise Refusal("steward_blocked", {"policy_id": policy.policy_id})
+        digest = submission_digest(event)
+        if policy is not None and policy.action == "redact":
+            event["scope"]["redact"] = sorted(
+                set(event["scope"].get("redact", [])) | set(policy.paths)
+            )
         members = frozenset(state.members)
         verdict = self.steward.review(
             deepcopy(event),
@@ -243,7 +283,8 @@ class CoalitionHost:
         )
         if verdict.action not in {"allow", "redact"}:
             raise Refusal("steward_blocked", {"policy_id": verdict.policy_id})
-        result = self._append(tx, event, sender, verdict, now)
+        result = self._append(tx, event, sender, verdict, now, digest)
+        self._policy_reviews.pop(event["event_id"], None)
         self._cache.apply(result.accepted, verdict.redact)
         self._cache.sync(tx)
         return self._ack(state, result.accepted, result.receipt, sender.participant)
@@ -332,6 +373,7 @@ class CoalitionHost:
         sender: AuthenticatedSender,
         verdict: Verdict,
         now: str,
+        digest: str | None = None,
     ) -> Acknowledgement[Document]:
         row = tx.execute(
             "SELECT seq, host, created_at FROM coalitions WHERE id = ?", (self.coalition_id,)
@@ -362,7 +404,7 @@ class CoalitionHost:
                 sequence,
                 event["event_id"],
                 sender.card_url,
-                submission_digest(event),
+                digest or submission_digest(event),
                 json.dumps(accepted),
                 json.dumps(verdict.redact),
             ),

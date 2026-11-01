@@ -4,21 +4,27 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from posixpath import normpath
 from typing import Any, cast
+from urllib.parse import unquote, urldefrag
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 from pydantic import ValidationError
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
 
+from coalitionkit_contracts.validate import load_schemas
 from coalitionkit_steward import Policy, PolicyError, PolicySet, core_policies, parse_policy
 from coalitionkit_surfaces import Catalog
 from coalitionkit_surfaces.catalog import ComponentSpec
 
 from .errors import Report
-from .files import MANIFEST, Snapshot, take_snapshot
+from .files import MANIFEST, Snapshot, bad_relative_path, take_snapshot
 from .manifest import Manifest
 from .scopes import PACK_AUDIENCES
 from .sections import (
@@ -35,9 +41,10 @@ from .version import core_version as installed_core_version
 from .version import in_range
 from .views import Views, parse_views
 
-#: Actions a pack policy may not use. The spec lets a pack declare block; this lane is stricter.
-FORBIDDEN_PACK_ACTIONS = frozenset({"block", "quarantine"})
+#: Quarantine acts on a participant and stays with the core.
+FORBIDDEN_PACK_ACTIONS = frozenset({"quarantine"})
 SCHEMA_ID_BASE = "https://coalitionkit.dev/schemas/"
+SNAPSHOT_BASE = "https://pack-snapshot.invalid/"
 
 
 @dataclass(frozen=True)
@@ -51,6 +58,12 @@ class Pack:
     evals: tuple[EvalScenario, ...]
     schemas: Mapping[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
     signature: PackSignature | None = None
+    schema_registry: Registry[Any] = field(default_factory=lambda: Registry[Any]())
+
+    def validate_schema(self, kind: str, instance: Any) -> None:
+        """Validate against the closed, in-memory snapshot registry."""
+        validator = Draft202012Validator(self.schemas[kind], registry=self.schema_registry)
+        validator.validate(instance)  # pyright: ignore[reportUnknownMemberType]
 
     @property
     def name(self) -> str:
@@ -105,10 +118,20 @@ def _inspect(snap: Snapshot, core_catalog: Catalog | None, core_version: str | N
     templates = _templates(snap, manifest, report)
     views = _views(snap, manifest, core_catalog, report)
     evals = _evals(snap, manifest, report)
-    schemas = _schemas(snap, manifest, report)
+    schemas, registry = _schemas(snap, manifest, report)
     _other_files(snap, manifest, report)
     report.raise_if_any()
-    return Pack(snap.root, manifest, vocab, policies, templates, views, evals, schemas)
+    return Pack(
+        snap.root,
+        manifest,
+        vocab,
+        policies,
+        templates,
+        views,
+        evals,
+        schemas,
+        schema_registry=registry,
+    )
 
 
 def _read_manifest(snap: Snapshot, report: Report) -> Manifest | None:
@@ -233,10 +256,60 @@ def _evals(snap: Snapshot, manifest: Manifest, report: Report) -> tuple[EvalScen
     return tuple(scenarios)
 
 
-def _schemas(snap: Snapshot, manifest: Manifest, report: Report) -> Mapping[str, Mapping[str, Any]]:
+def _schemas(
+    snap: Snapshot,
+    manifest: Manifest,
+    report: Report,
+) -> tuple[Mapping[str, Mapping[str, Any]], Registry[Any]]:
     loaded: dict[str, Mapping[str, Any]] = {}
-    for kind, rel in (manifest.schemas or {}).items():
-        data = snap.json(rel, f"schemas.{kind}", report)
+    core = load_schemas()
+    resources: dict[str, Any] = dict(core)
+    pending = list((manifest.schemas or {}).values())
+    seen: set[str] = set()
+
+    def rewrite(node: Any, rel: str) -> None:
+        if isinstance(node, dict):
+            obj = cast(dict[str, Any], node)
+            if obj.get("$schema", "https://json-schema.org/draft/2020-12/schema") != (
+                "https://json-schema.org/draft/2020-12/schema"
+            ):
+                report.add("schema", rel, "pack schemas must use JSON Schema 2020-12")
+                obj.pop("$schema", None)
+            # IDs cannot redirect relative references away from the signed snapshot.
+            identifier = obj.pop("$id", None)
+            if str(identifier).startswith(SCHEMA_ID_BASE):
+                report.add("schema_override", rel, "a pack schema cannot take a core schema id")
+            for keyword in ("$ref", "$dynamicRef"):
+                if keyword not in obj:
+                    continue
+                ref = str(obj[keyword])
+                base, fragment = urldefrag(ref)
+                if base in core:
+                    continue
+                decoded = unquote(base)
+                target = normpath((PurePosixPath(rel).parent / decoded).as_posix()) if base else rel
+                if base and (
+                    PurePosixPath(decoded).is_absolute()
+                    or any(char in decoded for char in (":", "\\", "\x00"))
+                    or bad_relative_path(target)
+                    or target not in snap.files
+                ):
+                    report.add("schema_ref", rel, f"unapproved schema reference {ref!r}")
+                    continue
+                obj[keyword] = SNAPSHOT_BASE + target + ("#" + fragment if fragment else "")
+                if target not in seen:
+                    pending.append(target)
+            # Only schema-bearing keywords contain schemas; const/default/examples
+            # may contain literal objects whose $ref and $id are ordinary data.
+            for child in DRAFT202012.subresources_of(obj):
+                rewrite(child, rel)
+
+    while pending:
+        rel = pending.pop()
+        if rel in seen:
+            continue
+        seen.add(rel)
+        data = snap.json(rel, f"schemas.{rel}", report)
         if data is None:
             continue
         if not isinstance(data, dict):
@@ -248,11 +321,18 @@ def _schemas(snap: Snapshot, manifest: Manifest, report: Report) -> Mapping[str,
         except SchemaError as exc:
             report.add("schema", rel, f"not a valid 2020-12 schema: {exc.message}")
             continue
-        if str(schema.get("$id", "")).startswith(SCHEMA_ID_BASE):
-            report.add("schema_override", rel, "a pack schema cannot take a core schema id")
-        else:
-            loaded[kind] = schema
-    return loaded
+        schema = deepcopy(schema)
+        rewrite(schema, rel)
+        schema["$id"] = SNAPSHOT_BASE + rel
+        resources[SNAPSHOT_BASE + rel] = schema
+    registry: Registry[Any] = Registry()
+    registry = registry.with_resources(
+        (uri, Resource.from_contents(schema, DRAFT202012)) for uri, schema in resources.items()
+    )
+    for kind, rel in (manifest.schemas or {}).items():
+        if SNAPSHOT_BASE + rel in resources:
+            loaded[kind] = resources[SNAPSHOT_BASE + rel]
+    return loaded, registry
 
 
 def _other_files(snap: Snapshot, manifest: Manifest, report: Report) -> None:
