@@ -84,9 +84,9 @@ Branches `pack/<name>` from `main` after `core-freeze-2`. They run in parallel (
 
 | Pack | Roles | Policies (examples) | Strategy | Evals |
 |---|---|---|---|---|
-| `science-lab` | lab lead, technician, courier, instrument | hazardous shipments escalate to a person; no dosing or clinical advice (block) | `match` (runs to free instrument time) with a fair-share cap across labs | three labs anneal and image samples by Friday; an instrument reading changes the plan |
-| `daily-life` | family member, helper, absent member | no medical or other regulated advice (escalate); no contact details shared before consent | fair share of errands and visits | bringing someone home on a set day with an absent member answered by their agent; a weekly rota |
-| `travel-disruption` | traveller, organizer, car desk, shuttle | no contact details before both say yes; spending above a set amount needs a person's yes | group by destination, trade arrival time against cost | a group stranded overnight going to three cities; a new flight appears and only touched rides re-plan |
+| `science-lab` | lab lead, technician, courier, instrument | hazardous shipments escalate to a person; no dosing or clinical advice (block) | `auction` (runs bid for free instrument time) with a fair-share cap across labs (`max_ratio`) | three labs anneal and image samples by Friday; an instrument reading changes the plan |
+| `daily-life` | family member, helper, absent member | no medical or other regulated advice (escalate); no contact details shared before consent | `auction` with a fair-share cap on errands and visits (`max_ratio`) | bringing someone home on a set day with an absent member answered by their agent; a weekly rota |
+| `travel-disruption` | traveller, organizer, car desk, shuttle | no contact details before both say yes; spending above a set amount needs a person's yes | `auction`: rides grouped by destination, arrival time traded against cost (`minute_value`) | a group stranded overnight going to three cities; a new flight appears and only touched rides re-plan |
 
 Owners: `science-lab` Codex, `daily-life` Sonnet, `travel-disruption` Sonnet. Claude judges each.
 
