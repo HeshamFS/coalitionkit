@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "temperature_range": {
+      "type": "object",
+      "properties": {
+        "min_c": {
+          "type": "number"
+        },
+        "max_c": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_c",
+        "max_c"
+      ],
+      "additionalProperties": false
+    },
+    "hazard": {
+      "type": "string",
+      "enum": [
+        "hazardous-shipment"
+      ],
+      "description": "Omit for ordinary transport; any declared hazard requires human review."
+    }
+  },
+  "required": [
+    "sample_count",
+    "temperature_range"
+  ],
+  "additionalProperties": false
+}

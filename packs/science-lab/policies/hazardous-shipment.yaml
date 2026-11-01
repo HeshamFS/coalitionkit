@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+id: hazardous-shipment
+applies_to: [coalition.need, coalition.offer, coalition.observe, coalition.propose]
+when:
+  any_text_matches: ['\bhazardous-shipment\b']
+then: escalate
+explain: A declared shipment hazard needs a person to review and revise the request.

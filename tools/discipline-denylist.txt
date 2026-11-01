@@ -31,3 +31,19 @@ traveller
 itinerary
 stranded
 layover
+
+# pack science-lab
+science-lab
+anneal
+annealed
+imaging
+technician
+technicians
+hazard
+hazardous
+shipment
+shipments
+clinical
+dosing
+sample capacity
+cost ceiling
