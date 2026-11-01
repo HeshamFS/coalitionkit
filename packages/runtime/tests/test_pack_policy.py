@@ -45,7 +45,9 @@ def test_pack_allow(world: World) -> None:
 def test_pack_escalation_asks_person_and_holds_message(world: World) -> None:
     bind(world, "escalate")
     requests: list[tuple[Document, str]] = []
-    world.host.policy_escalation = lambda event, policy_id: requests.append((event, policy_id))
+    world.host.policy_escalation = lambda event, policy_id, explain: requests.append(
+        (event, policy_id)
+    )
     before = world.store.read(world.host.coalition_id)
     error(
         world.alice.send("observe", {"source": "chat", "content": "protected"}), "steward_blocked"

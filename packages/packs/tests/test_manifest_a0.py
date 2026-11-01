@@ -41,8 +41,6 @@ def test_suggest_refuses_bad_values(suggest: dict[str, object]) -> None:
     "strategy",
     [
         {"allocation": "auction", "fairness": {"weight": 1, "max_ratio": 2, "minute_value": 1}},
-        {"allocation": "match"},
-        {"allocation": "vote"},
     ],
 )
 def test_known_strategies_load(strategy: dict[str, object]) -> None:
@@ -63,3 +61,9 @@ def test_known_strategies_load(strategy: dict[str, object]) -> None:
 def test_unknown_strategies_or_keys_are_refused(strategy: dict[str, object]) -> None:
     with pytest.raises(ValidationError):
         Manifest.model_validate({**BASE, "strategy": strategy})
+
+
+@pytest.mark.parametrize("allocation", ["match", "vote"])
+def test_reserved_strategies(allocation: str) -> None:
+    with pytest.raises(ValidationError, match="reserved for a later version"):
+        Manifest.model_validate({**BASE, "strategy": {"allocation": allocation}})

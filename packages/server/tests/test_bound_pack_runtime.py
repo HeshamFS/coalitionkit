@@ -213,7 +213,7 @@ def test_runtime_planner_uses_bound_strategy(
     for who in (a, b):
         join(host, who)
         decide(host, who)
-    accepted(need(host))
+    accepted(need(host, ext={"item_kind": "item"}))
     for task_id in host.state.tasks:
         for who, money in ((a, 0), (b, 1)):
             accepted(
@@ -227,6 +227,7 @@ def test_runtime_planner_uses_bound_strategy(
                         "capacity": 1,
                         "cost": {"minutes": 60, "money": money, "effort": "low"},
                         "valid_until": END,
+                        "ext": {"item_kind": "item"},
                     },
                 )
             )
@@ -263,7 +264,7 @@ def test_lessons_are_redacted_durable_and_owner_scoped(pack: Pack, template: boo
     host.steward = FakeSteward(Verdict("redact", "hide-description", ("payload.description",)))
     accepted(need(host, description="REDACTED_CANARY", ext={"item_kind": "VAULT_CANARY"}))
     host.steward = FakeSteward(Verdict("block", "blocked-item"))
-    blocked = need(host, description="BLOCKED_CANARY")
+    blocked = need(host, description="BLOCKED_CANARY", ext={"item_kind": "item"})
     assert isinstance(blocked, dict) and blocked["payload"]["code"] == "steward_blocked"
     host.steward = FakeSteward()
     result = accepted(host.host_emit("dissolve", {"reason": "completed", "skills_written": []}))
@@ -347,6 +348,7 @@ def test_redacted_decisions_do_not_leak_through_lesson_allocation(pack: Pack) ->
                 "capacity": 1,
                 "cost": {"minutes": 1, "money": 0, "effort": "low"},
                 "valid_until": END,
+                "ext": {"item_kind": "item"},
             },
         )
     )
@@ -366,7 +368,8 @@ def test_redacted_decisions_do_not_leak_through_lesson_allocation(pack: Pack) ->
 
 
 def test_production_host_applies_the_bound_packs_policies(pack: Pack) -> None:
-    host = open_host(SQLiteStore(), pack)
+    store = SQLiteStore()
+    host = open_host(store, pack)
     a, b = person("a"), person("b")
     for who in (a, b):
         join(host, who)
@@ -387,8 +390,11 @@ def test_production_host_applies_the_bound_packs_policies(pack: Pack) -> None:
     assert "chat" in seen_by_b  # b received the observation ...
     assert "X-1234" not in seen_by_b  # ... with the matched field masked
     # an unbound Coalition checks nothing
-    plain = open_host(SQLiteStore(), None)
+    plain_store = SQLiteStore()
+    plain = open_host(plain_store, None)
     probe = build_envelope(
         a, plain.coalition_id, "coalition.observe", {"source": "chat", "content": "X-1234"}
     )
     assert plain.policy(probe) is None
+    store.close()
+    plain_store.close()

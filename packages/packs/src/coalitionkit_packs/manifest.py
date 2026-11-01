@@ -46,8 +46,6 @@ class Connector(_Strict):
 # The built-in strategies a pack may name and the fairness keys each reads (spec, Strategy names).
 FAIRNESS_KEYS: dict[str, frozenset[str]] = {
     "auction": frozenset({"weight", "max_ratio", "minute_value"}),
-    "match": frozenset(),
-    "vote": frozenset(),
 }
 
 
@@ -57,6 +55,8 @@ class Strategy(_Strict):
 
     @model_validator(mode="after")
     def _known(self) -> Strategy:
+        if self.allocation in {"match", "vote"}:
+            raise ValueError(f"strategy {self.allocation!r} is reserved for a later version")
         allowed = FAIRNESS_KEYS.get(self.allocation)
         if allowed is None:
             raise ValueError(

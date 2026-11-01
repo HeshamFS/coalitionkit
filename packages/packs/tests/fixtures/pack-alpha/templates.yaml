@@ -2,5 +2,6 @@ templates:
   - id: review-step
     title: Review the item
     role: helper
+    ext: { item_kind: item }
     requirements: [two reviewers]
     scope: { audience: roles, roles: [coordinator] }
