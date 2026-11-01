@@ -427,6 +427,10 @@ Any MCP host (Claude, ChatGPT, Cursor, Muse Code) joins a Coalition through this
 
 Surfaces use AG-UI 1.0 for the live stream and A2UI v0.9.1 (the current stable release; messages carry `"version": "v0.9"`) for the components. A2UI v1.0 is a release candidate, and moving to it changes behaviour as well as names (deletion, themes, duplicate surfaces), so v0.1 stays on v0.9 and the move gets its own ADR.
 
+**Hosted member conveniences.** With the same viewer bearer token and origin rules as `/v1/agent/answers`, `POST /v1/agent/offer` accepts `{need_id, cost?, window?, ext?}`. It signs and submits `coalition.offer` as that viewer’s hosted member and returns `{seq, offer_id}` or the host refusal code. Capacity is one; cost defaults to zero minutes and money with low effort; the offer expires at the need window’s end, or the supplied window’s end. Core validation precedes pack extension validation (`schema_invalid`). Private extension properties are refused with HTTP 422 before submission. A member with their own agent receives HTTP 409, “your agent sends offers”. These conveniences create only member messages that the member could send itself.
+
+`POST /v1/agent/vault` accepts `{values: {key: value}}`, merging values into only the authenticated member’s encrypted hosted vault state. `GET /v1/agent/vault` returns `{keys: [...]}` only, never values. Non-hosted members receive 409. No participant selector is accepted. Values stay in the vault: they never enter the log, projections, or Steward input, and are erased with hosted state at dissolution.
+
 **Two sessions per viewer.** A feed session carries state and surfaces and never interrupts. An agent session carries messages to that person and their consent requests. A consent request outlives any connection: it is stored on the host, the first answer recorded per decider wins, and the interrupt is only how it is shown. The person's answer is turned into an owner-signed `coalition.decide`; a surface never sends a decision the owner key did not sign. The feed sends a keep-alive comment every 15 seconds and rotates every 10 minutes; reconnecting starts a new run with a fresh snapshot, since AG-UI has no resume by event ID.
 
 | Coalition event | AG-UI event | What the renderer does |
@@ -514,6 +518,8 @@ expect:
 ```
 
 **The loader rejects** a pack that declares a policy action other than allow, redact, block or escalate (quarantine acts on a participant, not a message, so it stays with the core); references a component outside the catalog; asks for vault access; points at a file outside its own folder; or changes any protocol schema rather than extending it. The core runs every example and eval in a pack through its own schemas as well as the pack's, so a pack cannot pass with data the core would refuse.
+
+A pack MAY mark an extension property with `"x-private": true`. Such values belong in the member’s vault and MUST NOT be included in a transmitted `ext`. Viewer feed pack metadata includes only the pack’s `need` and `offer` extension schemas under `schemas`; private annotations remain visible to forms. Referenced schemas are bundled without exposing pack file paths. A viewer without a bound pack receives no pack metadata.
 
 **Binding a pack to a Coalition.** A host installs packs from folders it is given and validates each with the loader; a pack that fails is not installed and the host reports the loader's reasons. A Coalition uses a pack only when its charter names it in `pack: {name, version}`, and only an installed pack with that exact name and version. The binding is fixed for the life of the Coalition: a new charter revision may not change `pack`. When a charter names a pack, the host applies it as follows, and nothing else changes:
 

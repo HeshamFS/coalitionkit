@@ -8,7 +8,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel, ConfigDict
@@ -443,6 +443,9 @@ def surface_pack(pack: Pack) -> Document:
         "name": pack.name,
         "version": pack.manifest.version,
         "vocabulary": public_pack(pack)["vocabulary"],
+        "schemas": {
+            kind: viewer_schema(pack, kind) for kind in ("need", "offer") if kind in pack.schemas
+        },
         "views": {
             "order": {
                 role: {device: list(names) for device, names in devices.items()}
@@ -477,3 +480,85 @@ def mint_templates(pack: Pack, coalition: str, trusted_keys: dict[str, dict[str,
         },
     )
     return registry
+
+
+def viewer_schema(pack: Pack, kind: str) -> Document:
+    """Bundle references under opaque names, without exposing snapshot file paths."""
+    definitions: Document = {}
+    names: dict[int, str] = {}
+
+    def visit(node: Any, resolver: Any = None) -> Any:
+        resolver = resolver or pack.schema_registry.resolver()
+        if isinstance(node, dict):
+            result: Document = {}
+            for key, value in cast(Document, node).items():
+                if key == "$id":
+                    continue
+                if key in {"const", "default", "examples", "enum"}:
+                    result[key] = deepcopy(value)
+                elif key in {"$ref", "$dynamicRef"} and isinstance(value, str):
+                    resolved = resolver.lookup(value)
+                    identity = id(resolved.contents)
+                    if identity not in names:
+                        name = "ref" + str(len(names))
+                        names[identity] = name
+                        definitions[name] = {}
+                        definitions[name] = visit(resolved.contents, resolved.resolver)
+                    result[key] = "#/$defs/" + names[identity]
+                else:
+                    result[key] = visit(value, resolver)
+            return result
+        if isinstance(node, list):
+            return [visit(value, resolver) for value in cast(list[Any], node)]
+        return node
+
+    schema: Document = visit(dict(pack.schemas[kind]))
+    if definitions:
+        schema.setdefault("$defs", {}).update(definitions)
+    return schema
+
+
+def private_extension(schema: Document, value: Any) -> bool:
+    """Inspect every applicable branch before validation can discard annotations."""
+    seen: set[tuple[int, int]] = set()
+
+    def check(node: Any, instance: Any) -> bool:
+        if not isinstance(node, dict) or not node:
+            return False
+        obj = cast(Document, node)
+        marker = (id(obj), id(instance))
+        if marker in seen:
+            return False
+        seen.add(marker)
+        if obj.get("x-private") is True:
+            return True
+        for keyword in ("$ref", "$dynamicRef"):
+            ref = obj.get(keyword, "")
+            if ref.startswith("#/$defs/") and check(schema["$defs"][ref.split("/")[-1]], instance):
+                return True
+        if isinstance(instance, dict):
+            for key, child in cast(Document, instance).items():
+                properties = obj.get("properties", {})
+                patterns = obj.get("patternProperties", {})
+                matches = [rule for pattern, rule in patterns.items() if re.search(pattern, key)]
+                if key in properties:
+                    matches.append(properties[key])
+                if not matches:
+                    matches.append(obj.get("additionalProperties", {}))
+                if any(check(rule, child) for rule in matches):
+                    return True
+            if any(check(rule, instance) for rule in obj.get("dependentSchemas", {}).values()):
+                return True
+        if isinstance(instance, list):
+            prefix = obj.get("prefixItems", [])
+            for index, child in enumerate(cast(list[Any], instance)):
+                rule = prefix[index] if index < len(prefix) else obj.get("items", {})
+                if check(rule, child) or check(obj.get("contains", {}), child):
+                    return True
+        return any(
+            check(child, instance)
+            for keyword in ("allOf", "anyOf", "oneOf")
+            for child in obj.get(keyword, [])
+        ) or any(check(obj.get(k, {}), instance) for k in ("if", "then", "else"))
+
+    return check(schema, value)
