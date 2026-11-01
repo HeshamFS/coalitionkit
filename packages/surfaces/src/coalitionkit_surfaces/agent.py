@@ -110,8 +110,9 @@ class AgentSession:
         """Call after a bus wake: a new run only when the set of open requests changed."""
         if self._closed:
             return []
-        ids = frozenset(r.interrupt_id for r in open_requests(self.host, self.viewer))
-        return self._run() if ids != self._shown else []
+        requests = open_requests(self.host, self.viewer)
+        ids = frozenset(r.interrupt_id for r in requests)
+        return self._run(requests) if ids != self._shown else []
 
     def tick(self) -> list[Frame]:
         if self._closed:
@@ -127,7 +128,7 @@ class AgentSession:
         self._closed = True
         return [RunErrorEvent(message=message, code=code)]
 
-    def _run(self) -> list[Frame]:
+    def _run(self, requests: list[ConsentRequest] | None = None) -> list[Frame]:
         run_id = self.new_id()
         frames: list[Frame] = [RunStartedEvent(thread_id=self.thread_id, run_id=run_id)]
         while self.outbox:
@@ -137,22 +138,28 @@ class AgentSession:
                 TextMessageContentEvent(message_id=message_id, delta=self.outbox.popleft()),
                 TextMessageEndEvent(message_id=message_id),
             ]
-        requests = open_requests(self.host, self.viewer)
+        if requests is None:
+            requests = open_requests(self.host, self.viewer)
         self._shown = frozenset(r.interrupt_id for r in requests)
+        # State is a detached copy of the entire fold. Read it once for this run,
+        # rather than copying the full history for every pending interrupt.
+        state = self.host.state if requests else None
         outcome = (
-            RunFinishedInterruptOutcome(interrupts=[self._interrupt(r) for r in requests])
-            if requests
+            RunFinishedInterruptOutcome(
+                interrupts=[
+                    self._interrupt(r, state.subject(r.kind, r.subject_id)) for r in requests
+                ]
+            )
+            if state is not None
             else RunFinishedSuccessOutcome()
         )
         frames.append(RunFinishedEvent(thread_id=self.thread_id, run_id=run_id, outcome=outcome))
         self._last_sent = self.clock()
         return frames
 
-    def _interrupt(self, request: ConsentRequest) -> Interrupt:
+    def _interrupt(self, request: ConsentRequest, subject: Document) -> Interrupt:
         # Only the subject goes out: nothing else about it is known to be in this viewer's scope.
-        deadline = self.host.state.subject(request.kind, request.subject_id).get(
-            "decision_deadline"
-        )
+        deadline = subject.get("decision_deadline")
         return Interrupt(
             id=request.interrupt_id,
             reason=REASON,

@@ -98,8 +98,8 @@ class FeedSession:
             StateSnapshotEvent(snapshot=deepcopy(self._previous)),
         ]
         if self.extra_state is not None:
-            self._extra = deepcopy(self.extra_state(True, True))
-            frames[1] = StateSnapshotEvent(snapshot={**deepcopy(self._previous), **self._extra})
+            self._extra = self.extra_state(True, True)
+            frames[1] = StateSnapshotEvent(snapshot=deepcopy({**self._previous, **self._extra}))
         for surface_id, messages in self._surfaces.items():
             frames.append(self._activity(surface_id, messages))
         if self.agent is not None:
@@ -119,13 +119,14 @@ class FeedSession:
             self._previous = current
         frames: list[Frame] = self._drain()
         if self.extra_state is not None:
-            current_extra = deepcopy(
-                self.extra_state(bool(ops), any(op["path"] == "" for op in ops))
-            )
+            reset = any(op["path"] == "" for op in ops)
+            # The provider retains immutable delivered entries. Only outgoing
+            # frames need detached copies; ordinary wakes reuse the prefix.
+            current_extra = self.extra_state(bool(ops), reset)
             # Replay may freshly sign an unchanged projection. Keep its previous
             # valid envelope so a new log entry does not churn the entire history.
             old_log, new_log = self._extra.get("log", {}), current_extra.get("log", {})
-            if old_log.get("host_key") == new_log.get("host_key"):
+            if reset and old_log.get("host_key") == new_log.get("host_key"):
                 for index, (old, new) in enumerate(
                     zip(old_log.get("entries", []), new_log.get("entries", []), strict=False)
                 ):
@@ -143,11 +144,12 @@ class FeedSession:
             if "log" in current_extra and new_entries[: len(old_entries)] == old_entries:
                 # The common case is an append-only prefix. Avoid asking the
                 # general list differ to compare the whole verified history.
-                unchanged_entries = {
+                unchanged_entries: Document = {
                     **current_extra,
-                    "log": {**new_log, "entries": old_entries},
+                    "log": {**new_log, "entries": []},
                 }
-                ops += json_patch(self._extra, unchanged_entries)
+                previous_extra: Document = {**self._extra, "log": {**old_log, "entries": []}}
+                ops += json_patch(previous_extra, unchanged_entries)
                 ops += [
                     {"op": "add", "path": "/log/entries/-", "value": entry}
                     for entry in new_entries[len(old_entries) :]
@@ -158,7 +160,7 @@ class FeedSession:
         if self.agent is not None:
             frames += self._agent_frames(self.agent.changed())
         if ops:
-            frames.insert(0, StateDeltaEvent(delta=cast(Any, ops)))
+            frames.insert(0, StateDeltaEvent(delta=cast(Any, deepcopy(ops))))
         return self._sent(frames)
 
     def tick(self) -> list[Frame]:
