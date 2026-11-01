@@ -158,6 +158,22 @@ class Server:
             ),
             pack_views=lambda: pack.views.order if (pack := self.bound_pack(coalition)) else {},
         )
+
+        def policy_escalation(event: Document, policy_id: str, explain: str) -> None:
+            hub.say(
+                event["on_behalf_of"],
+                json.dumps(
+                    {
+                        "policy_review": {
+                            "policy_id": policy_id,
+                            "explain": explain,
+                            "question": "Please review, revise and resend.",
+                        }
+                    }
+                ),
+            )
+
+        host.policy_escalation = policy_escalation
         self.surfaces[coalition] = surfaces_app(hub)
         hosted_routes(self.surfaces[coalition], self, coalition)
         self.ports[coalition].on_refusal = hub.refused

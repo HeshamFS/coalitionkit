@@ -586,8 +586,8 @@ Each assertion reports a named pass/fail step and reason. Canary scanning covers
 | Name | What it does | Fairness keys |
 |---|---|---|
 | `auction` | Each task goes to the offer with the lowest cost plus a fairness weight times the bidder's share after winning (Contract-Net) | `weight` (0 to 10), `max_ratio` (hours per share unit, greater than 0), `minute_value` (whole number of at least 1, the value of a minute against money) |
-| `match` | Each task gets the earliest slot every party shares, from a private set intersection | none |
-| `vote` | Plurality over the members' ballots; a tie settles nothing | none |
+| `match` | Reserved for a later version; not usable by packs in v0.1 (the host cannot read PSI overlaps) | none |
+| `vote` | Reserved for a later version; not usable by packs in v0.1 (the host has no ballots) | none |
 
 Any other name, or a fairness key the named strategy does not read, is refused when the pack is installed.
 

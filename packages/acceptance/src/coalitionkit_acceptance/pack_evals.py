@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pack scenarios on the existing Arena, with private hosted vaults and signed decisions.
 
-The pre-registry binding seam is a charter reference plus the host's policy callback.
+The eval host uses the same pack binding as the production server.
 The scripted member protocol publishes availability, proposes options, then signs consent.
 Expected decisions are never inputs to that protocol. A live member chooses from the same
 public candidates through the hosted_agent gateway; raw vault notes never enter prompts.
@@ -16,19 +16,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from coalitionkit_contracts import Envelope
 from coalitionkit_contracts.payloads import QueryPayload
 from coalitionkit_models import ChatMessage, CostMeter, ModelGateway
 from coalitionkit_packs.loader import Pack, inspect_pack
 from coalitionkit_packs.sections import EvalOutcome, EvalScenario
 from coalitionkit_runtime import Acknowledgement, SQLiteStore
 from coalitionkit_runtime.steward import ReviewContext, Verdict
-from coalitionkit_steward import StewardContext, Subject
-from coalitionkit_steward.conditions import evaluate_all, walk
+from coalitionkit_server.packs import bind_runtime
+from coalitionkit_steward.conditions import walk
 from coalitionkit_surfaces import load_catalog
 from coalitionkit_vault.store import Capacity, Facts, Vault
 
-from .arena import DEADLINE, PUBLIC, Arena, Document, Reply, accepted
+from .arena import DEADLINE, PUBLIC, Arena, Document, Participant, Reply, accepted, make_host
 from .privacy_live import CONTRIBUTOR_PRICES, LiveTransport, live_settings
 
 
@@ -61,21 +60,25 @@ class ScenarioRun:
         self.channels: list[object] = []
         self.messages = 1  # charter
         names = [p.id for p in scenario.participants]
-        self.arena = Arena.open(
-            SQLiteStore(),
-            names,
-            charter={
-                "goal": scenario.charter,
-                "roles": [{"id": "member"}],
-                "rules": [],
-                "deadline": DEADLINE,
-                "deciders": names,
-                "pack": {"name": pack.name, "version": pack.manifest.version},
-            },
-        )
+        self.arena = Arena(make_host(SQLiteStore()), names)
+        bind_runtime(self.arena.host, {(pack.name, pack.manifest.version): pack})
         self.steward = RecordingSteward()
         self.arena.host.steward = self.steward
-        self.arena.host.policy = self.policy
+        self.arena.host.create()
+        accepted(
+            self.arena.host.host_emit(
+                "charter",
+                {
+                    "goal": scenario.charter,
+                    "roles": [{"id": role} for role in pack.manifest.roles],
+                    "rules": [],
+                    "deadline": DEADLINE,
+                    "deciders": names,
+                    "pack": {"name": pack.name, "version": pack.manifest.version},
+                },
+                PUBLIC,
+            )
+        )
         self.arena.on_exchange = self.record_exchange
         self.vaults: dict[str, Vault] = {}
         self.decision: Document | None = None
@@ -86,20 +89,6 @@ class ScenarioRun:
             self.channels.extend((deepcopy(reply.accepted), deepcopy(reply.receipt)))
         else:
             self.channels.append(deepcopy(reply))
-
-    def policy(self, event: Document) -> BoundPolicy | None:
-        matches = evaluate_all(
-            self.pack.policies,
-            Subject.from_envelope(Envelope.model_validate(event)),
-            StewardContext(members=frozenset(self.arena.members)),
-        )
-        if not matches:
-            return None
-        match = max(matches, key=lambda m: m.policy.severity)
-        action = match.policy.then
-        if action == "quarantine":
-            raise ValueError("pack policies cannot quarantine")
-        return BoundPolicy(action, match.policy.id, match.redact)
 
     def reserve(self, count: int = 1) -> None:
         if self.messages + count > self.limit:
@@ -115,7 +104,14 @@ class ScenarioRun:
     async def script(self, gateway: ModelGateway | None) -> None:
         for entry in self.scenario.participants:
             self.reserve(2)
-            self.arena.enroll(entry.id, vault="hosted")
+            person = Participant(self.arena.host, entry.id, on_exchange=self.record_exchange)
+            self.arena.members[entry.id] = person
+            self.arena.attach(person)
+            body = person.join_body()
+            body["roles_requested"] = [next(iter(self.pack.manifest.roles))]
+            body["vault"] = "hosted"
+            accepted(person.send("join", body))
+            accepted(person.decide("charter", self.arena.host.coalition_id, 1))
             vault = Vault(entry.id)
             vault.add_private_note(json.dumps(entry.vault))
             slots: list[str] = entry.vault.get("free", [])
@@ -150,7 +146,7 @@ class ScenarioRun:
             f"option-{i}": {"slot": slot} if has_slots else {} for i, slot in enumerate(candidates)
         }
         self.reserve()
-        task = self.arena.need()
+        task = next(iter(self.arena.host.state.tasks), None) or self.arena.need()
         self.reserve()
         proposal = accepted(
             self.arena.host.host_emit(

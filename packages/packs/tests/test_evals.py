@@ -143,3 +143,17 @@ async def test_other_canary_channels(
     result = await run_scenario(pack, pack.evals[0])
     assert result["status"] == "fail"
     assert result["canaries_leaked"] == 1
+
+
+def test_eval_refuses_undeclared_role(tmp_path: Path) -> None:
+    from coalitionkit_acceptance.arena import Participant, refusal_code
+
+    pack = inspect_pack(copy_pack("pack-alpha", tmp_path), core_catalog=core_catalog())
+    run = ScenarioRun(pack, pack.evals[0])
+    try:
+        person = Participant(run.arena.host, run.scenario.participants[0].id)
+        run.arena.attach(person)
+        body = person.join_body()
+        assert refusal_code(person.send("join", body)) == "not_authorized"
+    finally:
+        run.arena.close()

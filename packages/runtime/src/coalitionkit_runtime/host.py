@@ -117,7 +117,9 @@ class CoalitionHost:
         )
         self._policy_reviews: dict[str, Document] = {}
         # Adapters notify the owner; the owner can also poll pending_policy_reviews.
-        self.policy_escalation: Callable[[Document, str], None] = lambda event, policy_id: None
+        self.policy_escalation: Callable[[Document, str, str], None] = (
+            lambda event, policy_id, explain: None
+        )
         self.rate_limit: Callable[[AuthenticatedSender], int | None] = lambda _: None
 
     def pending_policy_reviews(self, viewer: str) -> list[Document]:
@@ -280,7 +282,9 @@ class CoalitionHost:
                 "policy_id": policy.policy_id,
                 "question": "Please review and revise this submission before resubmitting.",
             }
-            self.policy_escalation(deepcopy(event), policy.policy_id)
+            self.policy_escalation(
+                deepcopy(event), policy.policy_id, getattr(policy, "explain", "")
+            )
             raise Refusal(
                 "steward_blocked", {"policy_id": policy.policy_id, "action": policy.action}
             )

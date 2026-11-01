@@ -127,10 +127,12 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
                         == event["sender"]
                     )
                     require("decide" in abilities or ("decide_own" in abilities and own))
-        if kind in {"need", "offer"} and "ext" in body:
+        if kind in {"need", "offer"} and (kind in pack.schemas or "ext" in body):
             require(kind in pack.schemas, "schema_invalid")
+            extension = body.get("ext", {})
+            require(not private_extension(viewer_schema(pack, kind), extension), "schema_invalid")
             try:
-                pack.validate_schema(kind, body["ext"])
+                pack.validate_schema(kind, extension)
             except ValidationError, Unresolvable:
                 raise Refusal("schema_invalid") from None
 
@@ -228,7 +230,8 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
     def policy(event: Document) -> PackPolicyOutcome | None:
         """The bound pack's policies, checked by the host after every core check (spec, step 12)."""
         state = checked[0] if checked else host.state
-        pack = bound_pack(state.charter, installed)
+        charter = event["payload"] if event["type"] == "coalition.charter" else state.charter
+        pack = bound_pack(charter, installed)
         if pack is None:
             return None
         matches = evaluate_all(
@@ -241,7 +244,9 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
         match = max(matches, key=lambda m: m.policy.severity)
         if match.policy.then == "quarantine":  # refused by the loader; never reached
             raise Refusal("pack_violation", {"policy_id": match.policy.id})
-        return PackPolicyOutcome(match.policy.then, match.policy.id, tuple(match.redact))
+        return PackPolicyOutcome(
+            match.policy.then, match.policy.id, tuple(match.redact), match.policy.explain
+        )
 
     host.policy = policy
     host.pack_check = check
@@ -257,6 +262,7 @@ class PackPolicyOutcome:
     action: Literal["allow", "redact", "block", "escalate"]
     policy_id: str
     paths: tuple[str, ...]
+    explain: str = ""
 
 
 def _skill(name: str, text: str) -> Document:
