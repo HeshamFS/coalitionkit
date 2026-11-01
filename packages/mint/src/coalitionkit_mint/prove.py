@@ -23,6 +23,9 @@ from .schema import Attacks, Config, DeviceConfig, ResourceConfig
 STEWARD_CASE_CODES = ("Unknown tool", *sorted(POLICY_CODES))
 
 
+TYPOGRAPHIC_QUOTES = str.maketrans({"“": '"', "”": '"'})
+
+
 def read_tools(config: Config) -> frozenset[str]:
     """The template's read operations; called with no arguments they are allowed for anyone."""
     if isinstance(config, DeviceConfig):
@@ -215,7 +218,9 @@ async def run_suite(
         for index, attack in enumerate(extra.cases):
             call = attack.tool + " " + attack.arguments_json[:200]
             try:
-                arguments: Any = json.loads(attack.arguments_json)
+                # Models often write typographic quotes around JSON keys and strings.
+                text = attack.arguments_json.translate(TYPOGRAPHIC_QUOTES)
+                arguments: Any = json.loads(text)
             except ValueError:
                 arguments = None
             if not isinstance(arguments, dict):  # no tool call can carry it: nothing to prove
