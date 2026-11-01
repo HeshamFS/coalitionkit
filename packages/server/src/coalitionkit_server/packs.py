@@ -27,6 +27,7 @@ from coalitionkit_contracts.payloads import Cost, Window
 from coalitionkit_gardener import Offer, PlanConfig, PlanSet, Problem, Task, generate_plans
 from coalitionkit_packs import Pack, PackError, load_pack
 from coalitionkit_packs.files import take_snapshot
+from coalitionkit_packs.loader import bundle_schema
 from coalitionkit_packs.signing import verify_snapshot
 from coalitionkit_packs.version import core_version
 from coalitionkit_runtime import CoalitionHost
@@ -489,39 +490,8 @@ def mint_templates(pack: Pack, coalition: str, trusted_keys: dict[str, dict[str,
 
 
 def viewer_schema(pack: Pack, kind: str) -> Document:
-    """Bundle references under opaque names, without exposing snapshot file paths."""
-    definitions: Document = {}
-    names: dict[int, str] = {}
-
-    def visit(node: Any, resolver: Any = None) -> Any:
-        resolver = resolver or pack.schema_registry.resolver()
-        if isinstance(node, dict):
-            result: Document = {}
-            for key, value in cast(Document, node).items():
-                if key == "$id":
-                    continue
-                if key in {"const", "default", "examples", "enum"}:
-                    result[key] = deepcopy(value)
-                elif key in {"$ref", "$dynamicRef"} and isinstance(value, str):
-                    resolved = resolver.lookup(value)
-                    identity = id(resolved.contents)
-                    if identity not in names:
-                        name = "ref" + str(len(names))
-                        names[identity] = name
-                        definitions[name] = {}
-                        definitions[name] = visit(resolved.contents, resolved.resolver)
-                    result[key] = "#/$defs/" + names[identity]
-                else:
-                    result[key] = visit(value, resolver)
-            return result
-        if isinstance(node, list):
-            return [visit(value, resolver) for value in cast(list[Any], node)]
-        return node
-
-    schema: Document = visit(dict(pack.schemas[kind]))
-    if definitions:
-        schema.setdefault("$defs", {}).update(definitions)
-    return schema
+    """Deliver inline fields with private annotations and no snapshot paths."""
+    return bundle_schema(pack.schemas[kind], pack.schema_registry)
 
 
 def private_extension(schema: Document, value: Any) -> bool:

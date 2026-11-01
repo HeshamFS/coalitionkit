@@ -499,7 +499,7 @@ then: escalate
 explain: "Coordinate the task; leave the advice to a qualified person."
 ```
 
-**An eval** scripts participants, their private vault contents and the outcome:
+**An eval** scripts participants, their private vault contents and the outcome. Each participant MAY name a `role` declared by the pack. If omitted, the default is the first declared role whose abilities include both `offer` and `decide`; if no such role exists, the loader refuses the scenario with an explanatory error:
 
 ```yaml
 scenario: three-people-one-booking
@@ -519,7 +519,7 @@ expect:
 
 **The loader rejects** a pack that declares a policy action other than allow, redact, block or escalate (quarantine acts on a participant, not a message, so it stays with the core); references a component outside the catalog; asks for vault access; points at a file outside its own folder; or changes any protocol schema rather than extending it. The core runs every example and eval in a pack through its own schemas as well as the pack's, so a pack cannot pass with data the core would refuse.
 
-A pack MAY mark an extension property with `"x-private": true`. Such values belong in the member’s vault and MUST NOT be included in a transmitted `ext`. Viewer feed pack metadata includes only the pack’s `need` and `offer` extension schemas under `schemas`; private annotations remain visible to forms. Referenced schemas are bundled without exposing pack file paths. A viewer without a bound pack receives no pack metadata.
+A pack MAY mark an extension property with `"x-private": true`. Such values belong in the member’s vault and MUST NOT be included in a transmitted `ext`. Viewer feed pack metadata includes only the pack’s `need` and `offer` extension schemas under `schemas`; private annotations remain visible to forms. Referenced schemas are bundled through the same closed registry used for validation, inlining sibling files and approved core ids with their `x-private` annotations, without exposing pack file paths. Cyclic or unresolvable references cause the loader to refuse the pack before installation. A viewer without a bound pack receives no pack metadata.
 
 **Binding a pack to a Coalition.** A host installs packs from folders it is given and validates each with the loader; a pack that fails is not installed and the host reports the loader's reasons. A Coalition uses a pack only when its charter names it in `pack: {name, version}`, and only an installed pack with that exact name and version. The binding is fixed for the life of the Coalition: a new charter revision may not change `pack`. When a charter names a pack, the host applies it as follows, and nothing else changes:
 
