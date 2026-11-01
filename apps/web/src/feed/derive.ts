@@ -338,13 +338,48 @@ function tensionPlanIds(state: ViewerState | null, request: OpenRequest): string
   return view ? view.options.map((o) => o.id).filter((id) => known.has(id)) : [];
 }
 
+/** The task a commitment is about, from the `coalition.commit` event that names it. */
+export function commitmentTask(
+  state: ViewerState | null,
+  commitmentId: string,
+): { id: string; description: string } | null {
+  const commit = eventsOf(state).findLast(
+    (e) => e.type === "coalition.commit" && e.payload.commitment_id === commitmentId,
+  );
+  const id = text(commit?.payload.task_id);
+  if (!id) return null;
+  const events = eventsOf(state);
+  const item = events.findLast(
+    (e) =>
+      ["coalition.task", "coalition.need", "coalition.offer"].includes(e.type) &&
+      [e.payload.task_id, e.payload.need_id, e.payload.offer_id].includes(id),
+  );
+  const target = record(item?.payload.target).id;
+  const need = target
+    ? events.findLast((e) => e.type === "coalition.need" && e.payload.need_id === target)
+    : undefined;
+  const description =
+    text(item?.payload.title) || text(item?.payload.description) || text(need?.payload.description);
+  return { id, description };
+}
+
 /**
  * The requests to show as asks. A plan request that a listed tension also covers is folded into
- * that tension, so one choice is one ask. Answering is unchanged: only the tension is answered.
+ * that tension, so one choice is one ask. A task request that an open commitment request is
+ * about is folded into the commitment. Answering is unchanged: only the shown request is answered.
  */
 export function visibleRequests(state: ViewerState | null, requests: OpenRequest[]): OpenRequest[] {
   const folded = new Set(requests.flatMap((r) => tensionPlanIds(state, r)));
-  return requests.filter((r) => !(r.kind === "plan" && folded.has(r.subjectId)));
+  const committed = new Set(
+    requests
+      .filter((r) => r.kind === "commitment")
+      .map((r) => commitmentTask(state, r.subjectId)?.id),
+  );
+  return requests.filter(
+    (r) =>
+      !(r.kind === "plan" && folded.has(r.subjectId)) &&
+      !(r.kind === "task" && committed.has(r.subjectId)),
+  );
 }
 
 /** The open request a plan card should lead to: its own, or the tension choice that covers it. */
@@ -366,6 +401,10 @@ export function requestLabel(
 ) {
   const plan = derivePlans(state).find((p) => p.id === request.subjectId);
   if (plan) return `Review plan ${plan.label}`;
+  if (request.kind === "commitment") {
+    const task = commitmentTask(state, request.subjectId);
+    if (task?.description) return `Commit to ${task.description}`;
+  }
   if (request.kind === "tension_option" && request.revision !== undefined) {
     const shorts = tensionPlanIds(state, request as OpenRequest).map(
       (id) => derivePlans(state).find((p) => p.id === id)?.short,

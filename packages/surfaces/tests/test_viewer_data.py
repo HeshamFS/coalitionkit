@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
+from copy import deepcopy
 from typing import Any
 
 import pytest
@@ -199,3 +200,32 @@ def test_refusals_only_sender(hub: SurfaceHub) -> None:
     own = dump(alice.changed())
     assert "steward_blocked" in own and "rule-one" in own and "NEVER-SEND" not in own
     assert "steward_blocked" not in dump(bob.changed())
+
+
+def test_incremental_receipts_and_detached_frames(world: World, hub: SurfaceHub) -> None:
+    plan = world.propose(world.need(), ["alice"])
+    feed = hub.feed_session("alice")
+    first = feed.start()[1]
+    assert isinstance(first, StateSnapshotEvent)
+    held = deepcopy(first.snapshot)
+    # A consumer cannot mutate the retained prefix through an outgoing frame.
+    first.snapshot["log"]["entries"].clear()
+    world.need({"audience": "host"})
+    assert feed.changed() == []
+    decision = world.alice.signer.sign_decision(
+        {"kind": "plan", "id": plan, "revision": 1}, plan, True
+    )
+    ok(world.host.accept(decision, world.alice.auth))
+    changed = feed.changed()[0]
+    assert isinstance(changed, StateDeltaEvent)
+    held = apply_patch(held, changed.model_dump()["delta"])
+    log = held["log"]
+    assert len(log["receipts"]) == len(first.snapshot["log"]["receipts"]) + 1
+    key = jwk_to_public_key(log["host_key"])
+    chain = entries(log)
+    assert verify_chain(
+        chain, genesis_hash(log["coalition_id"], log["host_card_url"], log["created_at"]), key
+    ) == len(chain)
+    check_receipts(chain, [verify_receipt(r, key) for r in log["receipts"]], key)
+    assert feed.changed() == []
+    assert hub.log("alice")["receipts"] == log["receipts"]

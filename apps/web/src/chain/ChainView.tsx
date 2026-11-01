@@ -127,10 +127,9 @@ function Chain({ rows, run }: { rows: ChainRow[]; run: Run }) {
 }
 
 /** What the log is, by content: a new object for the same log is not a new log. */
+/** The whole log as text: any change to an entry, a receipt or the key is a different log. */
 function logKey(input: VerifyInput | null): string {
-  if (!input) return "";
-  const last = input.entries[input.entries.length - 1] as { seq?: unknown } | undefined;
-  return `${input.coalitionId}:${input.entries.length}:${String(last?.seq ?? "")}:${input.receipts.length}:${input.hostKey.x}`;
+  return input ? JSON.stringify(input) : "";
 }
 
 function useRows(input: VerifyInput | null, given: ChainRow[] | undefined): ChainRow[] {

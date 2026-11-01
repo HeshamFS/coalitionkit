@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { A2uiSurface } from "@a2ui/react/v0_9";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Card } from "./components/primitives";
+import { readConfig } from "./feed/config";
 import {
   deriveParticipants,
   deriveRoom,
@@ -12,7 +13,10 @@ import {
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
 import { orderPanels } from "./feed/views";
 import { VocabularyProvider } from "./feed/vocabulary";
+import { isOwner } from "./genesis/owner";
 import { sheetFor } from "./room/consentSheet";
+import { EndConfirm } from "./room/endCoalition";
+import { beginEnd, rememberEnded } from "./room/ended";
 import { RoomLens } from "./room/lens";
 import { usePhoneRoom } from "./room/media";
 import {
@@ -68,7 +72,15 @@ export function RoomView() {
   const asks = visibleRequests(feed.state, agent.requests);
   const open = agent.requests.find((r) => r.id === agent.focus);
   const section = agent.focus ? "My part" : phone && selected === "Stage" ? "My part" : selected;
-  const ended = dissolvedEvent(feed.state) !== null && section !== "Wiring";
+  const dissolved = dissolvedEvent(feed.state);
+  const ended = dissolved !== null && section !== "Wiring";
+  const [confirming, setConfirming] = useState(false);
+  const owner = isOwner();
+  const dissolvedKey = dissolved ? `${dissolved.reason}|${dissolved.skills_written.join(",")}` : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the event's contents
+  useEffect(() => {
+    if (dissolved) rememberEnded(dissolved);
+  }, [dissolvedKey]);
   const select = (tab: string) => {
     agentStore.setFocus(null);
     if (tab !== "Stage") prism.reset();
@@ -173,6 +185,7 @@ export function RoomView() {
         onSelect={select}
         connection={feed.status === "live" ? "live" : "reconnecting"}
         onSignOut={signOut}
+        onEnd={owner && !dissolved ? () => setConfirming(true) : undefined}
         navigation={
           phone ? undefined : (
             <RoomNavigation selected={section} onSelect={select}>
@@ -196,6 +209,16 @@ export function RoomView() {
         }
       >
         <div className="room-content" data-section={section}>
+          {confirming && (
+            <EndConfirm
+              onCancel={() => setConfirming(false)}
+              onConfirm={(reason) => {
+                const token = readConfig()?.token;
+                setConfirming(false);
+                if (token) beginEnd({ token, reason });
+              }}
+            />
+          )}
           {agent.refusal && (
             <Card tone="dashed">
               <span role="alert">The host did not take that answer: {agent.refusal}</span>

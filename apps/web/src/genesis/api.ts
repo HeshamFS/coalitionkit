@@ -3,6 +3,7 @@
 // Contract: docs/ux/journey.md (S1). Requests go only to the allowed base (feed/config.ts).
 
 import { assertAllowedBase, resolveBase } from "../feed/config";
+import type { CleanupReport } from "../moments/Dissolve";
 
 export type PackRef = { name: string; version: string };
 /** What GET /v1/packs says of an installed pack. */
@@ -69,6 +70,7 @@ async function post<T>(
   auth: string | undefined,
   fetchFn: Fetch,
   signal?: AbortSignal,
+  soft?: (status: number, body: unknown) => T | undefined,
 ): Promise<T> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (auth) headers.authorization = auth;
@@ -82,6 +84,8 @@ async function post<T>(
     let detail = "";
     try {
       const j = (await res.json()) as { detail?: unknown };
+      const kept = soft?.(res.status, j);
+      if (kept !== undefined) return kept;
       detail = typeof j.detail === "string" ? j.detail : "";
     } catch {
       detail = "";
@@ -140,4 +144,26 @@ export function acceptInvitation(invitation: string, displayName: string, fetchF
     ? { invitation, display_name: displayName.trim() }
     : { invitation };
   return post<Joined>("/v1/invitations/accept", body, undefined, fetchFn);
+}
+
+/**
+ * End the coalition for everyone. Resolves with the host's counts, or with `{failed, done}` when a
+ * cleanup step failed (the host answers 500 and a retry is safe).
+ */
+export function dissolveCoalition(
+  ownerToken: string,
+  reason: "completed" | "cancelled",
+  fetchFn = defaultFetch,
+): Promise<CleanupReport> {
+  return post<CleanupReport>(
+    "/v1/coalition/dissolve",
+    { reason },
+    `Bearer ${ownerToken}`,
+    fetchFn,
+    undefined,
+    (status, body) => {
+      const b = body as { failed?: unknown };
+      return status === 500 && typeof b.failed === "string" ? (body as CleanupReport) : undefined;
+    },
+  );
 }

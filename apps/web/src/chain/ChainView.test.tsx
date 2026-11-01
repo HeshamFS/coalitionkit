@@ -148,4 +148,18 @@ describe("pinned host key and stale results", () => {
     view.rerender(<ChainView input={{ ...input() }} />);
     expect(screen.getByText("Verified")).toBeInTheDocument();
   });
+
+  it("a tampered entry with the same count and last seq is a new question", async () => {
+    localStorage.clear();
+    const view = render(<ChainView input={input()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByText("Verified")).toBeInTheDocument();
+    const tampered = input();
+    const first = tampered.entries[0] as { payload?: Record<string, unknown> };
+    first.payload = { ...(first.payload ?? {}), goal: "changed after the fact" };
+    view.rerender(<ChainView input={tampered} />);
+    expect(screen.queryByText("Verified")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByText("Not verified")).toBeInTheDocument();
+  });
 });

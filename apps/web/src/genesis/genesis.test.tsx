@@ -140,6 +140,7 @@ describe("Genesis", () => {
     expect(readConfig("", {})?.token).toBe("owner-token-1");
     expect(localStorage.getItem("ck.hostkey.c1")).toBe("host-x-1");
     expect(sessionStorage.getItem("ck.start")).toBeNull();
+    expect(sessionStorage.getItem("ck.owner")).toBe("c1");
     await userEvent.click(screen.getByRole("button", { name: "Enter the room" }));
     expect(onEnter).toHaveBeenCalled();
   });

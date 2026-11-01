@@ -9,6 +9,7 @@ import time
 from collections import deque
 from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import suppress
+from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 
 from coalitionkit_contracts import new_ulid, public_key_to_jwk
@@ -27,6 +28,12 @@ class Session(Protocol):
     def changed(self) -> list[Frame]: ...
     def tick(self) -> list[Frame]: ...
     def fail(self, message: str, code: str | None = None) -> list[Frame]: ...
+
+
+@dataclass
+class _ReceiptCursor:
+    sequence: int = 0
+    receipts: list[Document] = field(default_factory=lambda: list[Document]())
 
 
 def latest_seq(host: CoalitionHost) -> int:
@@ -67,6 +74,7 @@ class SurfaceHub:
         fresh: bool = True,
         retained_entries: list[Document] | None = None,
         advance: bool = False,
+        receipt_cursor: _ReceiptCursor | None = None,
     ) -> Document:
         # A fresh replay also exposes edits to stored rows rather than masking them
         # behind the runtime's incremental projection cache.
@@ -97,27 +105,35 @@ class SurfaceHub:
         # Retain intervening stubs when a later visible delivery closes the gap.
         while entries and "type" not in entries[-1]:
             entries.pop()
+        cursor = receipt_cursor or _ReceiptCursor()
         with host.store.transaction(host.coalition_id) as tx:
             row = tx.execute(
                 "SELECT created_at, seq FROM coalitions WHERE id = ?", (host.coalition_id,)
             ).fetchone()
+            head = replay_length if replay_length is not None else row[1]
             rows = tx.execute(
                 "SELECT e.body, r.body FROM events e JOIN receipts r "
                 "ON e.coalition_id = r.coalition_id AND e.event_id = r.event_id "
-                "WHERE e.coalition_id = ? AND e.seq <= ? ORDER BY e.seq",
-                (host.coalition_id, replay_length if replay_length is not None else row[1]),
+                "WHERE e.coalition_id = ? AND e.seq > ? AND e.seq <= ? ORDER BY e.seq",
+                (host.coalition_id, cursor.sequence, head),
             ).fetchall()
+        # Receipts have their own cursor: even a hidden sender-only event may
+        # add one without advancing the viewer's visible log prefix.
+        added_receipts = [
+            json.loads(receipt)
+            for event, receipt in rows
+            if json.loads(event)["on_behalf_of"] == viewer
+        ]
+        if added_receipts:
+            cursor.receipts = [*cursor.receipts, *added_receipts]
+        cursor.sequence = head
         return {
             "coalition_id": host.coalition_id,
             "host_card_url": host.card_url,
             "created_at": row[0] if row else None,
             "host_key": public_key_to_jwk(host.private_key.public_key(), host.kid),
             "entries": entries,
-            "receipts": [
-                json.loads(receipt)
-                for event, receipt in rows
-                if json.loads(event)["on_behalf_of"] == viewer
-            ],
+            "receipts": cursor.receipts,
         }
 
     def refused(self, viewer: str, kind: str, error: Document) -> None:
@@ -186,14 +202,23 @@ class SurfaceHub:
 
     def feed_session(self, viewer: str, device: str = "wide") -> FeedSession:
         log: Document | None = None
+        receipts = _ReceiptCursor()
 
         def extra_state(visible_changed: bool, reset: bool) -> Document:
-            nonlocal log
+            nonlocal log, receipts
             # Hidden bus wakes still refresh the viewer's own receipts, but must
             # neither advance nor re-sign the log's last visible prefix.
             retained = log["entries"] if log is not None and not reset else None
-            log = self.log(viewer, fresh=reset, retained_entries=retained, advance=visible_changed)
-            state: Document = {"log": log, "refusals": self.refusals.get(viewer, [])}
+            if reset:
+                receipts = _ReceiptCursor()
+            log = self.log(
+                viewer,
+                fresh=reset,
+                retained_entries=retained,
+                advance=visible_changed,
+                receipt_cursor=receipts,
+            )
+            state: Document = {"log": log, "refusals": list(self.refusals.get(viewer, []))}
             pack = self.pack_state() if self.pack_state else None
             if pack is not None:
                 state["pack"] = pack
