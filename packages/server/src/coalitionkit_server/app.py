@@ -31,7 +31,7 @@ from coalitionkit_surfaces.app import create_app as surfaces_app
 from .adapter import Document, HostPort
 from .audit import AuditLoop, StewardAdapter, gateway
 from .mcp_port import MCPPort
-from .packs import install_packs
+from .packs import bind_runtime, install_packs
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
@@ -80,6 +80,7 @@ class Server:
         host = CoalitionHost(
             self.store, coalition, self.signer.card_url, self.key, "host", steward=self.steward
         )
+        bind_runtime(host, self.packs)
         self.hosts[coalition] = host
         self.ports[coalition] = HostPort(host)
         hub = SurfaceHub(

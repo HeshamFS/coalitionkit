@@ -76,6 +76,8 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
     ids = state.task_ids(event)
     if host:
         require(kind in {"charter", "need", "query", "propose", "tension", "dissolve"})
+        if kind == "charter" and state.charter:
+            require(body.get("pack") == state.charter.get("pack"), "not_authorized")
         if kind in {"query", "propose", "tension"}:
             require((bool(ids) or kind == "query") and all(i in state.tasks for i in ids))
         if kind == "query":

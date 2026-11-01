@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from fractions import Fraction
 from typing import Protocol
 
@@ -37,6 +37,31 @@ class Strategy(Protocol):
     def name(self) -> str: ...
 
     def run(self, problem: Problem, task_ids: Sequence[str], fixed: Assignments) -> Outcome: ...
+
+
+def select_strategy(
+    problem: Problem, name: str, fairness: Mapping[str, float] | None = None
+) -> tuple[Strategy, Problem]:
+    """Resolve a built-in strategy and apply its settings without mutating the input."""
+    settings = fairness or {}
+    if name == "auction":
+        if set(settings) - {"weight", "max_ratio", "minute_value"}:
+            raise ValueError("unknown auction fairness key")
+        configured = replace(
+            problem,
+            max_ratio=Fraction(str(settings["max_ratio"]))
+            if "max_ratio" in settings
+            else problem.max_ratio,
+            minute_value=int(settings.get("minute_value", problem.minute_value)),
+        )
+        return AuctionStrategy(Fraction(str(settings.get("weight", 0)))), configured
+    if settings:
+        raise ValueError("strategy does not accept fairness settings")
+    if name == "match":
+        return MatchStrategy(), problem
+    if name == "vote":
+        return VoteStrategy(), problem
+    raise ValueError("unknown allocation strategy")
 
 
 @dataclass(frozen=True)

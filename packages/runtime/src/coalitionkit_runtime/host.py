@@ -103,6 +103,8 @@ class CoalitionHost:
         self.invitations = self._identities.invitations
         self._cache = HostCache(store, coalition_id)
         self.policy: Callable[[Document], PolicyOutcome | None] = lambda _: None
+        self.pack_check: Callable[[State, Document, bool], None] = lambda state, event, host: None
+        self.skills: Callable[[], list[str]] = lambda: []
         self._policy_reviews: dict[str, Document] = {}
         # Adapters notify the owner; the owner can also poll pending_policy_reviews.
         self.policy_escalation: Callable[[Document, str], None] = lambda event, policy_id: None
@@ -251,6 +253,7 @@ class CoalitionHost:
                     body["subject"], subject["revision"], sender.participant, body["consent"]
                 )
             )
+        self.pack_check(state, event, host)
         policy = self.policy(deepcopy(event))
         if policy is not None and policy.action == "block":
             raise Refusal("pack_violation", {"policy_id": policy.policy_id})

@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pack installation and the Genesis public contract."""
 
+import asyncio
 import shutil
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -12,10 +14,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from coalitionkit_contracts import public_key_to_jwk
+from coalitionkit_contracts import new_ulid, public_key_to_jwk
+from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_packs import sign_pack
+from coalitionkit_runtime import Acknowledgement
 from coalitionkit_server import Settings, create_server
+from coalitionkit_server.adapter import Document
 from coalitionkit_server.app import Server
+from coalitionkit_server.genesis import enroll_member
 
 
 @pytest.fixture
@@ -202,3 +208,74 @@ def test_multiline_loader_report_is_one_startup_line(
     assert len(lines) == 1
     assert lines[0].startswith(f"Pack refused: {folder}: [yaml]")
     assert "not valid YAML" in lines[0]
+
+
+def test_bound_runtime(pack_client: TestClient) -> None:
+    server: Server = cast(FastAPI, pack_client.app).state.server
+    key = ("pack-alpha", "1.0.0")
+    pack = server.packs[key]
+    # Keep the installed fixture's closed registry; constrain an existing core field.
+    server.packs[key] = replace(
+        pack, schemas={"need": {"properties": {"description": {"const": "Allowed"}}}}
+    )
+    charter: Document = {
+        "goal": "Coordinate",
+        "roles": [{"id": "coordinator"}],
+        "rules": [],
+        "deadline": "2099-01-01T00:00:00Z",
+        "deciders": ["one"],
+        "pack": {"name": key[0], "version": key[1]},
+    }
+    created = server.create(charter)
+    cid = created["coalition_id"]
+    redeemed = server.registry.redeem(
+        created["invitations"][0]["invitation"], server.ports, None, None
+    )
+    asyncio.run(enroll_member(server, redeemed, "coordinator"))
+    host = server.hosts[cid]
+    assert host.skills() == list(pack.manifest.skills or [])
+    person = server.registry.hosted_for(cid, "one")
+    join_event = next(e for e in host.state.events.values() if e["type"] == "coalition.join")
+    reply = asyncio.run(server.accept(join_event, person.card_url))
+    assert reply["skills"] == list(pack.manifest.skills or [])
+    body: Document = {
+        "description": "Wrong",
+        "requirements": [],
+        "window": {"start": "2026-11-01T00:00:00Z", "end": "2099-01-01T00:00:00Z"},
+    }
+    refused = host.host_emit("need", body, {"audience": "coalition"})
+    assert isinstance(refused, dict) and refused["payload"]["code"] == "schema_invalid"
+    accepted = host.host_emit("need", {**body, "description": "Allowed"}, {"audience": "coalition"})
+    assert isinstance(accepted, Acknowledgement) and accepted.accepted is not None
+    role = pack.manifest.roles["coordinator"].model_copy(update={"may": ["decide"]})
+    server.packs[key] = replace(
+        server.packs[key],
+        manifest=pack.manifest.model_copy(update={"roles": {"coordinator": role}}),
+    )
+    offer = build_envelope(
+        person,
+        cid,
+        "coalition.offer",
+        {
+            "offer_id": new_ulid(),
+            "target": {"kind": "need", "id": accepted.accepted["payload"]["need_id"]},
+            "capacity": 1,
+            "cost": {"minutes": 1, "money": 0, "effort": "low"},
+            "valid_until": "2099-01-01T00:00:00Z",
+        },
+        scope={"audience": "coalition"},
+    )
+    assert asyncio.run(server.accept(offer, person.card_url))["error"]["code"] == "not_authorized"
+    for ref in (
+        None,
+        {"name": "pack-beta", "version": "0.2.0"},
+        {**charter["pack"], "version": "2.0.0"},
+    ):
+        revision = {**charter, "pack": ref}
+        if ref is None:
+            revision.pop("pack")
+        refused = host.host_emit("charter", revision, {"audience": "coalition"})
+        assert isinstance(refused, dict) and refused["payload"]["code"] == "not_authorized"
+    assert isinstance(
+        host.host_emit("charter", charter, {"audience": "coalition"}), Acknowledgement
+    )

@@ -66,7 +66,10 @@ class HostPort:
                     }
                 )
             )
-            return {"accepted": reply.accepted, "receipt": reply.receipt}
+            result: Document = {"accepted": reply.accepted, "receipt": reply.receipt}
+            if envelope_json["type"] == "coalition.join" and self.host.state.charter.get("pack"):
+                result["skills"] = self.host.skills()
+            return result
         logger.info(
             json.dumps({"event_id": reply["payload"]["ref"], "code": reply["payload"]["code"]})
         )
