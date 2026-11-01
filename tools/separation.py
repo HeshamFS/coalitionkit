@@ -149,8 +149,10 @@ def check_packs(root: Path = ROOT) -> str:
     if not folders:
         return "no packs installed under packs/"
     for folder in folders:
-        for args in (("validate", str(folder)),) + (
-            (("eval", str(folder)),) if has_eval_command(root) else ()
+        for args in (
+            (("validate", str(folder)),)
+            + ((("eval", str(folder)),) if has_eval_command(root) else ())
+            + ((("accept", str(folder)),) if (folder / "acceptance.yaml").is_file() else ())
         ):
             print(f"$ coalitionkit-pack {' '.join(args)}", flush=True)
             result = subprocess.run(pack_command(*args), cwd=root, check=False)

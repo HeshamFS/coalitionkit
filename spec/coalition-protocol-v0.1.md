@@ -482,6 +482,7 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `suggest` | no | How a host may offer this pack for a goal typed in plain language: `keywords` (lowercase words or short phrases) and `examples` (whole example goals), at most 50 of each. A host that suggests packs MUST also offer "no pack", and a suggestion never binds a pack by itself |
 | `lessons` | no | Lesson templates (Markdown with `{{placeholders}}` from a fixed set) the host fills from the log at Dissolve and writes as skills |
 | `evals` | yes | At least one scripted scenario |
+| `acceptance` | no | Relative path to the whole-journey acceptance YAML described below |
 
 **A policy** is checked deterministically before the Steward's model audit:
 
@@ -528,6 +529,51 @@ expect:
 | `skills`, `lessons` | Skills are offered to every agent that joins (an MCP resource `coalition://{id}/skills` and the join reply). At Dissolve the host fills each lesson template from the log (placeholders: `goal`, `members`, `tasks`, `allocation`, `decisions`, `changes`, `policy_outcomes`, `duration`) and stores the results as skills, scoped no wider than the events they came from, listed in `skills_written`, and offered to agents that join later Coalitions bound to the same pack. A Coalition without lesson templates writes one generic lesson from the same placeholders |
 | `mint` | Templates added to the Mint for this Coalition only; each template's tests run before a minted agent is enrolled |
 | `connectors` | Programs the operator runs out of process for this Coalition. A connector gets only a one-use invitation and joins like any business agent with a signed card; it never receives host settings, keys, tokens or access to the store or to vaults |
+
+**Acceptance journey.** The optional `acceptance` key in `pack.yaml` is a relative path to a YAML file. `coalitionkit pack accept <folder> [--live] [--json]` drives an in-process host from Genesis through Dissolve. All structural objects forbid extra keys. Member roles must exist in the pack; member IDs are `p1` through `pN` in join order. Need indices are zero-based task-template or Gardener need indices. Offers are member messages validated against core and pack schemas. Exactly one distinguishing case is specified:
+
+```yaml
+goal: "<the sentence typed in Genesis>"
+utc_offset_minutes: 60            # optional
+members:                          # 2..12
+  - role: <role id>
+    vault: { <key>: <value>, canary: "<string>" }
+    absent: false                 # optional; agent answers, owner must still approve commitments
+businesses:                       # optional; business invitation and signed card
+  - role: <role id>
+    card: { name: "<display name>" }
+offers:
+  - member: p1
+    need: 0
+    offer: { ... }
+expect:
+  allocation: { 0: p1 }           # optional
+  fairness: { max_share_ratio: 2 } # optional; plan objective scores
+  commitments_signed_by_owner: true
+  agent_only_yes_refused: true
+  distinguishing:                # exactly one of these three
+    minted_reading: { template: "<mint template name>", value: "<value>", changes_needs: [0] }
+    # absent_answered: { member: p3, answer: yes }
+    # business_holds: { business: 0, need: 0 }
+  change:
+    by: p2
+    invalidates: [0]
+    affected: [0]
+    untouched: [1]
+  policy_probe:
+    by: p1
+    type: coalition.offer        # or coalition.observe
+    payload: { ... }
+    outcome: block               # block | escalate | redact | allow
+    policy_id: <id>
+  dissolve:
+    reason: completed
+    lessons: 1                   # minimum number of skills_written
+  canaries_leaked: 0
+  max_messages: 200
+```
+
+Each assertion reports a named pass/fail step and reason. Canary scanning covers the log, every viewer's projection and replay, Steward inputs, agent channels and connector exchanges. Live member agents use the gateway and report calls, tokens, latency and cost; `--live` without `COALITIONKIT_META_API_KEY` reports `not run (no key)`.
 
 **Strategy names.** `strategy.allocation` names one of the host's built-in strategies, and `strategy.fairness` may set only the keys that strategy reads:
 

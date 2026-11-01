@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -13,6 +13,7 @@ from pydantic import (
     StringConstraints,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 from coalitionkit_contracts import Scope
@@ -171,3 +172,133 @@ def parse_eval(data: Any, where: str, report: Report) -> EvalScenario | None:
         except SchemaValidationError as exc:
             report.add("eval", f"{where}.examples[{index}]", f"core schema refuses it: {exc}")
     return scenario
+
+
+# Acceptance scenarios share the pack's strict data-only boundary.
+class AcceptanceMember(_Strict):
+    role: RoleId
+    vault: dict[str, Any]
+    absent: bool = False
+
+    @field_validator("vault")
+    @classmethod
+    def _canary(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(value.get("canary"), str) or not value["canary"]:
+            raise ValueError("vault requires a nonempty string canary")
+        return value
+
+
+class AcceptanceCard(_Strict):
+    name: Annotated[str, Field(min_length=1)]
+
+
+class AcceptanceBusiness(_Strict):
+    role: RoleId
+    card: AcceptanceCard
+
+
+class AcceptanceOffer(_Strict):
+    member: Annotated[str, StringConstraints(pattern=r"^p[1-9][0-9]*$")]
+    need: Annotated[int, Field(ge=0)]
+    offer: dict[str, Any]
+
+
+class AcceptanceFairness(_Strict):
+    max_share_ratio: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+
+
+class MintedReading(_Strict):
+    template: str
+    value: Any
+    changes_needs: list[Annotated[int, Field(ge=0)]]
+
+
+class AbsentAnswered(_Strict):
+    member: str
+    answer: Literal["yes"]
+
+
+class BusinessHolds(_Strict):
+    business: Annotated[int, Field(ge=0)]
+    need: Annotated[int, Field(ge=0)]
+
+
+class Distinguishing(_Strict):
+    minted_reading: MintedReading | None = None
+    absent_answered: AbsentAnswered | None = None
+    business_holds: BusinessHolds | None = None
+
+    @model_validator(mode="after")
+    def _one(self) -> Distinguishing:
+        if (
+            sum(
+                x is not None
+                for x in (self.minted_reading, self.absent_answered, self.business_holds)
+            )
+            != 1
+        ):
+            raise ValueError("exactly one distinguishing case is required")
+        return self
+
+
+class AcceptanceChange(_Strict):
+    by: str
+    invalidates: Annotated[list[Annotated[int, Field(ge=0)]], Field(min_length=1)]
+    affected: list[Annotated[int, Field(ge=0)]]
+    untouched: list[Annotated[int, Field(ge=0)]]
+
+
+class AcceptanceProbe(_Strict):
+    by: str
+    type: Literal["coalition.offer", "coalition.observe"]
+    payload: dict[str, Any]
+    outcome: Literal["block", "escalate", "redact", "allow"]
+    policy_id: str
+
+
+class AcceptanceDissolve(_Strict):
+    reason: Literal["completed"]
+    lessons: Annotated[int, Field(ge=0)]
+
+
+class AcceptanceExpect(_Strict):
+    allocation: dict[Annotated[int, Field(ge=0)], str] | None = None
+    fairness: AcceptanceFairness | None = None
+    commitments_signed_by_owner: Literal[True]
+    agent_only_yes_refused: Literal[True]
+    distinguishing: Distinguishing
+    change: AcceptanceChange
+    policy_probe: AcceptanceProbe
+    dissolve: AcceptanceDissolve
+    canaries_leaked: Literal[0]
+    max_messages: Annotated[int, Field(ge=1)]
+
+
+class AcceptanceScenario(_Strict):
+    goal: Annotated[str, Field(min_length=1, max_length=500)]
+    utc_offset_minutes: Annotated[int, Field(ge=-840, le=840)] | None = None
+    members: Annotated[list[AcceptanceMember], Field(min_length=2, max_length=12)]
+    businesses: list[AcceptanceBusiness] = Field(default_factory=list[AcceptanceBusiness])
+    offers: list[AcceptanceOffer]
+    expect: AcceptanceExpect
+
+    @model_validator(mode="after")
+    def _references(self) -> AcceptanceScenario:
+        members = {f"p{i}" for i in range(1, len(self.members) + 1)}
+        refs = {o.member for o in self.offers} | {
+            self.expect.change.by,
+            self.expect.policy_probe.by,
+        }
+        if self.expect.allocation:
+            refs.update(self.expect.allocation.values())
+        absent = self.expect.distinguishing.absent_answered
+        if absent:
+            refs.add(absent.member)
+        if not refs <= members:
+            raise ValueError("unknown member reference")
+        if absent and not self.members[int(absent.member[1:]) - 1].absent:
+            raise ValueError("absent_answered must name an absent member")
+        business = self.expect.distinguishing.business_holds
+        if business and business.business >= len(self.businesses):
+            raise ValueError("unknown business reference")
+        return self

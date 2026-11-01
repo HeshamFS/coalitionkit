@@ -48,6 +48,10 @@ def _parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--live", action="store_true")
     evaluate.add_argument("--require-live", action="store_true")
     evaluate.add_argument("--json", action="store_true")
+    accept = sub.add_parser("accept", help="run a pack's whole acceptance journey")
+    accept.add_argument("directory", type=Path)
+    accept.add_argument("--live", action="store_true")
+    accept.add_argument("--json", action="store_true")
     check = sub.add_parser("validate", help="check every pack rule (signature not required)")
     check.add_argument("directory", type=Path)
     check.add_argument("--catalog", type=Path, help="core catalog JSON (surfaces format)")
@@ -78,6 +82,9 @@ def _run(args: argparse.Namespace) -> int:
     directory: Path = args.directory
     if args.command == "connectors":
         return run_connectors(args)
+    if args.command == "accept":
+        runner = importlib.import_module("coalitionkit_acceptance.pack_acceptance")
+        return runner.command(directory, live=args.live, as_json=args.json)
     if args.command == "eval":
         runner = importlib.import_module("coalitionkit_acceptance.pack_evals")
         return runner.command(

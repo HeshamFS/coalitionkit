@@ -102,6 +102,16 @@ class Manifest(_Strict):
     strategy: Strategy | None = None
     suggest: Suggest | None = None
     evals: Annotated[list[RelPath], Field(min_length=1)]
+    acceptance: RelPath | None = None
+
+    @field_validator("acceptance")
+    @classmethod
+    def _acceptance_path(cls, value: str | None) -> str | None:
+        from .files import bad_relative_path
+
+        if value is not None and (reason := bad_relative_path(value)):
+            raise ValueError(reason)
+        return value
 
     @field_validator("version")
     @classmethod
