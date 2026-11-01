@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+id: spend-needs-person
+applies_to: [coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\bEUR [5-9][0-9]{2}(\.[0-9]{2})?\b'
+    - '\bEUR [0-9]{4,}(\.[0-9]{2})?\b'
+then: escalate
+explain: "A price of EUR 500 or more needs a person's yes before it goes further."

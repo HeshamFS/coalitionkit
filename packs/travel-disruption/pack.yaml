@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+name: travel-disruption
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  traveller: { may: [offer, decide, commit], label: Traveller }
+  organizer: { may: [charter, offer, decide, commit], label: Organizer }
+  car-desk: { may: [offer, decide, commit], label: Car desk }
+  shuttle: { may: [offer, commit], label: Shuttle }
+suggest:
+  keywords:
+    - stranded
+    - cancelled flight
+    - canceled flight
+    - last flight
+    - missed connection
+    - onward ride
+    - overnight delay
+    - airport
+  examples:
+    - "Our last flight was cancelled and eight of us need rides and rooms tonight"
+    - "Get a stranded group from the airport to three different cities by morning"
+vocabulary: vocabulary.yaml
+schemas: { need: schemas/need-ext.json, offer: schemas/offer-ext.json }
+policies:
+  - policies/no-contact-before-yes.yaml
+  - policies/spend-needs-person.yaml
+  - policies/mask-booking-reference.yaml
+skills: [skills/SKILL.md]
+lessons: [lessons/ride-lesson.md, lessons/policy-lesson.md]
+task_templates: templates.yaml
+strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 6, minute_value: 40 } }
+evals: [evals/overnight-three-cities.yaml, evals/new-departure.yaml]
+acceptance: acceptance.yaml
+connectors:
+  - name: car-desk
+    command: [python, car_desk.py]

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+id: no-contact-before-yes
+applies_to: [coalition.observe, coalition.offer, coalition.propose]
+when:
+  any_text_matches:
+    - '[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}'
+    - '\+[0-9][0-9 ()-]{7,}[0-9]'
+    - '\b[0-9]{3}[ .-][0-9]{3,4}[ .-][0-9]{4}\b'
+then: block
+explain: "Phone numbers and email addresses are not shared here. Both sides say yes first; contact details then go person to person."

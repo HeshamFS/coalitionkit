@@ -10,3 +10,13 @@ furnace
 invoice
 prescription
 clinic
+
+# pack travel-disruption
+flight
+airport
+airline
+shuttle
+traveller
+itinerary
+stranded
+layover
