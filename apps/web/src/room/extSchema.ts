@@ -17,7 +17,21 @@ export type JsonSchema = {
   properties?: Record<string, JsonSchema>;
   required?: string[];
   "x-private"?: boolean;
+  $ref?: string;
+  $defs?: Record<string, JsonSchema>;
+  definitions?: Record<string, JsonSchema>;
 };
+
+/** Follows a local reference (`#/$defs/name` or `#/definitions/name`) within the same schema. */
+function resolve(prop: JsonSchema, root: JsonSchema, depth = 0): JsonSchema {
+  const ref = prop.$ref;
+  if (!ref || depth > 8) return prop;
+  const match = /^#\/(\$defs|definitions)\/([^/]+)$/.exec(ref);
+  const target = match ? root[match[1] as "$defs" | "definitions"]?.[match[2] ?? ""] : undefined;
+  if (!target) return prop;
+  const { $ref: _ignored, ...rest } = prop;
+  return resolve({ ...target, ...rest }, root, depth + 1);
+}
 
 /** The catalog form kinds the schema form can draw (sheet 04). */
 export type ExtKind = "text" | "number" | "choice" | "bool" | "datetime";
@@ -49,7 +63,8 @@ export function fieldsOf(schema: JsonSchema | null | undefined): ExtField[] {
   const properties = schema?.properties ?? {};
   const required = new Set(schema?.required ?? []);
   const fields: ExtField[] = [];
-  for (const [key, prop] of Object.entries(properties)) {
+  for (const [key, raw] of Object.entries(properties)) {
+    const prop = schema ? resolve(raw, schema) : raw;
     const kind = kindOf(prop);
     if (!kind) continue;
     fields.push({
@@ -106,7 +121,9 @@ export function validate(fields: ExtField[], values: Values): Record<string, str
     if (f.private) continue;
     const raw = values[f.key];
     if (f.kind === "bool") {
-      if (f.required && raw !== true) errors[f.key] = `${f.title} is required`;
+      // A checkbox always has a value: ticked or not. Only a non-boolean value is wrong.
+      if (raw !== undefined && typeof raw !== "boolean")
+        errors[f.key] = `${f.title} must be yes or no`;
       continue;
     }
     if (blank(raw)) {
@@ -135,7 +152,9 @@ export function toExt(fields: ExtField[], values: Values): Values {
     if (f.private) continue;
     const raw = values[f.key];
     if (f.kind === "bool") {
-      if (raw === true || f.required) ext[f.key] = raw === true;
+      // Sent when the person set it (true or false), and always when the schema requires it.
+      if (typeof raw === "boolean") ext[f.key] = raw;
+      else if (f.required) ext[f.key] = false;
     } else if (!blank(raw)) {
       if (f.kind === "number") ext[f.key] = Number(raw);
       else if (f.kind === "datetime") ext[f.key] = new Date(String(raw)).toISOString();

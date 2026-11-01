@@ -2,7 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { JsonSchema } from "./extSchema";
+import { fieldsOf, type JsonSchema, toExt, validate } from "./extSchema";
 import { SchemaForm } from "./schemaForm";
 
 const schema: JsonSchema = {
@@ -63,5 +63,32 @@ describe("SchemaForm", () => {
     const ext = onSubmit.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(ext).toEqual({ label: "alpha", level: "high", count: 3 });
     expect(Object.keys(ext)).not.toContain("secret");
+  });
+});
+
+describe("schema edge cases from the review", () => {
+  it("renders a field defined through a local $ref", () => {
+    const fields = fieldsOf({
+      type: "object",
+      required: ["count"],
+      properties: { count: { $ref: "#/$defs/count" } },
+      $defs: { count: { type: "integer", title: "Count", minimum: 1 } },
+    });
+    expect(fields.map((f) => [f.key, f.kind, f.required, f.title])).toEqual([
+      ["count", "number", true, "Count"],
+    ]);
+  });
+  it("accepts a required false and keeps an optional false", () => {
+    const fields = fieldsOf({
+      type: "object",
+      required: ["enabled"],
+      properties: { enabled: { type: "boolean" }, extra: { type: "boolean" } },
+    });
+    expect(validate(fields, { enabled: false })).toEqual({});
+    expect(toExt(fields, { enabled: false, extra: false })).toEqual({
+      enabled: false,
+      extra: false,
+    });
+    expect(toExt(fields, {})).toEqual({ enabled: false });
   });
 });
