@@ -22,3 +22,12 @@ grandparent
 grandmother
 chores
 pickup
+
+# pack travel-disruption
+airport
+airline
+shuttle
+traveller
+itinerary
+stranded
+layover
