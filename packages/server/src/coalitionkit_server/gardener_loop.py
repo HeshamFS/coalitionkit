@@ -111,6 +111,10 @@ class GardenerLoop:
         self.seed(coalition, row[0], json.loads(row[1]))
         self.tensions(coalition)
         state = host.state
+        # A proposal moves the coalition to Decide, where nobody can join any more; proposing
+        # before every decider has said yes would leave a seat that can never approve.
+        if not all(state.accepted_charter(d) for d in state.charter["deciders"]):
+            return
         open_ids = {k for k, t in state.tasks.items() if t["status"] in {"open", "negotiating"}}
         offers = sorted(
             k

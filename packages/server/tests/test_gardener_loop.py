@@ -344,3 +344,26 @@ def test_a_failed_step_is_retried_without_new_activity(
     assert not events(pack_client, cid, "need")
     broken["on"] = False
     assert len(wait_for(pack_client, cid, "need", 2)) == 2
+
+
+def test_no_plan_before_every_decider_has_joined(pack_client: TestClient) -> None:
+    created = begin(pack_client)  # two seats: p1 and p2 both decide
+    cid, owner = created["coalition_id"], created["owner"]
+    server_for(pack_client).hosts[cid].steward = FakeSteward()
+    consent(pack_client, cid, owner["token"], "p1")
+    needs = wait_for(pack_client, cid, "need", 2)
+    for need in needs:
+        offer(pack_client, owner["token"], need["payload"]["need_id"], 10)
+    time.sleep(2.5)
+    assert not events(pack_client, cid, "propose")  # the second decider has not said yes yet
+    invite = pack_client.post(
+        "/v1/invitations",
+        json={"kind": "member", "count": 1},
+        headers={"Authorization": "Bearer " + owner["token"]},
+    )
+    secret = invite.json()["invitations"][0]["link"].split("#")[1]
+    joined = pack_client.post("/v1/invitations/accept", json={"invitation": secret})
+    assert joined.status_code == 200, joined.text  # still open to join: no plan has moved it on
+    member = joined.json()
+    consent(pack_client, cid, member["token"], member["participant"])
+    assert wait_for(pack_client, cid, "propose")
