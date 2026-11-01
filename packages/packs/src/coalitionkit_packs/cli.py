@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""``coalitionkit-pack validate|sign|verify <dir>``. Exit 0 ok, 1 pack refused, 2 bad usage."""
+"""``coalitionkit-pack validate|sign|verify|eval <dir>``. Exit 0 ok, 1 failed, 2 bad usage."""
 
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 from collections.abc import Sequence
@@ -27,6 +28,11 @@ from .signing import sign_pack, verify_pack, verify_pack_embedded
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="coalitionkit-pack", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    evaluate = sub.add_parser("eval", help="run scripted pack scenarios on a host")
+    evaluate.add_argument("directory", type=Path)
+    evaluate.add_argument("--live", action="store_true")
+    evaluate.add_argument("--require-live", action="store_true")
+    evaluate.add_argument("--json", action="store_true")
     check = sub.add_parser("validate", help="check every pack rule (signature not required)")
     check.add_argument("directory", type=Path)
     check.add_argument("--catalog", type=Path, help="core catalog JSON (surfaces format)")
@@ -55,6 +61,14 @@ def _trusted(path: Path) -> dict[str, Ed25519PublicKey]:
 
 def _run(args: argparse.Namespace) -> int:
     directory: Path = args.directory
+    if args.command == "eval":
+        runner = importlib.import_module("coalitionkit_acceptance.pack_evals")
+        return runner.command(
+            directory,
+            live=args.live or args.require_live,
+            require_live=args.require_live,
+            as_json=args.json,
+        )
     if args.command == "validate":
         catalog = load_catalog(args.catalog) if args.catalog else None
         pack = inspect_pack(directory, core_catalog=catalog, core_version=args.core_version)
