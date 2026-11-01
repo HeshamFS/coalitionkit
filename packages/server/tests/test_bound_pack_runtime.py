@@ -2,6 +2,7 @@
 """Bound pack behavior through signed submissions and durable runtime events."""
 
 import asyncio
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -362,3 +363,32 @@ def test_redacted_decisions_do_not_leak_through_lesson_allocation(pack: Pack) ->
     assert "allocation: \n" in lesson["text"]
     assert "→" not in lesson["text"]
     store.close()
+
+
+def test_production_host_applies_the_bound_packs_policies(pack: Pack) -> None:
+    host = open_host(SQLiteStore(), pack)
+    a, b = person("a"), person("b")
+    for who in (a, b):
+        join(host, who)
+        decide(host, who)
+    offer = build_envelope(
+        a,
+        host.coalition_id,
+        "coalition.offer",
+        {"offer_id": new_ulid(), "need_id": new_ulid(), "note": "an unreviewed plan"},
+        scope=PUBLIC,
+    )
+    outcome = host.policy(offer)
+    assert outcome is not None
+    assert (outcome.action, outcome.policy_id) == ("escalate", "alpha-flag-keyword")
+    # redact, end to end: another viewer never sees the masked code
+    accepted(send(host, a, "observe", {"source": "chat", "content": "item X-1234 ready"}))
+    seen_by_b = json.dumps(host.view("b"))
+    assert "chat" in seen_by_b  # b received the observation ...
+    assert "X-1234" not in seen_by_b  # ... with the matched field masked
+    # an unbound Coalition checks nothing
+    plain = open_host(SQLiteStore(), None)
+    probe = build_envelope(
+        a, plain.coalition_id, "coalition.observe", {"source": "chat", "content": "X-1234"}
+    )
+    assert plain.policy(probe) is None

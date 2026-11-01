@@ -5,15 +5,23 @@ import importlib
 import json
 import re
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel, ConfigDict
 from referencing.exceptions import Unresolvable
 
-from coalitionkit_contracts import Scope, ScopeSource, jwk_thumbprint, new_ulid, principals
+from coalitionkit_contracts import (
+    Envelope,
+    Scope,
+    ScopeSource,
+    jwk_thumbprint,
+    new_ulid,
+    principals,
+)
 from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_contracts.payloads import Cost, Window
 from coalitionkit_gardener import Offer, PlanConfig, PlanSet, Problem, Task, generate_plans
@@ -26,6 +34,8 @@ from coalitionkit_runtime.lifecycle import State
 from coalitionkit_runtime.projector import remove_path
 from coalitionkit_runtime.rules import Refusal, require
 from coalitionkit_runtime.store import Transaction
+from coalitionkit_steward import StewardContext
+from coalitionkit_steward.conditions import Subject, evaluate_all
 from coalitionkit_surfaces import load_catalog
 
 from .adapter import Document
@@ -81,7 +91,12 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
         with host.store.transaction(host.coalition_id) as tx:
             record(tx, state, event, policy_id, action)
 
+    # The host calls check and then policy for the same submission inside one transaction;
+    # policy reads the state check was given rather than opening another transaction.
+    checked: list[State] = []
+
     def check(state: State, event: Document, is_host: bool) -> None:
+        checked[:] = [state]
         kind = event["type"].removeprefix("coalition.")
         body = event["payload"]
         pack = bound_pack(body if kind == "charter" else state.charter, installed)
@@ -210,12 +225,38 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
             written.append(identifier)
         event["payload"]["skills_written"] = written
 
+    def policy(event: Document) -> PackPolicyOutcome | None:
+        """The bound pack's policies, checked by the host after every core check (spec, step 12)."""
+        state = checked[0] if checked else host.state
+        pack = bound_pack(state.charter, installed)
+        if pack is None:
+            return None
+        matches = evaluate_all(
+            pack.policies,
+            Subject.from_envelope(Envelope.model_validate(event)),
+            StewardContext(members=frozenset(state.members)),
+        )
+        if not matches:
+            return None
+        match = max(matches, key=lambda m: m.policy.severity)
+        if match.policy.then == "quarantine":  # refused by the loader; never reached
+            raise Refusal("pack_violation", {"policy_id": match.policy.id})
+        return PackPolicyOutcome(match.policy.then, match.policy.id, tuple(match.redact))
+
+    host.policy = policy
     host.pack_check = check
     host.skills = skills
     host.followups = followups
     host.prepare = prepare
     host.policy_record = record
     host.policy_refused = refused
+
+
+@dataclass(frozen=True)
+class PackPolicyOutcome:
+    action: Literal["allow", "redact", "block", "escalate"]
+    policy_id: str
+    paths: tuple[str, ...]
 
 
 def _skill(name: str, text: str) -> Document:

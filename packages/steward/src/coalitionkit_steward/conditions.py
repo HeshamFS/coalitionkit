@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -76,6 +76,8 @@ class _Eval:
     subject: Subject
     ctx: StewardContext
     redact: list[str] = field(default_factory=lambda: [])
+    # Only a redact policy needs the fields a text condition matched in.
+    text_paths: bool = False
 
 
 def walk(value: Any, path: str = "payload") -> Iterator[tuple[str, Any]]:
@@ -95,14 +97,34 @@ def subject_text(subject: Subject) -> str:
     return "\n".join(texts)[:MAX_TEXT_CHARS]
 
 
+def _mark_matching_fields(ev: _Eval, found: Callable[[str], bool]) -> None:
+    """Record each string field a text condition matched in, so ``redact`` masks those fields."""
+    if not ev.text_paths:
+        return
+    already = set(ev.subject.scope.redact or [])
+    for path, leaf in walk(ev.subject.payload):
+        if isinstance(leaf, str) and path not in already and found(leaf[:MAX_TEXT_CHARS]):
+            ev.redact.append(path)
+
+
 def _text_category(ev: _Eval, categories: Iterable[str]) -> bool:
     text = subject_text(ev.subject)
-    return any(p.search(text) for name in categories for p in CATEGORIES[name])
+    compiled = [p for name in categories for p in CATEGORIES[name]]
+    held = any(p.search(text) for p in compiled)
+    if held:
+        _mark_matching_fields(ev, lambda leaf: any(p.search(leaf) for p in compiled))
+    return held
 
 
 def _text_pattern(ev: _Eval, patterns: Iterable[str]) -> bool:
     text = subject_text(ev.subject)
-    return any(re.search(p, text, re.IGNORECASE) for p in patterns)
+    listed = list(patterns)
+    held = any(re.search(p, text, re.IGNORECASE) for p in listed)
+    if held:
+        _mark_matching_fields(
+            ev, lambda leaf: any(re.search(p, leaf, re.IGNORECASE) for p in listed)
+        )
+    return held
 
 
 def _addresses_unconsented(ev: _Eval) -> bool:
@@ -155,7 +177,7 @@ def evaluate(policy: Policy, subject: Subject, ctx: StewardContext) -> Match | N
     """The policy's match on the subject, or None. Every condition present must hold."""
     if subject.type not in policy.applies_to:
         return None
-    ev = _Eval(subject, ctx)
+    ev = _Eval(subject, ctx, text_paths=policy.then == "redact")
     when = policy.when
     held = (
         when.any_text_matches_category is None
