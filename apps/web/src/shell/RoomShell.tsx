@@ -29,6 +29,8 @@ export type RoomShellProps = {
   onInvite?: () => void;
   onSearch?: () => void;
   onSignOut?: () => void;
+  /** Set only for the person who started the coalition. */
+  onEnd?: () => void;
   style?: CSSProperties;
   layout?: "stage";
   navigation?: ReactNode;
@@ -83,6 +85,11 @@ function StageShell(p: RoomShellProps) {
           </span>
           {p.navigation}
           <span className="room-heading-live">{chip}</span>
+          {p.onEnd && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={p.onEnd}>
+              End coalition
+            </button>
+          )}
           <details className="room-account">
             <summary className="icon-btn" aria-label="Account">
               <Icon name="people" />

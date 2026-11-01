@@ -24,6 +24,7 @@ import {
   SeatsCard,
   seatCount,
 } from "./GenesisCards";
+import { markOwner } from "./owner";
 import { TableMark } from "./TableMark";
 import "./genesis.css";
 
@@ -105,6 +106,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
       const started = await startCoalition({ ...draft, goal: goal.trim() }, startCode);
       forgetStartCode();
       saveToken(started.owner.token);
+      markOwner(started.coalition_id);
       pinAtJoin(started.coalition_id, started.host_key);
       setOwner(started.owner.token);
       setPhase("started");

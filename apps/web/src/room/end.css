@@ -1,0 +1,45 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.ck-end-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.35);
+}
+.ck-end {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #ddd);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 420px;
+  display: grid;
+  gap: 12px;
+}
+.ck-end-q {
+  margin: 0;
+  font-size: 18px;
+}
+.ck-end-p {
+  margin: 0;
+}
+.ck-end-why {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.ck-end-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.ck-ended {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 16px;
+}
+.ck-ended-out {
+  text-align: center;
+}
