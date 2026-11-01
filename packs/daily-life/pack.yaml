@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+name: daily-life
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  family-member: { may: [charter, offer, decide, commit], label: Family member }
+  helper: { may: [offer, commit], label: Helper }
+  absent-member: { may: [offer, decide, commit], label: Absent member }
+suggest:
+  keywords:
+    - errand
+    - errands
+    - bring home
+    - bring her home
+    - bring him home
+    - weekly rota
+    - rota
+    - groceries
+    - family visit
+    - care visit
+    - lift home
+    - grandmother
+    - grandparent
+  examples:
+    - "Bring grandmother home from the clinic on Saturday"
+    - "Share the weekly errands and visits for the family"
+    - "Plan a rota of care visits for my father this month"
+    - "Who can drive my aunt home on Sunday afternoon"
+vocabulary: vocabulary.yaml
+schemas:
+  need: schemas/need-ext.json
+  offer: schemas/offer-ext.json
+policies:
+  - policies/no-regulated-advice.yaml
+  - policies/no-contact-before-consent.yaml
+  - policies/redact-street-address.yaml
+skills: [skills/SKILL.md]
+lessons: [lessons/fair-share.md, lessons/absent-member.md]
+task_templates: templates.yaml
+strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }
+evals: [evals/bring-home.yaml, evals/weekly-rota.yaml]
+acceptance: acceptance.yaml

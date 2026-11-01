@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+id: daily-no-regulated-advice
+applies_to: [coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\b\d+(?:\.\d+)?\s?(?:mg|mcg|ml)\b'
+    - '\b(?:double|halve|skip|stop|increase|reduce)\s+(?:the\s+|her\s+|his\s+|their\s+)?(?:dosage|dose|medication|tablets?|pills?)\b'
+    - '\bsafe\s+to\s+(?:take|mix|combine)\b'
+    - '\byou\s+(?:should|must)\s+(?:sue|file\s+a\s+lawsuit)\b'
+    - '\bthis\s+is\s+(?:medical|legal)\s+advice\b'
+    - '\bdiagnos(?:is|e|ed)\b'
+then: escalate
+explain: "Coordinate the errand and leave medical or legal advice to a qualified person."

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+templates:
+  - id: bring-home
+    title: Bring grandmother home on Saturday
+    requirements: [car]
+    ext: { day: sat, place_kind: clinic, duration_minutes: 90 }
+  - id: weekly-groceries
+    title: Do the weekly groceries
+    ext: { day: thu, place_kind: shop, duration_minutes: 60 }
+  - id: sunday-visit
+    title: Sunday afternoon visit
+    ext: { day: sun, place_kind: home, duration_minutes: 120 }
