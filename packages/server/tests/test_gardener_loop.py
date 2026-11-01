@@ -319,3 +319,28 @@ def test_restart_resumes_before_owner_consent(pack_client: TestClient, tmp_path:
     ) as client:
         consent(client, cid, created["owner"]["token"], "p1")
         assert len(wait_for(client, cid, "need", 2)) == 2
+
+
+def test_a_failed_step_is_retried_without_new_activity(
+    pack_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from coalitionkit_server import gardener_loop
+
+    monkeypatch.setattr(gardener_loop, "RETRY_BASE_S", 0.1)
+    created = begin(pack_client)
+    cid, owner = created["coalition_id"], created["owner"]
+    server = server_for(pack_client)
+    server.hosts[cid].steward = FakeSteward()
+    real_step, broken = server.gardener.step, {"on": True}
+
+    def flaky(coalition: str) -> None:
+        if broken["on"]:
+            raise RuntimeError("store briefly unavailable")
+        real_step(coalition)
+
+    monkeypatch.setattr(server.gardener, "step", flaky)
+    consent(pack_client, cid, owner["token"], "p1")
+    time.sleep(1.5)  # the step after consent fails; no further event follows
+    assert not events(pack_client, cid, "need")
+    broken["on"] = False
+    assert len(wait_for(pack_client, cid, "need", 2)) == 2

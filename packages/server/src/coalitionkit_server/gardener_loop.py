@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .app import Server
 
 LOG = logging.getLogger(__name__)
+RETRY_BASE_S = 2.0  # first retry after a failed step; doubles per failure, capped at 60 s
 
 
 class GardenerLoop:
@@ -73,6 +74,8 @@ class GardenerLoop:
             notify=notify,
         )
         wake.set()
+        failures = 0
+        retry: asyncio.TimerHandle | None = None
         try:
             while host.state.stage != "Dissolve":
                 await wake.wait()
@@ -82,9 +85,17 @@ class GardenerLoop:
                 sub.cursor = max((e["seq"] for e in host.state.events.values()), default=0)
                 try:
                     self.step(coalition)
+                    failures = 0
                 except Exception:
                     LOG.exception("Genesis Gardener failed for %s", coalition)
+                    # Try again without waiting for new activity; back off up to a minute.
+                    failures += 1
+                    if retry is not None:
+                        retry.cancel()
+                    retry = loop.call_later(min(RETRY_BASE_S * 2 ** (failures - 1), 60), wake.set)
         finally:
+            if retry is not None:
+                retry.cancel()
             host.bus.unsubscribe(sub)
 
     def step(self, coalition: str) -> None:
