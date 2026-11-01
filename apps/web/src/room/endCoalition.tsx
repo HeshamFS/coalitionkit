@@ -91,7 +91,7 @@ export function EndedView({
       setRefused(
         error instanceof HostError
           ? `The host refused (${error.status}). Nothing was ended.`
-          : "The host could not be reached. Nothing was ended.",
+          : "No answer came back from the host, so it is not known whether the coalition ended. Try again to find out: asking twice is safe.",
       ),
     );
   }, []);

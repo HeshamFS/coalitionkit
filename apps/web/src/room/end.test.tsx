@@ -146,7 +146,7 @@ describe("ending a coalition", () => {
 describe("a refused or unreachable end", () => {
   it.each([
     [403, /refused \(403\)/],
-    [0, /could not be reached/],
+    [0, /not known whether the coalition ended/],
   ])("keeps the room and the session (%s)", async (status, message) => {
     saveToken("owner-token");
     vi.stubGlobal(
