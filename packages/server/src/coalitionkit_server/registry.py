@@ -48,6 +48,10 @@ class Registry(CredentialRegistry):
             )
 
             for statement in (
+                "CREATE TABLE IF NOT EXISTS server_genesis "
+                "(coalition TEXT PRIMARY KEY, participant TEXT, needs TEXT)",
+                "CREATE TABLE IF NOT EXISTS server_genesis_refusals "
+                "(id TEXT PRIMARY KEY, coalition TEXT, error TEXT)",
                 "CREATE TABLE IF NOT EXISTS server_start_codes "
                 "(digest TEXT PRIMARY KEY, expires TEXT)",
                 "CREATE TABLE IF NOT EXISTS server_owners "

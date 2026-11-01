@@ -6,13 +6,13 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import json
-import os
 import re
-from datetime import UTC, datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Literal, Self
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse
 
 from coalitionkit_contracts import (
@@ -22,244 +22,29 @@ from coalitionkit_contracts import (
     validate_payload,
 )
 from coalitionkit_mcp.gateway import build_envelope
-from coalitionkit_models import ModelGateway
 from coalitionkit_packs import Pack
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_runtime.lifecycle import State
 
 from .adapter import Document
-from .packs import PackRef, Suggestion, public_pack, suggest_pack
+from .genesis_draft import (
+    NUMBER,
+    Draft,
+    DraftResponse,
+    Goal,
+    ModelDraft,
+    Reading,
+    Role,
+    draft_goal,
+    number,
+    read_goal,
+)
+from .packs import PackRef, public_pack, suggest_pack
+
+__all__ = ["DraftResponse", "ModelDraft", "draft_goal", "read_goal"]
 
 if TYPE_CHECKING:
     from .app import Server
-
-
-class Goal(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    pack: PackRef | None = None
-    goal: str = Field(min_length=1, max_length=500)
-    # The writer's offset from UTC, so "tonight" and "by Friday" mean their evening, not UTC's.
-    utc_offset_minutes: int | None = Field(default=None, ge=-840, le=840)
-
-
-class Role(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
-    label: str = Field(min_length=1, max_length=64)
-    count: int = Field(ge=1, le=10000, strict=True)
-
-
-class Draft(Goal):
-    roles: list[Role] = Field(min_length=1)
-    needs: list[str]
-    deadline: datetime | None
-    deciders: Literal["all"] = "all"
-
-    @field_validator("deadline")
-    @classmethod
-    def utc_deadline(cls, value: datetime | None) -> datetime | None:
-        if value is not None:
-            if value.tzinfo is None:
-                raise ValueError("deadline must include a timezone")
-            return value.astimezone(UTC)
-        return value
-
-    @model_validator(mode="after")
-    def unique_roles(self) -> Draft:
-        if len({r.id for r in self.roles}) != len(self.roles):
-            raise ValueError("duplicate roles")
-        return self
-
-
-# How long Genesis waits for the model's draft before answering with the reader's own.
-MODEL_DRAFT_BUDGET_S = 10
-
-
-class Reading(BaseModel):
-    span: tuple[int, int]
-    kind: Literal["role", "need", "deadline", "count"]
-
-
-class ModelDraft(BaseModel):
-    """What the model is asked for: closed objects only, so a strict JSON schema accepts it."""
-
-    draft: Draft
-    source: Literal["reader", "model"]
-    reading: list[Reading]
-
-    @model_validator(mode="after")
-    def valid_spans(self) -> Self:
-        # Spans only mark words in the goal; one outside it is dropped, never shown.
-        size = len(self.draft.goal)
-        self.reading = [r for r in self.reading if 0 <= r.span[0] < r.span[1] <= size]
-        return self
-
-
-class DraftResponse(ModelDraft):
-    """The draft as the host answers it, with the pack suggestion the host adds itself."""
-
-    suggested: Suggestion | None = None
-    vocabulary: Document = Field(default_factory=dict)
-
-
-WORDS = dict(
-    zip(
-        [
-            "one",
-            "two",
-            "three",
-            "four",
-            "five",
-            "six",
-            "seven",
-            "eight",
-            "nine",
-            "ten",
-            "eleven",
-            "twelve",
-            "thirteen",
-            "fourteen",
-            "fifteen",
-            "sixteen",
-            "seventeen",
-            "eighteen",
-            "nineteen",
-            "twenty",
-        ],
-        range(1, 21),
-        strict=True,
-    )
-)
-NUMBER = r"(?:\d+|" + "|".join(WORDS) + r"|an?|a)"
-WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-DEADLINE = re.compile(
-    rf"\b(?:tonight|today|tomorrow|by (?:{'|'.join(WEEKDAYS)}|\d{{4}}-\d{{2}}-\d{{2}})"
-    rf"|in ({NUMBER}) (days?|hours?))\b",
-    re.I,
-)
-
-
-def number(value: str) -> int:
-    return int(value) if value.isdigit() else WORDS.get(value.lower(), 1)
-
-
-def read_goal(
-    goal: str, now: datetime | None = None, utc_offset_minutes: int | None = None
-) -> DraftResponse:
-    goal = Goal(goal=goal).goal
-    local = timezone(timedelta(minutes=utc_offset_minutes or 0))
-    now = (now or datetime.now(UTC)).astimezone(local)
-    spans: list[Reading] = []
-    deadline = None
-    match = DEADLINE.search(goal)
-    if match:
-        phrase = match[0].lower()
-        try:
-            if phrase.startswith("in "):
-                amount = number(match[1])
-                deadline = now + (
-                    timedelta(days=amount)
-                    if match[2].startswith("day")
-                    else timedelta(hours=amount)
-                )
-            elif phrase.startswith("by "):
-                day = phrase[3:]
-                if day in WEEKDAYS:
-                    deadline = now + timedelta(days=(WEEKDAYS.index(day) - now.weekday()) % 7)
-                else:
-                    deadline = datetime.fromisoformat(day).replace(tzinfo=local)
-                deadline = deadline.replace(hour=23, minute=59, second=59, microsecond=0)
-            else:
-                deadline = (now + timedelta(days=int(phrase == "tomorrow"))).replace(
-                    hour=23, minute=59, second=59, microsecond=0
-                )
-            spans.append(Reading(span=match.span(), kind="deadline"))
-            deadline = deadline.astimezone(UTC)
-        except ValueError, OverflowError:
-            deadline = None
-    roles: dict[str, Role] = {}
-    # Counts tied to people/roles, never durations or quantities of requested objects.
-    role_pattern = re.compile(
-        rf"\b({NUMBER})\s+(of us|people|members?|participants?|labs?|couriers?|"
-        r"teams?|volunteers?|organizers?|drivers?|reviewers?|groups?|businesses|business)\b",
-        re.I,
-    )
-    for role_match in role_pattern.finditer(goal):
-        label = role_match[2].lower()
-        label = "member" if label in {"of us", "people", "participants", "participant"} else label
-        label = "business" if label == "businesses" else label
-        if label.endswith("s") and label != "business":
-            label = label[:-1]
-        count = min(number(role_match[1]), 10000)
-        if count < 1:
-            continue
-        if label in roles:
-            roles[label].count = min(10000, roles[label].count + count)
-        else:
-            roles[label] = Role(id=label, label=label, count=count)
-        spans.extend(
-            [
-                Reading(span=role_match.span(1), kind="count"),
-                Reading(span=role_match.span(2), kind="role"),
-            ]
-        )
-    needs: list[str] = []
-    need = re.search(
-        r"\b(?:need|needs|want|wants)\s+(?:to\s+)?(.+?)(?=\s+(?:by|in)\b|\s+tonight\b|\s+today\b|\s+tomorrow\b|[.!?]?$)",
-        goal,
-        re.I,
-    )
-    if need:
-        needs.append(need[1].strip())
-        spans.append(Reading(span=need.span(1), kind="need"))
-    return DraftResponse(
-        draft=Draft(
-            goal=goal,
-            roles=list(roles.values()) or [Role(id="member", label="member", count=1)],
-            needs=needs,
-            deadline=deadline,
-        ),
-        source="reader",
-        reading=spans,
-    )
-
-
-async def draft_goal(
-    goal: str, gateway: ModelGateway, utc_offset_minutes: int | None = None
-) -> DraftResponse:
-    fallback = read_goal(goal, utc_offset_minutes=utc_offset_minutes)
-    local_now = datetime.now(UTC).astimezone(timezone(timedelta(minutes=utc_offset_minutes or 0)))
-    if not os.environ.get("COALITIONKIT_META_API_KEY"):
-        return fallback
-    try:
-        async with asyncio.timeout(MODEL_DRAFT_BUDGET_S):
-            reply = await gateway.complete(
-                "gardener",
-                [
-                    {
-                        "role": "system",
-                        "content": "Read a coalition goal into the requested JSON schema. "
-                        "Preserve the goal exactly. "
-                        "Use character offsets into that goal for reading spans. Give deadlines in "
-                        "UTC, reading day words in the writer's local time, now "
-                        f"{local_now.isoformat()}. "
-                        "Default role member, count 1. "
-                        "Use deciders all, pack null, source model. Never invent a deadline.",
-                    },
-                    {"role": "user", "content": fallback.draft.goal},
-                ],
-                response_schema=ModelDraft,
-                reasoning_effort="minimal",  # a short extraction; the reader answers otherwise
-            )
-            result = DraftResponse.model_validate(
-                ModelDraft.model_validate_json(reply.text).model_dump()
-            )
-            if result.draft.goal != fallback.draft.goal:
-                raise ValueError("model changed goal")
-            result.source = "model"
-            return result
-    except Exception:
-        return fallback
 
 
 async def enroll_member(server: Server, redeemed: Document, role: str = "member") -> None:
@@ -357,6 +142,51 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             raise HTTPException(422, "pack is not installed")
         return pack
 
+    mount_drafting(app, server, gate, chosen_pack)
+    mount_start(app, server, gate, chosen_pack, mutation)
+
+    @app.post("/v1/invitations", dependencies=[Depends(gate)])
+    async def issue(request: Request, body: Invitations) -> Document:
+        async with mutation:
+            coalition = owner(request)
+            return {
+                "invitations": [
+                    registry.issue_invitation(coalition, body.kind) for _ in range(body.count)
+                ]
+            }
+
+    @app.delete("/v1/invitations/{identifier}", dependencies=[Depends(gate)], status_code=204)
+    async def revoke(request: Request, identifier: str) -> Response:
+        registry.revoke_invitation(owner(request), identifier)
+        return Response(status_code=204)
+
+    @app.post("/v1/invitations/accept", dependencies=[Depends(gate)])
+    async def accept(body: Accept) -> Document:
+        async with mutation:
+            try:
+                redeemed = registry.redeem(body.invitation, server.ports, None, None)
+                roles = server.hosts[redeemed["coalition_id"]].state.charter["roles"]
+                await enroll_member(server, redeemed, roles[0]["id"])
+            except ValueError, KeyError:
+                raise HTTPException(400, "invitation refused") from None
+            return {
+                **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
+                "host_key": public_key_to_jwk(server.key.public_key(), "host"),
+            }
+
+    @app.post("/v1/coalition/dissolve", dependencies=[Depends(gate)], response_model=None)
+    async def dissolve(request: Request, body: Dissolve) -> Document | JSONResponse:
+        async with mutation:
+            coalition = owner(request, retry=True)
+            return dissolve_coalition(server, coalition, body.reason)
+
+
+def mount_drafting(
+    app: FastAPI,
+    server: Server,
+    gate: Callable[[Request], None],
+    chosen_pack: Callable[[PackRef], Pack],
+) -> None:
     @app.get("/v1/packs", dependencies=[Depends(gate)])
     async def packs(request: Request) -> list[Document]:
         if server.settings.genesis == "admin":
@@ -401,6 +231,16 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             result.draft.roles = roles
         return result
 
+
+def mount_start(
+    app: FastAPI,
+    server: Server,
+    gate: Callable[[Request], None],
+    chosen_pack: Callable[[PackRef], Pack],
+    mutation: asyncio.Lock,
+) -> None:
+    registry = server.registry
+
     @app.post("/v1/genesis/start", dependencies=[Depends(gate)])
     async def start(request: Request, body: Start) -> Document:
         # Start authentication always requires a single-use code, including admin deployments.
@@ -440,47 +280,22 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             registry.record_owner(
                 created["coalition_id"], redeemed["participant"], redeemed["token"]
             )
+            with server.store.transaction(created["coalition_id"]) as tx:
+                tx.execute(
+                    "INSERT INTO server_genesis VALUES (?, ?, ?)",
+                    (
+                        created["coalition_id"],
+                        redeemed["participant"],
+                        json.dumps(body.draft.needs),
+                    ),
+                )
+            server.gardener.start(created["coalition_id"])
             return {
                 "coalition_id": created["coalition_id"],
                 "owner": {"participant": redeemed["participant"], "token": redeemed["token"]},
                 # The key members pin at join; the browser verifies the log against it.
                 "host_key": created["host_key"],
             }
-
-    @app.post("/v1/invitations", dependencies=[Depends(gate)])
-    async def issue(request: Request, body: Invitations) -> Document:
-        async with mutation:
-            coalition = owner(request)
-            return {
-                "invitations": [
-                    registry.issue_invitation(coalition, body.kind) for _ in range(body.count)
-                ]
-            }
-
-    @app.delete("/v1/invitations/{identifier}", dependencies=[Depends(gate)], status_code=204)
-    async def revoke(request: Request, identifier: str) -> Response:
-        registry.revoke_invitation(owner(request), identifier)
-        return Response(status_code=204)
-
-    @app.post("/v1/invitations/accept", dependencies=[Depends(gate)])
-    async def accept(body: Accept) -> Document:
-        async with mutation:
-            try:
-                redeemed = registry.redeem(body.invitation, server.ports, None, None)
-                roles = server.hosts[redeemed["coalition_id"]].state.charter["roles"]
-                await enroll_member(server, redeemed, roles[0]["id"])
-            except ValueError, KeyError:
-                raise HTTPException(400, "invitation refused") from None
-            return {
-                **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
-                "host_key": public_key_to_jwk(server.key.public_key(), "host"),
-            }
-
-    @app.post("/v1/coalition/dissolve", dependencies=[Depends(gate)], response_model=None)
-    async def dissolve(request: Request, body: Dissolve) -> Document | JSONResponse:
-        async with mutation:
-            coalition = owner(request, retry=True)
-            return dissolve_coalition(server, coalition, body.reason)
 
 
 def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document | JSONResponse:

@@ -363,7 +363,9 @@ async def test_model_draft_becomes_a_host_draft_response() -> None:
     assert isinstance(result, DraftResponse)
     assert result.source == "model" and result.draft.roles[0].count == 9
     assert result.suggested is None and result.vocabulary == {}
-    assert [r.span for r in result.reading] == [(0, 4)]  # the span past the goal is dropped
+    # The span past the goal is dropped; the reader fills the deadline the model left out.
+    assert [r.span for r in result.reading] == [(0, 4), (32, 40)]
+    assert result.draft.deadline == read_goal(goal).draft.deadline is not None
 
 
 @pytest.mark.live
@@ -507,3 +509,34 @@ def test_day_words_follow_the_writers_time_zone() -> None:
     assert tonight.deadline == datetime(2026, 11, 5, 22, 59, 59, tzinfo=UTC)
     past_midnight = read_goal("Two members need a plan tonight", now, utc_offset_minutes=120)
     assert past_midnight.draft.deadline == datetime(2026, 11, 6, 21, 59, 59, tzinfo=UTC)
+
+
+async def test_reader_fills_needs_the_model_left_out() -> None:
+    goal = "Two members need a shared room by tomorrow"
+    reply = {
+        "draft": {
+            "goal": goal,
+            "roles": [{"id": "member", "label": "member", "count": 2}],
+            "needs": [],
+            "deadline": None,
+            "pack": None,
+            "utc_offset_minutes": None,
+            "deciders": "all",
+        },
+        "source": "model",
+        "reading": [{"span": [0, 3], "kind": "count"}],
+    }
+    gateway = ModelGateway(
+        ModelSettings(), transport=FakeModel([ScriptedResponse(json.dumps(reply))])
+    )
+    try:
+        with patch.dict(os.environ, {"COALITIONKIT_META_API_KEY": "test-not-a-real-key"}):
+            result = await draft_goal(goal, gateway)
+    finally:
+        await gateway.aclose()
+    reader = read_goal(goal)
+    assert result.source == "model" and result.draft.roles[0].count == 2
+    assert result.draft.needs == reader.draft.needs == ["a shared room"]
+    assert result.draft.deadline == reader.draft.deadline is not None
+    kinds = sorted(r.kind for r in result.reading)
+    assert kinds == ["count", "deadline", "need"]
