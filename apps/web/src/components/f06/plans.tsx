@@ -262,14 +262,15 @@ export function TensionCard({
         {deadline && open && (
           <span className="h-right num small" style={{ color: "var(--warn-fg)" }}>
             decide by{" "}
+            {/* An ISO timestamp is shown with its day; friendly text is shown as given. */}
             <time dateTime={deadline}>
-              {Number.isNaN(Date.parse(deadline))
-                ? deadline
-                : new Date(deadline).toLocaleTimeString("en-GB", {
+              {/^\d{4}-\d{2}-\d{2}T/.test(deadline) && !Number.isNaN(Date.parse(deadline))
+                ? new Date(deadline).toLocaleString(undefined, {
+                    weekday: "short",
                     hour: "2-digit",
                     minute: "2-digit",
-                    timeZone: "UTC",
-                  })}
+                  })
+                : deadline}
             </time>
           </span>
         )}

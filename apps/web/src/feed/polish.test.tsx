@@ -110,22 +110,13 @@ describe("one choice is one ask", () => {
     expect(screen.getAllByText("Choose a plan · A or B")).toHaveLength(2);
     expect(screen.queryByText(/Review plan/)).toBeNull();
   });
-  it("answers the tension with the chosen option and approves only that plan", async () => {
+  it("answers the tension once; the host decides the chosen plan (spec rule 5)", async () => {
     const onAnswer = vi.fn();
-    render(
-      <TrustedRequest
-        request={open[2] as OpenRequest}
-        state={state}
-        onAnswer={onAnswer}
-        related={[open[0] as OpenRequest, open[1] as OpenRequest]}
-      />,
-    );
+    render(<TrustedRequest request={open[2] as OpenRequest} state={state} onAnswer={onAnswer} />);
     await userEvent.click(screen.getByRole("radio", { name: /Plan B/ }));
     await userEvent.click(screen.getByRole("button", { name: /Choose/ }));
-    // The host records assignments only for a decided plan; plan A is superseded by the host.
     expect(onAnswer.mock.calls.map((c) => c[0])).toEqual([
       { interrupt_id: "tension_option:t1:1:p1", consent: true, choice: "planB" },
-      { interrupt_id: "plan:planB:1:p1", consent: true },
     ]);
   });
 });

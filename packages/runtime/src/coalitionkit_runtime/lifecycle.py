@@ -264,24 +264,26 @@ class State:
                             self.set_status(item["tasks"], "committed")
             return
         outcome = tally(subject["deciders"], subject["answers"])
+        winner: str | None = None
         if kind == "tension_option":
             choices = subject.setdefault("choices", {})
             choices[owner] = (body["consent"], body["choice"])
-            outcome, _ = tally_choice(subject["deciders"], choices)
+            outcome, winner = tally_choice(subject["deciders"], choices)
         if outcome in {"refused", "split"}:
             if kind != "commitment":
                 subject["status"] = "refused"
             self.replan(subject["tasks"])
         elif outcome == "decided":
             subject["status"] = "decided"
+            # A tension whose options are plans decides the chosen plan (spec, rule 5).
+            assignments = subject.get("assignments", [])
+            chosen_plan = self.subject("plan", winner) if winner else {}
+            if chosen_plan and chosen_plan.get("status") not in {"superseded", "refused"}:
+                chosen_plan["status"] = "decided"
+                assignments = chosen_plan.get("assignments", [])
+                self._supersede_others(chosen_plan)
             if kind == "plan":
-                for other in self.subjects.values():
-                    if (
-                        other is not subject
-                        and other["kind"] == "plan"
-                        and other.get("proposal_set_id") == subject["proposal_set_id"]
-                    ):
-                        other["status"] = "superseded"
+                self._supersede_others(subject)
             if kind == "commitment":
                 subject["status"] = "approved"
                 if not subject["suspended"]:
@@ -289,11 +291,20 @@ class State:
                     self.stage = "Live"
             else:
                 self.set_status(subject["tasks"], "decided")
-                for assignment in subject.get("assignments", []):
+                for assignment in assignments:
                     task = self.tasks[assignment["task_id"]]
                     task["assignee"] = assignment["assignee"]
                     self.subject("task", assignment["task_id"])["deciders"] = [task["assignee"]]
                 self.stage = "Act"
+
+    def _supersede_others(self, plan: Document) -> None:
+        for other in self.subjects.values():
+            if (
+                other is not plan
+                and other["kind"] == "plan"
+                and other.get("proposal_set_id") == plan.get("proposal_set_id")
+            ):
+                other["status"] = "superseded"
 
     def replan(self, ids: list[str]) -> None:
         for identifier in ids:

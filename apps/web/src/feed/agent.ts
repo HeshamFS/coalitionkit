@@ -49,7 +49,10 @@ export class AgentStore {
 
   syncRefusals(value: unknown) {
     if (!Array.isArray(value)) return;
-    const last = value.at(-1) as { code?: string; type?: string } | undefined;
+    // Only the viewer's own answers belong in the answer banner; blocks of the agent's own
+    // messages are shown in the Agents view with their policy.
+    const own = value.filter((r) => (r as { type?: string }).type === "coalition.decide");
+    const last = own.at(-1) as { code?: string; type?: string } | undefined;
     const key = JSON.stringify([value.length, last]);
     if (key !== this.lastRefusal) {
       this.lastRefusal = key;

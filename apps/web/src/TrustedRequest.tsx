@@ -17,7 +17,6 @@ export function TrustedRequest({
   state,
   onAnswer,
   onSeePlans,
-  related = [],
 }: {
   request: OpenRequest;
   state: ViewerState | null;
@@ -25,8 +24,6 @@ export function TrustedRequest({
     | ((answer: Answer) => void)
     | ((answer: Answer) => Promise<ConsentAcknowledgement | undefined>);
   onSeePlans?: () => void;
-  /** The viewer's other open requests: choosing a tension option also approves that plan. */
-  related?: OpenRequest[];
 }) {
   const [declined, setDeclined] = useState<string>();
   const [problem, setProblem] = useState<string | null>(null);
@@ -56,19 +53,7 @@ export function TrustedRequest({
           title={request.message}
           options={view.options.map((o) => ({ ...o, tradeoffs: [] }))}
           deadline={request.expiresAt}
-          onChoose={(option) => {
-            send(true, option);
-            // Only a decided plan records who does what; the other plans are then superseded by
-            // the host, so no "no" is sent to them.
-            const plan = related.find((r) => r.kind === "plan" && r.subjectId === option);
-            if (plan) {
-              try {
-                onAnswer(answerFor(plan, true));
-              } catch (error) {
-                setProblem(error instanceof Error ? error.message : "could not approve the plan");
-              }
-            }
-          }}
+          onChoose={(option) => send(true, option)}
         />
         {view.tradeoffs.length > 0 && (
           <ul className="small" aria-label="Trade-offs">

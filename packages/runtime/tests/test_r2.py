@@ -273,3 +273,54 @@ def test_expired_read_closes_requests(world: World) -> None:
             "SELECT status FROM consents WHERE subject_id = ?", (identifier,)
         ).fetchall()
     assert rows and all(row[0] != "pending" for row in rows)
+
+
+def test_choosing_a_plan_option_decides_that_plan(world: World) -> None:
+    task = world.need().accepted["payload"]["need_id"]
+    world.query(task, "alice")
+    proposal = accepted(
+        world.host.host_emit(
+            "propose",
+            {
+                "proposal_set_id": new_ulid(),
+                "decision_deadline": "2026-10-29T12:00:00Z",
+                "plans": [
+                    {
+                        "assignments": [{"task_id": task, "assignee": "alice"}],
+                        "objective_scores": {},
+                    },
+                    {"assignments": [{"task_id": task, "assignee": "bob"}], "objective_scores": {}},
+                ],
+            },
+            PUBLIC,
+        )
+    )
+    assert proposal.accepted is not None
+    first, second = (p["plan_id"] for p in proposal.accepted["payload"]["plans"])
+    offered = accepted(
+        world.host.host_emit(
+            "tension",
+            {
+                "task_ids": [task],
+                "options": [
+                    {"option_id": first, "summary": "First plan"},
+                    {"option_id": second, "summary": "Second plan"},
+                ],
+                "tradeoffs": [],
+                "deciders": ["alice", "bob"],
+                "decision_deadline": "2026-10-28T13:00:00Z",
+            },
+            PUBLIC,
+        )
+    )
+    assert offered.accepted is not None
+    identifier = offered.accepted["payload"]["tension_id"]
+    for member in (world.alice, world.bob):
+        accepted(
+            member.send("decide", member.decision("tension_option", identifier, choice=second))
+        )
+    state = world.host.state
+    assert state.subject("plan", second)["status"] == "decided"
+    assert state.subject("plan", first)["status"] == "superseded"
+    assert state.tasks[task]["status"] == "decided"
+    assert state.tasks[task]["assignee"] == "bob"

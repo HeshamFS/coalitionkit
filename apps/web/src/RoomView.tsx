@@ -86,7 +86,6 @@ export function RoomView() {
         expiresAt: humanTime(open.expiresAt) || undefined,
       }}
       state={feed.state}
-      related={agent.requests.filter((r) => r.id !== open.id)}
       onAnswer={async (a) => {
         const ack = await answer(a);
         if (ack && a.consent) setSigned({ question: sheetFor(open, feed.state).question, ...ack });
