@@ -1,0 +1,32 @@
+goal: "Three members need tasks"
+members:
+  - {role: member, vault: {canary: "PRIVATE-MEMBER-1"}}
+  - {role: member, vault: {canary: "PRIVATE-MEMBER-2"}}
+  - {role: member, vault: {canary: "PRIVATE-MEMBER-3", free: [slot]}, absent: true}
+businesses:
+  - {role: member, card: {name: Slot}}
+offers:
+  - member: p2
+    need: 0
+    offer: {capacity: 1, cost: {minutes: 1, money: 0, effort: low}, valid_until: "2099-01-01T00:00:00Z"}
+  - member: p3
+    need: 1
+    offer: {capacity: 1, cost: {minutes: 1, money: 0, effort: low}, valid_until: "2099-01-01T00:00:00Z"}
+expect:
+  allocation: {0: p2, 1: p3}
+  fairness: {max_share_ratio: 2}
+  commitments_signed_by_owner: true
+  agent_only_yes_refused: true
+  distinguishing:
+    absent_answered: {member: p3, answer: yes}
+  change: {by: p2, invalidates: [0], affected: [0], untouched: [1]}
+  policy_probe:
+    by: p1
+    type: coalition.observe
+    payload: {source: chat, content: task-block}
+    outcome: block
+    policy_id: task-policy
+  dissolve: {reason: completed, lessons: 1}
+  canaries_leaked: 0
+  max_messages: 200
+

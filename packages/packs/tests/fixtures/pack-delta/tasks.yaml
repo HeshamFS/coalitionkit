@@ -1,0 +1,3 @@
+templates:
+  - {id: task-one, title: Task one}
+  - {id: task-two, title: Task two}

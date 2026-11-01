@@ -1,0 +1,1 @@
+{"template":"device","name":"Slot","fields":[{"id":"slot","unit":"slot","threshold":1.0}],"interval_seconds":60}
