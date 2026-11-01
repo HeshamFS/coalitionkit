@@ -6,7 +6,7 @@ import type { ConsentAcknowledgement } from "../components/f08/ConsentSeal";
 import { TrustedConsentSeal } from "../components/f08/ConsentSeal";
 import type { OpenRequest } from "../feed/agent";
 import type { ViewerState } from "../feed/delta";
-import { derivePlans, deriveRoom } from "../feed/derive";
+import { commitmentTask, derivePlans, deriveRoom } from "../feed/derive";
 import "./consent.css";
 
 type Sheet = { question: string; yes: string[]; privateNote: string };
@@ -39,12 +39,11 @@ export function sheetFor(request: OpenRequest, state: ViewerState | null): Sheet
     };
   }
   if (request.kind === "commitment") {
+    const part =
+      commitmentTask(state, request.subjectId)?.description || "your part in the chosen plan";
     return {
       question: "Commit to your part?",
-      yes: [
-        `You commit to: ${request.message}`,
-        "The people working with you see that you committed",
-      ],
+      yes: [`You commit to: ${part}`, "The people working with you see that you committed"],
       privateNote,
     };
   }
