@@ -213,10 +213,14 @@ async def run_suite(
             passed = await rejected(client, operation, arguments, expected)
             results.append(AttackResult(name, not control.is_error and passed, expected))
         for index, attack in enumerate(extra.cases):
-            arguments: Any = json.loads(attack.arguments_json)
-            if not isinstance(arguments, dict):
-                raise ValueError("Steward attack arguments must be an object")
             call = attack.tool + " " + attack.arguments_json[:200]
+            try:
+                arguments: Any = json.loads(attack.arguments_json)
+            except ValueError:
+                arguments = None
+            if not isinstance(arguments, dict):  # no tool call can carry it: nothing to prove
+                results.append(AttackResult(f"steward {index}", True, "not an attack: " + call))
+                continue
             if not_an_attack(config, attack.tool, cast("dict[str, Any]", arguments)):
                 results.append(AttackResult(f"steward {index}", True, "not an attack: " + call))
                 continue

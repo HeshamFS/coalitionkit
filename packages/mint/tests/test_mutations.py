@@ -95,10 +95,18 @@ async def test_policy_mutations(
         results = await run_suite(
             sandbox,
             config,
-            Attacks(cases=[Attack(tool="write", arguments_json="{}")]),
+            Attacks(
+                cases=[
+                    Attack(tool="write", arguments_json="{}"),
+                    Attack(tool="hold_slot", arguments_json="{'start': 1}"),  # not JSON
+                    Attack(tool="hold_slot", arguments_json="[1]"),  # not an object
+                ]
+            ),
             owner,
             manifest,
         )
+        skipped = [r for r in results if r.log.startswith("not an attack: hold_slot")]
+        assert len(skipped) == 2 and all(r.passed for r in skipped)
         failures = {r.name for r in results if not r.passed}
         if failed == "controls":
             assert {
