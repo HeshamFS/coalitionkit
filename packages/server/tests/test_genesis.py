@@ -263,8 +263,11 @@ def test_local_guards(client: TestClient) -> None:
 def test_a_browser_same_origin_get_lists_packs(client: TestClient) -> None:
     # What a browser sends for fetch("/v1/packs") from the host's own page: no Origin header.
     client.headers.pop("origin")
-    browser = {"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "cors"}
+    browser = {"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "cors", "Host": "127.0.0.1:8000"}
     assert client.get("/v1/packs", headers=browser).status_code == 200
+    # DNS rebinding: the browser calls the page same-origin, but the Host is not the host's own.
+    rebound = {**browser, "Host": "rebound.example:8000"}
+    assert client.get("/v1/packs", headers=rebound).status_code == 403
     for site in ("cross-site", "same-site", "none"):
         assert client.get("/v1/packs", headers={"Sec-Fetch-Site": site}).status_code == 403
     assert client.get("/v1/packs").status_code == 403

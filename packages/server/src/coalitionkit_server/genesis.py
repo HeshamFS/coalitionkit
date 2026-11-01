@@ -10,6 +10,7 @@ import re
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Literal
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
@@ -121,7 +122,12 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
         origin = request.headers.get("origin")
         if origin is not None:
             return origin == server.settings.public_base_url
-        return request.method == "GET" and request.headers.get("sec-fetch-site") == "same-origin"
+        # The Host check keeps a DNS-rebound page (same-origin to the browser) out.
+        return (
+            request.method == "GET"
+            and request.headers.get("sec-fetch-site") == "same-origin"
+            and request.headers.get("host") == urlsplit(server.settings.public_base_url).netloc
+        )
 
     def owner(request: Request, retry: bool = False) -> str:
         authorization = request.headers.get("authorization", "")
