@@ -7,7 +7,7 @@ import asyncio
 import json
 import time
 from collections import deque
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import suppress
 from typing import Any, Protocol, cast
 
@@ -47,7 +47,11 @@ class SurfaceHub:
         sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
         poll_interval: float = 0.5,
         max_ticks: int | None = None,
+        pack_state: Callable[[], Document | None] | None = None,
+        pack_catalog: Callable[[], Catalog | None] | None = None,
+        pack_views: Callable[[], Mapping[str, Mapping[str, tuple[str, ...]]]] | None = None,
     ) -> None:
+        self.pack_state, self.pack_catalog, self.pack_views = pack_state, pack_catalog, pack_views
         self.host, self.auth, self.signer_for, self.catalog = host, auth, signer_for, catalog
         self.clock, self.new_id, self.sleep = clock, new_id, sleep
         self.poll_interval, self.max_ticks = poll_interval, max_ticks
@@ -180,7 +184,7 @@ class SurfaceHub:
         for session in self.feeds.get(viewer, []):
             session.step_finished(name)
 
-    def feed_session(self, viewer: str) -> FeedSession:
+    def feed_session(self, viewer: str, device: str = "wide") -> FeedSession:
         log: Document | None = None
 
         def extra_state(visible_changed: bool, reset: bool) -> Document:
@@ -189,7 +193,11 @@ class SurfaceHub:
             # neither advance nor re-sign the log's last visible prefix.
             retained = log["entries"] if log is not None and not reset else None
             log = self.log(viewer, fresh=reset, retained_entries=retained, advance=visible_changed)
-            return {"log": log, "refusals": self.refusals.get(viewer, [])}
+            state: Document = {"log": log, "refusals": self.refusals.get(viewer, [])}
+            pack = self.pack_state() if self.pack_state else None
+            if pack is not None:
+                state["pack"] = pack
+            return state
 
         agent = AgentSession(
             self.host,
@@ -203,7 +211,10 @@ class SurfaceHub:
             viewer,
             clock=self.clock,
             new_id=self.new_id,
-            catalog=self.catalog,
+            catalog=self.pack_catalog() if self.pack_catalog else self.catalog,
+            views=self.pack_views() if self.pack_views else None,
+            roles=self.host.state.members.get(viewer, {}).get("roles_requested", []),
+            device=device,
             extra_state=extra_state,
             agent=agent,
         )

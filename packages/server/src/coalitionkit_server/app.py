@@ -7,7 +7,7 @@ import secrets
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
@@ -17,21 +17,24 @@ from starlette.types import Receive, Scope, Send
 
 from coalitionkit_contracts import new_ulid, public_key_to_jwk, validate_payload
 from coalitionkit_edges.a2a import HostSigner, create_host_app
+from coalitionkit_edges.a2a.identity import CardError
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
 from coalitionkit_models import ModelGateway
 from coalitionkit_models.settings import ROLES
+from coalitionkit_packs import Pack
+from coalitionkit_packs.views import extend_catalog
 from coalitionkit_runtime import Acknowledgement, CoalitionHost, PostgresStore, SQLiteStore
 from coalitionkit_runtime.host import utc_now
 from coalitionkit_runtime.pool import PoolBusy, StoreUnavailable
 from coalitionkit_steward import Steward
-from coalitionkit_surfaces import SurfaceHub
+from coalitionkit_surfaces import SurfaceHub, load_catalog
 from coalitionkit_surfaces.app import create_app as surfaces_app
 
 from .adapter import Document, HostPort
 from .audit import AuditLoop, StewardAdapter, gateway
 from .mcp_port import MCPPort
-from .packs import bind_runtime, install_packs
+from .packs import bind_runtime, install_packs, mint_templates, surface_pack
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
@@ -76,6 +79,38 @@ class Server:
             self.attach(coalition)
         self.registry.restore(self.ports)
 
+    def bound_pack(self, coalition: str) -> Pack | None:
+        ref = self.hosts[coalition].state.charter.get("pack")
+        return self.packs.get((ref["name"], ref["version"])) if ref else None
+
+    def mint_templates(self, coalition: str) -> Any:
+        pack = self.bound_pack(coalition)
+        if pack is None:
+            raise ValueError("Coalition has no bound pack")
+        return mint_templates(pack, coalition, self.settings.pack_trusted_keys)
+
+    def enroll_minted(self, coalition: str, minted: Any) -> Document:
+        """Registration seam: proof and owner approval precede business-card admission."""
+        import importlib
+
+        artifact = importlib.import_module("coalitionkit_mint.artifact")
+        if minted.coalition_id != coalition or not minted.template_name:
+            raise ValueError("Mint artifact belongs to another Coalition")
+        entry = self.mint_templates(coalition).resolve(coalition, minted.template_name)
+        config, _, digest = artifact.load(minted.folder)
+        if (
+            digest != minted.manifest_hash
+            or config != entry.config()
+            or not minted.attacks
+            or not all(a.passed for a in minted.attacks)
+        ):
+            raise ValueError("Mint proof does not match the bound template")
+        card = json.loads((minted.folder / "agent-card.json").read_text(encoding="utf-8"))
+        invite = self.registry.issue_invitation(coalition, "business")
+        return self.registry.redeem(
+            invite["link"].split("#", 1)[1], self.ports, minted.sandbox.url, card
+        )
+
     def attach(self, coalition: str) -> CoalitionHost:
         host = CoalitionHost(
             self.store, coalition, self.signer.card_url, self.key, "host", steward=self.steward
@@ -83,10 +118,26 @@ class Server:
         bind_runtime(host, self.packs)
         self.hosts[coalition] = host
         self.ports[coalition] = HostPort(host)
+        core_catalog = load_catalog(self.settings.catalog_file) if self.packs else None
+
+        def pack_state() -> Document | None:
+            pack = self.bound_pack(coalition)
+            return surface_pack(pack) if pack else None
+
         hub = SurfaceHub(
             host,
             ViewerAuth(self.registry, host),
             lambda participant: OwnerSigner(self.registry, coalition, participant),
+            catalog=core_catalog,
+            pack_state=pack_state,
+            pack_catalog=lambda: (
+                extend_catalog(
+                    core_catalog, [pack.components] if (pack := self.bound_pack(coalition)) else []
+                )
+                if core_catalog
+                else None
+            ),
+            pack_views=lambda: pack.views.order if (pack := self.bound_pack(coalition)) else {},
         )
         self.surfaces[coalition] = surfaces_app(hub)
         self.ports[coalition].on_refusal = hub.refused
@@ -204,6 +255,21 @@ def admin_routes(app: FastAPI, server: Server) -> None:
             raise HTTPException(404)
         return {"invitation": server.registry.issue(coalition, body.participant)}
 
+    @app.post("/admin/coalitions/{coalition}/connectors")
+    def connector_invite(request: Request, coalition: str, body: Document) -> Document:
+        admin(request, server.settings)
+        if coalition not in server.hosts:
+            raise HTTPException(404)
+        pack = server.bound_pack(coalition)
+        if (
+            pack is None
+            or body.get("pack") != {"name": pack.name, "version": pack.manifest.version}
+            or body.get("connector") not in {c.name for c in pack.manifest.connectors or []}
+        ):
+            raise HTTPException(422, "connector is not declared by this Coalition's pack")
+        invite = server.registry.issue_invitation(coalition, "business")
+        return {"invitation": invite["link"]}
+
     @app.get("/admin/status")
     def status(request: Request) -> Document:  # pyright: ignore[reportUnusedFunction]
         admin(request, server.settings)
@@ -224,6 +290,10 @@ def admin_routes(app: FastAPI, server: Server) -> None:
             return server.registry.redeem(
                 body.invitation.get_secret_value(), server.ports, body.card_url, body.card
             )
+        except CardError as exc:
+            raise HTTPException(400, "card refused: " + exc.reason) from None
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
         except Exception:
             raise HTTPException(400, "invitation or card refused") from None
 

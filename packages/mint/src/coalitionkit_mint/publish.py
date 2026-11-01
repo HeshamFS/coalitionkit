@@ -60,7 +60,7 @@ def publish(
                         "owner_id": manifest["owner_id"],
                         "manifest_hash": manifest_hash,
                     },
-                    "Mint artifact; Coalition membership is not implemented",
+                    "Mint artifact; admission requires a Coalition invitation",
                 )
             ]
         ),
@@ -100,6 +100,8 @@ class Minted:
     regions: list[str] = field(default_factory=list[str])
 
     stage_seconds: dict[str, float] = field(default_factory=dict[str, float])
+    coalition_id: str | None = None
+    template_name: str | None = None
 
     def approve(self, signature: str, owner: Ed25519PrivateKey) -> None:
         started = time.monotonic()

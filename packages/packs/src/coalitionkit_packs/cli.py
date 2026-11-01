@@ -1,14 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
-"""``coalitionkit-pack validate|sign|verify|eval <dir>``. Exit 0 ok, 1 failed, 2 bad usage."""
+"""Pack validation, signing, evaluation and isolated connectors.
+
+Exit 0 ok, 1 failed, 2 bad usage.
+"""
 
 from __future__ import annotations
 
 import argparse
 import importlib
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from collections.abc import Sequence
+from contextlib import ExitStack
 from pathlib import Path
+from urllib.request import Request, urlopen
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -21,6 +29,7 @@ from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_surfaces import load_catalog
 
 from .errors import PackError
+from .files import take_snapshot
 from .loader import inspect_pack
 from .signing import sign_pack, verify_pack, verify_pack_embedded
 
@@ -28,6 +37,12 @@ from .signing import sign_pack, verify_pack, verify_pack_embedded
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="coalitionkit-pack", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    connectors = sub.add_parser("connectors", help="print or isolate pack connectors")
+    connectors.add_argument("directory", type=Path)
+    connectors.add_argument("--host", required=True)
+    connectors.add_argument("--coalition", required=True)
+    connectors.add_argument("--run", action="store_true")
+    connectors.add_argument("--image", default="python:3.15-slim")
     evaluate = sub.add_parser("eval", help="run scripted pack scenarios on a host")
     evaluate.add_argument("directory", type=Path)
     evaluate.add_argument("--live", action="store_true")
@@ -61,6 +76,8 @@ def _trusted(path: Path) -> dict[str, Ed25519PublicKey]:
 
 def _run(args: argparse.Namespace) -> int:
     directory: Path = args.directory
+    if args.command == "connectors":
+        return run_connectors(args)
     if args.command == "eval":
         runner = importlib.import_module("coalitionkit_acceptance.pack_evals")
         return runner.command(
@@ -98,6 +115,114 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, ValueError, KeyError, SignatureError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+
+
+def connector_environment() -> dict[str, str]:
+    """The container launcher gets no ambient host configuration or credentials."""
+    allowed = {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP"}
+    return {key: value for key, value in os.environ.items() if key.upper() in allowed}
+
+
+def connector_command(
+    image: str, folder: Path, name: str, command: list[str], invitation: str
+) -> list[str]:
+    return [
+        "docker",
+        "run",
+        "--rm",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--user=65534:65534",
+        "--pids-limit=64",
+        "--memory=256m",
+        "--cpus=1",
+        "--mount",
+        f"type=bind,source={folder},target=/pack,readonly",
+        "--tmpfs",
+        "/tmp:rw,noexec,nosuid,size=32m,mode=1777",
+        "--workdir",
+        f"/pack/connectors/{name}",
+        "--entrypoint",
+        "/usr/bin/env",
+        image,
+        "-i",
+        "PATH=/usr/local/bin:/usr/bin:/bin",
+        "HOME=/tmp",
+        "TMPDIR=/tmp",
+        *command,
+        invitation,
+    ]
+
+
+def run_connectors(args: argparse.Namespace) -> int:
+    pack = inspect_pack(args.directory)
+    for connector in pack.manifest.connectors or []:
+        print(
+            json.dumps(
+                {
+                    "name": connector.name,
+                    "command": connector.command,
+                    "cwd": f"connectors/{connector.name}",
+                }
+            )
+        )
+    if not args.run:
+        return 0
+    env = connector_environment()
+    probe = subprocess.run(["docker", "info"], env=env, capture_output=True, check=False)
+    if probe.returncode:
+        raise ValueError("connector isolation unavailable: Docker engine is required")
+    # The operator credential is used only by this parent, never passed to the child.
+    token = os.environ.get("COALITIONKIT_ADMIN_TOKEN", "")
+    processes: list[tuple[str, subprocess.Popen[bytes]]] = []
+    with ExitStack() as directories:
+        try:
+            for connector in pack.manifest.connectors or []:
+                request = Request(
+                    args.host.rstrip("/") + "/admin/coalitions/" + args.coalition + "/connectors",
+                    data=json.dumps(
+                        {
+                            "pack": {"name": pack.name, "version": pack.manifest.version},
+                            "connector": connector.name,
+                        }
+                    ).encode(),
+                    headers={
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json",
+                    },
+                )
+                with urlopen(request, timeout=30) as response:
+                    invitation = json.load(response)["invitation"]
+                temporary = directories.enter_context(tempfile.TemporaryDirectory())
+                folder = Path(temporary) / "pack"
+                # The bounded snapshot rejects links, junctions and escaping paths.
+                for relative, data in take_snapshot(pack.root).files.items():
+                    target = folder / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(data)
+                work = folder / "connectors" / connector.name
+                work.mkdir(parents=True, exist_ok=True)
+                process = subprocess.Popen(
+                    connector_command(
+                        args.image, folder, connector.name, connector.command, invitation
+                    ),
+                    env=env,
+                    cwd=work,
+                )
+                processes.append((connector.name, process))
+            failed = False
+            for name, process in processes:
+                code = process.wait()
+                if code:
+                    print(f"connector {name} refused or exited: {code}", file=sys.stderr)
+                    failed = True
+            return int(failed)
+        finally:
+            for _, process in processes:
+                if process.poll() is None:
+                    process.terminate()
+                    process.wait()
 
 
 if __name__ == "__main__":
