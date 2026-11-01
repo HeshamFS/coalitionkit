@@ -472,7 +472,7 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `core` | yes | The range of core versions it works with, such as `>=0.1,<0.2` |
 | `roles` | yes | Role IDs and what each may do: `charter`, `offer`, `decide`, `decide_own`, `commit` |
 | `vocabulary` | no | Words shown on screens for core objects (task, resource, need) |
-| `schemas` | no | JSON Schemas that extend the core payloads for needs, offers, tasks and resources |
+| `schemas` | no | JSON Schemas for the `ext` object of needs and offers (keys `need`, `offer`); the keys `task` and `resource` are accepted for later versions and not applied in v0.1 |
 | `policies` | no | Steward policy files |
 | `skills` | no | SKILL.md files loaded by agents that join |
 | `views` | no | Component order per role and device |
@@ -480,6 +480,7 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `connectors` | no | MCP servers the pack needs, run out of process |
 | `strategy` | no | Allocation strategy and fairness settings (see Strategy names below) |
 | `suggest` | no | How a host may offer this pack for a goal typed in plain language: `keywords` (lowercase words or short phrases) and `examples` (whole example goals), at most 50 of each. A host that suggests packs MUST also offer "no pack", and a suggestion never binds a pack by itself |
+| `lessons` | no | Lesson templates (Markdown with `{{placeholders}}` from a fixed set) the host fills from the log at Dissolve and writes as skills |
 | `evals` | yes | At least one scripted scenario |
 
 **A policy** is checked deterministically before the Steward's model audit:
@@ -519,12 +520,12 @@ expect:
 |---|---|
 | `roles` | The roles the charter may use and what each may do. A member's message needs an ability its role grants; otherwise `not_authorized` |
 | `vocabulary` | Words delivered to surfaces with each viewer's projection; never part of any signed payload |
-| `schemas` | Needs, offers, tasks and resources validate against the core schema and then the pack's extension; failing the extension is `schema_invalid`. A pack schema may reference only files in its own folder and the core schemas by their `https://coalitionkit.dev/schemas/` ids |
+| `schemas` | A pack adds fields to needs and offers only inside their `ext` object. The core schema validates the payload, then the pack's extension validates `ext`; failing it is `schema_invalid`. Without a bound pack, `ext` must be absent. A pack schema may reference only files in its own folder and the core schemas by their `https://coalitionkit.dev/schemas/` ids |
 | `policies` | Checked deterministically at step (12) of the check order, after every core check and before the Steward: `block` is `pack_violation` with the policy id; `escalate` holds the message (it does not count), tells the sender it was held with the policy id, and asks the sender's person to review it, who may revise and resubmit; `redact` adds the policy's paths to the event's `scope.redact` before it is stored; `allow` changes nothing. The most severe matching action wins |
 | `strategy` | The Gardener's allocation strategy and fairness settings for this Coalition |
 | `task_templates` | Needs the Gardener may draft first from the charter |
 | `views` | Component order per role and device for composed surfaces; components from the core catalog or the pack's catalog extension |
-| `skills` | Offered to every agent that joins (as an MCP resource and in the join reply); lessons written at Dissolve may use the pack's lesson templates and are listed in `skills_written` |
+| `skills`, `lessons` | Skills are offered to every agent that joins (an MCP resource `coalition://{id}/skills` and the join reply). At Dissolve the host fills each lesson template from the log (placeholders: `goal`, `members`, `tasks`, `allocation`, `decisions`, `changes`, `policy_outcomes`, `duration`) and stores the results as skills, scoped no wider than the events they came from, listed in `skills_written`, and offered to agents that join later Coalitions bound to the same pack. A Coalition without lesson templates writes one generic lesson from the same placeholders |
 | `mint` | Templates added to the Mint for this Coalition only; each template's tests run before a minted agent is enrolled |
 | `connectors` | Programs the operator runs out of process for this Coalition. A connector gets only a one-use invitation and joins like any business agent with a signed card; it never receives host settings, keys, tokens or access to the store or to vaults |
 

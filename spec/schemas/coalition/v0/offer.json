@@ -29,6 +29,10 @@
     },
     "valid_until": {
       "$ref": "common.json#/$defs/datetime"
+    },
+    "ext": {
+      "type": "object",
+      "description": "Fields a bound Discipline Pack adds; validated by that pack's extension schema. Absent when the Coalition has no pack."
     }
   }
 }
