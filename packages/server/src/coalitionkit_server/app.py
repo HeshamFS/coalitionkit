@@ -31,6 +31,7 @@ from coalitionkit_surfaces.app import create_app as surfaces_app
 from .adapter import Document, HostPort
 from .audit import AuditLoop, StewardAdapter, gateway
 from .mcp_port import MCPPort
+from .packs import install_packs
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
@@ -40,6 +41,9 @@ from .whatsapp import mount_whatsapp
 class Server:
     def __init__(self, settings: Settings, model_gateway: ModelGateway | None = None) -> None:
         self.settings = settings
+        self.packs = install_packs(
+            settings.packs, settings.catalog_file, settings.pack_trusted_keys
+        )
         self.key = load_key(settings.host_key_file)
         url = settings.store.get_secret_value()
         if url.startswith("sqlite:///"):

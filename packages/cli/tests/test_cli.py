@@ -121,6 +121,10 @@ def test_up_process(tmp_path: Path) -> None:
                 "--demo",
                 "--data-dir",
                 str(data),
+                "--pack",
+                str(tmp_path / "missing-one"),
+                "--pack",
+                str(tmp_path / "missing-two"),
             ],
             stdout=stream,
             stderr=stream,
@@ -146,6 +150,9 @@ def test_up_process(tmp_path: Path) -> None:
             print(f"Startup to healthy: {time.monotonic() - start:.2f}s")
             assert time.monotonic() - start < 15
             text = output.read_text(encoding="utf-8")
+            for folder in ("missing-one", "missing-two"):
+                assert f"Pack refused: {tmp_path / folder}:" in text
+            assert httpx.get(base + "/v1/packs", headers={"Origin": base}).json() == []
             credentials = re.findall(r"Sign in: (p\d+) \S+ Viewer token: (\S+)", text)
             assert len(credentials) == 3
             token = (data / "admin.token").read_text()
@@ -232,3 +239,9 @@ def test_room_printed_tokens_are_scoped(tmp_path: Path, capsys: pytest.CaptureFi
             assert snapshot["coalition_id"] == coalition
             assert ("private-observation-p1" in json.dumps(snapshot)) == (member == "p1")
             read_snapshot(running.base, token, member, "/v1/agent")
+
+
+def test_repeatable_pack_option(tmp_path: Path) -> None:
+    with patch("coalitionkit_cli.up.run", return_value=0) as run:
+        assert main(["up", "--pack", str(tmp_path / "one"), "--pack", str(tmp_path / "two")]) == 0
+    assert run.call_args.args[0].pack == [tmp_path / "one", tmp_path / "two"]
