@@ -45,3 +45,9 @@ def test_offers_are_deterministic_and_only_for_seats_it_holds() -> None:
     assert first == car_desk.offers_for(NEEDS)
     assert [o["need"] for o in first] == [0]  # too large, too late, and unknown destinations skip
     assert first[0]["ext"]["price"] == "EUR 45.00" and not first[0]["needs_person"]
+
+
+def test_a_need_drafted_from_a_sentence_gets_no_offer() -> None:
+    sentence_need: dict[str, Any] = {"description": "get the group to the city by morning"}
+    offers = car_desk.offers_for([sentence_need, NEEDS[0]])
+    assert [o["need"] for o in offers] == [1]

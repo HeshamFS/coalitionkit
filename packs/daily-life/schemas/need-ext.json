@@ -13,6 +13,5 @@
       "description": "The kind of place, never the address."
     },
     "duration_minutes": { "type": "integer", "minimum": 5, "maximum": 720 }
-  },
-  "required": ["day", "place_kind", "duration_minutes"]
+  }
 }

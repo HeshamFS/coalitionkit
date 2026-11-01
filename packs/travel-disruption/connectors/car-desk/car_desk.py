@@ -178,6 +178,8 @@ def offers_for(needs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """One offer per need that a held vehicle can serve, in need order; deterministic."""
     result: list[dict[str, Any]] = []
     for index, need in enumerate(needs):
+        if not all(key in need for key in ("destination", "party_size", "latest_arrival")):
+            continue  # a need drafted from a sentence carries no trip details to match on
         for vehicle in VEHICLES:
             fits = (
                 vehicle["destination"] == need["destination"]
