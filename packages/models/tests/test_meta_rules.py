@@ -62,7 +62,7 @@ def test_default_base_url_is_the_meta_endpoint() -> None:
 
 
 def test_steward_route_switch() -> None:
-    meta = _settings().route("steward")
+    meta = _settings(steward_provider="meta").route("steward")
     assert (meta.model, meta.key_name) == ("muse-spark-1.3", "meta")
     baseten = _settings(steward_provider="baseten").route("steward")
     assert baseten.key_name == "baseten"
@@ -94,7 +94,7 @@ def test_prices_cover_contributors_and_media() -> None:
 
 
 async def test_effort_and_budget_are_sent_per_role() -> None:
-    gateway, fake, _ = _gateway([ScriptedResponse("a")] * 4)
+    gateway, fake, _ = _gateway([ScriptedResponse("a")] * 4, steward_provider="meta")
     for role in ("hosted_agent", "composer", "gardener", "steward"):
         await gateway.complete(role, USER)
     sent = {role: opts for role, _, opts in fake.calls}

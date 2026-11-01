@@ -5,16 +5,24 @@ import json
 import os
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 from pydantic import SecretStr
 
 from coalitionkit_cli.demo import enroll
-from coalitionkit_cli.demo_agents import demo_gateway, demo_runner
+from coalitionkit_cli.demo_agents import demo_gateway, demo_runner, example_module
 from coalitionkit_contracts import HOST_ONLY_TYPES
-from coalitionkit_models import CostMeter, ModelGateway, load_price_table
+from coalitionkit_models import (
+    CostMeter,
+    FakeModel,
+    ModelGateway,
+    ScriptedResponse,
+    load_price_table,
+)
 from coalitionkit_models.settings import Settings as ModelSettings
 from coalitionkit_runtime.lifecycle import State
 from coalitionkit_server import Settings, create_server
@@ -141,6 +149,7 @@ async def exercise(tmp_path: Path, live: bool = False) -> dict[str, Any]:
         records = [r for r in gateway.meter.records if r.coalition_id == coalition]
         return {
             "steps": demo.steps,
+            "model_calls": len(records),
             "latency_s": time.perf_counter() - started,
             "events": len(events),
             "prompt_tokens": sum(r.prompt_tokens for r in records),
@@ -149,6 +158,18 @@ async def exercise(tmp_path: Path, live: bool = False) -> dict[str, Any]:
         }
     finally:
         server.close()
+        if live:
+            assert gateway.meter is not None
+            records = gateway.meter.records
+            print(
+                {
+                    "model_calls": len(records),
+                    "latency_s": time.perf_counter() - started,
+                    "prompt_tokens": sum(r.prompt_tokens for r in records),
+                    "completion_tokens": sum(r.completion_tokens for r in records),
+                    "cost_micro_usd": sum(r.cost_micro_usd for r in records),
+                }
+            )
 
 
 async def test_demo_consent_and_ripple(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -156,7 +177,58 @@ async def test_demo_consent_and_ripple(tmp_path: Path, monkeypatch: pytest.Monke
     await exercise(tmp_path)
 
 
+@pytest.mark.parametrize("finish", [True, False])
+async def test_member_retries_only_missing_offers(finish: bool) -> None:
+    module = example_module("members.demo_runner")
+    brain_module = example_module("members.hosted_member.brain")
+    host = SimpleNamespace(state=SimpleNamespace(members=["p1"]))
+    demo = module.Demo(SimpleNamespace(hosts={"c": host}), "c", 0)
+    demo.send = AsyncMock(return_value={})
+    terms = [
+        {"need_id": need, "minutes": 60, "money": 0, "effort": "low"}
+        for need in ("need-a", "need-b")
+    ]
+
+    def offer(index: int) -> ScriptedResponse:
+        return ScriptedResponse(
+            json.dumps({"calls": [{"tool": "make_offer", "args": terms[index]}]})
+        )
+
+    done = ScriptedResponse('{"calls": []}')
+    fake = FakeModel(
+        [offer(0), done, offer(1), done] if finish else [offer(0), done, done, done, done]
+    )
+    gateway = ModelGateway(ModelSettings(), transport=fake)
+    instructions: list[dict[str, Any]] = []
+
+    async def drive(member: str, instruction: str, tools: Any) -> None:
+        instructions.append(json.loads(instruction.split("FACTS: ")[1]))
+        brain = brain_module.HostedBrain(gateway, "c", member)
+        await brain.run(instruction, tools, module.ignore_usage)
+
+    demo.drive = drive
+    try:
+        if finish:
+            await demo.offers("p1", terms)
+        else:
+            with pytest.raises(ValueError, match="missing needs: \\['need-b'\\]"):
+                await demo.offers("p1", terms)
+        assert instructions[0]["tasks"] == terms
+        assert len(instructions) == (2 if finish else 4)
+        assert all(i["tasks"] == [terms[1]] for i in instructions[1:])
+        assert demo.send.await_count == (2 if finish else 1)
+        assert all(call.args[1] == "offer" for call in demo.send.await_args_list)
+    finally:
+        await gateway.aclose()
+
+
 @pytest.mark.live
-@pytest.mark.skipif(not os.environ.get("COALITIONKIT_META_API_KEY"), reason="no key")
+@pytest.mark.skipif(
+    not (
+        os.environ.get("COALITIONKIT_META_API_KEY")
+        and os.environ.get("COALITIONKIT_BASETEN_API_KEY")
+    ),
+    reason="needs the Meta key and the Steward's Baseten key",
+)
 async def test_demo_live(tmp_path: Path) -> None:
-    print(await exercise(tmp_path, live=True))
+    await exercise(tmp_path, live=True)
