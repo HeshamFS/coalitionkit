@@ -60,11 +60,15 @@ class Participant:
     owner: Ed25519PrivateKey = field(default_factory=Ed25519PrivateKey.generate)
     #: Called with the seconds each submission took, when a scenario wants latencies.
     timer: Callable[[float], None] | None = None
+    on_exchange: Callable[[Document, Reply], None] | None = None
 
     def submit(self, envelope: Document) -> Reply:
         start = time.perf_counter()
         try:
-            return self.host.accept(envelope, self.auth)
+            reply = self.host.accept(envelope, self.auth)
+            if self.on_exchange is not None:
+                self.on_exchange(envelope, reply)
+            return reply
         finally:
             if self.timer is not None:
                 self.timer(time.perf_counter() - start)
@@ -179,6 +183,7 @@ class Arena:
         self.deciders = list(deciders)
         self.members: dict[str, Participant] = {}
         self.timer: Callable[[float], None] | None = None
+        self.on_exchange: Callable[[Document, Reply], None] | None = None
 
     @classmethod
     def open(
@@ -189,11 +194,12 @@ class Arena:
         coalition_id: str | None = None,
         host_key: Ed25519PrivateKey | None = None,
         card_url: str = HOST_CARD,
+        charter: Document | None = None,
     ) -> Arena:
         """Create the Coalition in the store and publish its charter."""
         arena = cls(make_host(store, coalition_id, host_key, card_url), deciders)
         arena.host.create()
-        charter: Document = {
+        charter = charter or {
             "goal": "Coordinate",
             "roles": [{"id": "member"}],
             "rules": [],
@@ -203,11 +209,15 @@ class Arena:
         accepted(arena.host.host_emit("charter", charter, PUBLIC))
         return arena
 
-    def enroll(self, name: str, *, accept_charter: bool = True) -> Participant:
-        person = Participant(self.host, name, timer=self.timer)
+    def enroll(
+        self, name: str, *, accept_charter: bool = True, vault: str = "local"
+    ) -> Participant:
+        person = Participant(self.host, name, timer=self.timer, on_exchange=self.on_exchange)
         self.members[name] = person
         self.attach(person)
-        accepted(person.send("join", person.join_body()))
+        body = person.join_body()
+        body["vault"] = vault
+        accepted(person.send("join", body))
         if accept_charter:
             revision = self.host.state.charter["revision"]
             accepted(person.decide("charter", self.host.coalition_id, revision))
@@ -223,7 +233,9 @@ class Arena:
         host = make_host(store, self.host.coalition_id, host_key, self.host.card_url)
         arena = Arena(host, self.deciders)
         for name, person in self.members.items():
-            moved = Participant(host, name, person.agent, person.owner, self.timer)
+            moved = Participant(
+                host, name, person.agent, person.owner, self.timer, person.on_exchange
+            )
             arena.members[name] = moved
         return arena
 

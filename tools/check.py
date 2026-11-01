@@ -138,6 +138,19 @@ def agnostic_core() -> None:
     print(f"agnostic core: {scanned} files under packages/ are free of denylisted words")
 
 
+def separation() -> None:
+    """Domain words and pack names stay out of the kit; packs stay out of it after the freeze."""
+    from separation import SeparationError, check_domain, check_freeze, check_packs
+
+    tests = ("tools/test_separation.py",)
+    run(py("pytest", "-q", "-p", "no:cacheprovider", "-o", "pythonpath=tools", *tests))
+    try:
+        for step in (check_domain, check_freeze, check_packs):
+            print(step(), flush=True)
+    except SeparationError as exc:
+        raise CheckError(str(exc)) from None
+
+
 STEPS: list[tuple[str, Callable[[], None]]] = [
     ("ruff check", ruff_check),
     ("ruff format --check", ruff_format),
@@ -146,6 +159,7 @@ STEPS: list[tuple[str, Callable[[], None]]] = [
     ("schema meta-validation", schemas),
     ("pytest", pytest),
     ("agnostic-core rule", agnostic_core),
+    ("separation of packs and kit", separation),
 ]
 
 

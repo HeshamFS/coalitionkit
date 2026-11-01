@@ -10,7 +10,7 @@ their interrupts never finish or reset the enclosing feed run.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from copy import deepcopy
 from typing import Any, Protocol, cast
 
@@ -64,7 +64,11 @@ class FeedSession:
         rotate_after: float = ROTATE_SECONDS,
         extra_state: Callable[[bool, bool], Document] | None = None,
         agent: AgentSession | None = None,
+        views: Mapping[str, Mapping[str, tuple[str, ...]]] | None = None,
+        roles: Collection[str] = (),
+        device: str = "wide",
     ) -> None:
+        self.views, self.roles, self.device = views, roles, device
         self.source, self.viewer, self.clock, self.new_id = source, viewer, clock, new_id
         self.catalog, self.keep_alive, self.rotate_after = catalog, keep_alive, rotate_after
         self.thread_id = f"{source.coalition_id}:{viewer}:feed"
@@ -218,7 +222,16 @@ class FeedSession:
         layout was queued instead. Callers pass content already limited to this viewer."""
         if self.catalog is None:
             raise ValueError("no catalog configured")
-        composed = compose_surface(self.catalog, surface_id, components, data_model, known_events)
+        composed = compose_surface(
+            self.catalog,
+            surface_id,
+            components,
+            data_model,
+            known_events,
+            views=self.views,
+            roles=self.roles,
+            device=self.device,
+        )
         self._surfaces[surface_id] = composed.messages
         self._pending.append(self._activity(surface_id, composed.messages))
         return not composed.fallback

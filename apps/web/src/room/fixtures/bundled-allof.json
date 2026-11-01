@@ -1,0 +1,51 @@
+{
+  "allOf": [
+    {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "integer"
+        }
+      },
+      "required": ["a"],
+      "additionalProperties": false
+    },
+    {
+      "$defs": {
+        "base": {
+          "type": "object",
+          "properties": {
+            "a": {
+              "type": "integer"
+            }
+          },
+          "required": ["a"],
+          "additionalProperties": false
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "x-private": true
+        }
+      },
+      "properties": {
+        "b": {
+          "type": "string"
+        },
+        "size": {
+          "allOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "x-private": true
+            },
+            {
+              "minimum": 3,
+              "x-private": false
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

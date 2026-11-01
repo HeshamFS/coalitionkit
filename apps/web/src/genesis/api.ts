@@ -5,6 +5,14 @@
 import { assertAllowedBase, resolveBase } from "../feed/config";
 import type { CleanupReport } from "../moments/Dissolve";
 
+export type PackRef = { name: string; version: string };
+/** What GET /v1/packs says of an installed pack. */
+export type PackInfo = PackRef & {
+  label?: string;
+  roles: Record<string, { label?: string; may: string[] }>;
+  vocabulary: Record<string, string | { one: string; other: string }>;
+};
+export type Suggestion = PackRef & { why: string[] };
 export type Role = { id: string; label: string; count?: number };
 export type Draft = {
   goal: string;
@@ -12,11 +20,19 @@ export type Draft = {
   needs: string[];
   deadline: string | null;
   deciders: "all" | string[];
-  pack: string | null;
+  pack: PackRef | null;
 };
 export type ReadingKind = "role" | "need" | "deadline" | "count";
 export type Reading = { span: [number, number]; kind: ReadingKind };
-export type DraftReply = { draft: Draft; source: "reader" | "model"; reading: Reading[] };
+export type DraftReply = {
+  draft: Draft;
+  source: "reader" | "model";
+  reading: Reading[];
+  /** The pack the host would offer for this sentence; never bound without a choice. */
+  suggested?: Suggestion | null;
+  /** The chosen pack's words, when a pack was chosen. */
+  vocabulary?: PackInfo["vocabulary"];
+};
 export type HostKey = { kty: string; crv: string; x: string; kid?: string };
 export type Started = {
   coalition_id: string;
@@ -81,12 +97,24 @@ async function post<T>(
 
 const defaultFetch: Fetch = (url, init) => fetch(url, init);
 
-export function draftGoal(goal: string, signal?: AbortSignal, fetchFn = defaultFetch) {
+export async function listPacks(fetchFn = defaultFetch, signal?: AbortSignal): Promise<PackInfo[]> {
+  const res = await fetchFn(`${base()}/v1/packs`, { method: "GET", signal });
+  if (!res.ok) throw new HostError(res.status, "");
+  const body: unknown = await res.json();
+  return Array.isArray(body) ? (body as PackInfo[]) : [];
+}
+
+export function draftGoal(
+  goal: string,
+  signal?: AbortSignal,
+  fetchFn = defaultFetch,
+  pack: PackRef | null = null,
+) {
   // Day words ("tonight", "by Friday") are read in the writer's own time zone.
   const utc_offset_minutes = -new Date().getTimezoneOffset();
   return post<DraftReply>(
     "/v1/genesis/draft",
-    { goal, utc_offset_minutes },
+    pack ? { goal, utc_offset_minutes, pack } : { goal, utc_offset_minutes },
     undefined,
     fetchFn,
     signal,

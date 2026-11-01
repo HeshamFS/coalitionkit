@@ -3,23 +3,32 @@
 
 from __future__ import annotations
 
+import re
+import warnings
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from posixpath import normpath
 from typing import Any, cast
+from urllib.parse import unquote, urldefrag
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 from pydantic import ValidationError
+from referencing import Registry, Resource
+from referencing.exceptions import Unresolvable
+from referencing.jsonschema import DRAFT202012
 
+from coalitionkit_contracts.validate import load_schemas
 from coalitionkit_steward import Policy, PolicyError, PolicySet, core_policies, parse_policy
 from coalitionkit_surfaces import Catalog
 from coalitionkit_surfaces.catalog import ComponentSpec
 
 from .errors import Report
-from .files import MANIFEST, Snapshot, take_snapshot
-from .manifest import Manifest
+from .files import MANIFEST, Snapshot, bad_relative_path, take_snapshot
+from .manifest import Manifest, eval_role
 from .scopes import PACK_AUDIENCES
 from .sections import (
     EvalScenario,
@@ -35,9 +44,10 @@ from .version import core_version as installed_core_version
 from .version import in_range
 from .views import Views, parse_views
 
-#: Actions a pack policy may not use. The spec lets a pack declare block; this lane is stricter.
-FORBIDDEN_PACK_ACTIONS = frozenset({"block", "quarantine"})
+#: Quarantine acts on a participant and stays with the core.
+FORBIDDEN_PACK_ACTIONS = frozenset({"quarantine"})
 SCHEMA_ID_BASE = "https://coalitionkit.dev/schemas/"
+SNAPSHOT_BASE = "https://pack-snapshot.invalid/"
 
 
 @dataclass(frozen=True)
@@ -50,7 +60,15 @@ class Pack:
     views: Views
     evals: tuple[EvalScenario, ...]
     schemas: Mapping[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
+    skills: Mapping[str, str] = field(default_factory=dict[str, str])
+    lessons: Mapping[str, str] = field(default_factory=dict[str, str])
     signature: PackSignature | None = None
+    schema_registry: Registry[Any] = field(default_factory=lambda: Registry[Any]())
+
+    def validate_schema(self, kind: str, instance: Any) -> None:
+        """Validate against the closed, in-memory snapshot registry."""
+        validator = Draft202012Validator(self.schemas[kind], registry=self.schema_registry)
+        validator.validate(instance)  # pyright: ignore[reportUnknownMemberType]
 
     @property
     def name(self) -> str:
@@ -105,10 +123,24 @@ def _inspect(snap: Snapshot, core_catalog: Catalog | None, core_version: str | N
     templates = _templates(snap, manifest, report)
     views = _views(snap, manifest, core_catalog, report)
     evals = _evals(snap, manifest, report)
-    schemas = _schemas(snap, manifest, report)
+    schemas, registry = _schemas(snap, manifest, report)
+    skills = _markdown(snap, manifest.skills or [], "skills", report)
+    lessons = _markdown(snap, manifest.lessons or [], "lessons", report)
     _other_files(snap, manifest, report)
     report.raise_if_any()
-    return Pack(snap.root, manifest, vocab, policies, templates, views, evals, schemas)
+    return Pack(
+        snap.root,
+        manifest,
+        vocab,
+        policies,
+        templates,
+        views,
+        evals,
+        schemas,
+        schema_registry=registry,
+        skills=skills,
+        lessons=lessons,
+    )
 
 
 def _read_manifest(snap: Snapshot, report: Report) -> Manifest | None:
@@ -226,6 +258,11 @@ def _evals(snap: Snapshot, manifest: Manifest, report: Report) -> tuple[EvalScen
         data = snap.yaml(rel, f"evals.{rel}", report)
         scenario = parse_eval(data, rel, report) if data is not None else None
         if scenario is not None:
+            for participant in scenario.participants:
+                try:
+                    eval_role(manifest.roles, participant.role)
+                except ValueError as exc:
+                    report.add("eval", f"{rel}:{participant.id}", str(exc))
             scenarios.append(scenario)
     names = [s.scenario for s in scenarios]
     if len(set(names)) != len(names):
@@ -233,10 +270,60 @@ def _evals(snap: Snapshot, manifest: Manifest, report: Report) -> tuple[EvalScen
     return tuple(scenarios)
 
 
-def _schemas(snap: Snapshot, manifest: Manifest, report: Report) -> Mapping[str, Mapping[str, Any]]:
+def _schemas(
+    snap: Snapshot,
+    manifest: Manifest,
+    report: Report,
+) -> tuple[Mapping[str, Mapping[str, Any]], Registry[Any]]:
     loaded: dict[str, Mapping[str, Any]] = {}
-    for kind, rel in (manifest.schemas or {}).items():
-        data = snap.json(rel, f"schemas.{kind}", report)
+    core = load_schemas()
+    resources: dict[str, Any] = dict(core)
+    pending = list((manifest.schemas or {}).values())
+    seen: set[str] = set()
+
+    def rewrite(node: Any, rel: str) -> None:
+        if isinstance(node, dict):
+            obj = cast(dict[str, Any], node)
+            if obj.get("$schema", "https://json-schema.org/draft/2020-12/schema") != (
+                "https://json-schema.org/draft/2020-12/schema"
+            ):
+                report.add("schema", rel, "pack schemas must use JSON Schema 2020-12")
+                obj.pop("$schema", None)
+            # IDs cannot redirect relative references away from the signed snapshot.
+            identifier = obj.pop("$id", None)
+            if str(identifier).startswith(SCHEMA_ID_BASE):
+                report.add("schema_override", rel, "a pack schema cannot take a core schema id")
+            for keyword in ("$ref", "$dynamicRef"):
+                if keyword not in obj:
+                    continue
+                ref = str(obj[keyword])
+                base, fragment = urldefrag(ref)
+                if base in core:
+                    continue
+                decoded = unquote(base)
+                target = normpath((PurePosixPath(rel).parent / decoded).as_posix()) if base else rel
+                if base and (
+                    PurePosixPath(decoded).is_absolute()
+                    or any(char in decoded for char in (":", "\\", "\x00"))
+                    or bad_relative_path(target)
+                    or target not in snap.files
+                ):
+                    report.add("schema_ref", rel, f"unapproved schema reference {ref!r}")
+                    continue
+                obj[keyword] = SNAPSHOT_BASE + target + ("#" + fragment if fragment else "")
+                if target not in seen:
+                    pending.append(target)
+            # Only schema-bearing keywords contain schemas; const/default/examples
+            # may contain literal objects whose $ref and $id are ordinary data.
+            for child in DRAFT202012.subresources_of(obj):
+                rewrite(child, rel)
+
+    while pending:
+        rel = pending.pop()
+        if rel in seen:
+            continue
+        seen.add(rel)
+        data = snap.json(rel, f"schemas.{rel}", report)
         if data is None:
             continue
         if not isinstance(data, dict):
@@ -248,11 +335,71 @@ def _schemas(snap: Snapshot, manifest: Manifest, report: Report) -> Mapping[str,
         except SchemaError as exc:
             report.add("schema", rel, f"not a valid 2020-12 schema: {exc.message}")
             continue
-        if str(schema.get("$id", "")).startswith(SCHEMA_ID_BASE):
-            report.add("schema_override", rel, "a pack schema cannot take a core schema id")
-        else:
-            loaded[kind] = schema
-    return loaded
+        schema = deepcopy(schema)
+        rewrite(schema, rel)
+        schema["$id"] = SNAPSHOT_BASE + rel
+        resources[SNAPSHOT_BASE + rel] = schema
+    registry: Registry[Any] = Registry()
+    registry = registry.with_resources(
+        (uri, Resource.from_contents(schema, DRAFT202012)) for uri, schema in resources.items()
+    )
+    for kind, rel in (manifest.schemas or {}).items():
+        if SNAPSHOT_BASE + rel in resources:
+            loaded[kind] = resources[SNAPSHOT_BASE + rel]
+            try:
+                bundle_schema(loaded[kind], registry)
+            except (Unresolvable, ValueError, RecursionError) as exc:
+                report.add("schema_ref", rel, f"cannot bundle schema: {exc}")
+    for kind in loaded.keys() & {"task", "resource"}:
+        warnings.warn(f"Pack {kind} schema loaded but not applied at runtime", stacklevel=2)
+    return loaded, registry
+
+
+def bundle_schema(schema: Mapping[str, Any], registry: Registry[Any]) -> dict[str, Any]:
+    """Inline closed-registry references without changing what the schema accepts.
+
+    A bare reference is replaced by its target. A reference with sibling keywords becomes
+    ``allOf: [target, siblings]``, which is what a 2020-12 reference beside other keywords means;
+    keywords are never merged across the two, since their meaning depends on where they stand.
+    """
+    active: set[int] = set()
+
+    def visit(node: Any, resolver: Any) -> Any:
+        if isinstance(node, bool):
+            return node
+        obj = cast(dict[str, Any], node)
+        identity = id(node)
+        if identity in active:
+            raise ValueError("cyclic schema reference")
+        active.add(identity)
+        resolver = resolver.in_subresource(Resource.from_contents(obj, DRAFT202012))
+        children = {id(child): visit(child, resolver) for child in DRAFT202012.subresources_of(obj)}
+
+        def substitute(value: Any) -> Any:
+            if id(value) in children:
+                return children[id(value)]
+            if isinstance(value, dict):
+                return {k: substitute(v) for k, v in cast(dict[str, Any], value).items()}
+            if isinstance(value, list):
+                return [substitute(v) for v in cast(list[Any], value)]
+            return value
+
+        siblings = {
+            k: substitute(v) for k, v in obj.items() if k not in {"$id", "$ref", "$dynamicRef"}
+        }
+        targets: list[Any] = []
+        for keyword in ("$ref", "$dynamicRef"):
+            if keyword in obj:
+                resolved = resolver.lookup(obj[keyword])
+                targets.append(visit(resolved.contents, resolved.resolver))
+        active.remove(identity)
+        if not targets:
+            return siblings
+        if not siblings and len(targets) == 1:
+            return targets[0]
+        return {"allOf": [*targets, siblings]} if siblings else {"allOf": targets}
+
+    return cast(dict[str, Any], visit(schema, registry.resolver()))
 
 
 def _other_files(snap: Snapshot, manifest: Manifest, report: Report) -> None:
@@ -261,3 +408,30 @@ def _other_files(snap: Snapshot, manifest: Manifest, report: Report) -> None:
     for entry in manifest.mint or []:
         snap.get(entry.template, "mint.template", report)
         snap.get(entry.tests, "mint.tests", report)
+
+
+def _markdown(snap: Snapshot, paths: list[str], section: str, report: Report) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for rel in paths:
+        text = snap.text(rel, f"{section}.{rel}", report)
+        if text is not None:
+            if not rel.lower().endswith(".md"):
+                report.add("markdown", rel, "skills and lessons must be Markdown files")
+            if section == "lessons":
+                allowed = {
+                    "goal",
+                    "members",
+                    "tasks",
+                    "allocation",
+                    "decisions",
+                    "changes",
+                    "policy_outcomes",
+                    "duration",
+                }
+                unknown = set(re.findall(r"\{\{\s*(.*?)\s*\}\}", text)) - allowed
+                if unknown:
+                    report.add(
+                        "lessons", rel, "unknown placeholders: " + ", ".join(sorted(unknown))
+                    )
+            result[rel] = text
+    return result

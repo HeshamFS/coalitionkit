@@ -10,5 +10,5 @@ policies: [policies/flag-keyword.yaml, policies/mask-code.yaml]
 skills: [skills/SKILL.md]
 views: views.yaml
 task_templates: templates.yaml
-strategy: { allocation: round-robin, fairness: { share_cap: 0.5 } }
+strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }
 evals: [evals/two-parties.yaml]

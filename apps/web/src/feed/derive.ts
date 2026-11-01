@@ -6,6 +6,7 @@ import { STAGES } from "../shell/bars";
 import type { OpenRequest } from "./agent";
 import type { ViewerState } from "./delta";
 import { measuredPhrase, planStrengths } from "./planWords";
+import { capital, wordsOf } from "./vocabulary";
 
 type Ev = { on_behalf_of?: string; type: string; seq: number; payload: Record<string, unknown> };
 
@@ -78,12 +79,13 @@ export function logEntries(state: ViewerState | null): LogEntry[] {
 /** Label and value pairs for the fixed layout shown when no composed tree is usable. */
 export function fixedFields(state: ViewerState | null): { label: string; value: string }[] {
   const room = deriveRoom(state);
+  const word = wordsOf(state);
   return [
     { label: "Coalition", value: room.title },
     { label: "Stage", value: room.stage },
     { label: "Members", value: String(room.members) },
-    { label: "Needs", value: String(room.counts.needs) },
-    { label: "Offers", value: String(room.counts.offers) },
+    { label: capital(word("need", 2)), value: String(room.counts.needs) },
+    { label: capital(word("offer", 2)), value: String(room.counts.offers) },
     { label: "Plans", value: String(room.counts.plans) },
     { label: "Log entries", value: String(room.counts.log) },
   ];

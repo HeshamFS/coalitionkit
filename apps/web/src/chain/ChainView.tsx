@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useVocabulary } from "../feed/vocabulary";
 import "./chain.css";
 import { type ChainRow, chainRows, shortHash } from "./input";
 import { checkPin } from "./pin";
@@ -61,6 +62,7 @@ function pill(row: ChainRow, run: Run): string | null {
 }
 
 function Link({ row, run }: { row: ChainRow; run: Run }) {
+  const { word } = useVocabulary();
   const failed = run.state === "done" && !run.result.ok && run.result.seq === row.seq;
   const verified = pill(row, run);
   const cls = ["ck-chain-card", row.kind === "stub" ? "is-stub" : "", failed ? "is-broken" : ""];
@@ -70,7 +72,7 @@ function Link({ row, run }: { row: ChainRow; run: Run }) {
       style={{ animationDelay: `${(row.seq % 8) * 0.08}s` }}
     >
       <span className="ck-chain-seq">seq {row.seq}</span>
-      <span className="ck-chain-type">{row.type}</span>
+      <span className="ck-chain-type">{word(row.type)}</span>
       <span className="ck-chain-hash">{failed ? "link broken" : shortHash(row.hash)}</span>
       {verified ? <span className="ck-chain-pill">{verified}</span> : null}
     </li>

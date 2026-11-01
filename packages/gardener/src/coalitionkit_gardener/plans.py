@@ -12,7 +12,7 @@ from coalitionkit_contracts.payloads import Assignment, Plan, ProposePayload
 
 from ._ids import derive_ulid
 from .model import Assignments, Bid, Problem, max_share_ratio, total_cost
-from .strategies import AuctionStrategy, Unresolved
+from .strategies import AuctionStrategy, Unresolved, select_strategy
 
 #: Scores a full assignment; lower is better.
 type ThirdObjective = Callable[[Assignments], float]
@@ -27,6 +27,8 @@ class PlanConfig:
     lambdas: tuple[Fraction, ...] = DEFAULT_LAMBDAS
     max_plans: int = 3
     third_name: str = "third"
+    allocation: str | None = None
+    fairness: Mapping[str, float] = field(default_factory=dict[str, float])
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +65,18 @@ def generate_plans(
     cfg = config or PlanConfig()
     score3 = third or _no_third
     names = ("total_cost", "max_share_ratio", cfg.third_name)
+    if cfg.allocation is not None:
+        strategy, problem = select_strategy(problem, cfg.allocation, cfg.fairness)
+        outcome = strategy.run(problem, problem.task_ids, {})
+        if outcome.unresolved:
+            return PlanSet((), outcome.unresolved, names)
+        key = tuple(sorted(outcome.chosen.items()))
+        candidate = PlanCandidate(
+            dict(key),
+            _objectives(problem, problem.bid_table(), outcome.chosen, score3),
+            derive_ulid("plan", *(f"{t}={a}" for t, a in key)),
+        )
+        return PlanSet((candidate,), (), names)
     table = problem.bid_table()
     task_ids = problem.task_ids
     found: dict[tuple[tuple[str, str], ...], Objectives] = {}

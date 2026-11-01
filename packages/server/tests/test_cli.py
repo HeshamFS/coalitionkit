@@ -34,7 +34,7 @@ def test_installed_cli_serves_and_administers(tmp_path: Path) -> None:
         stderr=subprocess.PIPE,
     )
     try:
-        deadline = time.monotonic() + 20
+        deadline = time.monotonic() + 60  # a cold start imports every package
         with httpx.Client(base_url=base, timeout=1) as client:
             while True:
                 assert process.poll() is None, process.communicate()[1]

@@ -6,7 +6,7 @@ import json
 import tempfile
 import time
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -17,6 +17,7 @@ from coalitionkit_models.errors import SchemaValidationError
 from coalitionkit_models.gateway import ModelGateway
 
 from .artifact import generate
+from .catalog import TemplateRegistry
 from .perceive import Media, perceive
 from .process import Sandbox
 from .prove import AttackResult, prove
@@ -79,12 +80,25 @@ async def mint(
     voice: Path,
     folder: Path,
     *,
-    template: Literal["resource", "device"],
+    template: str,
     owner: Ed25519PublicKey,
     owner_id: str,
     gateway: ModelGateway,
     media: Media,
+    coalition_id: str | None = None,
+    templates: TemplateRegistry | None = None,
 ) -> Minted:
+    entry = None
+    if template not in {"resource", "device"}:
+        if templates is None or coalition_id is None:
+            raise MintFailure("pack template requires a bound Coalition")
+        try:
+            entry = templates.resolve(coalition_id, template)
+        except ValueError as exc:
+            raise MintFailure(str(exc)) from None
+    family: Literal["resource", "device"] = (
+        entry.config().template if entry else ("resource" if template == "resource" else "device")
+    )
     started = time.monotonic()
     run_id = "mint-" + uuid.uuid4().hex
     sandbox: Sandbox | None = None
@@ -104,13 +118,15 @@ async def mint(
                     media,
                     gateway,
                     run_id,
-                    template,
+                    family,
                     selections,
                     timings,
                 )
             evidence = json.dumps({"records": [r.model_dump() for r in records], "rules": rules})
             stage_start = time.monotonic()
-            config = await model_config(gateway, template, evidence, run_id)
+            config = (
+                entry.config() if entry else await model_config(gateway, family, evidence, run_id)
+            )
             attacks_reply = await gateway.complete(
                 "steward",
                 [
@@ -136,6 +152,16 @@ async def mint(
             timings["code"] = time.monotonic() - stage_start
             stage_start = time.monotonic()
             attacks = await prove(sandbox, config, extra)
+            if entry is not None:
+                pack_attacks = await prove(sandbox, config, entry.tests())
+                attacks.extend(
+                    replace(
+                        result,
+                        name="pack " + result.name,
+                        passed=result.passed and not result.log.startswith("not an attack:"),
+                    )
+                    for result in pack_attacks
+                )
             timings["attack"] = time.monotonic() - stage_start
             if not attacks or not all(a.passed for a in attacks):
                 failed = ", ".join(a.name for a in attacks if not a.passed)
@@ -162,6 +188,8 @@ async def mint(
                 tokens,
                 selections,
                 timings,
+                coalition_id=coalition_id,
+                template_name=template if entry else None,
             )
     except BaseException as exc:
         if sandbox:

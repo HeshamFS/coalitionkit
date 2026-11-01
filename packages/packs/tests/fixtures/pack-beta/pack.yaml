@@ -2,7 +2,7 @@ name: pack-beta
 version: 0.2.0
 core: ">=0.1,<0.2"
 roles:
-  member: { may: [offer, decide_own, commit] }
+  member: { may: [offer, decide, decide_own, commit] }
 vocabulary: vocabulary.yaml
 views: views.yaml
 evals: [evals/solo.yaml]

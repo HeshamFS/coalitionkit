@@ -239,7 +239,8 @@ describe("Genesis draft freshness", () => {
     let calls = 0;
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => {
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/v1/packs")) return json([]);
         calls += 1;
         if (calls === 1) return json(reply);
         return new Promise<Response>((resolve) => {

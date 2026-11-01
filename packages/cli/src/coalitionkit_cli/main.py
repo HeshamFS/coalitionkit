@@ -9,6 +9,9 @@ from pathlib import Path
 
 def main(argv: list[str] | None = None) -> int:
     words = list(sys.argv[1:] if argv is None else argv)
+    if words and words[0] == "pack":
+        command = importlib.import_module("coalitionkit_packs.cli")
+        return command.main(words[1:]) or 0
     if words and words[0] == "conform":
         try:
             command = importlib.import_module("coalitionkit_conformance.cli")
@@ -36,11 +39,15 @@ def main(argv: list[str] | None = None) -> int:
     up.add_argument("--no-web", action="store_true")
     up.add_argument("--port", type=int)
     up.add_argument("--data-dir", type=Path, default=Path(".coalitionkit"))
+    up.add_argument("--pack", type=Path, action="append", default=[])
     up.add_argument("--reset", action="store_true")
     up.add_argument(
         "--pace", type=float, default=2.0, help="seconds between demo steps (0 runs at once)"
     )
     commands.add_parser("conform", help="run the optional conformance suite")
+    commands.add_parser(
+        "pack", help="validate, sign, verify, evaluate, accept or run pack connectors"
+    )
     commands.add_parser("server", help="delegate to coalitionkit-server")
     args = parser.parse_args(words)
     if args.members < 1 or (args.port is not None and not 1 <= args.port <= 65535):

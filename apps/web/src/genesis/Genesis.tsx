@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { pinAtJoin } from "../chain/pin";
 import { saveToken } from "../feed/config";
+import { makeWord } from "../feed/vocabulary";
 import {
   type Draft,
   type DraftReply,
@@ -11,6 +12,9 @@ import {
   HostError,
   type Invitation,
   invite,
+  listPacks,
+  type PackInfo,
+  type PackRef,
   type Reading,
   startCoalition,
 } from "./api";
@@ -59,7 +63,20 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
   const [invites, setInvites] = useState<Invitation[]>([]);
   const [inviting, setInviting] = useState(false);
   const [startCode] = useState(() => takeStartCode());
+  const [packs, setPacks] = useState<PackInfo[]>([]);
+  /** The pack the draft is read with. Undefined until the writer chooses; then the host's suggestion leads. */
+  const [picked, setPicked] = useState<PackRef | null | undefined>(undefined);
   const asked = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const ctl = new AbortController();
+    listPacks(undefined, ctl.signal)
+      .then(setPacks)
+      .catch(() => {
+        if (!ctl.signal.aborted) setPacks([]);
+      });
+    return () => ctl.abort();
+  }, []);
 
   useEffect(() => {
     if (edited || phase !== "idle") return;
@@ -75,10 +92,15 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
       asked.current = ctl;
       setReading(true);
       try {
-        const r = await draftGoal(text, ctl.signal);
+        const r = await draftGoal(text, ctl.signal, undefined, picked ?? null);
         if (ctl.signal.aborted) return;
         setReply(r);
         setDraft(r.draft);
+        // The host's suggestion is only a preselection; the writer can still choose none.
+        const hint = r.suggested;
+        if (picked === undefined && hint && packs.some((p) => p.name === hint.name)) {
+          setPicked({ name: hint.name, version: hint.version });
+        }
         setReadFrom(text);
         setError("");
       } catch (e) {
@@ -88,7 +110,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
       }
     }, READ_AFTER_MS);
     return () => window.clearTimeout(timer);
-  }, [goal, edited, phase]);
+  }, [goal, edited, phase, picked, packs]);
 
   const edit = (patch: Partial<Draft>) => {
     if (!draft) return;
@@ -97,6 +119,12 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
     setReading(false);
     setEdited(true);
     setDraft({ ...draft, ...patch });
+  };
+
+  const choosePack = (pack: PackRef | null) => {
+    // A new pack re-reads the sentence: the cards germinate again with its seats and words.
+    setEdited(false);
+    setPicked(pack);
   };
 
   const start = async () => {
@@ -145,7 +173,12 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
       <div className="gn-grid">
         <div className="gn-col">
           <SeatsCard draft={draft} locked={locked} onEdit={(roles) => edit({ roles })} />
-          <NeedsCard draft={draft} locked={locked} onEdit={(needs) => edit({ needs })} />
+          <NeedsCard
+            draft={draft}
+            locked={locked}
+            onEdit={(needs) => edit({ needs })}
+            word={makeWord(reply?.vocabulary ?? {})}
+          />
           <DeadlineCard draft={draft} locked={locked} onEdit={(deadline) => edit({ deadline })} />
         </div>
         <div className="gn-centre">
@@ -182,7 +215,14 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
           )}
         </div>
         <div className="gn-col">
-          <PackCard draft={draft} />
+          <PackCard
+            draft={draft}
+            packs={packs}
+            chosen={picked ?? null}
+            suggested={reply?.suggested ?? null}
+            locked={locked}
+            onChoose={choosePack}
+          />
           <InviteCard
             started={phase === "started"}
             invitations={invites}

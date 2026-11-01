@@ -89,9 +89,12 @@ class Demo:
                 member = str(state.tasks[task]["assignee"])
                 shared = example_module("members.kit.brain")
                 instruction = shared.work_instruction(member, [{"task_id": task, "label": "task"}])
-                await self.drive(member, instruction, MemberTools(self, member, []))
-                if task not in self.requests:
-                    raise ValueError("demo member did not request commitment")
+                for _ in range(4):  # re-ask a model that ended its turn without the request
+                    await self.drive(member, instruction, MemberTools(self, member, []))
+                    if task in self.requests:
+                        break
+                else:
+                    raise ValueError(f"demo member did not request commitment for {task}")
             self.phase = "approval"
             return True
         if self.phase == "approval":
@@ -179,10 +182,16 @@ class Demo:
     async def offers(self, member: str, terms: list[Document]) -> None:
         tools = MemberTools(self, member, terms)
         shared = example_module("members.kit.brain")
-        instruction = shared.offers_instruction(member, terms)
-        await self.drive(member, instruction, tools)
-        if len(tools.offered) != len({str(t["need_id"]) for t in terms}):
-            raise ValueError("demo member did not finish its offers")
+        remaining = terms
+        for _ in range(4):
+            if not remaining:
+                return
+            instruction = shared.offers_instruction(member, remaining)
+            await self.drive(member, instruction, tools)
+            remaining = [t for t in terms if str(t["need_id"]) not in tools.offered]
+        if remaining:
+            missed = sorted({str(t["need_id"]) for t in remaining})
+            raise ValueError(f"demo member did not finish its offers; missing needs: {missed}")
 
     async def drive(self, member: str, instruction: str, tools: MemberTools) -> None:
         if os.environ.get("COALITIONKIT_META_API_KEY"):

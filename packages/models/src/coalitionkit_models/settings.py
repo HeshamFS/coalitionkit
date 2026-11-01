@@ -77,8 +77,9 @@ class Settings(BaseSettings):
     composer_model: str = "muse-spark-1.3"
     hosted_agent_model: str = "muse-spark-1.3"
     steward_model: str = "muse-spark-1.3"
-    # Where the Steward runs. Unset: Muse Spark Open on Baseten when a Baseten key is set,
-    # otherwise Meta's own endpoint (see ``steward_host``).
+    # Default: Muse Spark Open on Baseten. Its key is required when the audit runs;
+    # missing credentials must never silently select another provider's model.
+    # Meta's endpoint remains available through an explicit steward_provider="meta".
     steward_provider: StewardProvider | None = None
     steward_baseten_model: str = "meta-models/muse-spark-open"
 
@@ -99,10 +100,10 @@ class Settings(BaseSettings):
 
     @property
     def steward_host(self) -> StewardProvider:
-        """The provider the Steward uses: the explicit setting, else Baseten when its key is set."""
+        """The explicit provider, else Baseten; missing keys fail closed at use."""
         if self.steward_provider is not None:
             return self.steward_provider
-        return "baseten" if _present(self.baseten_api_key) else "meta"
+        return "baseten"
 
     @property
     def production(self) -> bool:

@@ -1,0 +1,11 @@
+name: pack-delta
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  member: {may: [charter, offer, decide, commit]}
+strategy: {allocation: auction}
+task_templates: tasks.yaml
+policies: [policy.yaml]
+evals: [eval.yaml]
+acceptance: acceptance.yaml
+mint: [{template: template.json, tests: mint-tests.json}]

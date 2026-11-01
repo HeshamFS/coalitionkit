@@ -23,6 +23,23 @@ from .schema import Attacks, Config, DeviceConfig, ResourceConfig
 STEWARD_CASE_CODES = ("Unknown tool", *sorted(POLICY_CODES))
 
 
+TYPOGRAPHIC_QUOTES = str.maketrans({"“": '"', "”": '"'})
+
+
+def json_object(text: str) -> Any:
+    """The JSON a model wrote, exactly when it parses; else with typographic quotes repaired.
+
+    Models often put typographic quotes around keys and strings. Valid JSON is never rewritten,
+    so a quote mark inside a string value stays as written.
+    """
+    for candidate in (text, text.translate(TYPOGRAPHIC_QUOTES)):
+        try:
+            return json.loads(candidate)
+        except ValueError:
+            continue
+    return None
+
+
 def read_tools(config: Config) -> frozenset[str]:
     """The template's read operations; called with no arguments they are allowed for anyone."""
     if isinstance(config, DeviceConfig):
@@ -213,10 +230,11 @@ async def run_suite(
             passed = await rejected(client, operation, arguments, expected)
             results.append(AttackResult(name, not control.is_error and passed, expected))
         for index, attack in enumerate(extra.cases):
-            arguments: Any = json.loads(attack.arguments_json)
-            if not isinstance(arguments, dict):
-                raise ValueError("Steward attack arguments must be an object")
             call = attack.tool + " " + attack.arguments_json[:200]
+            arguments = json_object(attack.arguments_json)
+            if not isinstance(arguments, dict):  # no tool call can carry it: nothing to prove
+                results.append(AttackResult(f"steward {index}", True, "not an attack: " + call))
+                continue
             if not_an_attack(config, attack.tool, cast("dict[str, Any]", arguments)):
                 results.append(AttackResult(f"steward {index}", True, "not an attack: " + call))
                 continue

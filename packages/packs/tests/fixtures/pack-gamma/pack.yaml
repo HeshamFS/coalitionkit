@@ -1,0 +1,9 @@
+name: pack-gamma
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  helper: {may: [offer, commit]}
+connectors:
+  - name: probe
+    command: [python, probe.py]
+evals: [evals/solo.yaml]

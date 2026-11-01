@@ -2,6 +2,7 @@
 import { type FormEvent, type ReactNode, useState } from "react";
 import { Banner } from "../components/feedback";
 import { Avatar, Badge, cx } from "../components/primitives";
+import { capital, useVocabulary } from "../feed/vocabulary";
 import { Icon } from "../ui/Icon";
 
 /* ---------- AgentDock ---------- */
@@ -172,9 +173,11 @@ export function ConsentTray({
   requests: ConsentRequest[];
   onOpen?: (id: string) => void;
 }) {
+  const { word } = useVocabulary();
+  const decisions = `${capital(word("decision", 2))} waiting for you`;
   if (requests.length === 0) {
     return (
-      <section className="tray" aria-label="Decisions waiting for you" data-state="empty">
+      <section className="tray" aria-label={decisions} data-state="empty">
         <Icon name="shieldCheck" />
         <span className="small">Nothing waits for you.</span>
       </section>
@@ -184,16 +187,12 @@ export function ConsentTray({
   const first = requests[0];
   if (requests.length === 1 && first) {
     return (
-      <section
-        className="tray"
-        aria-label="Decisions waiting for you"
-        data-state={urgent ? "urgent" : "pending"}
-      >
+      <section className="tray" aria-label={decisions} data-state={urgent ? "urgent" : "pending"}>
         <span style={{ color: "var(--warn-fg)", display: "inline-flex" }}>
           <Icon name="shield" />
         </span>
         <div className="col grow" style={{ gap: 0 }}>
-          <b style={{ fontSize: 12.5 }}>1 decision waits for you</b>
+          <b style={{ fontSize: 12.5 }}>1 {word("decision")} waits for you</b>
           <span className="small">
             {first.title}
             {first.deadline ? ` · ${first.deadline}` : ""}
@@ -208,7 +207,7 @@ export function ConsentTray({
   return (
     <section
       className="tray"
-      aria-label="Decisions waiting for you"
+      aria-label={decisions}
       data-state={urgent ? "urgent" : "pending"}
       style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}
     >
