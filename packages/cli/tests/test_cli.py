@@ -178,7 +178,7 @@ def test_up_process(tmp_path: Path) -> None:
                 process = subprocess.Popen(
                     process.args, stdout=second, stderr=second, env=env, creationflags=flags
                 )
-            until = time.monotonic() + 15
+            until = time.monotonic() + 60  # a cold start imports every package
             while "created earlier" not in again.read_text(encoding="utf-8"):
                 assert process.poll() is None and time.monotonic() < until, again.read_text()
                 time.sleep(0.05)

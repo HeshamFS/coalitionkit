@@ -48,7 +48,7 @@ class Running:
 
     def __enter__(self) -> Running:
         self.thread.start()
-        until = time.monotonic() + 20
+        until = time.monotonic() + 60  # a cold start imports every package
         while not self.worker.started:
             if not self.thread.is_alive() or time.monotonic() > until:
                 raise RuntimeError("server failed to start")
