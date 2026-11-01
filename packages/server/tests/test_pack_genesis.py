@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pack installation and the Genesis public contract."""
 
+import json
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
@@ -202,3 +203,48 @@ def test_multiline_loader_report_is_one_startup_line(
     assert len(lines) == 1
     assert lines[0].startswith(f"Pack refused: {folder}: [yaml]")
     assert "not valid YAML" in lines[0]
+
+
+@pytest.mark.parametrize("reference", [None, {"name": "pack-alpha", "version": "1.0.0"}])
+def test_pack_feed_for_every_viewer(
+    pack_client: TestClient, reference: dict[str, str] | None
+) -> None:
+    server: Server = cast(FastAPI, pack_client.app).state.server
+    draft = pack_client.post("/v1/genesis/draft", json={"goal": "Agree", "pack": reference}).json()[
+        "draft"
+    ]
+    response = pack_client.post(
+        "/v1/genesis/start",
+        json={"draft": draft},
+        headers={"Authorization": "Start " + server.registry.issue_start()},
+    )
+    assert response.status_code == 200, response.text
+    coalition = response.json()["coalition_id"]
+    hub = server.surfaces[coalition].state.hub
+    for viewer in [*server.hosts[coalition].state.members, "another-viewer"]:
+        # State metadata is not dependent on the viewer's hosted signing credentials.
+        session = hub.feed_session(viewer)
+        state = session.start()[1].snapshot
+        if reference:
+            assert state["pack"]["name"] == reference["name"]
+            assert state["pack"]["vocabulary"] and state["pack"]["views"]["order"]
+        else:
+            assert "pack" not in state
+    assert "vocabulary" not in str(server.store.read(coalition))
+
+
+def test_zero_pack_does_not_require_pack_catalog(tmp_path: Path) -> None:
+    server = Server(
+        Settings(
+            store=SecretStr("sqlite:///:memory:"),
+            host_key_file=tmp_path / "host.key",
+            catalog_file=tmp_path / "absent.json",
+        )
+    )
+    try:
+        charter = json.loads((Path(__file__).parent / "fixtures/charter.json").read_text())
+        coalition = server.create(charter)["coalition_id"]
+        hub = server.surfaces[coalition].state.hub
+        assert "pack" not in hub.feed_session("p1").start()[1].snapshot
+    finally:
+        server.close()

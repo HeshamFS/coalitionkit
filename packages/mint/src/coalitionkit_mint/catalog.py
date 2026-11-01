@@ -2,11 +2,12 @@
 """Plain data for the existing Mint family; no renderer or component definitions."""
 
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .artifact import connect
-from .schema import Config, DeviceConfig
+from .schema import Attacks, Config, DeviceConfig, parse_config
 
 
 def twin_data(folder: Path, config: Config, artifact_id: str) -> dict[str, Any]:
@@ -62,3 +63,36 @@ def twin_data(folder: Path, config: Config, artifact_id: str) -> dict[str, Any]:
         "source": "camera",
     }
     return data
+
+
+@dataclass(frozen=True)
+class PackTemplate:
+    """Data-only fixed template and mandatory adversarial MCP tests."""
+
+    config_json: str
+    tests_json: str
+
+    def config(self) -> Config:
+        return parse_config(self.config_json)
+
+    def tests(self) -> Attacks:
+        return Attacks.model_validate_json(self.tests_json)
+
+
+class TemplateRegistry:
+    """Registration is scoped by Coalition, never by a process-wide template name."""
+
+    def __init__(self) -> None:
+        self._entries: dict[str, dict[str, PackTemplate]] = {}
+
+    def register(self, coalition: str, entries: dict[str, PackTemplate]) -> None:
+        for entry in entries.values():
+            entry.config()
+            entry.tests()
+        self._entries[coalition] = dict(entries)
+
+    def resolve(self, coalition: str, name: str) -> PackTemplate:
+        try:
+            return self._entries[coalition][name]
+        except KeyError:
+            raise ValueError("Mint template is not registered for this Coalition") from None

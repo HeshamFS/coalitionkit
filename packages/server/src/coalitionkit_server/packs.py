@@ -1,13 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """Installed packs and their public Genesis metadata."""
 
+import importlib
 import re
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
 from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_packs import Pack, PackError, load_pack
+from coalitionkit_packs.files import take_snapshot
+from coalitionkit_packs.signing import verify_snapshot
 from coalitionkit_packs.version import core_version
 from coalitionkit_surfaces import load_catalog
 
@@ -83,3 +87,45 @@ def suggest_pack(goal: str, installed: dict[tuple[str, str], Pack]) -> Suggestio
     if not candidates or (len(candidates) > 1 and len(candidates[0].why) == len(candidates[1].why)):
         return None
     return candidates[0]
+
+
+def surface_pack(pack: Pack) -> Document:
+    """Unsigned display metadata; never inserted into protocol payloads."""
+    return {
+        "name": pack.name,
+        "version": pack.manifest.version,
+        "vocabulary": public_pack(pack)["vocabulary"],
+        "views": {
+            "order": {
+                role: {device: list(names) for device, names in devices.items()}
+                for role, devices in pack.views.order.items()
+            },
+            "components": {
+                name: {
+                    "props": sorted(spec.props),
+                    "required": sorted(spec.required),
+                    "doors": sorted(spec.links),
+                }
+                for name, spec in pack.components.items()
+            },
+        },
+    }
+
+
+def mint_templates(pack: Pack, coalition: str, trusted_keys: dict[str, dict[str, str]]) -> Any:
+    """Read and verify the same bytes before registering data-only Mint entries."""
+    module = importlib.import_module("coalitionkit_mint.catalog")
+    snapshot = take_snapshot(pack.root)
+    verify_snapshot(snapshot, {kid: jwk_to_public_key(jwk) for kid, jwk in trusted_keys.items()})
+    registry = module.TemplateRegistry()
+    registry.register(
+        coalition,
+        {
+            entry.template: module.PackTemplate(
+                snapshot.files[entry.template].decode("utf-8"),
+                snapshot.files[entry.tests].decode("utf-8"),
+            )
+            for entry in pack.manifest.mint or []
+        },
+    )
+    return registry
