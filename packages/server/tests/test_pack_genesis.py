@@ -307,6 +307,8 @@ def test_pack_feed_for_every_viewer(
         state = session.start()[1].snapshot
         if reference:
             assert state["pack"]["name"] == reference["name"]
+            assert "need" in state["pack"]["schemas"]
+            assert "pack-snapshot.invalid" not in json.dumps(state["pack"]["schemas"])
             assert state["pack"]["vocabulary"] and state["pack"]["views"]["order"]
         else:
             assert "pack" not in state

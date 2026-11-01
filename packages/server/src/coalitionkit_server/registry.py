@@ -192,6 +192,32 @@ class Registry(CredentialRegistry):
             raise ValueError("participant has no hosted signer")
         return self.person({"participant": participant, "card_url": row[0], "hosted": row[1]})
 
+    def vault_values(
+        self, coalition: str, participant: str, values: Document | None = None
+    ) -> Document:
+        """Private state shares the hosted encrypted record and its erasure lifecycle."""
+        with self.lock, self.store.transaction(coalition) as tx:
+            row = tx.execute(
+                "SELECT hosted FROM server_credentials WHERE coalition = ? AND participant = ?",
+                (coalition, participant),
+            ).fetchone()
+            if not row or not row[0]:
+                raise ValueError("participant has no hosted vault")
+            state = json.loads(self.cipher.decrypt(row[0].encode()))
+            saved = state.setdefault("values", {})
+            if values is not None:
+                saved.update(values)
+                tx.execute(
+                    "UPDATE server_credentials SET hosted = ? "
+                    "WHERE coalition = ? AND participant = ?",
+                    (
+                        self.cipher.encrypt(json.dumps(state).encode()).decode(),
+                        coalition,
+                        participant,
+                    ),
+                )
+            return saved
+
     def redeem(
         self,
         token: str,
