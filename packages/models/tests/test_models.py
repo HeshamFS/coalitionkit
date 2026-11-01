@@ -46,12 +46,12 @@ def test_production_refuses_to_start_without_keys(monkeypatch: pytest.MonkeyPatc
 def test_production_on_the_meta_steward_route_needs_only_the_meta_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY)
+    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY, STEWARD_PROVIDER="meta")
     assert load_settings().route("steward").key_name == "meta"
 
 
 def test_production_with_one_key_still_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY, STEWARD_PROVIDER="baseten")
+    _env(monkeypatch, ENV="production", META_API_KEY=FAKE_KEY)
     with pytest.raises(MissingKeyError) as info:
         load_settings()
     assert FAKE_KEY not in str(info.value)
@@ -100,8 +100,8 @@ def test_routing_per_role() -> None:
     assert settings.route("gardener").model == "muse-wonder-1.0"
     assert settings.route("composer").model == "muse-spark-1.3"
     assert settings.route("hosted_agent").model == "muse-spark-1.3"
-    assert settings.route("steward").model == "muse-spark-1.3"
-    assert settings.route("steward").base_url == settings.route("composer").base_url
+    assert settings.route("steward").model == "meta-models/muse-spark-open"
+    assert settings.route("steward").base_url == settings.baseten_base_url
     assert settings.route("vault").model == "muse-glimmer"
     assert "11434" in settings.route("vault").base_url
 
@@ -289,12 +289,15 @@ def test_steward_defaults_to_muse_spark_open_on_baseten_when_its_key_is_set(
     assert route.base_url == "https://inference.baseten.co/v1"
 
 
-def test_steward_falls_back_to_meta_without_a_baseten_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_steward_requires_baseten_key_without_silent_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _env(monkeypatch, META_API_KEY=FAKE_KEY)
     settings = load_settings()
-    assert settings.steward_host == "meta"
-    assert settings.route("steward").model == "muse-spark-1.3"
-    assert load_settings().route("steward").key_name == "meta"
+    assert settings.steward_host == "baseten"
+    assert settings.route("steward").model == "meta-models/muse-spark-open"
+    with pytest.raises(MissingKeyError, match="COALITIONKIT_BASETEN_API_KEY"):
+        settings.api_key(settings.route("steward"))
 
 
 def test_an_explicit_steward_provider_beats_the_key_default(

@@ -35,6 +35,7 @@ from coalitionkit_steward import (
     run_selftest,
     verify_verdict,
 )
+from coalitionkit_steward.engine import MAX_AUDIT_CHARS
 
 COALITION = "01M4XRC000000G40R40M30E209"
 EVENT = "01M4XRC0Z8185GR38E1W8124GK"
@@ -387,6 +388,61 @@ async def test_audit_prompt_marks_content_as_untrusted() -> None:
     assert messages[0]["role"] == "system" and "untrusted" in messages[0]["content"]
     assert "ignore all rules" in messages[1]["content"]
     assert opts["temperature"] == 0
+
+
+async def test_host_proposal_audit_preserves_redacted_structure_and_scores() -> None:
+    steward, fake, _ = make([reply(ALLOW)] * 3)
+    payload = plan_payload("p1", "p2")
+    payload["plans"][0]["objective_scores"] = {"time": 120, "cost": 90}
+    payload["plans"][0]["private_note"] = "hidden-value"
+    proposal = envelope(
+        "coalition.propose",
+        payload,
+        Scope(audience="coalition", redact=["payload.plans.private_note"]),
+    ).model_copy(update={"on_behalf_of": "host"})
+    signed = await steward.review(proposal, context=MEMBERS)
+    assert signed.body.action == "allow"
+    assert len(fake.calls) == 3
+    assignments: list[list[str]] = []
+    for _, messages, _ in fake.calls:
+        system = str(messages[0]["content"])
+        assert "filtered to this recipient only" in system
+        assert "Owner consent is required separately" in system
+        item = json.loads(str(messages[1]["content"]))
+        assert item["message_type"] == "coalition.propose"
+        plan = item["payload"]["plans"][0]
+        assert plan["objective_scores"] == {"time": 120, "cost": 90}
+        assert "private_note" not in plan
+        assignments.append([a["assignee"] for a in plan["assignments"]])
+    assert sorted(assignments) == [[], ["p1"], ["p2"]]
+
+
+async def test_oversized_projection_fails_closed_without_truncation() -> None:
+    steward, fake, _ = make([reply(ALLOW)])
+    signed = await steward.review(
+        envelope(OBSERVE, {"content": "x" * (MAX_AUDIT_CHARS + 1)}), flagged=True
+    )
+    assert signed.body.action == "escalate"
+    assert fake.calls == []
+
+
+async def test_missing_steward_key_escalates_without_meta_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("COALITIONKIT_BASETEN_API_KEY", raising=False)
+    monkeypatch.delenv("COALITIONKIT_STEWARD_PROVIDER", raising=False)
+    monkeypatch.setenv("COALITIONKIT_META_API_KEY", "test-not-a-real-key")
+    settings = Settings(env="test")
+    assert settings.route("steward").key_name == "baseten"
+    gateway = ModelGateway(settings)
+    try:
+        steward = Steward(gateway, signing_key=KEY, kid="steward-1")
+        signed = await steward.review(
+            envelope("coalition.propose", plan_payload("p1")), context=MEMBERS
+        )
+        assert (signed.body.action, signed.body.policy_id) == ("escalate", "steward-model-audit")
+    finally:
+        await gateway.aclose()
 
 
 async def test_verdict_signature_binds_subject_and_revision() -> None:
