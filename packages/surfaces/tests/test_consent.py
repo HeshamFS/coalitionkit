@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from typing import Any
+from unittest.mock import PropertyMock, patch
 
 import pytest
 from ag_ui.core import (
@@ -19,6 +20,7 @@ from ag_ui.core import (
 from surfaces_support import World, dump
 
 from coalitionkit_contracts import jwk_to_public_key, verify_decision
+from coalitionkit_runtime import CoalitionHost
 from coalitionkit_surfaces import AgentSession, ConsentError, SurfaceHub, open_requests
 from coalitionkit_surfaces.fakes import FakeClock
 from coalitionkit_surfaces.frames import Frame
@@ -50,6 +52,23 @@ def test_open_requests_are_shown_as_interrupts_to_deciders_only(
     assert [type(f) for f in carol] == [RunStartedEvent, RunFinishedEvent]
     assert isinstance(carol[1], RunFinishedEvent)
     assert isinstance(carol[1].outcome, RunFinishedSuccessOutcome)
+
+
+def test_interrupt_batch_reads_state_once(world: World, hub: SurfaceHub) -> None:
+    plans = {plan_for_alice_and_bob(world) for _ in range(3)}
+    session = agent(hub, "alice")
+    state = world.host.state
+    with patch.object(
+        CoalitionHost, "state", new_callable=PropertyMock, return_value=state
+    ) as read:
+        shown = interrupts(session.start())
+        assert {i.id for i in shown} == {f"plan:{plan}:1:alice" for plan in plans}
+        assert all(i.expires_at == "2026-10-29T12:00:00Z" for i in shown)
+        assert read.call_count == 1
+        # An unrelated wake or idle tick must not rebuild these interrupts.
+        assert session.changed() == []
+        assert session.tick() == []
+        assert read.call_count == 1
 
 
 def test_agent_text_streams_as_text_message_events(world: World, hub: SurfaceHub) -> None:
