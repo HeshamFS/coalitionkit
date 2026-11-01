@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     up.add_argument("--no-web", action="store_true")
     up.add_argument("--port", type=int)
     up.add_argument("--data-dir", type=Path, default=Path(".coalitionkit"))
+    up.add_argument("--pack", type=Path, action="append", default=[])
     up.add_argument("--reset", action="store_true")
     up.add_argument(
         "--pace", type=float, default=2.0, help="seconds between demo steps (0 runs at once)"

@@ -23,10 +23,12 @@ from coalitionkit_contracts import (
 )
 from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_models import ModelGateway
+from coalitionkit_packs import Pack
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_runtime.lifecycle import State
 
 from .adapter import Document
+from .packs import PackRef, Suggestion, public_pack, suggest_pack
 
 if TYPE_CHECKING:
     from .app import Server
@@ -34,6 +36,7 @@ if TYPE_CHECKING:
 
 class Goal(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    pack: PackRef | None = None
     goal: str = Field(min_length=1, max_length=500)
     # The writer's offset from UTC, so "tonight" and "by Friday" mean their evening, not UTC's.
     utc_offset_minutes: int | None = Field(default=None, ge=-840, le=840)
@@ -51,7 +54,6 @@ class Draft(Goal):
     needs: list[str]
     deadline: datetime | None
     deciders: Literal["all"] = "all"
-    pack: None = None
 
     @field_validator("deadline")
     @classmethod
@@ -78,6 +80,8 @@ class DraftResponse(BaseModel):
     draft: Draft
     source: Literal["reader", "model"]
     reading: list[Reading]
+    suggested: Suggestion | None = None
+    vocabulary: Document = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def valid_spans(self) -> DraftResponse:
@@ -297,7 +301,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
 
     def gate(request: Request) -> None:
         if (
-            request.method != "DELETE"
+            request.method not in {"DELETE", "GET"}
             and request.headers.get("content-type", "").split(";")[0] != "application/json"
         ):
             raise HTTPException(403, "JSON required")
@@ -325,13 +329,55 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             raise HTTPException(403, "owner required")
         return coalition
 
+    def chosen_pack(ref: PackRef) -> Pack:
+        pack = server.packs.get((ref.name, ref.version))
+        if pack is None:
+            raise HTTPException(422, "pack is not installed")
+        return pack
+
+    @app.get("/v1/packs", dependencies=[Depends(gate)])
+    async def packs(request: Request) -> list[Document]:
+        if server.settings.genesis == "admin":
+            from .app import admin
+
+            admin(request, server.settings)
+        return [public_pack(pack) for pack in server.packs.values()]
+
     @app.post("/v1/genesis/draft", dependencies=[Depends(gate)])
     async def draft(request: Request, body: Goal) -> DraftResponse:
         if server.settings.genesis == "admin":
             from .app import admin
 
             admin(request, server.settings)
-        return await draft_goal(body.goal, server.gateway, body.utc_offset_minutes)
+        pack = chosen_pack(body.pack) if body.pack else None
+        result = await draft_goal(body.goal, server.gateway, body.utc_offset_minutes)
+        result.draft.pack = body.pack
+        result.suggested = suggest_pack(body.goal, server.packs)
+        result.vocabulary = {}
+        if pack:
+            result.vocabulary = public_pack(pack)["vocabulary"]
+            result.reading = [r for r in result.reading if r.kind not in {"role", "count"}]
+            roles: list[Role] = []
+            for identifier, spec in pack.manifest.roles.items():
+                labels = sorted({identifier, spec.label or identifier}, key=len, reverse=True)
+                pattern = re.compile(
+                    rf"\b({NUMBER})\s+("
+                    + "|".join(re.escape(label) + "s?" for label in labels)
+                    + r")\b",
+                    re.I,
+                )
+                matches = [m for m in pattern.finditer(body.goal) if number(m[1]) > 0]
+                count = min(sum(number(m[1]) for m in matches), 10000) if matches else 1
+                roles.append(Role(id=identifier, label=spec.label or identifier, count=count))
+                for match in matches:
+                    result.reading.extend(
+                        [
+                            Reading(span=match.span(1), kind="count"),
+                            Reading(span=match.span(2), kind="role"),
+                        ]
+                    )
+            result.draft.roles = roles
+        return result
 
     @app.post("/v1/genesis/start", dependencies=[Depends(gate)])
     async def start(request: Request, body: Start) -> Document:
@@ -339,10 +385,14 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
         value = request.headers.get("authorization", "")
         if not value.startswith("Start "):
             raise HTTPException(401, "start code required")
+        if body.draft.pack:
+            pack = chosen_pack(body.draft.pack)
+            if any(role.id not in pack.manifest.roles for role in body.draft.roles):
+                raise HTTPException(422, "draft role is not a pack role")
         async with mutation:
             if not registry.consume_start(value[6:]):
                 raise HTTPException(401, "invalid start code")
-            charter = {
+            charter: Document = {
                 "goal": body.draft.goal,
                 "roles": [{"id": r.id} for r in body.draft.roles],
                 "rules": [],
@@ -351,6 +401,8 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 ).isoformat(),
                 "deciders": [f"p{i}" for i in range(1, sum(r.count for r in body.draft.roles) + 1)],
             }
+            if body.draft.pack:
+                charter["pack"] = body.draft.pack.model_dump()
             try:
                 validate_payload(
                     "coalition.charter",
