@@ -180,7 +180,11 @@ def test_bundle_resolves_core_and_local_refs_without_changing_literals(tmp_path:
     pack = load(root)
     bundled = bundle_schema(pack.schemas["need"], pack.schema_registry)
     assert bundled["properties"]["id"]["type"] == "string"
-    assert bundled["properties"]["count"]["x-private"] is True
+    count = bundled["properties"]["count"]["allOf"]  # the reference and its siblings, both kept
+    assert count == [
+        {"type": "integer", "minimum": 1, "x-private": True},
+        {"minimum": 3, "x-private": False},
+    ]
     assert bundled["examples"] == [literal]
     from jsonschema import Draft202012Validator
 
@@ -402,3 +406,42 @@ def test_task_resource_schemas_load_with_runtime_notice(tmp_path: Path) -> None:
     with pytest.warns(UserWarning, match="loaded but not applied"):
         pack = load(root)
     assert set(pack.schemas) == {"task", "resource"}
+
+
+def test_bundle_keeps_a_referenced_closed_object_and_its_siblings_apart(tmp_path: Path) -> None:
+    from jsonschema import Draft202012Validator
+
+    from coalitionkit_packs.loader import bundle_schema
+
+    root = copy_pack("pack-alpha", tmp_path)
+    base = {
+        "type": "object",
+        "properties": {"a": {"type": "integer"}},
+        "required": ["a"],
+        "additionalProperties": False,
+    }
+    original = {
+        "$defs": {"base": base, "size": {"type": "integer", "minimum": 1, "x-private": True}},
+        "$ref": "#/$defs/base",
+        "properties": {
+            "b": {"type": "string"},
+            "size": {"$ref": "#/$defs/size", "minimum": 3, "x-private": False},
+        },
+    }
+    (root / "schemas/need-ext.json").write_text(json.dumps(original))
+    pack = load(root)
+    bundled = bundle_schema(pack.schemas["need"], pack.schema_registry)
+    assert "$ref" not in json.dumps(bundled)
+    # The web form reads this exact output (apps/web/src/room/extSchema.bundle.test.ts).
+    fixture = Path(__file__).parents[3] / "apps/web/src/room/fixtures/bundled-allof.json"
+    assert bundled == json.loads(fixture.read_text(encoding="utf-8"))
+    cases = (
+        ({"a": 1}, True),
+        ({}, False),
+        ({"a": 1, "b": "x"}, False),
+        ({"a": 1, "size": 2}, False),
+    )
+    for instance, accepted in cases:
+        for schema in (pack.schemas["need"], bundled):
+            validator = Draft202012Validator(schema, registry=pack.schema_registry)
+            assert validator.is_valid(instance) is accepted, (schema, instance)  # pyright: ignore[reportUnknownMemberType]

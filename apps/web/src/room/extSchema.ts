@@ -18,6 +18,7 @@ export type JsonSchema = {
   required?: string[];
   "x-private"?: boolean;
   $ref?: string;
+  allOf?: JsonSchema[];
   $defs?: Record<string, JsonSchema>;
   definitions?: Record<string, JsonSchema>;
 };
@@ -31,6 +32,56 @@ function resolve(prop: JsonSchema, root: JsonSchema, depth = 0): JsonSchema {
   if (!target) return prop;
   const { $ref: _ignored, ...rest } = prop;
   return resolve({ ...target, ...rest }, root, depth + 1);
+}
+
+const stricter = {
+  minimum: Math.max,
+  minLength: Math.max,
+  maximum: Math.min,
+  maxLength: Math.min,
+} as const;
+
+/** Two schemas that both apply to one field, read as one for the form. */
+function both(a: JsonSchema, b: JsonSchema): JsonSchema {
+  const out: JsonSchema = { ...a, ...b };
+  for (const [key, pick] of Object.entries(stricter) as [
+    keyof typeof stricter,
+    typeof Math.max,
+  ][]) {
+    const x = a[key];
+    const y = b[key];
+    if (x !== undefined && y !== undefined) out[key] = pick(x, y);
+  }
+  if (a["x-private"] === true || b["x-private"] === true) out["x-private"] = true;
+  return out;
+}
+
+/** A property with its references followed and its `allOf` branches folded into one field. */
+function fieldSchema(prop: JsonSchema, root: JsonSchema, depth = 0): JsonSchema {
+  const resolved = resolve(prop, root);
+  if (!resolved.allOf || depth > 8) return resolved;
+  const { allOf, ...own } = resolved;
+  return allOf.map((branch) => fieldSchema(branch, root, depth + 1)).reduce(both, own);
+}
+
+/**
+ * One flat object schema for the form: properties and required names gathered across `allOf`
+ * (the host delivers a reference with siblings as `allOf`), each property folded into one field.
+ */
+export function flatten(schema: JsonSchema, root: JsonSchema = schema, depth = 0): JsonSchema {
+  const resolved = resolve(schema, root);
+  const { allOf, ...own } = resolved;
+  const parts = [own, ...(depth > 8 ? [] : (allOf ?? []).map((b) => flatten(b, root, depth + 1)))];
+  const properties: Record<string, JsonSchema> = {};
+  const required = new Set<string>();
+  for (const part of parts) {
+    for (const [key, raw] of Object.entries(part.properties ?? {})) {
+      const prop = fieldSchema(raw, root);
+      properties[key] = properties[key] ? both(properties[key], prop) : prop;
+    }
+    for (const key of part.required ?? []) required.add(key);
+  }
+  return { ...own, properties, required: [...required] };
 }
 
 /** The catalog form kinds the schema form can draw (sheet 04). */
@@ -60,11 +111,11 @@ function kindOf(schema: JsonSchema): ExtKind | null {
 
 /** The fields of a flat object schema; properties of other shapes are left out. */
 export function fieldsOf(schema: JsonSchema | null | undefined): ExtField[] {
-  const properties = schema?.properties ?? {};
-  const required = new Set(schema?.required ?? []);
+  const flat = schema ? flatten(schema) : undefined;
+  const properties = flat?.properties ?? {};
+  const required = new Set(flat?.required ?? []);
   const fields: ExtField[] = [];
-  for (const [key, raw] of Object.entries(properties)) {
-    const prop = schema ? resolve(raw, schema) : raw;
+  for (const [key, prop] of Object.entries(properties)) {
     const kind = kindOf(prop);
     if (!kind) continue;
     fields.push({

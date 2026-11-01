@@ -7,7 +7,7 @@ import { Field } from "../components/f04/fields";
 import type { ViewerState } from "../feed/delta";
 import { eventsOf } from "../feed/derive";
 import { ActionError, saveVault, sendOffer, vaultKeys } from "./agentActions";
-import { fieldsOf, type JsonSchema, type Values } from "./extSchema";
+import { fieldsOf, flatten, type JsonSchema, type Values } from "./extSchema";
 import { SchemaForm } from "./schemaForm";
 
 /** The pack's offer schema from the feed's `pack` key, when the pack adds offer fields. */
@@ -19,11 +19,12 @@ export function offerSchema(state: ViewerState | null): JsonSchema | null {
 
 /** The schema without its private fields: those are asked for once, in the vault form. */
 export function publicSchema(schema: JsonSchema): JsonSchema {
+  const flat = flatten(schema);
   const properties = Object.fromEntries(
-    Object.entries(schema.properties ?? {}).filter(([, p]) => p["x-private"] !== true),
+    Object.entries(flat.properties ?? {}).filter(([, p]) => p["x-private"] !== true),
   );
-  const required = (schema.required ?? []).filter((key) => key in properties);
-  return { ...schema, properties, required };
+  const required = (flat.required ?? []).filter((key) => key in properties);
+  return { ...flat, properties, required };
 }
 
 /** Needs the viewer can see, newest last, as {id, label}. */

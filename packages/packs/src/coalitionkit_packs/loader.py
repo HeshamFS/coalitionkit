@@ -356,7 +356,12 @@ def _schemas(
 
 
 def bundle_schema(schema: Mapping[str, Any], registry: Registry[Any]) -> dict[str, Any]:
-    """Inline closed-registry references, preserving literals and sibling constraints."""
+    """Inline closed-registry references without changing what the schema accepts.
+
+    A bare reference is replaced by its target. A reference with sibling keywords becomes
+    ``allOf: [target, siblings]``, which is what a 2020-12 reference beside other keywords means;
+    keywords are never merged across the two, since their meaning depends on where they stand.
+    """
     active: set[int] = set()
 
     def visit(node: Any, resolver: Any) -> Any:
@@ -379,28 +384,20 @@ def bundle_schema(schema: Mapping[str, Any], registry: Registry[Any]) -> dict[st
                 return [substitute(v) for v in cast(list[Any], value)]
             return value
 
-        result = {
+        siblings = {
             k: substitute(v) for k, v in obj.items() if k not in {"$id", "$ref", "$dynamicRef"}
         }
+        targets: list[Any] = []
         for keyword in ("$ref", "$dynamicRef"):
-            if keyword not in obj:
-                continue
-            resolved = resolver.lookup(obj[keyword])
-            target = visit(resolved.contents, resolved.resolver)
-            if isinstance(target, bool):
-                if not target:
-                    result.setdefault("allOf", []).append(False)
-                continue
-            # Repeated keywords are conjunctive, not overrides. Keep their original
-            # constraints in allOf while exposing unambiguous fields to simple forms.
-            conflicts = {k: v for k, v in target.items() if k in result and result[k] != v}
-            result = {**target, **result}
-            if conflicts:
-                result.setdefault("allOf", []).append(conflicts)
-            if target.get("x-private") is True:
-                result["x-private"] = True
+            if keyword in obj:
+                resolved = resolver.lookup(obj[keyword])
+                targets.append(visit(resolved.contents, resolved.resolver))
         active.remove(identity)
-        return result
+        if not targets:
+            return siblings
+        if not siblings and len(targets) == 1:
+            return targets[0]
+        return {"allOf": [*targets, siblings]} if siblings else {"allOf": targets}
 
     return cast(dict[str, Any], visit(schema, registry.resolver()))
 
