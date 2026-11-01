@@ -46,7 +46,6 @@
   },
   "required": [
     "instrument",
-    "free_window",
     "sample_capacity"
   ],
   "additionalProperties": false
