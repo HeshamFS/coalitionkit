@@ -17,6 +17,7 @@ from starlette.types import Receive, Scope, Send
 
 from coalitionkit_contracts import new_ulid, public_key_to_jwk, validate_payload
 from coalitionkit_edges.a2a import HostSigner, create_host_app
+from coalitionkit_gardener import build_propose
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
 from coalitionkit_models import ModelGateway
@@ -31,7 +32,7 @@ from coalitionkit_surfaces.app import create_app as surfaces_app
 from .adapter import Document, HostPort
 from .audit import AuditLoop, StewardAdapter, gateway
 from .mcp_port import MCPPort
-from .packs import bind_runtime, install_packs
+from .packs import bind_runtime, install_packs, plan_for
 from .registry import Registry
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
@@ -111,6 +112,19 @@ class Server:
             "host_card_url": self.signer.card_url,
         }
 
+    def plan(self, coalition: str, deadline: str) -> Acknowledgement | Document:
+        host = self.hosts[coalition]
+        plans = plan_for(host, self.packs)
+        if not plans.plans:
+            return {"unresolved": [item.reason for item in plans.unresolved]}
+        payload = build_propose(plans, deadline=deadline, proposal_set_id=new_ulid())
+        sources = [
+            e["event_id"]
+            for e in host.state.events.values()
+            if e["type"] in {"coalition.need", "coalition.offer"}
+        ]
+        return host.host_emit("propose", payload.to_wire(), sources=sources)
+
     def vault_result_sink(
         self, coalition: str, participant: str, match_id: str
     ) -> Callable[[list[str] | int], None]:
@@ -131,6 +145,11 @@ class Server:
             hub.say(participant, json.dumps({"vault_result": body}))
 
         return deliver
+
+    async def skills(self, participant: str, coalition_id: str) -> list[Document]:
+        if not await ViewPort(self.hosts, self.registry).is_member(participant, coalition_id):
+            return []
+        return self.hosts[coalition_id].skills(participant)
 
     async def accept(self, envelope_json: Document, authenticated_sender: str) -> Document:
         port = self.ports.get(str(envelope_json.get("coalition_id", "")))
@@ -269,7 +288,9 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     """The composed application. ``model_gateway`` is a test hook for metered gateways."""
     server = Server(settings, model_gateway)
     mcp = mcp_app(
-        Deps(MCPPort(server), ViewPort(server.hosts, server.registry), server.registry),
+        Deps(
+            MCPPort(server), ViewPort(server.hosts, server.registry), server.registry, skills=server
+        ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,
         allowed_hosts=[urlsplit(settings.public_base_url).netloc],

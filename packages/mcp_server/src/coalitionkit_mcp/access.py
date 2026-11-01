@@ -20,7 +20,7 @@ from coalitionkit_contracts import is_ulid
 from coalitionkit_edges.a2a.host_port import HostPort
 
 from .errors import CoalitionToolError
-from .ports import HostedParticipant, TokenPort, ViewPort
+from .ports import HostedParticipant, SkillsPort, TokenPort, ViewPort
 
 
 def utc_now() -> datetime:
@@ -40,6 +40,7 @@ class Deps:
     view: ViewPort
     tokens: TokenPort
     clock: Callable[[], datetime] = field(default=utc_now)
+    skills: SkillsPort | None = None
 
 
 class CoalitionMCPServer(MCPServer):

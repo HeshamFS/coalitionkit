@@ -315,3 +315,31 @@ def test_pack_words_stay_out_of_the_core_denylist(tmp_path: Path) -> None:
     assert denylist.read_text(encoding="utf-8") == before  # and the list never changes
     src = Path(__file__).parents[1] / "src" / "coalitionkit_packs"
     assert not any("denylist" in f.read_text(encoding="utf-8") for f in src.glob("*.py"))
+
+
+def test_lesson_templates_are_snapshot_text_and_bounded(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    append(root / "pack.yaml", "\nlessons: [lesson.md]\n")
+    lesson = root / "lesson.md"
+    lesson.write_text("# Lesson\n{{ goal }} {{tasks}}", encoding="utf-8", newline="\n")
+    pack = load(root)
+    lesson.write_text("changed", encoding="utf-8")
+    assert pack.lessons["lesson.md"] == "# Lesson\n{{ goal }} {{tasks}}"
+    assert pack.skills["skills/SKILL.md"]
+    lesson.write_text("{{unknown}}", encoding="utf-8")
+    assert "lessons" in rules_of(root)
+    lesson.write_text("x" * (256 * 1024 + 1), encoding="utf-8")
+    with pytest.raises(PackError):
+        load(root)
+
+
+def test_task_resource_schemas_load_with_runtime_notice(tmp_path: Path) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    rewrite(
+        root / "pack.yaml",
+        "schemas: { need: schemas/need-ext.json }",
+        "schemas: { task: schemas/need-ext.json, resource: schemas/need-ext.json }",
+    )
+    with pytest.warns(UserWarning, match="loaded but not applied"):
+        pack = load(root)
+    assert set(pack.schemas) == {"task", "resource"}

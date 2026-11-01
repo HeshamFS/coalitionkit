@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import re
+import warnings
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
@@ -57,6 +59,8 @@ class Pack:
     views: Views
     evals: tuple[EvalScenario, ...]
     schemas: Mapping[str, Mapping[str, Any]] = field(default_factory=dict[str, Mapping[str, Any]])
+    skills: Mapping[str, str] = field(default_factory=dict[str, str])
+    lessons: Mapping[str, str] = field(default_factory=dict[str, str])
     signature: PackSignature | None = None
     schema_registry: Registry[Any] = field(default_factory=lambda: Registry[Any]())
 
@@ -119,6 +123,8 @@ def _inspect(snap: Snapshot, core_catalog: Catalog | None, core_version: str | N
     views = _views(snap, manifest, core_catalog, report)
     evals = _evals(snap, manifest, report)
     schemas, registry = _schemas(snap, manifest, report)
+    skills = _markdown(snap, manifest.skills or [], "skills", report)
+    lessons = _markdown(snap, manifest.lessons or [], "lessons", report)
     _other_files(snap, manifest, report)
     report.raise_if_any()
     return Pack(
@@ -131,6 +137,8 @@ def _inspect(snap: Snapshot, core_catalog: Catalog | None, core_version: str | N
         evals,
         schemas,
         schema_registry=registry,
+        skills=skills,
+        lessons=lessons,
     )
 
 
@@ -332,6 +340,8 @@ def _schemas(
     for kind, rel in (manifest.schemas or {}).items():
         if SNAPSHOT_BASE + rel in resources:
             loaded[kind] = resources[SNAPSHOT_BASE + rel]
+    for kind in loaded.keys() & {"task", "resource"}:
+        warnings.warn(f"Pack {kind} schema loaded but not applied at runtime", stacklevel=2)
     return loaded, registry
 
 
@@ -341,3 +351,30 @@ def _other_files(snap: Snapshot, manifest: Manifest, report: Report) -> None:
     for entry in manifest.mint or []:
         snap.get(entry.template, "mint.template", report)
         snap.get(entry.tests, "mint.tests", report)
+
+
+def _markdown(snap: Snapshot, paths: list[str], section: str, report: Report) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for rel in paths:
+        text = snap.text(rel, f"{section}.{rel}", report)
+        if text is not None:
+            if not rel.lower().endswith(".md"):
+                report.add("markdown", rel, "skills and lessons must be Markdown files")
+            if section == "lessons":
+                allowed = {
+                    "goal",
+                    "members",
+                    "tasks",
+                    "allocation",
+                    "decisions",
+                    "changes",
+                    "policy_outcomes",
+                    "duration",
+                }
+                unknown = set(re.findall(r"\{\{\s*(.*?)\s*\}\}", text)) - allowed
+                if unknown:
+                    report.add(
+                        "lessons", rel, "unknown placeholders: " + ", ".join(sorted(unknown))
+                    )
+            result[rel] = text
+    return result

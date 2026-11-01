@@ -60,3 +60,19 @@ async def log(id: str, ctx: Context, since: str = "0") -> str:
     found = await deps_of(ctx).view.log(hosted.participant, id, int(since))
     entries = [log_entry(e) for e in found if int(e.get("seq", 0)) > int(since)]
     return _dump({"coalition_id": id, "since": int(since), "entries": entries})
+
+
+SKILLS_URI = "coalition://{id}/skills"
+
+
+async def skills(id: str, ctx: Context) -> str:
+    """Pack skills and lessons visible to the authenticated member."""
+    hosted = await _authorized(ctx, id)
+    port = deps_of(ctx).skills
+    found = await port.skills(hosted.participant, id) if port else []
+    return _dump(
+        {
+            "coalition_id": id,
+            "skills": [{key: item[key] for key in ("name", "title", "text")} for item in found],
+        }
+    )

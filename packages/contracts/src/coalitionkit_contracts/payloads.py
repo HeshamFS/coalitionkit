@@ -112,6 +112,7 @@ class NeedPayload(WireModel):
     description: Text
     requirements: list[Text]
     window: Window
+    ext: dict[str, Any] | None = None
 
 
 class OfferPayload(WireModel):
@@ -120,6 +121,7 @@ class OfferPayload(WireModel):
     capacity: PositiveInt
     cost: Cost
     valid_until: Rfc3339
+    ext: dict[str, Any] | None = None
 
 
 class QueryPayload(WireModel):

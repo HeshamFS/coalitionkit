@@ -233,19 +233,22 @@ def test_bound_runtime(pack_client: TestClient) -> None:
     )
     asyncio.run(enroll_member(server, redeemed, "coordinator"))
     host = server.hosts[cid]
-    assert host.skills() == list(pack.manifest.skills or [])
+    assert [s["text"] for s in host.skills("one")] == list(pack.skills.values())
     person = server.registry.hosted_for(cid, "one")
     join_event = next(e for e in host.state.events.values() if e["type"] == "coalition.join")
     reply = asyncio.run(server.accept(join_event, person.card_url))
-    assert reply["skills"] == list(pack.manifest.skills or [])
+    assert reply["skills"] == host.skills("one")
     body: Document = {
-        "description": "Wrong",
+        "description": "Need",
+        "ext": {"description": "Wrong"},
         "requirements": [],
         "window": {"start": "2026-11-01T00:00:00Z", "end": "2099-01-01T00:00:00Z"},
     }
     refused = host.host_emit("need", body, {"audience": "coalition"})
     assert isinstance(refused, dict) and refused["payload"]["code"] == "schema_invalid"
-    accepted = host.host_emit("need", {**body, "description": "Allowed"}, {"audience": "coalition"})
+    accepted = host.host_emit(
+        "need", {**body, "ext": {"description": "Allowed"}}, {"audience": "coalition"}
+    )
     assert isinstance(accepted, Acknowledgement) and accepted.accepted is not None
     role = pack.manifest.roles["coordinator"].model_copy(update={"may": ["decide"]})
     server.packs[key] = replace(

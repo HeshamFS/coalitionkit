@@ -76,3 +76,7 @@ class ViewPort(Protocol):
     ) -> int | None:
         """The current revision of a subject the participant may see, or None."""
         ...
+
+
+class SkillsPort(Protocol):
+    async def skills(self, participant: str, coalition_id: str) -> list[dict[str, Any]]: ...
