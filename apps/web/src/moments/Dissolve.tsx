@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { CSSProperties } from "react";
+import { useVocabulary, type WordFn, wordsOf } from "../feed/vocabulary";
 import "./dissolve.css";
 
 /** The payload of a `coalition.dissolve` event. */
@@ -79,10 +80,13 @@ function plural(count: number, one: string, many: string): string {
 }
 
 /** One closing claim per count the host returned, and none for a count it did not. */
-export function claimsFrom(counts: CleanupCounts): Claim[] {
+export function claimsFrom(counts: CleanupCounts, word: WordFn = wordsOf(null)): Claim[] {
   const claims: Claim[] = [];
   if (isCount(counts.tasks_closed)) {
-    claims.push({ key: "tasks", text: `${plural(counts.tasks_closed, "task", "tasks")} closed` });
+    claims.push({
+      key: "tasks",
+      text: `${plural(counts.tasks_closed, word("task"), word("task", 2))} closed`,
+    });
   }
   if (isCount(counts.tokens_revoked)) {
     const text = plural(counts.tokens_revoked, "viewer link", "viewer links");
@@ -128,8 +132,9 @@ function Mark() {
 }
 
 function Closing({ report, onRetry }: Pick<DissolveProps, "onRetry"> & { report?: CleanupReport }) {
+  const { word } = useVocabulary();
   const counts = countsOf(report);
-  const claims = claimsFrom(counts);
+  const claims = claimsFrom(counts, word);
   const failed = failedStep(report);
   const all = claims.length === 4 && failed === null;
   return (

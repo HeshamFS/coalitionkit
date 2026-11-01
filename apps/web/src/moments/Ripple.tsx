@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { useVocabulary } from "../feed/vocabulary";
 import {
   layout,
   NODE_H,
@@ -34,6 +35,8 @@ function edgePath(a: { x: number; y: number }, b: { x: number; y: number }) {
 }
 
 export function Ripple({ nodes, edges, ripple, peopleAsked, measuredMs }: RippleProps) {
+  const { word } = useVocabulary();
+  const tasks = word("task", 2);
   const { placed, width, height } = layout(nodes, edges);
   const counts = rippleCounts(nodes, ripple);
   const touched = new Set(counts.touched);
@@ -42,8 +45,8 @@ export function Ripple({ nodes, edges, ripple, peopleAsked, measuredMs }: Ripple
   const at = new Map(placed.map((p) => [p.id, p]));
   const waveAt = at.get(origin ?? counts.touched[0] ?? "");
   const summary = ripple
-    ? `Plan graph of ${counts.n} tasks. ${counts.k} re-planned, ${counts.rest} untouched.`
-    : `Plan graph of ${counts.n} tasks. No change yet.`;
+    ? `Plan graph of ${counts.n} ${tasks}. ${counts.k} re-planned, ${counts.rest} untouched.`
+    : `Plan graph of ${counts.n} ${tasks}. No change yet.`;
   return (
     <section className="mo-ripple" aria-label="Ripple">
       <p className="mo-eyebrow">The plan as a living graph</p>
@@ -110,7 +113,7 @@ export function Ripple({ nodes, edges, ripple, peopleAsked, measuredMs }: Ripple
         {ripple ? (
           <>
             <span className="mo-chip">
-              <b>{counts.k}</b> of {counts.n} tasks re-planned
+              <b>{counts.k}</b> of {counts.n} {tasks} re-planned
             </span>
             <span className="mo-chip">
               {typeof peopleAsked === "number" ? (
@@ -122,7 +125,7 @@ export function Ripple({ nodes, edges, ripple, peopleAsked, measuredMs }: Ripple
             </span>
           </>
         ) : (
-          <span className="mo-chip">No change yet: every task holds</span>
+          <span className="mo-chip">No change yet: every {word("task")} holds</span>
         )}
         <span className="mo-chip">
           change to every affected screen{" "}

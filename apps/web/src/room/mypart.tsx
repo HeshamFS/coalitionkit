@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // "My part": the Room board. The one answer, the ask, the timeline, what others know about you.
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { OpenRequest } from "../feed/agent";
 import type { ViewerState } from "../feed/delta";
 import { deriveParticipants, requestLabel } from "../feed/derive";
 import { Germ } from "./germ";
 import { Empty, Privacy, Schedule, SeatAvatar } from "./parts";
+
+/** The panels of My part, in the order they are drawn without a pack. */
+export const MY_PART_PANELS = ["YourPartCard", "AskCard", "Timeline", "WhatOthersKnow"] as const;
 
 /** The ask in the Needs-you tone. Approve opens the consent flow; it never commits on its own. */
 export function AskCard({
@@ -48,6 +51,8 @@ export function MyPart({
   consent,
   onApprove,
   onSeePlans,
+  order = MY_PART_PANELS,
+  offerForm,
 }: {
   state: ViewerState | null;
   ready: boolean;
@@ -56,14 +61,18 @@ export function MyPart({
   consent: ReactNode;
   onApprove: (id: string) => void;
   onSeePlans: () => void;
+  /** The panels in the order to draw them (see feed/views). */
+  order?: readonly string[];
+  /** The pack input form for the viewer's own offers, when the pack adds fields. */
+  offerForm?: ReactNode;
 }) {
   const people = deriveParticipants(state);
   const own = people.find((p) => p.id === state?.viewer);
   const others = Math.max(people.length - 1, 0);
   const first = requests[0];
-  return (
-    <div className="room-mypart">
-      <Germ index={0} ready={ready} label="YourPartCard">
+  const panels: Record<string, ReactNode> = {
+    YourPartCard: (
+      <Germ key="YourPartCard" index={0} ready={ready} label="YourPartCard">
         {own ? (
           <article className="room-hero" aria-label="Your part">
             <span className="room-hero-eyebrow">Your part</span>
@@ -91,21 +100,29 @@ export function MyPart({
           />
         )}
       </Germ>
-      {consent
-        ? consent
-        : first && (
-            <Germ index={1} ready={ready} label="AskCard">
-              <AskCard
-                state={state}
-                request={first}
-                more={requests.length - 1}
-                onApprove={onApprove}
-                onSeePlans={onSeePlans}
-              />
-            </Germ>
-          )}
-      <Schedule state={state} ready={ready} index={2} />
-      <Privacy state={state} ready={ready} index={3} own />
+    ),
+    AskCard: consent ? (
+      <Fragment key="AskCard">{consent}</Fragment>
+    ) : (
+      first && (
+        <Germ key="AskCard" index={1} ready={ready} label="AskCard">
+          <AskCard
+            state={state}
+            request={first}
+            more={requests.length - 1}
+            onApprove={onApprove}
+            onSeePlans={onSeePlans}
+          />
+        </Germ>
+      )
+    ),
+    Timeline: <Schedule key="Timeline" state={state} ready={ready} index={2} />,
+    WhatOthersKnow: <Privacy key="WhatOthersKnow" state={state} ready={ready} index={3} own />,
+  };
+  return (
+    <div className="room-mypart">
+      {order.map((name) => panels[name])}
+      {offerForm}
     </div>
   );
 }

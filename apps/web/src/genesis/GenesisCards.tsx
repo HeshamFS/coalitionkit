@@ -2,8 +2,9 @@
 // The cards that germinate beside the table as the Gardener reads the goal (board: Genesis).
 // Every card is editable in place until the coalition starts (story J-02).
 import { useState } from "react";
+import { capital, makeWord, type WordFn } from "../feed/vocabulary";
 import { Assemble } from "../ui/Assemble";
-import type { Draft, Invitation, Role } from "./api";
+import type { Draft, Invitation, PackInfo, PackRef, Role, Suggestion } from "./api";
 
 const ROLE_ID = /[^a-z0-9-]+/g;
 
@@ -96,17 +97,20 @@ export function NeedsCard({
   draft,
   locked,
   onEdit,
+  word = makeWord({}),
 }: {
   draft: Draft | null;
   locked: boolean;
   onEdit: (needs: string[]) => void;
+  word?: WordFn;
 }) {
+  const heading = capital(word("need", 2));
   const [adding, setAdding] = useState("");
   const needs = draft?.needs ?? [];
   return (
-    <section className="gn-card" aria-label="Needs">
-      <Assemble ready={draft !== null} label="Needs" delay={180}>
-        <span className="gn-card-k">Needs</span>
+    <section className="gn-card" aria-label={heading}>
+      <Assemble ready={draft !== null} label={heading} delay={180}>
+        <span className="gn-card-k">{heading}</span>
         {needs.length === 0 && <span className="gn-card-meta">None read yet. Add one below.</span>}
         <ul className="gn-needs">
           {needs.map((n, i) => (
@@ -206,23 +210,66 @@ export function DeadlineCard({
   );
 }
 
-export function PackCard({ draft }: { draft: Draft | null }) {
+export function PackCard({
+  draft,
+  packs = [],
+  chosen = null,
+  suggested = null,
+  locked = false,
+  onChoose,
+}: {
+  draft: Draft | null;
+  /** The packs the host has installed. */
+  packs?: PackInfo[];
+  /** The pack in use for the draft; null is plain language. */
+  chosen?: PackRef | null;
+  suggested?: Suggestion | null;
+  locked?: boolean;
+  onChoose?: (pack: PackRef | null) => void;
+}) {
+  const same = (a: PackRef | null, b: PackRef) => a?.name === b.name && a.version === b.version;
+  const why = suggested && same(chosen, suggested) ? suggested.why.join(", ") : "";
   return (
     <section className="gn-card" aria-label="Discipline pack">
       <Assemble ready={draft !== null} label="Discipline pack" delay={540}>
         <span className="gn-card-k">Discipline pack</span>
         <div className="gn-chips">
-          {draft?.pack ? (
-            <span className="gn-chip" data-on="true">
-              {draft.pack}
+          {packs.map((p) => (
+            <button
+              key={`${p.name}@${p.version}`}
+              type="button"
+              className="gn-chip"
+              data-on={same(chosen, p)}
+              aria-pressed={same(chosen, p)}
+              disabled={locked}
+              onClick={() => onChoose?.({ name: p.name, version: p.version })}
+            >
+              {p.label ?? p.name}
+            </button>
+          ))}
+          {packs.length === 0 ? (
+            <span className="gn-chip" data-on={!chosen}>
+              No pack: plain language
             </span>
-          ) : null}
-          <span className="gn-chip" data-on={!draft?.pack}>
-            No pack: plain language
-          </span>
+          ) : (
+            <button
+              type="button"
+              className="gn-chip"
+              data-on={!chosen}
+              aria-pressed={!chosen}
+              disabled={locked}
+              onClick={() => onChoose?.(null)}
+            >
+              No pack: plain language
+            </button>
+          )}
         </div>
         <span className="gn-card-meta">
-          Packs add words, roles and know-how on top. None is installed on this host.
+          {packs.length === 0
+            ? "Packs add words, roles and know-how on top. None is installed on this host."
+            : why
+              ? `Suggested because: ${why}. You can choose no pack.`
+              : "Packs add words, roles and know-how on top. Choosing one re-reads your sentence with its seats and words."}
         </span>
       </Assemble>
     </section>
