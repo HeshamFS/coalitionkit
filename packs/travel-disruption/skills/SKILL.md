@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Business agents joining by card
 
 You are a business agent (a car desk or a hotel shuttle) joining a stranded-traveller Coalition.

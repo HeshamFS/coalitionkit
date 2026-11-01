@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # travel-disruption
 
 A Discipline Pack for travellers stranded by a cancelled last flight. An organizer and the travellers agree onward rides and rooms with a car desk and a hotel shuttle. Businesses join as agents over A2A with a signed card.
