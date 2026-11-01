@@ -5,7 +5,14 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from .version import SEMVER, parse_range
 
@@ -36,9 +43,46 @@ class Connector(_Strict):
     command: Annotated[list[str], Field(min_length=1)]
 
 
+# The built-in strategies a pack may name and the fairness keys each reads (spec, Strategy names).
+FAIRNESS_KEYS: dict[str, frozenset[str]] = {
+    "auction": frozenset({"weight", "max_ratio", "minute_value"}),
+    "match": frozenset(),
+    "vote": frozenset(),
+}
+
+
 class Strategy(_Strict):
     allocation: Name
     fairness: dict[SettingKey, float] | None = None
+
+    @model_validator(mode="after")
+    def _known(self) -> Strategy:
+        allowed = FAIRNESS_KEYS.get(self.allocation)
+        if allowed is None:
+            raise ValueError(
+                f"strategy {self.allocation!r} is not one of {', '.join(sorted(FAIRNESS_KEYS))}"
+            )
+        extra = sorted(set(self.fairness or {}) - allowed)
+        if extra:
+            raise ValueError(f"strategy {self.allocation!r} does not read {', '.join(extra)}")
+        fairness = self.fairness or {}
+        if "weight" in fairness and not 0 <= fairness["weight"] <= 10:
+            raise ValueError("weight must be between 0 and 10")
+        if "max_ratio" in fairness and fairness["max_ratio"] <= 0:
+            raise ValueError("max_ratio must be greater than 0")
+        minute = fairness.get("minute_value")
+        if minute is not None and (minute < 1 or minute != int(minute)):
+            raise ValueError("minute_value must be a whole number of at least 1")
+        return self
+
+
+Keyword = Annotated[str, StringConstraints(min_length=1, max_length=64, pattern=r"^[^A-Z]+$")]
+Example = Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class Suggest(_Strict):
+    keywords: Annotated[list[Keyword], Field(max_length=50)] = []
+    examples: Annotated[list[Example], Field(max_length=50)] = []
 
 
 class Manifest(_Strict):
@@ -55,6 +99,7 @@ class Manifest(_Strict):
     mint: list[MintEntry] | None = None
     connectors: list[Connector] | None = None
     strategy: Strategy | None = None
+    suggest: Suggest | None = None
     evals: Annotated[list[RelPath], Field(min_length=1)]
 
     @field_validator("version")

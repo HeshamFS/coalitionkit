@@ -478,7 +478,8 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `views` | no | Component order per role and device |
 | `mint` | no | Extra Mint templates, each with its own tests |
 | `connectors` | no | MCP servers the pack needs, run out of process |
-| `strategy` | no | Allocation strategy and fairness settings |
+| `strategy` | no | Allocation strategy and fairness settings (see Strategy names below) |
+| `suggest` | no | How a host may offer this pack for a goal typed in plain language: `keywords` (lowercase words or short phrases) and `examples` (whole example goals), at most 50 of each. A host that suggests packs MUST also offer "no pack", and a suggestion never binds a pack by itself |
 | `evals` | yes | At least one scripted scenario |
 
 **A policy** is checked deterministically before the Steward's model audit:
@@ -511,6 +512,33 @@ expect:
 ```
 
 **The loader rejects** a pack that declares a policy action other than allow, redact, block or escalate (quarantine acts on a participant, not a message, so it stays with the core); references a component outside the catalog; asks for vault access; points at a file outside its own folder; or changes any protocol schema rather than extending it. The core runs every example and eval in a pack through its own schemas as well as the pack's, so a pack cannot pass with data the core would refuse.
+
+**Binding a pack to a Coalition.** A host installs packs from folders it is given and validates each with the loader; a pack that fails is not installed and the host reports the loader's reasons. A Coalition uses a pack only when its charter names it in `pack: {name, version}`, and only an installed pack with that exact name and version. The binding is fixed for the life of the Coalition: a new charter revision may not change `pack`. When a charter names a pack, the host applies it as follows, and nothing else changes:
+
+| Key | At run time |
+|---|---|
+| `roles` | The roles the charter may use and what each may do. A member's message needs an ability its role grants; otherwise `not_authorized` |
+| `vocabulary` | Words delivered to surfaces with each viewer's projection; never part of any signed payload |
+| `schemas` | Needs, offers, tasks and resources validate against the core schema and then the pack's extension; failing the extension is `schema_invalid`. A pack schema may reference only files in its own folder and the core schemas by their `https://coalitionkit.dev/schemas/` ids |
+| `policies` | Checked deterministically at step (12) of the check order, after every core check and before the Steward: `block` is `pack_violation` with the policy id; `escalate` asks a person before the message counts; `redact` adds the policy's paths to the event's `scope.redact` before it is stored; `allow` changes nothing. The most severe matching action wins |
+| `strategy` | The Gardener's allocation strategy and fairness settings for this Coalition |
+| `task_templates` | Needs the Gardener may draft first from the charter |
+| `views` | Component order per role and device for composed surfaces; components from the core catalog or the pack's catalog extension |
+| `skills` | Offered to every agent that joins (as an MCP resource and in the join reply); lessons written at Dissolve may use the pack's lesson templates and are listed in `skills_written` |
+| `mint` | Templates added to the Mint for this Coalition only; each template's tests run before a minted agent is enrolled |
+| `connectors` | Programs the operator runs out of process for this Coalition. A connector gets only a one-use invitation and joins like any business agent with a signed card; it never receives host settings, keys, tokens or access to the store or to vaults |
+
+**Strategy names.** `strategy.allocation` names one of the host's built-in strategies, and `strategy.fairness` may set only the keys that strategy reads:
+
+| Name | What it does | Fairness keys |
+|---|---|---|
+| `auction` | Each task goes to the offer with the lowest cost plus a fairness weight times the bidder's share after winning (Contract-Net) | `weight` (0 to 10), `max_ratio` (hours per share unit, greater than 0), `minute_value` (whole number of at least 1, the value of a minute against money) |
+| `match` | Each task gets the earliest slot every party shares, from a private set intersection | none |
+| `vote` | Plurality over the members' ballots; a tie settles nothing | none |
+
+Any other name, or a fairness key the named strategy does not read, is refused when the pack is installed.
+
+A pack never widens a scope, never reads a vault, never changes a core schema, and never sees another Coalition. The kit contains no pack: packs are data the host is given at run time.
 
 ## Conformance tests
 
