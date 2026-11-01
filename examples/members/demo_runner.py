@@ -89,9 +89,12 @@ class Demo:
                 member = str(state.tasks[task]["assignee"])
                 shared = example_module("members.kit.brain")
                 instruction = shared.work_instruction(member, [{"task_id": task, "label": "task"}])
-                await self.drive(member, instruction, MemberTools(self, member, []))
-                if task not in self.requests:
-                    raise ValueError("demo member did not request commitment")
+                for _ in range(4):  # re-ask a model that ended its turn without the request
+                    await self.drive(member, instruction, MemberTools(self, member, []))
+                    if task in self.requests:
+                        break
+                else:
+                    raise ValueError(f"demo member did not request commitment for {task}")
             self.phase = "approval"
             return True
         if self.phase == "approval":

@@ -222,6 +222,30 @@ async def test_member_retries_only_missing_offers(finish: bool) -> None:
         await gateway.aclose()
 
 
+@pytest.mark.parametrize("asks", [2, 5])
+async def test_member_re_asked_for_its_commitment_request(asks: int) -> None:
+    module = example_module("members.demo_runner")
+    tasks = {"t1": {"status": "decided", "assignee": "p1"}}
+    host = SimpleNamespace(state=SimpleNamespace(members=["p1"], tasks=tasks))
+    demo = module.Demo(SimpleNamespace(hosts={"c": host}), "c", 0)
+    demo.tasks, demo.phase = ["t1"], "plan"
+    turns: list[str] = []
+
+    async def drive(member: str, instruction: str, tools: Any) -> None:
+        turns.append(member)
+        if len(turns) == asks:  # the model makes the request only on this turn
+            demo.requests.add("t1")
+
+    demo.drive = drive
+    if asks <= 4:
+        assert await demo.step()
+        assert demo.phase == "approval"
+    else:
+        with pytest.raises(ValueError, match="did not request commitment for t1"):
+            await demo.step()
+    assert len(turns) == min(asks, 4)
+
+
 @pytest.mark.live
 @pytest.mark.skipif(
     not (
