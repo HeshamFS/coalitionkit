@@ -185,9 +185,9 @@ def test_bundle_resolves_core_and_local_refs_without_changing_literals(tmp_path:
     from jsonschema import Draft202012Validator
 
     validator = Draft202012Validator(bundled)
-    validator.validate({"count": 3})
+    validator.validate({"count": 3})  # pyright: ignore[reportUnknownMemberType]
     with pytest.raises(ValidationError):
-        validator.validate({"count": 2})
+        validator.validate({"count": 2})  # pyright: ignore[reportUnknownMemberType]
 
 
 def test_nested_dynamic_reference_escape_is_reported(tmp_path: Path) -> None:
