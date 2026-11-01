@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://packs.example.invalid/travel-disruption/need-ext.json",
+  "type": "object",
+  "properties": {
+    "destination": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "latest_arrival": { "type": "string", "format": "date-time" },
+    "party_size": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "spending_limit": { "type": "string", "x-private": true },
+    "phone": { "type": "string", "x-private": true }
+  },
+  "required": ["destination", "latest_arrival", "party_size"],
+  "additionalProperties": false
+}

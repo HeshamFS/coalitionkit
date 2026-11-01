@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+order:
+  organizer:
+    wide: [PageHeader, Table, Card, Deadline]
+    compact: [Card, List]
+  traveller:
+    wide: [Card, List, Deadline]
+    compact: [Card, List]
+    message: [Card]
+  car-desk:
+    wide: [Table, KeyValue]
+  shuttle:
+    wide: [Table, KeyValue]

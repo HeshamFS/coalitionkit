@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+templates:
+  - id: ride-northgate
+    title: Ride to Northgate
+    role: traveller
+    ext: { destination: Northgate, latest_arrival: "2030-03-02T07:00:00Z", party_size: 3 }
+    requirements: [seats for 3]
+  - id: ride-eastport
+    title: Ride to Eastport
+    role: traveller
+    ext: { destination: Eastport, latest_arrival: "2030-03-02T08:00:00Z", party_size: 2 }
+    requirements: [seats for 2]
+  - id: ride-southfield
+    title: Ride to Southfield
+    role: traveller
+    ext: { destination: Southfield, latest_arrival: "2030-03-02T09:00:00Z", party_size: 3 }
+    requirements: [seats for 3]

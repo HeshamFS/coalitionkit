@@ -11,6 +11,27 @@ invoice
 prescription
 clinic
 
+# pack daily-life
+errand
+errands
+rota
+groceries
+household
+carer
+grandparent
+grandmother
+chores
+pickup
+
+# pack travel-disruption
+airport
+airline
+shuttle
+traveller
+itinerary
+stranded
+layover
+
 # pack science-lab
 science-lab
 anneal
