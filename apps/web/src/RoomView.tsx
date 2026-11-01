@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { A2uiSurface } from "@a2ui/react/v0_9";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Card } from "./components/primitives";
 import {
   deriveParticipants,
@@ -10,6 +10,8 @@ import {
   visibleRequests,
 } from "./feed/derive";
 import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "./feed/useFeed";
+import { orderPanels } from "./feed/views";
+import { VocabularyProvider } from "./feed/vocabulary";
 import { sheetFor } from "./room/consentSheet";
 import { RoomLens } from "./room/lens";
 import { usePhoneRoom } from "./room/media";
@@ -21,7 +23,7 @@ import {
   OverlapMoment,
   RippleMoment,
 } from "./room/moments";
-import { MyPart } from "./room/mypart";
+import { MY_PART_PANELS, MyPart } from "./room/mypart";
 import { PhoneNav, RoomNavigation } from "./room/navigation";
 import { Decisions, MeasuredStrip, Participants, Plans, Privacy, Wiring } from "./room/parts";
 import { usePrism } from "./room/prism";
@@ -32,6 +34,9 @@ import { RoomShell } from "./shell/RoomShell";
 import { TrustedRequest } from "./TrustedRequest";
 import "./styles/room.css";
 import "./room/refinements.css";
+
+/** The Stage panels the pack may order; the strip below them keeps its place. */
+const STAGE_PANELS = ["ParticipantCard", "PlanCompare"] as const;
 
 /** Fixed fallback remains available to callers and refused composed trees. */
 export function FixedView({ fields }: { fields: { label: string; value: string }[] }) {
@@ -55,6 +60,7 @@ export function RoomView() {
   const [selected, setSelected] = useState("Stage");
   const [signed, setSigned] = useState<{ question: string; seq: number; signature: string }>();
   const phone = usePhoneRoom();
+  const device = phone ? "compact" : "wide";
   const prism = usePrism();
   const room = deriveRoom(feed.state);
   const ready = feed.state !== null;
@@ -109,6 +115,20 @@ export function RoomView() {
       />
     </>
   );
+  const stagePanels: Record<string, ReactNode> = {
+    ParticipantCard: <Participants key="ParticipantCard" state={feed.state} ready={ready} />,
+    PlanCompare: (
+      <Plans
+        key="PlanCompare"
+        state={feed.state}
+        ready={ready}
+        index={n}
+        requests={agent.requests}
+        onOpen={onOpen}
+      />
+    ),
+  };
+  const stageOrder = orderPanels(feed.state, device, STAGE_PANELS).filter((x) => x in stagePanels);
   const stage = (
     <div className="room-prism" data-prism={prism.phase}>
       <div className="room-goal">
@@ -124,16 +144,7 @@ export function RoomView() {
           onBack={() => prism.go(null)}
         />
       ) : (
-        <>
-          <Participants state={feed.state} ready={ready} />
-          <Plans
-            state={feed.state}
-            ready={ready}
-            index={n}
-            requests={agent.requests}
-            onOpen={onOpen}
-          />
-        </>
+        stageOrder.map((name) => stagePanels[name])
       )}
       <MeasuredStrip key={prism.target ?? "me"} state={feed.state} ready={ready} index={n + 1} />
     </div>
@@ -146,101 +157,109 @@ export function RoomView() {
       consent={consent}
       onApprove={onOpen}
       onSeePlans={() => select(phone ? "Plans" : "Stage")}
+      order={orderPanels(feed.state, device, MY_PART_PANELS)}
     />
   );
   return (
-    <RoomShell
-      layout="stage"
-      title={room.title}
-      stage={room.stage}
-      meta={`${room.members} members`}
-      presence={[]}
-      groups={[]}
-      selected={section}
-      onSelect={select}
-      connection={feed.status === "live" ? "live" : "reconnecting"}
-      onSignOut={signOut}
-      navigation={
-        phone ? undefined : (
-          <RoomNavigation selected={section} onSelect={select}>
-            <ViewAsMenu
-              state={feed.state}
-              active={prism.target}
-              onPick={viewAs}
-              onLens={() => select("Lens")}
-            />
-          </RoomNavigation>
-        )
-      }
-      bottomNav={phone ? <PhoneNav selected={section} onSelect={select} /> : undefined}
-      aside={
-        phone || (section !== "Stage" && section !== "My part") ? undefined : (
-          <>
-            {wiring}
-            <Privacy state={feed.state} ready={ready} index={n + 4} />
-          </>
-        )
-      }
-    >
-      <div className="room-content" data-section={section}>
-        {agent.refusal && (
-          <Card tone="dashed">
-            <span role="alert">The host did not take that answer: {agent.refusal}</span>
-          </Card>
-        )}
-        {ended ? (
-          <DissolveMoment state={feed.state} />
-        ) : (
-          <>
-            {section === "Stage" && stage}
-            {section === "My part" && (
-              <div className="room-stack">
-                {signed && (
-                  <SignedNotice
-                    question={signed.question}
-                    seq={signed.seq}
-                    signature={signed.signature}
-                    onClose={() => setSigned(undefined)}
+    <VocabularyProvider state={feed.state}>
+      <RoomShell
+        layout="stage"
+        title={room.title}
+        stage={room.stage}
+        meta={`${room.members} members`}
+        presence={[]}
+        groups={[]}
+        selected={section}
+        onSelect={select}
+        connection={feed.status === "live" ? "live" : "reconnecting"}
+        onSignOut={signOut}
+        navigation={
+          phone ? undefined : (
+            <RoomNavigation selected={section} onSelect={select}>
+              <ViewAsMenu
+                state={feed.state}
+                active={prism.target}
+                onPick={viewAs}
+                onLens={() => select("Lens")}
+              />
+            </RoomNavigation>
+          )
+        }
+        bottomNav={phone ? <PhoneNav selected={section} onSelect={select} /> : undefined}
+        aside={
+          phone || (section !== "Stage" && section !== "My part") ? undefined : (
+            <>
+              {wiring}
+              <Privacy state={feed.state} ready={ready} index={n + 4} />
+            </>
+          )
+        }
+      >
+        <div className="room-content" data-section={section}>
+          {agent.refusal && (
+            <Card tone="dashed">
+              <span role="alert">The host did not take that answer: {agent.refusal}</span>
+            </Card>
+          )}
+          {ended ? (
+            <DissolveMoment state={feed.state} />
+          ) : (
+            <>
+              {section === "Stage" && stage}
+              {section === "My part" && (
+                <div className="room-stack">
+                  {signed && (
+                    <SignedNotice
+                      question={signed.question}
+                      seq={signed.seq}
+                      signature={signed.signature}
+                      onClose={() => setSigned(undefined)}
+                    />
+                  )}
+                  {myPart}
+                  <OverlapMoment state={feed.state} lines={agent.lines} />
+                </div>
+              )}
+              {section === "Agents" && <AgentsMoment state={feed.state} />}
+              {section === "Plans" && (
+                <div className="room-stack">
+                  <Plans
+                    state={feed.state}
+                    ready={ready}
+                    requests={agent.requests}
+                    onOpen={onOpen}
                   />
-                )}
-                {myPart}
-                <OverlapMoment state={feed.state} lines={agent.lines} />
-              </div>
-            )}
-            {section === "Agents" && <AgentsMoment state={feed.state} />}
-            {section === "Plans" && (
-              <div className="room-stack">
-                <Plans state={feed.state} ready={ready} requests={agent.requests} onOpen={onOpen} />
-                <RippleMoment state={feed.state} />
-              </div>
-            )}
-          </>
-        )}
-        {section === "Wiring" && (
-          <div className="room-stack">
-            <ChainMoment state={feed.state} />
-            {wiring}
+                  <RippleMoment state={feed.state} />
+                </div>
+              )}
+            </>
+          )}
+          {section === "Wiring" && (
+            <div className="room-stack">
+              <ChainMoment state={feed.state} />
+              {wiring}
+            </div>
+          )}
+          {section === "Lens" && <RoomLens state={feed.state} />}
+          {!phone && (
+            <ConsentTray
+              requests={asks.map((r) => ({
+                id: r.id,
+                kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
+                title: requestLabel(feed.state, r),
+                revision: r.revision,
+                deadline: r.expiresAt ? `decide by ${humanTime(r.expiresAt)}` : undefined,
+              }))}
+              onOpen={onOpen}
+            />
+          )}
+          <div className="surface-host">
+            {feed.surfaces.map((s) => (
+              <A2uiSurface key={s.id} surface={s.model} />
+            ))}
           </div>
-        )}
-        {section === "Lens" && <RoomLens state={feed.state} />}
-        {!phone && (
-          <ConsentTray
-            requests={asks.map((r) => ({
-              id: r.id,
-              kind: (r.kind === "tension_option" ? "tension" : r.kind) as ConsentRequest["kind"],
-              title: requestLabel(feed.state, r),
-              revision: r.revision,
-              deadline: r.expiresAt ? `decide by ${humanTime(r.expiresAt)}` : undefined,
-            }))}
-            onOpen={onOpen}
-          />
-        )}
-        <div className="surface-host">
-          {feed.surfaces.map((s) => (
-            <A2uiSurface key={s.id} surface={s.model} />
-          ))}
         </div>
-      </div>
-    </RoomShell>
+      </RoomShell>
+    </VocabularyProvider>
   );
 }

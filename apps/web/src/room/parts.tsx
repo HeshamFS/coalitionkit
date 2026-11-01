@@ -15,6 +15,7 @@ import {
   requestLabel,
   visibleRequests,
 } from "../feed/derive";
+import { capital, useVocabulary } from "../feed/vocabulary";
 import { Germ } from "./germ";
 import { deriveStrip } from "./measured";
 import { agentLine, initialsOf, PILL_CLASS, type Pill, pillFor } from "./status";
@@ -132,10 +133,11 @@ export function Plans({
   onOpen?: (id: string) => void;
 } & Ready) {
   const plans = derivePlans(state);
+  const { word } = useVocabulary();
   return (
     <Germ index={index} ready={ready} label="PlanCompare">
       <RoomPanel
-        title="Plan options"
+        title={`${capital(word("plan"))} options`}
         note={plans.length > 1 ? "none better on every goal; they choose" : undefined}
       >
         {plans.length ? (
@@ -157,7 +159,10 @@ export function Plans({
             })}
           </ul>
         ) : (
-          <Empty title="No plans yet" body="Proposed options appear here, side by side." />
+          <Empty
+            title={`No ${word("plan", 2)} yet`}
+            body="Proposed options appear here, side by side."
+          />
         )}
       </RoomPanel>
     </Germ>

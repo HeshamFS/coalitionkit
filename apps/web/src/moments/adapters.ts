@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { ViewerState } from "../feed/delta";
 import { deriveParticipants, eventsOf } from "../feed/derive";
+import { type WordFn, wordsOf } from "../feed/vocabulary";
 import type { Crossing, OverlapProps } from "./Overlap";
 import type { RippleProps } from "./Ripple";
 import type { StewardBubble, TheatreAgent, TheatreBubble, TheatreProps } from "./Theatre";
@@ -18,15 +19,15 @@ const text = (v: unknown): string => (typeof v === "string" ? v : "");
 const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x !== "") : [];
 
-const HOST_DOING: Record<string, string> = {
+const hostDoing = (word: WordFn): Record<string, string> => ({
   "coalition.charter": "setting the charter",
-  "coalition.need": "publishing a need",
-  "coalition.task": "opening a task",
+  "coalition.need": `publishing a ${word("need")}`,
+  "coalition.task": `opening a ${word("task")}`,
   "coalition.query": "asking a vault",
   "coalition.propose": "drafting a plan",
   "coalition.tension": "laying out a trade-off",
   "coalition.dissolve": "closing the coalition",
-};
+});
 
 /** Number of the first cost figure the offer states, in the order effort, money, minutes. */
 function costOf(payload: Record<string, unknown>): string {
@@ -39,12 +40,12 @@ function costOf(payload: Record<string, unknown>): string {
 }
 
 /** A short neutral line built only from fields the projection carries. */
-export function summaryOf(e: Pick<Ev, "type" | "payload">): string {
+export function summaryOf(e: Pick<Ev, "type" | "payload">, word: WordFn = wordsOf(null)): string {
   const p = e.payload;
   switch (e.type) {
     case "coalition.offer": {
       const reasons = "reason" in p || "reasons" in p ? "" : "no reasons";
-      return ["offer", costOf(p), reasons].filter(Boolean).join(" · ");
+      return [word("offer"), costOf(p), reasons].filter(Boolean).join(" · ");
     }
     case "coalition.answer": {
       const r = p.result;
@@ -82,7 +83,9 @@ const RECENT = 3;
 export function theatreFrom(state: ViewerState | null): TheatreProps {
   const events = eventsOf(state);
   const people = deriveParticipants(state);
-  const host = events.findLast((e) => HOST_DOING[e.type]);
+  const word = wordsOf(state);
+  const doing = hostDoing(word);
+  const host = events.findLast((e) => doing[e.type]);
   const agents: TheatreAgent[] = people.map((p) => {
     const bubbles: TheatreBubble[] = events
       .filter((e) => AGENT_TYPES.has(e.type) && e.on_behalf_of === p.id)
@@ -90,7 +93,7 @@ export function theatreFrom(state: ViewerState | null): TheatreProps {
       .map((e) => ({
         seq: e.seq,
         type: e.type,
-        summary: summaryOf(e),
+        summary: summaryOf(e, word),
         message: { seq: e.seq, type: e.type, payload: e.payload },
       }));
     return { id: p.id, seat: p.seat, label: p.label, vendor: p.vendor, bubbles };
@@ -106,7 +109,7 @@ export function theatreFrom(state: ViewerState | null): TheatreProps {
       message: { seq: 0, type: "steward.blocked", payload: s },
     }));
   return {
-    gardener: { doing: (host && HOST_DOING[host.type]) || "waiting" },
+    gardener: { doing: (host && doing[host.type]) || "waiting" },
     agents,
     steward,
     counts: {
