@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "daily-life I can",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "day": { "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+        "to": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+      },
+      "required": ["from", "to"]
+    },
+    "has_car": { "type": "boolean" },
+    "home_address": { "type": "string", "x-private": true },
+    "phone": { "type": "string", "x-private": true },
+    "own_limits": {
+      "type": "object",
+      "x-private": true,
+      "description": "The member's own limits, such as the most errands per week.",
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    }
+  },
+  "required": ["day", "window", "has_car"]
+}

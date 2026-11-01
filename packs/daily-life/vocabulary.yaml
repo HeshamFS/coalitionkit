@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+task: errand or visit
+resource: time
+need: help needed
+offer: { one: I can, other: I can }
+commitment: promise
