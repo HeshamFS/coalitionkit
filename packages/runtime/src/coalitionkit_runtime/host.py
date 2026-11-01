@@ -104,7 +104,17 @@ class CoalitionHost:
         self._cache = HostCache(store, coalition_id)
         self.policy: Callable[[Document], PolicyOutcome | None] = lambda _: None
         self.pack_check: Callable[[State, Document, bool], None] = lambda state, event, host: None
-        self.skills: Callable[[], list[str]] = lambda: []
+        self.skills: Callable[[str], list[Document]] = lambda viewer: []
+        self.prepare: Callable[[Transaction, State, Document, dict[str, tuple[str, ...]]], None] = (
+            lambda tx, state, event, redactions: None
+        )
+        self.followups: Callable[[State, Document], list[Document]] = lambda state, event: []
+        self.policy_record: Callable[[Transaction, State, Document, str, str], None] = (
+            lambda tx, state, event, policy_id, action: None
+        )
+        self.policy_refused: Callable[[Document, str, str], None] = (
+            lambda event, policy_id, action: None
+        )
         self._policy_reviews: dict[str, Document] = {}
         # Adapters notify the owner; the owner can also poll pending_policy_reviews.
         self.policy_escalation: Callable[[Document, str], None] = lambda event, policy_id: None
@@ -235,6 +245,10 @@ class CoalitionHost:
         except SchemaValidationError, ValueError, TypeError:
             raise Refusal("schema_invalid") from None
         state = self._cache.refresh(tx, now)
+        if event["type"] in {"coalition.need", "coalition.offer"}:
+            require(
+                "ext" not in event["payload"] or bool(state.charter.get("pack")), "schema_invalid"
+            )
         self._identity(state, event, sender, host)
         stage_check(state, event, host)
         authorize(state, event, host, now)
@@ -256,7 +270,9 @@ class CoalitionHost:
         self.pack_check(state, event, host)
         policy = self.policy(deepcopy(event))
         if policy is not None and policy.action == "block":
-            raise Refusal("pack_violation", {"policy_id": policy.policy_id})
+            raise Refusal(
+                "pack_violation", {"policy_id": policy.policy_id, "action": policy.action}
+            )
         if policy is not None and policy.action == "escalate":
             self._policy_reviews[event["event_id"]] = {
                 "participant": sender.participant,
@@ -265,7 +281,9 @@ class CoalitionHost:
                 "question": "Please review and revise this submission before resubmitting.",
             }
             self.policy_escalation(deepcopy(event), policy.policy_id)
-            raise Refusal("steward_blocked", {"policy_id": policy.policy_id})
+            raise Refusal(
+                "steward_blocked", {"policy_id": policy.policy_id, "action": policy.action}
+            )
         digest = submission_digest(event)
         if policy is not None and policy.action == "redact":
             event["scope"]["redact"] = sorted(
@@ -285,11 +303,25 @@ class CoalitionHost:
             ),
         )
         if verdict.action not in {"allow", "redact"}:
-            raise Refusal("steward_blocked", {"policy_id": verdict.policy_id})
+            raise Refusal(
+                "steward_blocked", {"policy_id": verdict.policy_id, "action": verdict.action}
+            )
+        if policy is not None:
+            self.policy_record(tx, state, event, policy.policy_id, policy.action)
+        if verdict.policy_id:
+            self.policy_record(tx, state, event, verdict.policy_id, verdict.action)
         result = self._append(tx, event, sender, verdict, now, digest)
         self._policy_reviews.pop(event["event_id"], None)
         self._cache.apply(result.accepted, verdict.redact)
         self._cache.sync(tx)
+        try:
+            for draft in self.followups(state, result.accepted):
+                self._revisions(tx, state, draft)
+                draft["sig"] = sign_envelope(draft, self.private_key, self.kid)
+                self._transaction(tx, draft, AuthenticatedSender(self.card_url, "host"), True, [])
+        except BaseException:
+            self._cache.reset()
+            raise
         return self._ack(state, result.accepted, result.receipt, sender.participant)
 
     def _ack(
@@ -421,6 +453,9 @@ class CoalitionHost:
     def _error(
         self, event: Document, sender: AuthenticatedSender, code: str, detail: Document
     ) -> Document:
+        if "policy_id" in detail and "action" in detail:
+            self.policy_refused(event, detail["policy_id"], detail["action"])
+            detail = {key: value for key, value in detail.items() if key != "action"}
         ref = event.get("event_id")
         return self.sign(
             "error",
@@ -446,6 +481,7 @@ class CoalitionHost:
                 if causation_id:
                     event["causation_id"] = causation_id
                 self._revisions(tx, state, event)
+                self.prepare(tx, state, event, self._cache.redactions)
                 refs = self._sources(state, event, sources or [])
                 if scope is None and refs:
                     event["scope"] = derive_scope(state, refs)

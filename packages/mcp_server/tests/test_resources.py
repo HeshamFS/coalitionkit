@@ -124,3 +124,12 @@ async def test_a_missing_or_unknown_token_is_refused_at_the_door(rig: Rig) -> No
             with pytest.raises(BaseException):  # noqa: B017 - connect fails with a group
                 async with Client(streamable_http_client(rig.url, http_client=http)) as client:
                     await client.list_tools()
+
+
+async def test_skills_resource_membership(rig: Rig) -> None:
+    assert (await read(rig, "p1", f"coalition://{C1}/skills"))["skills"] == [
+        {"name": "guide", "title": "Guide", "text": "# Guide\nWork together."}
+    ]
+    async with rig.connect("p2") as client:
+        with pytest.raises(MCPError, match="unknown_participant"):
+            await client.read_resource(f"coalition://{C2}/skills")

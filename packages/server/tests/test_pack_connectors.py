@@ -36,6 +36,7 @@ def test_business_connector_card_and_coalition_boundary(tmp_path: Path) -> None:
         ]
         ref = {"name": "pack-gamma", "version": "1.0.0"}
         charter["pack"] = ref
+        charter["roles"] = [{"id": "helper"}]  # a bound charter uses only the pack's roles
         bound = client.post("/admin/coalitions", json=charter, headers=headers).json()[
             "coalition_id"
         ]

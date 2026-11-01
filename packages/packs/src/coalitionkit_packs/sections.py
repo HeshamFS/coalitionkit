@@ -16,6 +16,7 @@ from pydantic import (
 )
 
 from coalitionkit_contracts import Scope
+from coalitionkit_contracts.payloads import Window
 from coalitionkit_contracts.validate import SchemaValidationError, validate_payload
 
 from .errors import Report
@@ -85,6 +86,9 @@ class TaskTemplate(_Strict):
         default_factory=list
     )
     scope: Scope | None = None
+    description: str | None = None
+    window: Window | None = None
+    ext: dict[str, Any] | None = None
 
     @field_validator("title")
     @classmethod

@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from mcp.server.transport_security import TransportSecuritySettings
 
 from .access import Deps
+from .resources import SKILLS_URI, skills
 from .server import build_server
 
 MCP_PATH = "/mcp"
@@ -30,6 +31,7 @@ def create_app(
     clients, ``allowed_origins``; the SDK refuses any other Host header.
     """
     server = build_server(deps, public_url=public_url, issuer_url=issuer_url)
+    server.resource(SKILLS_URI, name="skills", mime_type="application/json")(skills)
     mcp_app = server.streamable_http_app(
         streamable_http_path=MCP_PATH,
         transport_security=TransportSecuritySettings(

@@ -16,6 +16,11 @@ from coalitionkit_mcp.testing import FakeCoalition, FakeTokenPort, FakeViewPort,
 from coalitionkit_mcp.testing_rig import C1, C2, CHARTER, COMMITMENT, PLAN, TASK, Rig, hosted
 
 
+class FixtureSkills:
+    async def skills(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
+        return [{"name": "guide", "title": "Guide", "text": "# Guide\nWork together."}]
+
+
 @pytest.fixture
 def rig() -> Any:
     port = free_port()
@@ -64,7 +69,7 @@ def rig() -> Any:
     host_key = Ed25519PrivateKey.generate()
     host = FakeHost(HostSigner("https://host.example.org/card.json", host_key, "host-1"))
     app = create_app(
-        Deps(host=host, view=view, tokens=tokens),
+        Deps(host=host, view=view, tokens=tokens, skills=FixtureSkills()),
         public_url=f"http://127.0.0.1:{port}/mcp",
         issuer_url="http://127.0.0.1:1",
         allowed_hosts=["127.0.0.1:*"],

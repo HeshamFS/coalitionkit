@@ -94,6 +94,7 @@ class Manifest(_Strict):
     schemas: dict[SchemaKind, RelPath] | None = None
     policies: list[RelPath] | None = None
     skills: list[RelPath] | None = None
+    lessons: list[RelPath] | None = None
     views: RelPath | None = None
     task_templates: RelPath | None = None
     mint: list[MintEntry] | None = None
