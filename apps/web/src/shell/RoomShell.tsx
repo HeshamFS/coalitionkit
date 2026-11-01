@@ -29,51 +29,67 @@ export type RoomShellProps = {
   onInvite?: () => void;
   onSearch?: () => void;
   onSignOut?: () => void;
+  /** Set only for the person who started the coalition. */
+  onEnd?: () => void;
   style?: CSSProperties;
   layout?: "stage";
   navigation?: ReactNode;
+  /** Phone only: the bottom bar. */
+  bottomNav?: ReactNode;
   aside?: ReactNode;
 };
 
 function StageShell(p: RoomShellProps) {
+  const rail = [
+    { id: "Stage", node: <RoomIcon kind="stage" /> },
+    { id: "My part", node: <Icon name="people" /> },
+    { id: "Wiring", node: <RoomIcon kind="log" /> },
+  ];
+  const live = p.connection === "reconnecting" ? "reconnecting" : (p.connection ?? "live");
+  const chip = (
+    <span className="room-connection" role="status">
+      <span className="live-dot" />
+      {live}
+    </span>
+  );
   return (
     <div className="room-stage-shell">
       <nav className="room-rail" aria-label="Room tools">
         <RoomLogo />
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Stage"
-          aria-current={p.selected === "Stage" ? "page" : undefined}
-          onClick={() => p.onSelect?.("Stage")}
-        >
-          <RoomIcon kind="stage" />
-        </button>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="My part"
-          onClick={() => p.onSelect?.("My part")}
-        >
-          <Icon name="people" />
-        </button>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Wiring"
-          onClick={() => p.onSelect?.("Wiring")}
-        >
-          <RoomIcon kind="log" />
-        </button>
+        <span className="room-rail-rule" aria-hidden="true" />
+        {rail.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            className="icon-btn"
+            aria-label={r.id}
+            aria-current={p.selected === r.id ? "page" : undefined}
+            onClick={() => p.onSelect?.(r.id)}
+          >
+            {r.node}
+          </button>
+        ))}
       </nav>
       <div className="room-main">
-        <div className="room-heading">
-          <TopBar title={p.title} stage={p.stage} presence={[]} meta={p.meta} room />
-          <span className="room-connection" role="status">
-            <span className="live-dot" />
-            {p.connection ?? "live"}
+        <header className="room-heading">
+          <span className="room-heading-logo">
+            <RoomLogo />
+          </span>
+          <div className="room-heading-title">
+            <h1>{p.title}</h1>
+            {p.meta && <span className="room-heading-sub">{p.meta}</span>}
+          </div>
+          <span className="room-stage-pill">
+            <span className="room-stage-dot" />
+            {p.stage}
           </span>
           {p.navigation}
+          <span className="room-heading-live">{chip}</span>
+          {p.onEnd && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={p.onEnd}>
+              End coalition
+            </button>
+          )}
           <details className="room-account">
             <summary className="icon-btn" aria-label="Account">
               <Icon name="people" />
@@ -85,13 +101,16 @@ function StageShell(p: RoomShellProps) {
               }}
             />
           </details>
-        </div>
-        <div className="room-columns">
+        </header>
+        <div className="room-columns" data-aside={p.aside ? "on" : "off"}>
           <main className="room-canvas">{p.children}</main>
-          <aside className="room-aside" aria-label="Wiring and decisions">
-            {p.aside}
-          </aside>
+          {p.aside && (
+            <aside className="room-aside" aria-label="Wiring and decisions">
+              {p.aside}
+            </aside>
+          )}
         </div>
+        {p.bottomNav}
       </div>
     </div>
   );

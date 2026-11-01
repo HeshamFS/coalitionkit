@@ -92,21 +92,21 @@ function stream(first: object[]) {
   };
 }
 
+// The agent channel rides on the feed stream as CUSTOM "coalitionkit.agent" events.
+const viaFeed = (e: object) => ({ type: "CUSTOM", name: "coalitionkit.agent", value: e });
+
 function host() {
   const posts: { url: string; body: unknown }[] = [];
-  const agent = stream([
-    { type: "RUN_STARTED", threadId: "t", runId: "ra0" },
-    interrupt("plan:p1:2:u1", 2, "Take Plan A?"),
+  const feed = stream([
+    { type: "RUN_STARTED", threadId: "t", runId: "r1" },
+    { type: "STATE_SNAPSHOT", snapshot: state },
+    viaFeed({ type: "RUN_STARTED", threadId: "t", runId: "ra0" }),
+    viaFeed(interrupt("plan:p1:2:u1", 2, "Take Plan A?")),
   ]);
+  const agent = { push: (e: object) => feed.push(viaFeed(e)) };
   const fetchFn = vi.fn(async (url: string, init: RequestInit) => {
     const path = new URL(url, "http://x").pathname;
-    if (path === "/v1/feed") {
-      return stream([
-        { type: "RUN_STARTED", threadId: "t", runId: "r1" },
-        { type: "STATE_SNAPSHOT", snapshot: state },
-      ]).response;
-    }
-    if (path === "/v1/agent") return agent.response;
+    if (path === "/v1/feed") return feed.response;
     posts.push({ url: path, body: init.body });
     return new Response(JSON.stringify({ seq: 9 }), { status: 200 });
   }) as unknown as Fetch;

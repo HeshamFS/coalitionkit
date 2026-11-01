@@ -46,6 +46,13 @@ def create_app(hub: SurfaceHub) -> FastAPI:
     app = FastAPI(title="CoalitionKit surfaces", docs_url=None, redoc_url=None)
     app.state.hub = hub
 
+    @app.get("/v1/view-as")
+    def view_as(who: Viewer, participant: str) -> JSONResponse:  # pyright: ignore[reportUnusedFunction]
+        try:
+            return JSONResponse({"messages": hub.view_as(who, participant)})
+        except KeyError:
+            raise HTTPException(404, "unknown participant") from None
+
     @app.get("/v1/feed")
     async def feed(who: Viewer) -> StreamingResponse:  # pyright: ignore[reportUnusedFunction]
         return StreamingResponse(

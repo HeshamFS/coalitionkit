@@ -5,9 +5,8 @@ import asyncio
 import json
 from pathlib import Path
 
-from coalitionkit_contracts import public_key_to_jwk, sign_owner_proof
-from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_server.app import Server
+from coalitionkit_server.genesis import enroll_member
 
 
 async def enroll(server: Server, members: int) -> tuple[str, dict[str, str]]:
@@ -18,28 +17,8 @@ async def enroll(server: Server, members: int) -> tuple[str, dict[str, str]]:
     tokens: dict[str, str] = {}
     for invite in created["invitations"]:
         redeemed = server.registry.redeem(invite["invitation"], server.ports, None, None)
+        await enroll_member(server, redeemed)
         participant = str(redeemed["participant"])
-        person = server.registry.hosted_for(coalition, participant)
-        jwk = public_key_to_jwk(person.owner_key.public_key(), person.owner_kid)
-        envelope = build_envelope(
-            person,
-            coalition,
-            "coalition.join",
-            {
-                "card_url": person.card_url,
-                "owner_key": jwk,
-                "owner_proof": sign_owner_proof(
-                    coalition, participant, person.card_url, jwk, person.owner_key
-                ),
-                "roles_requested": ["member"],
-                "surfaces": ["web"],
-                "vault": "hosted",
-            },
-            scope={"audience": "coalition"},
-        )
-        reply = await server.accept(envelope, person.card_url)
-        if "error" in reply:
-            raise ValueError(f"demo join refused for {participant}: {reply['error']['code']}")
         tokens[participant] = str(redeemed["token"])
     return coalition, tokens
 

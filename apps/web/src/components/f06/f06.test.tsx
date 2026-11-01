@@ -124,7 +124,9 @@ it("explains supplied tradeoffs without sending a consent action", () => {
   fireEvent.click(screen.getByRole("button", { name: "Ask Gardener why" }));
   expect(screen.getByRole("status").textContent).toContain("Results Monday");
   expect(dispatch).not.toHaveBeenCalled();
-  expect(screen.getByText("16:00").getAttribute("datetime")).toBe("2031-06-05T16:00:00Z");
+  // The deadline shows its day and the viewer's local time; the machine value stays exact.
+  const when = document.querySelector('time[datetime="2031-06-05T16:00:00Z"]');
+  expect(when?.textContent).toMatch(/[A-Za-z]{2,}\.?,? \d{2}[:.]\d{2}/);
 });
 it("renders bound money with a total and names a breached charter cap", () => {
   const costs = surface("CostSplit", examples.CostSplit?.[0]?.props ?? {});

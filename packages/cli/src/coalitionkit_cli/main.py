@@ -37,6 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     up.add_argument("--port", type=int)
     up.add_argument("--data-dir", type=Path, default=Path(".coalitionkit"))
     up.add_argument("--reset", action="store_true")
+    up.add_argument(
+        "--pace", type=float, default=2.0, help="seconds between demo steps (0 runs at once)"
+    )
     commands.add_parser("conform", help="run the optional conformance suite")
     commands.add_parser("server", help="delegate to coalitionkit-server")
     args = parser.parse_args(words)

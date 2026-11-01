@@ -1,0 +1,74 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Germination: skeleton, filled, live (one flash), settled. */
+.ck-assemble {
+  position: relative;
+  border-radius: inherit;
+}
+.ck-assemble-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+}
+.ck-assemble-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.ck-assemble-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--skel-a), var(--skel-b), var(--skel-a));
+  background-size: 200% 100%;
+  animation: ckSkel 1.4s ease-in-out infinite;
+}
+.ck-assemble[data-assemble="filled"] > * {
+  animation: ckFill 450ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.ck-assemble[data-assemble="live"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(var(--blue-rgb), 0.55);
+  animation: ckLive 900ms ease-out both;
+}
+@keyframes ckSkel {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+@keyframes ckFill {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ckLive {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ck-assemble-bar,
+  .ck-assemble[data-assemble="filled"] > *,
+  .ck-assemble[data-assemble="live"]::after {
+    animation: none;
+  }
+  .ck-assemble[data-assemble="live"]::after {
+    opacity: 0;
+  }
+}

@@ -8,7 +8,7 @@ export function RoomLens({ state }: { state: ViewerState | null }) {
     <LensFrame>
       <LensCard
         eyebrow="Your part"
-        title={own?.item || "No current item in your projection"}
+        title={own?.item || "Nothing assigned to you yet"}
         body={own?.agent}
       />
     </LensFrame>

@@ -150,7 +150,7 @@ export function AgentDock({
 
 export type ConsentRequest = {
   id: string;
-  kind: "plan" | "tension" | "commitment" | "charter";
+  kind: "plan" | "tension" | "commitment" | "charter" | "task";
   title: string;
   /** Free text such as "18 min" or "no deadline". Set `urgent` when the clock is close. */
   deadline?: string;
@@ -161,7 +161,8 @@ const KIND_BADGE: Record<ConsentRequest["kind"], string> = {
   plan: "Decide",
   tension: "Choose",
   commitment: "Approve",
-  charter: "Charter",
+  charter: "Review",
+  task: "Approve",
 };
 
 export function ConsentTray({
@@ -199,7 +200,6 @@ export function ConsentTray({
           </span>
         </div>
         <button type="button" className="btn btn-sm btn-primary" onClick={() => onOpen?.(first.id)}>
-          <span aria-hidden="true">Read / </span>
           {KIND_BADGE[first.kind]}
         </button>
       </section>

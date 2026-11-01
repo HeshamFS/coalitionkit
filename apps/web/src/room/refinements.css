@@ -1,150 +1,37 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-
+/* Prism: "View as" takes the current cards apart in reverse order; the new view then assembles in. */
+.room-prism[data-prism="out"] .room-cell {
+  animation: roomPrismOut 200ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc((12 - var(--i, 0)) * 30ms);
+}
+@keyframes roomPrismOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
 .room-content > .tray {
   order: 10;
-  margin-top: auto;
+  margin-top: 12px;
 }
-.room-stage-content {
-  min-height: 0;
-}
-.room-account {
-  position: relative;
-}
-.room-account > .ck-AccountMenu {
-  position: absolute;
-  right: 0;
-  top: 36px;
-  z-index: 30;
-}
-.room-rail > svg {
-  width: 26px;
-  height: 36px;
-  margin-bottom: 8px;
-}
-.room-participant {
-  position: relative;
-}
-.room-participant .f05-participant .av {
-  width: 22px;
-  height: 22px;
-  font-size: 0;
-}
-.room-participant::after {
-  content: attr(data-initials);
-  position: absolute;
-  top: 12px;
-  left: 14px;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  color: white;
-  font-size: 9.5px;
-  font-weight: 700;
-  pointer-events: none;
-}
-.room-participant .f05-participant > .row:not(:first-child),
-.room-participant .f05-participant > .tag {
+.surface-host:empty {
   display: none;
 }
-.room-participant .f05-participant .col {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+@media (prefers-reduced-motion: reduce) {
+  .room-prism[data-prism="out"] .room-cell {
+    animation: none;
+  }
 }
-.room-participant .f05-participant .st:empty {
-  display: none;
-}
-.room-participant > .tag {
-  margin-top: 10px;
-}
-.room-participant[data-status="Changed · ripple"] {
-  border: 2px solid var(--blue);
-}
-.room-item-detail {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink-2);
-}
-.room-plan-options .card > .row:last-child {
-  display: none;
-}
-.room-plan-options .card {
-  padding: 10px 12px;
-  border-radius: 10px;
-}
-.room-plan-options .card-live {
-  border: 2px solid var(--blue);
-  background: var(--blue-tint);
-}
-.room-plan-options .g3 {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-.room-panel[aria-label="Wiring · live"] {
-  padding: 0;
-  overflow: hidden;
-  background: var(--code-bg);
-}
-.room-panel[aria-label="Wiring · live"] h2 {
-  font: 11.5px var(--font-mono);
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  margin: 0;
-}
-.room-log {
-  padding: 6px 0;
-}
-.room-log .f09-event {
-  flex-wrap: nowrap;
-  padding: 2px 12px;
-  gap: 10px;
-  line-height: 1.85;
-}
-.room-log .f09-log-type {
+
+.room-plan .room-plan-strength {
   color: var(--ink);
+  font-weight: 600;
 }
-.room-log .f09-event .grow {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.room-log .f09-event .grow:not(:empty)::before {
-  content: "· ";
-}
-@media (min-width: 720px) {
-  .room-tabs button[data-tab="Plans"] {
-    display: none;
-  }
-}
-@media (max-width: 719px) {
-  .room-heading .sg-now {
-    display: none;
-  }
-  .room-content > .tray {
-    display: none;
-  }
-}
-
-.room-own-content .card-ask .eyebrow {
-  display: none;
-}
-
-.room-rail [aria-current="page"] {
-  background: var(--blue-tint);
-  color: var(--blue-text);
-}
-
-.room-panel:has(> .room-plan-options) > h2 {
-  display: inline;
-}
-.room-plan-options {
-  display: contents;
-}
-.room-plan-options > .small {
-  display: inline;
-  margin-left: 8px;
-}
-.room-plan-options > section {
-  margin-top: 10px;
+.room-plan .room-quiet {
+  color: var(--ink-3);
+  font-weight: 400;
 }

@@ -24,6 +24,7 @@ export type AgentSnapshot = {
 export class AgentStore {
   private snap: AgentSnapshot = { lines: [], requests: [], refusal: null, focus: null };
   private listeners = new Set<() => void>();
+  private lastRefusal: string | undefined;
   private open = new Map<string, AgentLine>();
 
   subscribe = (fn: () => void) => {
@@ -44,6 +45,19 @@ export class AgentStore {
 
   setRefusal(text: string | null) {
     this.set({ refusal: text });
+  }
+
+  syncRefusals(value: unknown) {
+    if (!Array.isArray(value)) return;
+    // Only the viewer's own answers belong in the answer banner; blocks of the agent's own
+    // messages are shown in the Agents view with their policy.
+    const own = value.filter((r) => (r as { type?: string }).type === "coalition.decide");
+    const last = own.at(-1) as { code?: string; type?: string } | undefined;
+    const key = JSON.stringify([value.length, last]);
+    if (key !== this.lastRefusal) {
+      this.lastRefusal = key;
+      this.setRefusal(last ? `${last.type}: ${last.code}` : null);
+    }
   }
 
   handle(event: FeedEvent): boolean {

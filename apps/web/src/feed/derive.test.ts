@@ -40,7 +40,15 @@ describe("room projection derivations", () => {
   });
   it("derives consent without inventing signer or verification", () => {
     expect(deriveDecisions(roomFixture)).toEqual([
-      { seq: 6, subject: "plan-1", revision: 1, answer: "yes", time: "", participant: "" },
+      {
+        seq: 6,
+        subject: "plan-1",
+        kind: "",
+        revision: 1,
+        answer: "yes",
+        time: "",
+        participant: "",
+      },
     ]);
   });
   it("does not attribute anonymous needs to an arbitrary participant", () => {
@@ -167,4 +175,25 @@ it("uses newer assignments instead of a previous commitment's task", () => {
     },
   };
   expect(deriveParticipants(state)[0]?.item).toBe("Current item");
+});
+
+describe("participant names without card URLs", () => {
+  it("does not give every member the same charter name", () => {
+    const ev = (seq: number, type: string, payload: Record<string, unknown>, on = "host") => ({
+      seq,
+      type,
+      on_behalf_of: on,
+      payload,
+    });
+    const state = {
+      events: [
+        ev(1, "coalition.charter", { participants: [{ id: "p1", display_name: "First" }] }),
+        ev(2, "coalition.join", {}, "p1"),
+        ev(3, "coalition.join", {}, "p2"),
+        ev(4, "coalition.join", {}, "p3"),
+      ],
+    } as unknown as Parameters<typeof deriveParticipants>[0];
+    const names = deriveParticipants(state).map((p) => JSON.stringify(p));
+    expect(names.filter((n) => n.includes("First"))).toHaveLength(1);
+  });
 });
