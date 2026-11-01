@@ -435,7 +435,7 @@ def test_bundle_keeps_a_referenced_closed_object_and_its_siblings_apart(tmp_path
     # The web form reads this exact output (apps/web/src/room/extSchema.bundle.test.ts).
     fixture = Path(__file__).parents[3] / "apps/web/src/room/fixtures/bundled-allof.json"
     assert bundled == json.loads(fixture.read_text(encoding="utf-8"))
-    cases = (
+    cases: tuple[tuple[dict[str, object], bool], ...] = (
         ({"a": 1}, True),
         ({}, False),
         ({"a": 1, "b": "x"}, False),
