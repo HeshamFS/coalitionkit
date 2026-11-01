@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "hazard": {
+      "type": "string",
+      "enum": [
+        "hazardous-shipment"
+      ],
+      "description": "Omit for ordinary transport; any declared hazard requires human review."
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

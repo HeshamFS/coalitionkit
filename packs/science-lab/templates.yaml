@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+templates:
+  - id: anneal
+    title: Anneal samples
+    role: lab-lead
+    ext: {sample_count: 3, temperature_range: {min_c: 400, max_c: 450}}
+    requirements: [Complete before Friday imaging]
+  - id: image
+    title: Image samples
+    role: lab-lead
+    ext: {sample_count: 3, temperature_range: {min_c: 20, max_c: 25}}
+    requirements: [Accept only samples released by the lab lead]
+  - id: transport
+    title: Courier samples
+    role: lab-lead
+    ext: {sample_count: 3, temperature_range: {min_c: 20, max_c: 25}}
+    requirements: [Lab lead approves transport before Friday]

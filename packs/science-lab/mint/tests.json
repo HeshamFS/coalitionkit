@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "tool": "write",
+      "arguments_json": "{}"
+    },
+    {
+      "tool": "read_temperature",
+      "arguments_json": "{\"value\": 999}"
+    },
+    {
+      "tool": "delete",
+      "arguments_json": "{}"
+    }
+  ]
+}

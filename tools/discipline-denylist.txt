@@ -10,3 +10,19 @@ furnace
 invoice
 prescription
 clinic
+
+# pack science-lab
+science-lab
+anneal
+annealed
+imaging
+technician
+technicians
+hazard
+hazardous
+shipment
+shipments
+clinical
+dosing
+sample capacity
+cost ceiling

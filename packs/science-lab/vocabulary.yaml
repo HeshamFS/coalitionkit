@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+task: {one: run, other: runs}
+resource: {one: instrument time / sample, other: instrument time / samples}
+need: {one: request, other: requests}
+offer: {one: slot, other: slots}

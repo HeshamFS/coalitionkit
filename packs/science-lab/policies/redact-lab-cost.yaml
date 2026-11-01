@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+id: redact-lab-cost
+applies_to: [coalition.observe, coalition.offer, coalition.propose]
+when:
+  any_text_matches: ['\b(?:cost|budget|ceiling)\s*[:=]?\s*[$€£]?\s*\d+(?:[.,]\d+)?', '[$€£]\s*\d+(?:[.,]\d+)?', '\b\d+(?:[.,]\d+)?\s*(?:USD|EUR|GBP)\b']
+then: redact
+explain: Hide the entire shared text field containing a cost figure; keep internal ceilings in the vault.

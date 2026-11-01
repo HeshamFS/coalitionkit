@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: Apache-2.0
+name: science-lab
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  lab-lead: {label: Lab lead, may: [charter, offer, decide, commit]}
+  technician: {label: Technician, may: [offer, commit]}
+  courier: {label: Courier, may: [offer, commit]}
+  instrument: {label: Instrument, may: [offer]}
+suggest:
+  keywords: [anneal, samples, instrument time, lab]
+  examples: [Three labs anneal and image samples by Friday.]
+vocabulary: vocabulary.yaml
+schemas:
+  need: schemas/need.json
+  offer: schemas/offer.json
+  task: schemas/task.json
+  resource: schemas/resource.json
+policies: [policies/hazardous-shipment.yaml, policies/no-clinical-advice.yaml, policies/redact-lab-cost.yaml]
+task_templates: templates.yaml
+skills: [skills/SKILL.md]
+lessons: [skills/lessons.md]
+mint: [{template: mint/reading-panel.json, tests: mint/tests.json}]
+strategy: {allocation: auction, fairness: {weight: 1, max_ratio: 2, minute_value: 1}}
+evals: [evals/friday.yaml, evals/reading.yaml]
+acceptance: acceptance.yaml

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+id: no-clinical-advice
+applies_to: [coalition.need, coalition.offer, coalition.observe, coalition.propose]
+when:
+  any_text_matches: ['\b(?:dosing|dosage|clinical[ -]advice)\b']
+then: block
+explain: Coordinate samples and instrument time; dosing and clinical advice are outside this pack.
