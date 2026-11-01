@@ -137,6 +137,9 @@ filterwarnings = [
     # pysodium 0.7.19 declares a ctypes struct with _pack_ and no _layout_; Python 3.15 warns on
     # non-Windows platforms. Third-party and harmless until 3.19; drop when pysodium sets it.
     "ignore:Due to '_pack_':DeprecationWarning:pysodium",
+    # Windows only: asyncio's proactor pipe transports of subprocesses that exited are finalized
+    # after their loop closed (CPython's own __del__ warns). Not a leak in this code.
+    "ignore:Exception ignored in. <function _ProactorBasePipeTransport.__del__:pytest.PytestUnraisableExceptionWarning",
 ]
 markers = ["live: calls the real Meta Model API; runs only with COALITIONKIT_LIVE=1 and the provider keys set (COALITIONKIT_META_API_KEY; WhatsApp: token, phone number id, test recipient)"]
 
