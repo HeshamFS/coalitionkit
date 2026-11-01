@@ -11,25 +11,20 @@ from typing import Any, cast
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
-from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel, SecretStr
-from referencing.exceptions import Unresolvable
 from starlette.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 
 from coalitionkit_contracts import (
-    SchemaValidationError,
     new_ulid,
     public_key_to_jwk,
     validate_payload,
 )
-from coalitionkit_contracts.payloads import Window
 from coalitionkit_edges.a2a import HostSigner, create_host_app
 from coalitionkit_edges.a2a.identity import CardError
 from coalitionkit_gardener import build_propose
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
-from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_models import ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_packs import Pack
@@ -39,20 +34,19 @@ from coalitionkit_runtime.host import utc_now
 from coalitionkit_runtime.pool import PoolBusy, StoreUnavailable
 from coalitionkit_steward import Steward
 from coalitionkit_surfaces import SurfaceHub, load_catalog
-from coalitionkit_surfaces.app import Viewer
 from coalitionkit_surfaces.app import create_app as surfaces_app
 
 from .adapter import Document, HostPort
 from .audit import AuditLoop, StewardAdapter, gateway
+from .gardener_loop import GardenerLoop
+from .hosted import hosted_routes
 from .mcp_port import MCPPort
 from .packs import (
     bind_runtime,
     install_packs,
     mint_templates,
     plan_for,
-    private_extension,
     surface_pack,
-    viewer_schema,
 )
 from .registry import Registry
 from .settings import Settings, load_key
@@ -97,6 +91,7 @@ class Server:
                 raise ValueError("public base URL differs from the stored host identity")
             self.attach(coalition)
         self.registry.restore(self.ports)
+        self.gardener = GardenerLoop(self)
 
     def bound_pack(self, coalition: str) -> Pack | None:
         ref = self.hosts[coalition].state.charter.get("pack")
@@ -198,12 +193,16 @@ class Server:
             "host_card_url": self.signer.card_url,
         }
 
-    def plan(self, coalition: str, deadline: str) -> Acknowledgement | Document:
+    def plan(
+        self, coalition: str, deadline: str, *, proposal_set_id: str | None = None
+    ) -> Acknowledgement | Document:
         host = self.hosts[coalition]
         plans = plan_for(host, self.packs)
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
-        payload = build_propose(plans, deadline=deadline, proposal_set_id=new_ulid())
+        payload = build_propose(
+            plans, deadline=deadline, proposal_set_id=proposal_set_id or new_ulid()
+        )
         sources = [
             e["event_id"]
             for e in host.state.events.values()
@@ -364,82 +363,6 @@ def admin_routes(app: FastAPI, server: Server) -> None:
         return json.loads(row[0])
 
 
-def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
-    def hosted(who: str) -> Any:
-        try:
-            return server.registry.hosted_for(coalition, who)
-        except ValueError:
-            raise HTTPException(409, "your agent sends offers") from None
-
-    @app.post("/v1/agent/offer")
-    async def offer(body: Document, who: Viewer) -> JSONResponse:
-        person = hosted(who)
-        host = server.hosts[coalition]
-        if set(body) - {"need_id", "cost", "window", "ext"}:
-            return JSONResponse({"error": "schema_invalid"}, 422)
-        need_id = body.get("need_id")
-        visible = host.view(who)["events"].values()
-        need = next(
-            (
-                e["payload"]
-                for e in visible
-                if e["type"] == "coalition.need" and e["payload"].get("need_id") == need_id
-            ),
-            None,
-        )
-        if need is None:
-            return JSONResponse({"error": "not_authorized"}, 403)
-        payload: Document = {
-            "offer_id": new_ulid(),
-            "target": {"kind": "need", "id": need_id},
-            "capacity": 1,
-            "cost": body.get("cost", {"minutes": 0, "money": 0, "effort": "low"}),
-            "valid_until": need["window"]["end"],
-        }
-        try:
-            if "window" in body:
-                window = Window.model_validate(body["window"])
-                payload["valid_until"] = window.end
-            if "ext" in body:
-                payload["ext"] = body["ext"]
-            validate_payload("coalition.offer", payload)
-        except SchemaValidationError, ValueError:
-            return JSONResponse({"error": "schema_invalid"}, 422)
-        pack = server.bound_pack(coalition)
-        if "ext" in body:
-            if pack is None or "offer" not in pack.schemas:
-                return JSONResponse({"error": "schema_invalid"}, 422)
-            if private_extension(viewer_schema(pack, "offer"), body["ext"]):
-                return JSONResponse({"error": "private_extension"}, 422)
-            try:
-                pack.validate_schema("offer", body["ext"])
-            except ValidationError, Unresolvable:
-                return JSONResponse({"error": "schema_invalid"}, 422)
-        envelope = build_envelope(person, coalition, "coalition.offer", payload)
-        reply = await server.ports[coalition].accept(envelope, person.card_url)
-        if "error" in reply:
-            return JSONResponse({"error": reply["error"]["code"]}, 422)
-        return JSONResponse(
-            {"seq": reply["receipt"]["payload"]["seq"], "offer_id": payload["offer_id"]}
-        )
-
-    @app.get("/v1/agent/vault")
-    def vault_keys(who: Viewer, request: Request) -> Document:
-        if request.query_params:
-            raise HTTPException(403, "vault belongs to the viewer")
-        hosted(who)
-        return {"keys": sorted(server.registry.vault_values(coalition, who))}
-
-    @app.post("/v1/agent/vault")
-    def vault_save(body: Document, who: Viewer, request: Request) -> Document:
-        if request.query_params or set(body) - {"values"}:
-            raise HTTPException(403, "vault belongs to the viewer")
-        hosted(who)
-        if not isinstance(body.get("values"), dict):
-            raise HTTPException(422, "values must be an object")
-        return {"keys": sorted(server.registry.vault_values(coalition, who, body["values"]))}
-
-
 class Dispatch:
     def __init__(self, server: Server, mcp: FastAPI) -> None:
         self.server, self.mcp = server, mcp
@@ -480,6 +403,7 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        server.gardener.resume()
         whatsapp = getattr(app.state, "whatsapp", None)
         if whatsapp is not None:
             whatsapp.start()
@@ -489,6 +413,7 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
         finally:
             if whatsapp is not None:
                 await asyncio.to_thread(whatsapp.stop)
+            await server.gardener.close()
             await asyncio.to_thread(server.close)
 
     app = create_host_app(server, server.signer, server.registry, settings.public_base_url)

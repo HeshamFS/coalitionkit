@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from separation import (
+    FREEZE_TAG,
     SeparationError,
     check_domain,
     check_freeze,
@@ -85,7 +86,7 @@ def test_freeze_not_applied_before_the_tag(repo: Path) -> None:
 def test_a_neutral_web_change_on_a_pack_branch_is_refused(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    git(repo, "tag", "core-freeze-2")
+    git(repo, "tag", FREEZE_TAG)
     git(repo, "checkout", "-q", "-b", "pack/demo-pack")
     monkeypatch.delenv("GITHUB_HEAD_REF", raising=False)
     monkeypatch.setenv("CK_BRANCH", "pack/demo-pack")
@@ -97,7 +98,7 @@ def test_a_neutral_web_change_on_a_pack_branch_is_refused(
 
 
 def test_kit_branches_are_not_frozen(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    git(repo, "tag", "core-freeze-2")
+    git(repo, "tag", FREEZE_TAG)
     monkeypatch.setenv("CK_BRANCH", "feat/next-kit")
     write(repo, "packages/kit/a.py", "x = 2\n")
     assert "not a pack branch" in check_freeze(repo)
