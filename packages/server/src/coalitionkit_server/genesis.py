@@ -327,8 +327,16 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 )
             except ValueError:
                 local = False
-            if not local or request.headers.get("origin") != server.settings.public_base_url:
+            if not local or not same_origin(request):
                 raise HTTPException(403, "local same-origin request required")
+
+    def same_origin(request: Request) -> bool:
+        # Browsers send no Origin on a same-origin GET; they send Sec-Fetch-Site, which page
+        # scripts cannot set. A cross-site GET says "cross-site", so it stays refused.
+        origin = request.headers.get("origin")
+        if origin is not None:
+            return origin == server.settings.public_base_url
+        return request.method == "GET" and request.headers.get("sec-fetch-site") == "same-origin"
 
     def owner(request: Request, retry: bool = False) -> str:
         authorization = request.headers.get("authorization", "")

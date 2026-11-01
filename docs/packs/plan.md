@@ -28,7 +28,7 @@ Three Discipline Packs that work end to end, from a typed goal to Dissolve, each
 1. All three packs.
 2. Packs live in `packs/<name>/` in this repository, outside `packages/`, kept apart by the checks in section 7.
 3. A pack may suggest itself from the typed goal through a new optional `pack.yaml` field (spec change first, slice A0).
-4. G3 measures the empty core diff from `core-freeze-2`.
+4. G3 measures the empty core diff from `core-freeze-2`. **Moved to `core-freeze-3` (2026-11-01, Hesham's call):** the Phase C walk found a kit bug that no pack caused. Browsers send no `Origin` on a same-origin GET, so the Genesis guard refused `GET /v1/packs` and no pack could be picked in the browser. `core-freeze-3` is `core-freeze-2` plus that one fix; the three packs changed nothing in the kit.
 
 ## 4. Phase 0 · finish the zero-pack journey
 
@@ -94,7 +94,7 @@ Owners: `science-lab` Codex, `daily-life` Sonnet, `travel-disruption` Sonnet. Cl
 
 1. Domain words: no word from `tools/discipline-denylist.txt` under `packages/`, `apps/` or `spec/` (extended in A6). Packs add their own domain words to the denylist so the scan covers them.
 2. Imports: an import-linter contract forbids any import of `packs` from the kit.
-3. Freeze: `git diff --quiet core-freeze-2 -- packages apps spec` on pack branches.
+3. Freeze: `git diff --quiet core-freeze-3 -- packages apps spec` on pack branches (`core-freeze-2` until the Phase C kit fix; see decision 4).
 4. Packs: `coalitionkit pack validate` and the scripted evals for every folder in `packs/`.
 
 ## 8. Phase C · each pack walked
@@ -108,7 +108,7 @@ Gate per pack, all in Chrome on a local host started with `--pack packs/<name>`:
 3. One of the pack's policies blocks something; Theatre shows it with the policy name.
 4. Dissolve writes the pack's lessons.
 5. Its evals pass scripted, and live with the key (cost reported).
-6. The freeze check shows an empty kit diff since `core-freeze-2`.
+6. The freeze check shows an empty kit diff since `core-freeze-3` (decision 4).
 
 When all three pass: G3.
 

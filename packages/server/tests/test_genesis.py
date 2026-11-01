@@ -260,6 +260,20 @@ def test_local_guards(client: TestClient) -> None:
     assert remote.post("/v1/genesis/draft", json={"goal": "A goal"}).status_code == 403
 
 
+def test_a_browser_same_origin_get_lists_packs(client: TestClient) -> None:
+    # What a browser sends for fetch("/v1/packs") from the host's own page: no Origin header.
+    client.headers.pop("origin")
+    browser = {"Sec-Fetch-Site": "same-origin", "Sec-Fetch-Mode": "cors"}
+    assert client.get("/v1/packs", headers=browser).status_code == 200
+    for site in ("cross-site", "same-site", "none"):
+        assert client.get("/v1/packs", headers={"Sec-Fetch-Site": site}).status_code == 403
+    assert client.get("/v1/packs").status_code == 403
+    no_origin_post = client.post("/v1/genesis/draft", json={"goal": "A goal"}, headers=browser)
+    assert no_origin_post.status_code == 403
+    remote = TestClient(client.app, client=("192.0.2.1", 345))
+    assert remote.get("/v1/packs", headers=browser).status_code == 403
+
+
 async def test_model_fallback_and_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("COALITIONKIT_META_API_KEY", "test")
     fake = FakeModel([ValueError("failed"), ScriptedResponse("not JSON")])
