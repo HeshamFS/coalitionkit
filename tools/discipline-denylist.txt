@@ -12,7 +12,6 @@ prescription
 clinic
 
 # pack travel-disruption
-flight
 airport
 airline
 shuttle
