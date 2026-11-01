@@ -33,6 +33,18 @@ class RoleSpec(_Strict):
     label: Annotated[str, StringConstraints(min_length=1, max_length=64)] | None = None
 
 
+def eval_role(roles: dict[str, RoleSpec], requested: str | None) -> str:
+    """Choose a declared eval role, requiring offer and decide for the default."""
+    if requested is not None:
+        if requested not in roles:
+            raise ValueError(f"eval role {requested!r} is not declared")
+        return requested
+    for name, role in roles.items():
+        if {"offer", "decide"} <= set(role.may):
+            return name
+    raise ValueError("eval participant needs a role; no role has both offer and decide abilities")
+
+
 class MintEntry(_Strict):
     template: RelPath
     tests: RelPath

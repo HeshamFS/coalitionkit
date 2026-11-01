@@ -19,6 +19,7 @@ from typing import Literal
 from coalitionkit_contracts.payloads import QueryPayload
 from coalitionkit_models import ChatMessage, CostMeter, ModelGateway
 from coalitionkit_packs.loader import Pack, inspect_pack
+from coalitionkit_packs.manifest import eval_role
 from coalitionkit_packs.sections import EvalOutcome, EvalScenario
 from coalitionkit_runtime import Acknowledgement, SQLiteStore
 from coalitionkit_runtime.steward import ReviewContext, Verdict
@@ -108,7 +109,7 @@ class ScenarioRun:
             self.arena.members[entry.id] = person
             self.arena.attach(person)
             body = person.join_body()
-            body["roles_requested"] = [next(iter(self.pack.manifest.roles))]
+            body["roles_requested"] = [eval_role(self.pack.manifest.roles, entry.role)]
             body["vault"] = "hosted"
             accepted(person.send("join", body))
             accepted(person.decide("charter", self.arena.host.coalition_id, 1))

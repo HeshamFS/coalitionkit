@@ -104,6 +104,7 @@ class TemplateFile(_Strict):
 class EvalParticipant(_Strict):
     id: Name
     vault: dict[str, Any]
+    role: RoleId | None = None
 
 
 class EvalExpect(_Strict):

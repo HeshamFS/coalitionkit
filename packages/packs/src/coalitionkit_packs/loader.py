@@ -18,6 +18,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 from pydantic import ValidationError
 from referencing import Registry, Resource
+from referencing.exceptions import Unresolvable
 from referencing.jsonschema import DRAFT202012
 
 from coalitionkit_contracts.validate import load_schemas
@@ -27,7 +28,7 @@ from coalitionkit_surfaces.catalog import ComponentSpec
 
 from .errors import Report
 from .files import MANIFEST, Snapshot, bad_relative_path, take_snapshot
-from .manifest import Manifest
+from .manifest import Manifest, eval_role
 from .scopes import PACK_AUDIENCES
 from .sections import (
     EvalScenario,
@@ -257,6 +258,11 @@ def _evals(snap: Snapshot, manifest: Manifest, report: Report) -> tuple[EvalScen
         data = snap.yaml(rel, f"evals.{rel}", report)
         scenario = parse_eval(data, rel, report) if data is not None else None
         if scenario is not None:
+            for participant in scenario.participants:
+                try:
+                    eval_role(manifest.roles, participant.role)
+                except ValueError as exc:
+                    report.add("eval", f"{rel}:{participant.id}", str(exc))
             scenarios.append(scenario)
     names = [s.scenario for s in scenarios]
     if len(set(names)) != len(names):
@@ -340,9 +346,63 @@ def _schemas(
     for kind, rel in (manifest.schemas or {}).items():
         if SNAPSHOT_BASE + rel in resources:
             loaded[kind] = resources[SNAPSHOT_BASE + rel]
+            try:
+                bundle_schema(loaded[kind], registry)
+            except (Unresolvable, ValueError, RecursionError) as exc:
+                report.add("schema_ref", rel, f"cannot bundle schema: {exc}")
     for kind in loaded.keys() & {"task", "resource"}:
         warnings.warn(f"Pack {kind} schema loaded but not applied at runtime", stacklevel=2)
     return loaded, registry
+
+
+def bundle_schema(schema: Mapping[str, Any], registry: Registry[Any]) -> dict[str, Any]:
+    """Inline closed-registry references, preserving literals and sibling constraints."""
+    active: set[int] = set()
+
+    def visit(node: Any, resolver: Any) -> Any:
+        if isinstance(node, bool):
+            return node
+        obj = cast(dict[str, Any], node)
+        identity = id(node)
+        if identity in active:
+            raise ValueError("cyclic schema reference")
+        active.add(identity)
+        resolver = resolver.in_subresource(Resource.from_contents(obj, DRAFT202012))
+        children = {id(child): visit(child, resolver) for child in DRAFT202012.subresources_of(obj)}
+
+        def substitute(value: Any) -> Any:
+            if id(value) in children:
+                return children[id(value)]
+            if isinstance(value, dict):
+                return {k: substitute(v) for k, v in cast(dict[str, Any], value).items()}
+            if isinstance(value, list):
+                return [substitute(v) for v in cast(list[Any], value)]
+            return value
+
+        result = {
+            k: substitute(v) for k, v in obj.items() if k not in {"$id", "$ref", "$dynamicRef"}
+        }
+        for keyword in ("$ref", "$dynamicRef"):
+            if keyword not in obj:
+                continue
+            resolved = resolver.lookup(obj[keyword])
+            target = visit(resolved.contents, resolved.resolver)
+            if isinstance(target, bool):
+                if not target:
+                    result.setdefault("allOf", []).append(False)
+                continue
+            # Repeated keywords are conjunctive, not overrides. Keep their original
+            # constraints in allOf while exposing unambiguous fields to simple forms.
+            conflicts = {k: v for k, v in target.items() if k in result and result[k] != v}
+            result = {**target, **result}
+            if conflicts:
+                result.setdefault("allOf", []).append(conflicts)
+            if target.get("x-private") is True:
+                result["x-private"] = True
+        active.remove(identity)
+        return result
+
+    return cast(dict[str, Any], visit(schema, registry.resolver()))
 
 
 def _other_files(snap: Snapshot, manifest: Manifest, report: Report) -> None:

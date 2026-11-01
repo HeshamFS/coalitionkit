@@ -131,6 +131,65 @@ def test_schema_literal_data_is_not_rewritten(tmp_path: Path) -> None:
     load(root).validate_schema("need", literal)
 
 
+@pytest.mark.parametrize("ref", ["#/$defs/missing", "#", "sibling.json"])
+def test_unbundleable_schema_is_refused(tmp_path: Path, ref: str) -> None:
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text(json.dumps({"$ref": ref}))
+    (root / "schemas/sibling.json").write_text('{"$ref": "need-ext.json"}')
+    assert "schema_ref" in rules_of(root)
+
+
+def test_viewer_schema_inlines_sibling(tmp_path: Path) -> None:
+    from coalitionkit_server.packs import viewer_schema
+
+    root = copy_pack("pack-alpha", tmp_path)
+    (root / "schemas/need-ext.json").write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "required": ["count"],
+                "properties": {"count": {"$ref": "sibling.json"}},
+            }
+        )
+    )
+    (root / "schemas/sibling.json").write_text('{"type": "integer", "x-private": true}')
+    schema = viewer_schema(load(root), "need")
+    assert schema["properties"]["count"] == {"type": "integer", "x-private": True}
+
+
+def test_bundle_resolves_core_and_local_refs_without_changing_literals(tmp_path: Path) -> None:
+    from coalitionkit_packs.loader import bundle_schema
+
+    root = copy_pack("pack-alpha", tmp_path)
+    literal = {"$ref": "not-a-schema.json", "$id": "literal"}
+    (root / "schemas/need-ext.json").write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "$defs": {"count": {"type": "integer", "minimum": 1, "x-private": True}},
+                "properties": {
+                    "count": {"$ref": "#/$defs/count", "minimum": 3, "x-private": False},
+                    "id": {
+                        "$ref": "https://coalitionkit.dev/schemas/coalition/v0/common.json#/$defs/ulid"
+                    },
+                },
+                "examples": [literal],
+            }
+        )
+    )
+    pack = load(root)
+    bundled = bundle_schema(pack.schemas["need"], pack.schema_registry)
+    assert bundled["properties"]["id"]["type"] == "string"
+    assert bundled["properties"]["count"]["x-private"] is True
+    assert bundled["examples"] == [literal]
+    from jsonschema import Draft202012Validator
+
+    validator = Draft202012Validator(bundled)
+    validator.validate({"count": 3})
+    with pytest.raises(ValidationError):
+        validator.validate({"count": 2})
+
+
 def test_nested_dynamic_reference_escape_is_reported(tmp_path: Path) -> None:
     root = copy_pack("pack-alpha", tmp_path)
     (root / "schemas/need-ext.json").write_text(

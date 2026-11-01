@@ -15,9 +15,39 @@ from coalitionkit_acceptance.pack_evals import ScenarioRun, run_scenario
 from coalitionkit_cli.main import main as kit_main
 from coalitionkit_models import ChatMessage, OpenAITransport, Route
 from coalitionkit_models.gateway import RawCompletion, Usage
+from coalitionkit_packs import PackError
 from coalitionkit_packs.cli import main
 from coalitionkit_packs.loader import inspect_pack
 from coalitionkit_runtime import CoalitionHost
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("observer_first", [False, True])
+async def test_participant_role(tmp_path: Path, explicit: bool, observer_first: bool) -> None:
+    folder = copy_pack("pack-beta", tmp_path)
+    member = "  member: { may: [offer, decide, decide_own, commit] }"
+    observer = "  observer: { may: [decide_own] }"
+    rewrite(
+        folder / "pack.yaml",
+        member,
+        "\n".join([observer, member] if observer_first else [member, observer]),
+    )
+    if explicit:
+        rewrite(folder / "evals/solo.yaml", "id: p1", "id: p1\n    role: member")
+    pack = inspect_pack(folder, core_catalog=core_catalog())
+    result = await run_scenario(pack, pack.evals[0])
+    assert result["status"] == "pass", result
+
+
+@pytest.mark.parametrize("role", [None, "unknown"])
+def test_eval_role_refusal_is_explained(tmp_path: Path, role: str | None) -> None:
+    folder = copy_pack("pack-beta", tmp_path)
+    if role:
+        rewrite(folder / "evals/solo.yaml", "id: p1", f"id: p1\n    role: {role}")
+    else:
+        rewrite(folder / "pack.yaml", "[offer, decide, decide_own, commit]", "[decide_own]")
+    with pytest.raises(PackError, match="not declared" if role else "both offer and decide"):
+        inspect_pack(folder, core_catalog=core_catalog())
 
 
 @pytest.mark.parametrize("name", ["pack-alpha", "pack-beta"])

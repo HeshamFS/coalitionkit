@@ -39,6 +39,24 @@ def pack_client(
     ]:
         folder = tmp_path / name
         shutil.copytree(fixtures / name, folder)
+        if name == "pack-alpha":
+            manifest = folder / "pack.yaml"
+            manifest.write_text(
+                manifest.read_text().replace(
+                    "schemas: { need: schemas/need-ext.json }",
+                    "schemas: { need: schemas/need-ext.json, offer: schemas/offer-ext.json }",
+                )
+            )
+            (folder / "schemas/offer-ext.json").write_text(
+                json.dumps(
+                    {
+                        "type": "object",
+                        "required": ["count"],
+                        "properties": {"count": {"$ref": "count.json"}},
+                    }
+                )
+            )
+            (folder / "schemas/count.json").write_text('{"type": "integer", "x-private": true}')
         with (folder / "pack.yaml").open("a", encoding="utf-8") as stream:
             stream.write("\nsuggest: {" + hints + "}\n")
         sign_pack(folder, key, "test-author")
@@ -308,6 +326,10 @@ def test_pack_feed_for_every_viewer(
         if reference:
             assert state["pack"]["name"] == reference["name"]
             assert "need" in state["pack"]["schemas"]
+            offer = state["pack"]["schemas"]["offer"]
+            assert offer["properties"]["count"] == {"type": "integer", "x-private": True}
+            fixture = Path(__file__).parents[3] / "apps/web/src/room/fixtures/bundled-offer.json"
+            assert offer == json.loads(fixture.read_text(encoding="utf-8"))
             assert "pack-snapshot.invalid" not in json.dumps(state["pack"]["schemas"])
             assert state["pack"]["vocabulary"] and state["pack"]["views"]["order"]
         else:
