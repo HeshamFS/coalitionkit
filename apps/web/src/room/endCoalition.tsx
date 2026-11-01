@@ -3,11 +3,11 @@
 // owner (with the host's report) and for anyone whose session ended after a dissolve event.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clearToken } from "../feed/config";
-import { dissolveCoalition } from "../genesis/api";
+import { dissolveCoalition, HostError } from "../genesis/api";
 import { clearOwner } from "../genesis/owner";
 import { type CleanupReport, Dissolve, type DissolveEvent } from "../moments/Dissolve";
 import "./end.css";
-import { clearEnded, type EndRun, readEnded } from "./ended";
+import { beginEnd, clearEnded, type EndRun, readEnded } from "./ended";
 
 type Reason = EndRun["reason"];
 
@@ -81,11 +81,18 @@ export function EndedView({
   onLeave: () => void;
 }) {
   const [report, setReport] = useState<CleanupReport | undefined>();
+  // A request the host refused or never received ends nothing: the room and session stay.
+  const [refused, setRefused] = useState("");
   const asked = useRef(false);
   const ask = useCallback((r: EndRun) => {
     setReport(undefined);
-    dissolveCoalition(r.token, r.reason).then(setReport, () =>
-      setReport({ failed: "reaching the host", done: {} }),
+    setRefused("");
+    dissolveCoalition(r.token, r.reason).then(setReport, (error: unknown) =>
+      setRefused(
+        error instanceof HostError
+          ? `The host refused (${error.status}). Nothing was ended.`
+          : "The host could not be reached. Nothing was ended.",
+      ),
     );
   }, []);
   useEffect(() => {
@@ -98,6 +105,23 @@ export function EndedView({
     reason: run?.reason ?? base?.reason ?? "completed",
     skills_written: base?.skills_written ?? [],
   };
+  if (run && refused) {
+    return (
+      <main className="ck-ended" aria-label="The coalition was not ended">
+        <p className="ck-ended-refused" role="alert">
+          {refused}
+        </p>
+        <p className="ck-ended-out">
+          <button type="button" className="btn" onClick={() => ask(run)}>
+            Try again
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => beginEnd(null)}>
+            Back to the room
+          </button>
+        </p>
+      </main>
+    );
+  }
   return (
     <main className="ck-ended" aria-label="The coalition has ended">
       <Dissolve event={shown} cleanup={report} onRetry={run ? () => ask(run) : undefined} />

@@ -143,6 +143,29 @@ describe("ending a coalition", () => {
   });
 });
 
+describe("a refused or unreachable end", () => {
+  it.each([
+    [403, /refused \(403\)/],
+    [0, /could not be reached/],
+  ])("keeps the room and the session (%s)", async (status, message) => {
+    saveToken("owner-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (!url.endsWith("/v1/coalition/dissolve")) return feed();
+        if (status === 0) throw new TypeError("network down");
+        return json({ detail: "owner required" }, status);
+      }),
+    );
+    beginEnd({ token: "owner-token", reason: "completed" });
+    render(<App />);
+    expect((await screen.findByRole("alert")).textContent).toMatch(message);
+    expect(screen.queryByText(/table folds away/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Back to the room" }));
+    expect(sessionStorage.getItem("ck.token")).toBe("owner-token");
+  });
+});
+
 describe("a member whose session ends after the dissolve", () => {
   it("sees the ended view, not sign-in", async () => {
     saveToken("member-token");

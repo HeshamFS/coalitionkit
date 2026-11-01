@@ -43,3 +43,13 @@
 .ck-ended-out {
   text-align: center;
 }
+.ck-ended-refused {
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 14px 16px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--bad-line);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: 14px;
+}
