@@ -11,6 +11,18 @@ invoice
 prescription
 clinic
 
+# pack daily-life
+errand
+errands
+rota
+groceries
+household
+carer
+grandparent
+grandmother
+chores
+pickup
+
 # pack travel-disruption
 airport
 airline
