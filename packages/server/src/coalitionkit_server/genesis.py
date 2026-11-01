@@ -9,7 +9,7 @@ import json
 import os
 import re
 from datetime import UTC, datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Self
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -71,24 +71,35 @@ class Draft(Goal):
         return self
 
 
+# How long Genesis waits for the model's draft before answering with the reader's own.
+MODEL_DRAFT_BUDGET_S = 10
+
+
 class Reading(BaseModel):
     span: tuple[int, int]
     kind: Literal["role", "need", "deadline", "count"]
 
 
-class DraftResponse(BaseModel):
+class ModelDraft(BaseModel):
+    """What the model is asked for: closed objects only, so a strict JSON schema accepts it."""
+
     draft: Draft
     source: Literal["reader", "model"]
     reading: list[Reading]
-    suggested: Suggestion | None = None
-    vocabulary: Document = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def valid_spans(self) -> DraftResponse:
-        for item in self.reading:
-            if not 0 <= item.span[0] < item.span[1] <= len(self.draft.goal):
-                raise ValueError("reading span outside goal")
+    def valid_spans(self) -> Self:
+        # Spans only mark words in the goal; one outside it is dropped, never shown.
+        size = len(self.draft.goal)
+        self.reading = [r for r in self.reading if 0 <= r.span[0] < r.span[1] <= size]
         return self
+
+
+class DraftResponse(ModelDraft):
+    """The draft as the host answers it, with the pack suggestion the host adds itself."""
+
+    suggested: Suggestion | None = None
+    vocabulary: Document = Field(default_factory=dict)
 
 
 WORDS = dict(
@@ -221,7 +232,7 @@ async def draft_goal(
     if not os.environ.get("COALITIONKIT_META_API_KEY"):
         return fallback
     try:
-        async with asyncio.timeout(5):
+        async with asyncio.timeout(MODEL_DRAFT_BUDGET_S):
             reply = await gateway.complete(
                 "gardener",
                 [
@@ -237,9 +248,12 @@ async def draft_goal(
                     },
                     {"role": "user", "content": fallback.draft.goal},
                 ],
-                response_schema=DraftResponse,
+                response_schema=ModelDraft,
+                reasoning_effort="minimal",  # a short extraction; the reader answers otherwise
             )
-            result = DraftResponse.model_validate_json(reply.text)
+            result = DraftResponse.model_validate(
+                ModelDraft.model_validate_json(reply.text).model_dump()
+            )
             if result.draft.goal != fallback.draft.goal:
                 raise ValueError("model changed goal")
             result.source = "model"

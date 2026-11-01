@@ -17,11 +17,12 @@ from pydantic import SecretStr
 from coalitionkit_contracts import new_ulid, public_key_to_jwk
 from coalitionkit_models import FakeModel, ModelGateway, ScriptedResponse
 from coalitionkit_models.settings import Settings as ModelSettings
+from coalitionkit_models.structured import response_format
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_server import Settings, create_server
 from coalitionkit_server.adapter import Document
 from coalitionkit_server.app import Server
-from coalitionkit_server.genesis import DraftResponse, draft_goal, read_goal
+from coalitionkit_server.genesis import DraftResponse, ModelDraft, draft_goal, read_goal
 from coalitionkit_server.registry import digest
 
 NOW = datetime(2030, 1, 7, 12, tzinfo=UTC)  # Monday
@@ -300,6 +301,55 @@ def test_cleanup_failure_retry(client: TestClient) -> None:
         ).status_code
         == 200
     )
+
+
+def test_genesis_asks_the_model_for_closed_objects_only() -> None:
+    """Strict providers refuse a reply schema with any object that may hold other keys."""
+
+    def objects(node: object) -> Iterator[dict[str, object]]:
+        if isinstance(node, dict):
+            node = cast(dict[str, object], node)
+            if node.get("type") == "object":
+                yield node
+            for value in node.values():
+                yield from objects(value)
+        elif isinstance(node, list):
+            for value in cast(list[object], node):
+                yield from objects(value)
+
+    schema = response_format(ModelDraft)["json_schema"]["schema"]
+    found = list(objects(schema))
+    assert found and all(o.get("additionalProperties") is False for o in found)
+    assert "suggested" not in schema["properties"] and "vocabulary" not in schema["properties"]
+
+
+async def test_model_draft_becomes_a_host_draft_response() -> None:
+    goal = "Nine members need a shared room tomorrow"
+    reply = {
+        "draft": {
+            "goal": goal,
+            "roles": [{"id": "member", "label": "member", "count": 9}],
+            "needs": ["a shared room"],
+            "deadline": None,
+            "pack": None,
+            "utc_offset_minutes": None,
+            "deciders": "all",
+        },
+        "source": "model",
+        "reading": [{"span": [0, 4], "kind": "count"}, {"span": [30, 99], "kind": "need"}],
+    }
+    gateway = ModelGateway(
+        ModelSettings(), transport=FakeModel([ScriptedResponse(json.dumps(reply))])
+    )
+    try:
+        with patch.dict(os.environ, {"COALITIONKIT_META_API_KEY": "test-not-a-real-key"}):
+            result = await draft_goal(goal, gateway)
+    finally:
+        await gateway.aclose()
+    assert isinstance(result, DraftResponse)
+    assert result.source == "model" and result.draft.roles[0].count == 9
+    assert result.suggested is None and result.vocabulary == {}
+    assert [r.span for r in result.reading] == [(0, 4)]  # the span past the goal is dropped
 
 
 @pytest.mark.live
