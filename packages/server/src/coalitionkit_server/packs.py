@@ -4,14 +4,75 @@
 import re
 from pathlib import Path
 
+from jsonschema.exceptions import ValidationError
 from pydantic import BaseModel, ConfigDict
 
 from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_packs import Pack, PackError, load_pack
 from coalitionkit_packs.version import core_version
+from coalitionkit_runtime import CoalitionHost
+from coalitionkit_runtime.lifecycle import State
+from coalitionkit_runtime.rules import Refusal, require
 from coalitionkit_surfaces import load_catalog
 
 from .adapter import Document
+
+
+def bound_pack(charter: Document, installed: dict[tuple[str, str], Pack]) -> Pack | None:
+    ref = charter.get("pack")
+    if ref is None:
+        return None
+    pack = installed.get((ref["name"], ref["version"]))
+    require(pack is not None, "not_authorized")
+    return pack
+
+
+def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) -> None:
+    """Resolve each submission against the installed, exact-version pack snapshot."""
+
+    def check(state: State, event: Document, is_host: bool) -> None:
+        kind = event["type"].removeprefix("coalition.")
+        body = event["payload"]
+        pack = bound_pack(body if kind == "charter" else state.charter, installed)
+        if pack is None:
+            return
+        roles = pack.manifest.roles
+        if kind == "charter":
+            require(all(role["id"] in roles for role in body["roles"]))
+        if not is_host:
+            owner = event["on_behalf_of"]
+            requested = (
+                body["roles_requested"]
+                if kind == "join"
+                else state.members[owner]["roles_requested"]
+            )
+            require(bool(requested) and set(requested) <= roles.keys())
+            abilities = {ability for role in requested for ability in roles[role].may}
+            if kind in {"offer", "commit"}:
+                require(kind in abilities)
+            elif kind == "decide":
+                subject = body["subject"]
+                if subject["kind"] == "charter":
+                    require("charter" in abilities or "decide" in abilities)
+                else:
+                    own = (
+                        subject["kind"] == "commitment"
+                        and state.subject(subject["kind"], subject["id"]).get("sender")
+                        == event["sender"]
+                    )
+                    require("decide" in abilities or ("decide_own" in abilities and own))
+        if kind in pack.schemas:
+            try:
+                pack.validate_schema(kind, body)
+            except ValidationError:
+                raise Refusal("schema_invalid") from None
+
+    def skills() -> list[str]:
+        pack = bound_pack(host.state.charter, installed)
+        return list(pack.manifest.skills or []) if pack else []
+
+    host.pack_check = check
+    host.skills = skills
 
 
 class PackRef(BaseModel):
