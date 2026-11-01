@@ -21,7 +21,7 @@ acceptance uses the kit's local subprocess sandbox and does not need Docker.
 
 Lab leads charter, offer, decide and commit; technicians and couriers offer and
 commit. Instruments offer only. Offer ext contains instrument, free_window and
-sample_capacity. Need ext contains sample_count and temperature_range in C.
+sample_capacity. Need ext may carry sample_count and temperature_range in C. Both are optional, so a need drafted from a sentence in Genesis is valid; templates fill them.
 Internal priority and cost ceiling are x-private vault fields, never offer data.
 
 The two evals plant three independent cost-ceiling canaries each and assert a
