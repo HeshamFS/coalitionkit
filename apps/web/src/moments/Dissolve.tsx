@@ -15,6 +15,9 @@ export type CleanupCounts = {
   tokens_revoked?: number;
   invitations_revoked?: number;
   vaults_erased?: number;
+  /** The lessons the dissolve event wrote, and their titles the owner may read. */
+  skills_written?: string[];
+  lessons?: Record<string, Lesson>;
 };
 
 /** The host's cleanup report: the counts, or the step that failed and what finished before it. */

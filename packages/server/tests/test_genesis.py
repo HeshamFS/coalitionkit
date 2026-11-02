@@ -219,7 +219,12 @@ def test_invitations_and_dissolve(client: TestClient) -> None:
     assert result.json()["tokens_revoked"] == 2
     assert result.json()["vaults_erased"] == 2
     assert result.json()["invitations_revoked"] == 1
-    assert server.store.read(created["coalition_id"])[-1]["type"] == "coalition.dissolve"
+    dissolved = server.store.read(created["coalition_id"])[-1]
+    assert dissolved["type"] == "coalition.dissolve"
+    # The owner's closing screen names the written lessons; its feed closes with the dissolve.
+    written = dissolved["payload"]["skills_written"]
+    assert written and result.json()["skills_written"] == written
+    assert result.json()["lessons"] == {name: {"title": "Lesson"} for name in written}
     assert client.get("/v1/feed", headers=owner).status_code == 401
     assert client.get("/v1/feed", headers=member).status_code == 401
     assert (
