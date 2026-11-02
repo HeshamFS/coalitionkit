@@ -141,6 +141,26 @@ describe("ending a coalition", () => {
     await screen.findByText("1 hosted vault erased");
     expect(calls).toHaveLength(2);
   });
+  it("names the lessons from the host's report when the feed closed first", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (!url.endsWith("/v1/coalition/dissolve")) return feed();
+        return json({
+          tasks_closed: 2,
+          tokens_revoked: 2,
+          invitations_revoked: 0,
+          vaults_erased: 2,
+          skills_written: ["s1"],
+          lessons: { s1: { title: "Share the instrument early" } },
+        });
+      }),
+    );
+    beginEnd({ token: "owner-token", reason: "completed" });
+    render(<App />);
+    await screen.findByText("Share the instrument early");
+    expect(screen.queryByText("No lessons were written")).toBeNull();
+  });
 });
 
 describe("a refused or unreachable end", () => {
