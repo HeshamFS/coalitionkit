@@ -35,7 +35,7 @@ class Room:
         ):
             await self.server(scope, receive, send)
         elif path == "/" or path.startswith(
-            ("/confirm/", "/lens", "/gallery", "/join", "/open", "/signin", "/glasses")
+            ("/confirm/", "/lens", "/gallery", "/join", "/open", "/door", "/signin", "/glasses")
         ):
             await FileResponse(self.dist / "index.html")(scope, receive, send)
         else:

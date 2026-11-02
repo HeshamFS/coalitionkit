@@ -52,7 +52,7 @@ Every screen is composed on the host for the **requesting viewer**, from the eve
 | Action | Who may do it | Credential |
 | --- | --- | --- |
 | Draft a coalition from a sentence | Anyone at the local host (`up`), or the operator with the admin token on a hosted deployment | Local: loopback client, `Origin` equals the host, JSON body. Hosted: admin token, server side only, never in a browser |
-| Start the drafted coalition | The person holding the **start code** | `up` prints a start link `http://127.0.0.1:<port>/#start=<code>`. The code is single use, expires after 24 hours, travels in the URL fragment (never sent in a request line, never logged), and the web removes it from the address on load. Starting returns the owner's viewer token |
+| Start the drafted coalition | The person at the local host (local mode), or the holder of the **start code** (admin mode) | In local mode no start link is needed: the gate already holds the caller to this machine, at most 10 starts a minute, and a start code that is sent must still be valid. In admin mode `up` prints a start link `http://127.0.0.1:<port>/#start=<code>`; the code is single use, expires after 24 hours, travels in the URL fragment (never sent in a request line, never logged), and the web removes it from the address on load. Starting returns the owner's viewer token and the Door (see `room-forming.md`) |
 | Invite | The owner | Owner viewer token. Each invitation is single use, carried in a link fragment (`/join#<invitation>`), revocable by the owner until redeemed |
 | Join | Whoever holds an unused invitation | The invitation; it is exchanged for a viewer token and dies |
 | Decide, approve, commit | The participant themselves | Owner-key `consent_sig` (spec, Owner keys). Agents propose and answer; they never commit anyone |
@@ -211,7 +211,7 @@ Judging: Claude reviews Codex's slices; Codex critiques Claude's and Sonnet's di
 ## 6. Decisions for Hesham
 
 1. The two packs for G3 (science, daily life, flight, or another).
-2. Local Genesis: drafting open on 127.0.0.1 and starting with the printed start code (proposed), admin token on hosted deployments.
+2. Local Genesis: drafting and starting open on 127.0.0.1 without a start link (a valid code is still accepted), admin token and start code on hosted deployments.
 3. Glasses: real Ray-Ban Display or the simulator for filming.
 4. Move the G3 empty-diff baseline from the G1 commit to `core-freeze-2`.
 
@@ -219,8 +219,16 @@ Judging: Claude reviews Codex's slices; Codex critiques Claude's and Sonnet's di
 
 A visitor without a session lands on `/`: a sentence box over a map of open rooms, with the explanation below. The sentence carries to `/open`, the Genesis screen. Light is the default whatever the system says; dark is a choice the browser remembers.
 
-Two ways in sit at the top of the screen: a box for an invitation link, and Scan QR, which reads a QR with the device camera and joins with the invitation inside it. Frames are read in the browser and the camera stops when the scanner closes. A QR for another address is refused, not followed. Short codes are not built yet, and no screen shows a room's own QR until the Door exists.
+Two ways in sit at the top of the screen: a box for a room code or an invitation link, and Scan QR, which reads a QR with the device camera and joins with what is inside it. Frames are read in the browser and the camera stops when the scanner closes. A QR for another address is refused, not followed.
 
 The page has no system scrollbar. A slim pill in the palette shows while you scroll or when the pointer reaches the right edge, and it can be dragged; wheel, touch and keys scroll as usual. Inner panels keep a thin bar in the palette.
 
-Discoverable rooms are not stored yet. `GET /v1/rooms` lists only what an operator supplies with `COALITIONKIT_SAMPLE_ROOMS`, and marks every entry as a sample; without a file the map says it is empty. The kit ships no such file. `examples/rooms/sample-rooms.json` is one to run with. The ground under the map is a fixed pattern that keeps the rooms' relative places. It is not a street map yet.
+`GET /v1/rooms` lists an operator's samples from `COALITIONKIT_SAMPLE_ROOMS`, each marked as a sample, and every open room whose opener chose "People nearby". The kit ships no sample file; `examples/rooms/sample-rooms.json` is one to run with. The ground under the map is a fixed pattern that keeps the rooms' relative places. It is not a street map yet, and a real room's place on it comes from its id, because rooms hold no coordinates.
+
+## Room forming and the Door
+
+The sentence carries to `/open`. The same band continues and the sentence becomes its headline. Under it, on a sheet framed like the map, the host's chosen catalog components arrive as labelled skeletons and settle: a sentence naming a place is built around the map, ordered steps around a graph, a named day around the week. Pointing at a word lights the card it produced. Seats, the deadline and the needs change in place. Nothing is public until the opener presses Open.
+
+One question comes before opening: who can find this room? Only with the code, or people nearby, which means a pin on this host's map. There is no distance filter yet, and "Anyone" is cut. The screen shows exactly what goes public first.
+
+The Door follows at `/door`: the room's QR in its ring of seats, a short code to say aloud, seats and arrivals that follow the host within two seconds, knocks to answer, and Hold up for showing it across a room. The owner gets back to it from the room's header. Arriving by code shows the goal and the open seats before anyone sits down. The host contract is `docs/ux/room-forming.md`.

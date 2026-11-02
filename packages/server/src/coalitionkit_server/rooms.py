@@ -17,6 +17,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .adapter import Document
 
+Box = tuple[float, float, float, float]  # lat low, lat high, lon low, lon high
+DEFAULT_BOX: Box = (51.4, 51.6, 7.1, 7.4)
+
 
 class Room(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -60,10 +63,20 @@ def mount_rooms(
     path: Path | None,
     gate: Callable[[Request], None],
     authorize: Callable[[Request], None],
+    extra: Callable[[Box], list[Document]] | None = None,
 ) -> None:
     listing = load_rooms(path)
+    lats, lons = [r["lat"] for r in listing["rooms"]], [r["lon"] for r in listing["rooms"]]
+    # Listed rooms spread over the samples' bounds, padded so a single sample still has room.
+    box: Box = (
+        (min(lats) - 0.05, max(lats) + 0.05, min(lons) - 0.05, max(lons) + 0.05)
+        if lats
+        else DEFAULT_BOX
+    )
 
     @app.get("/v1/rooms", dependencies=[Depends(gate)])
     async def rooms(request: Request) -> Document:
         authorize(request)
-        return listing
+        if extra is None:
+            return listing
+        return {**listing, "rooms": [*listing["rooms"], *extra(box)]}

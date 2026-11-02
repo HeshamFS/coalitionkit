@@ -87,7 +87,7 @@ describe("Landing", () => {
     );
   });
 
-  it("joins from a pasted link and explains a short code", async () => {
+  it("joins from a pasted link and refuses what is not a code", async () => {
     hostAnswers({ rooms: [], examples: [] });
     const onJoin = vi.fn();
     render(<Landing onOpen={() => {}} onJoin={onJoin} />);
@@ -95,7 +95,7 @@ describe("Landing", () => {
     await userEvent.type(box, "B12-7KQ");
     await userEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(onJoin).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert").textContent).toMatch(/Paste your invitation link/);
+    expect(screen.getByRole("alert").textContent).toMatch(/room code or an invitation link/);
     await userEvent.clear(box);
     await userEvent.type(box, `http://127.0.0.1/join#${SECRET}`);
     await userEvent.click(screen.getByRole("button", { name: "Join" }));
@@ -129,9 +129,7 @@ describe("the first route", () => {
     await userEvent.type(screen.getByLabelText("What should get done?"), "Do the thing");
     await userEvent.click(screen.getByRole("button", { name: "Set the goal" }));
     expect(location.pathname).toBe("/open");
-    expect((screen.getByLabelText("What should get done?") as HTMLInputElement).value).toBe(
-      "Do the thing",
-    );
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Do the thing");
     history.back();
     expect(await screen.findByRole("heading", { level: 1, name: /What needs doing/ })).toBeTruthy();
   });

@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { ConfirmRoute, confirmCode } from "./ConfirmRoute";
 import { clearToken, readConfig, scrubAddress } from "./feed/config";
 import { FeedProvider } from "./feed/useFeed";
+import { Door } from "./forming/Door";
+import { Forming } from "./forming/Forming";
 import { Gallery } from "./gallery/Gallery";
-import { Genesis } from "./genesis/Genesis";
 import { Join } from "./genesis/Join";
 import { clearOwner } from "./genesis/owner";
 import { Landing } from "./landing/Landing";
@@ -59,7 +60,7 @@ export function App() {
   if (!config) {
     if (code || path.startsWith("/signin") || notice)
       return <SignIn notice={notice} onDone={() => (code ? setConfig(readConfig()) : enter())} />;
-    if (path.startsWith("/open")) return <Genesis onEnter={enter} initialGoal={goal} />;
+    if (path.startsWith("/open")) return <Forming onEnter={enter} initialGoal={goal} />;
     return (
       <Landing
         onOpen={(sentence) => {
@@ -71,6 +72,7 @@ export function App() {
       />
     );
   }
+  if (path.startsWith("/door")) return <Door token={config.token} onEnter={enter} />;
   return (
     <FeedProvider
       config={config}

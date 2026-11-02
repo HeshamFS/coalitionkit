@@ -84,17 +84,21 @@ export function FairnessMeter({ p }: Props) {
               className="f06-load-fill"
               style={{ width: `${Math.max(0, Math.min(100, num(r.share)))}%` }}
             />
-            <div className="f06-load-cap" style={{ left: `${num(p.cap, 100)}%` }} />
+            {p.cap !== undefined && (
+              <div className="f06-load-cap" style={{ left: `${num(p.cap, 100)}%` }} />
+            )}
           </div>
           {num(r.share) > num(p.cap, 100) && (
             <span className="small">Over cap: {str(r.rule) || "charter load rule"}</span>
           )}
         </div>
       ))}
-      <div className="row small">
-        <i className="f06-key-cap" />
-        cap {str(p.cap)} %{data[0]?.rule ? ` (${str(data[0].rule)})` : " (charter)"}
-      </div>
+      {p.cap !== undefined && (
+        <div className="row small">
+          <i className="f06-key-cap" />
+          cap {str(p.cap)} %{data[0]?.rule ? ` (${str(data[0].rule)})` : " (charter)"}
+        </div>
+      )}
     </Frame>
   );
 }

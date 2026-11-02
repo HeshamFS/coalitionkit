@@ -14,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from coalitionkit_models import ModelGateway
 
 from .adapter import Document
+from .genesis_compose import (
+    CardChoice,
+    Composition,
+    GraphChoice,
+    compose_draft,
+)
 from .packs import PackRef, Suggestion
 
 
@@ -33,6 +39,7 @@ class Role(BaseModel):
 
 
 class Draft(Goal):
+    place: str | None = None
     roles: list[Role] = Field(min_length=1)
     needs: list[str]
     deadline: datetime | None
@@ -54,21 +61,28 @@ class Draft(Goal):
         return self
 
 
+# Model spend on drafts is metered here, since no coalition exists yet.
+DRAFT_METER = "genesis-draft"
 # How long Genesis waits for the model's draft before answering with the reader's own.
 MODEL_DRAFT_BUDGET_S = 10
 
 
 class Reading(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     span: tuple[int, int]
-    kind: Literal["role", "need", "deadline", "count"]
+    kind: Literal["role", "need", "deadline", "count", "place"]
 
 
 class ModelDraft(BaseModel):
     """What the model is asked for: closed objects only, so a strict JSON schema accepts it."""
 
+    model_config = ConfigDict(extra="forbid")
     draft: Draft
     source: Literal["reader", "model"]
     reading: list[Reading]
+    cards: list[CardChoice | GraphChoice] = Field(
+        default_factory=list[CardChoice | GraphChoice], max_length=6
+    )
 
     @model_validator(mode="after")
     def valid_spans(self) -> Self:
@@ -78,9 +92,16 @@ class ModelDraft(BaseModel):
         return self
 
 
-class DraftResponse(ModelDraft):
+class DraftResponse(BaseModel):
     """The draft as the host answers it, with the pack suggestion the host adds itself."""
 
+    draft: Draft
+    source: Literal["reader", "model"]
+    reading: list[Reading]
+    composition: Composition = Field(default_factory=Composition)
+    model_cards: list[CardChoice | GraphChoice] = Field(
+        default_factory=list[CardChoice | GraphChoice], exclude=True
+    )
     suggested: Suggestion | None = None
     vocabulary: Document = Field(default_factory=dict)
 
@@ -120,6 +141,21 @@ DEADLINE = re.compile(
     rf"|in ({NUMBER}) (days?|hours?))\b",
     re.I,
 )
+# A place is a name after a preposition: capitalised words ("Hall 3"), or a name with a digit in it,
+# perhaps after a plain noun ("door B12").
+NAMED = r"(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]+"
+PLACE = re.compile(
+    r"\b(?i:at|in|near|to|from)\s+"
+    rf"((?:[a-z]+\s+(?={NAMED}))?(?:[A-Z][\w'-]*|{NAMED})"
+    rf"(?:\s+(?:[A-Z][\w'-]*|{NAMED}|\d+))*)"
+)
+
+
+def read_place(goal: str) -> tuple[str | None, list[Reading]]:
+    for match in PLACE.finditer(goal):
+        if match[1].lower().split()[0] not in {*WEEKDAYS, *WORDS, "today", "tomorrow", "tonight"}:
+            return match[1], [Reading(span=match.span(1), kind="place")]
+    return None, []
 
 
 def number(value: str) -> int:
@@ -132,7 +168,7 @@ def read_goal(
     goal = Goal(goal=goal).goal
     local = timezone(timedelta(minutes=utc_offset_minutes or 0))
     now = (now or datetime.now(UTC)).astimezone(local)
-    spans: list[Reading] = []
+    place, spans = read_place(goal)
     deadline = None
     match = DEADLINE.search(goal)
     if match:
@@ -195,9 +231,10 @@ def read_goal(
     if need:
         needs.append(need[1].strip())
         spans.append(Reading(span=need.span(1), kind="need"))
-    return DraftResponse(
+    result = DraftResponse(
         draft=Draft(
             goal=goal,
+            place=place,
             roles=list(roles.values()) or [Role(id="member", label="member", count=1)],
             needs=needs,
             deadline=deadline,
@@ -205,11 +242,28 @@ def read_goal(
         source="reader",
         reading=spans,
     )
+    result.composition = compose_draft(result)
+    return result
 
 
 def with_reader_gaps(result: DraftResponse, reader: DraftResponse) -> DraftResponse:
-    """Fill needs or a deadline the model left empty with what the reader found."""
+    """Fill what the model left empty or at its default with what the reader found."""
     kinds: set[str] = set()
+    # One default seat from the model never beats seats the sentence counted.
+    alone = sum(role.count for role in result.draft.roles) <= 1
+    if alone and sum(role.count for role in reader.draft.roles) > 1:
+        result.draft.roles = reader.draft.roles
+        kinds.update({"role", "count"})
+    # A need said twice, once inside a longer form of itself, is one need.
+    needs = result.draft.needs
+    result.draft.needs = [
+        need
+        for i, need in enumerate(needs)
+        if need not in needs[:i] and not any(need != o and need in o for o in needs)
+    ]
+    if result.draft.place is None and reader.draft.place is not None:
+        result.draft.place = reader.draft.place
+        kinds.add("place")
     if not result.draft.needs and reader.draft.needs:
         result.draft.needs = list(reader.draft.needs)
         kinds.add("need")
@@ -243,19 +297,31 @@ async def draft_goal(
                         f"{local_now.isoformat()}. "
                         "List each thing the goal asks to get done as a need, in the goal's "
                         "words. Default role member, count 1. "
-                        "Use deciders all, pack null, source model. Never invent a deadline.",
+                        "Use deciders all, pack null, source model. Never invent a deadline. "
+                        "Place is the exact place name in the goal, or null. "
+                        "Choose at most six cards from the closed kinds. Each word is an exact "
+                        "goal substring, or null if unknown. Graph steps are ordered exact "
+                        "substrings of its word. Use map for a place, seats for roles, deadline "
+                        "for a deadline, checklist for needs, week for weekdays, fairness for "
+                        "fairness, graph for ordered steps, availability for availability, cost "
+                        "for costs and route for a route. Never invent facts or measurements.",
                     },
                     {"role": "user", "content": fallback.draft.goal},
                 ],
                 response_schema=ModelDraft,
                 reasoning_effort="minimal",  # a short extraction; the reader answers otherwise
+                coalition_id=DRAFT_METER,
             )
-            result = DraftResponse.model_validate(
-                ModelDraft.model_validate_json(reply.text).model_dump()
-            )
+            parsed = ModelDraft.model_validate_json(reply.text)
+            result = DraftResponse.model_validate(parsed.model_dump(exclude={"cards"}))
+            result.model_cards = parsed.cards
             if result.draft.goal != fallback.draft.goal:
                 raise ValueError("model changed goal")
             result.source = "model"
-            return with_reader_gaps(result, fallback)
+            if result.draft.place is not None and result.draft.place not in fallback.draft.goal:
+                raise ValueError("model invented place")
+            result = with_reader_gaps(result, fallback)
+            result.composition = compose_draft(result)
+            return result
     except Exception:
         return fallback

@@ -86,6 +86,11 @@ function StageShell(p: RoomShellProps) {
           {p.navigation}
           <span className="room-heading-live">{chip}</span>
           {p.onEnd && (
+            <a className="btn btn-sm btn-ghost" href="/door">
+              The Door
+            </a>
+          )}
+          {p.onEnd && (
             <button type="button" className="btn btn-sm btn-ghost" onClick={p.onEnd}>
               End coalition
             </button>

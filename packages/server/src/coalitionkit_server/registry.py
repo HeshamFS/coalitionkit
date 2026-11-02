@@ -136,6 +136,13 @@ class Registry(CredentialRegistry):
             )
         return {"id": identifier, "kind": kind, "link": self.base + "/join#" + secret}
 
+    def invitation_coalition(self, token: str) -> str | None:
+        with self.store.transaction("") as tx:
+            row = tx.execute(
+                "SELECT coalition FROM server_invites WHERE digest = ?", (digest(token),)
+            ).fetchone()
+        return row[0] if row else None
+
     def revoke_invitation(self, coalition: str, identifier: str) -> None:
         with self.lock, self.store.transaction(coalition) as tx:
             tx.execute(

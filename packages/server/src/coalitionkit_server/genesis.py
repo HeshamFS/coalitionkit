@@ -29,6 +29,8 @@ from coalitionkit_runtime import Acknowledgement
 from coalitionkit_runtime.lifecycle import State
 
 from .adapter import Document
+from .door import START_PER_MINUTE, DoorStore, Limiter, caller, erase_door, mount_door
+from .genesis_compose import compose_draft, composition_catalog
 from .genesis_draft import (
     NUMBER,
     Draft,
@@ -76,9 +78,14 @@ async def enroll_member(server: Server, redeemed: Document, role: str = "member"
         raise ValueError(f"join refused for {participant}: {reply['error']['code']}")
 
 
+class DraftAsk(Goal):
+    accept_suggestion: bool = False
+
+
 class Start(BaseModel):
     draft: Draft
     owner_name: str | None = Field(default=None, min_length=1, max_length=64)
+    visibility: Literal["code", "nearby"] = "code"
 
 
 class Invitations(BaseModel):
@@ -100,6 +107,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
         return
     registry = server.registry
     mutation = asyncio.Lock()
+    doors = DoorStore(server)
 
     def gate(request: Request) -> None:
         if (
@@ -156,9 +164,10 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
 
             admin(request, server.settings)
 
-    mount_rooms(app, server.settings.sample_rooms, gate, visitor)
+    mount_rooms(app, server.settings.sample_rooms, gate, visitor, doors.listed)
     mount_drafting(app, server, gate, chosen_pack)
-    mount_start(app, server, gate, chosen_pack, mutation)
+    mount_start(app, server, gate, chosen_pack, mutation, doors)
+    mount_door(app, server, doors, gate, owner, mutation, enroll_member)
 
     @app.post("/v1/invitations", dependencies=[Depends(gate)])
     async def issue(request: Request, body: Invitations) -> Document:
@@ -178,12 +187,19 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
     @app.post("/v1/invitations/accept", dependencies=[Depends(gate)])
     async def accept(body: Accept) -> Document:
         async with mutation:
+            # A full room says so before the invitation is spent, however it was granted.
+            door = doors.door_row("coalition", registry.invitation_coalition(body.invitation) or "")
+            if door and doors.choose_role(door, None) is None:
+                raise HTTPException(409, "room is full")
             try:
                 redeemed = registry.redeem(body.invitation, server.ports, None, None)
                 roles = server.hosts[redeemed["coalition_id"]].state.charter["roles"]
-                await enroll_member(server, redeemed, roles[0]["id"])
+                # A person let in from the map takes a seat that is free, not always the first.
+                role = (doors.choose_role(door, None) if door else None) or roles[0]["id"]
+                await enroll_member(server, redeemed, role)
             except ValueError, KeyError:
                 raise HTTPException(400, "invitation refused") from None
+            doors.arrive(redeemed["coalition_id"], redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
                 "host_key": public_key_to_jwk(server.key.public_key(), "host"),
@@ -202,6 +218,8 @@ def mount_drafting(
     gate: Callable[[Request], None],
     chosen_pack: Callable[[PackRef], Pack],
 ) -> None:
+    catalog = composition_catalog(server.settings.catalog_file)
+
     @app.get("/v1/packs", dependencies=[Depends(gate)])
     async def packs(request: Request) -> list[Document]:
         if server.settings.genesis == "admin":
@@ -211,15 +229,20 @@ def mount_drafting(
         return [public_pack(pack) for pack in server.packs.values()]
 
     @app.post("/v1/genesis/draft", dependencies=[Depends(gate)])
-    async def draft(request: Request, body: Goal) -> DraftResponse:
+    async def draft(request: Request, body: DraftAsk) -> DraftResponse:
         if server.settings.genesis == "admin":
             from .app import admin
 
             admin(request, server.settings)
-        pack = chosen_pack(body.pack) if body.pack else None
+        suggested = suggest_pack(body.goal, server.packs)
+        # Reading with the suggestion on the first go saves a second model call for the same words.
+        ref = body.pack
+        if ref is None and body.accept_suggestion and suggested:
+            ref = PackRef(name=suggested.name, version=suggested.version)
+        pack = chosen_pack(ref) if ref else None
         result = await draft_goal(body.goal, server.gateway, body.utc_offset_minutes)
-        result.draft.pack = body.pack
-        result.suggested = suggest_pack(body.goal, server.packs)
+        result.draft.pack = ref
+        result.suggested = suggested
         result.vocabulary = {}
         if pack:
             result.vocabulary = public_pack(pack)["vocabulary"]
@@ -244,6 +267,7 @@ def mount_drafting(
                         ]
                     )
             result.draft.roles = roles
+        result.composition = compose_draft(result, catalog)
         return result
 
 
@@ -253,29 +277,43 @@ def mount_start(
     gate: Callable[[Request], None],
     chosen_pack: Callable[[PackRef], Pack],
     mutation: asyncio.Lock,
+    doors: DoorStore,
 ) -> None:
     registry = server.registry
+    starts = Limiter(START_PER_MINUTE)
 
     @app.post("/v1/genesis/start", dependencies=[Depends(gate)])
     async def start(request: Request, body: Start) -> Document:
-        # Start authentication always requires a single-use code, including admin deployments.
+        # Admin deployments always need a single-use code. The local gate already holds the
+        # caller to this machine, so there the code is optional; one that is sent must be valid.
         value = request.headers.get("authorization", "")
-        if not value.startswith("Start "):
+        local = server.settings.genesis == "local"
+        if local and not starts.allow(caller(request)):
+            raise HTTPException(429, "too many starts")
+        now = datetime.now(UTC)
+        if body.draft.deadline is not None and body.draft.deadline <= now:
+            raise HTTPException(422, "that deadline has passed")
+        # The place goes public on the map, so it may only be words the opener wrote in the goal.
+        if body.draft.place and (
+            len(body.draft.place) > 120 or body.draft.place not in body.draft.goal
+        ):
+            body.draft.place = None
+        coded = bool(value) or not local
+        if coded and not value.startswith("Start "):
             raise HTTPException(401, "start code required")
         if body.draft.pack:
             pack = chosen_pack(body.draft.pack)
             if any(role.id not in pack.manifest.roles for role in body.draft.roles):
                 raise HTTPException(422, "draft role is not a pack role")
         async with mutation:
-            if not registry.consume_start(value[6:]):
+            if coded and not registry.consume_start(value[6:]):
                 raise HTTPException(401, "invalid start code")
+            closes = body.draft.deadline or datetime.now(UTC) + timedelta(days=7)
             charter: Document = {
                 "goal": body.draft.goal,
                 "roles": [{"id": r.id} for r in body.draft.roles],
                 "rules": [],
-                "deadline": (
-                    body.draft.deadline or datetime.now(UTC) + timedelta(days=7)
-                ).isoformat(),
+                "deadline": closes.isoformat(),
                 "deciders": [f"p{i}" for i in range(1, sum(r.count for r in body.draft.roles) + 1)],
             }
             if body.draft.pack:
@@ -304,8 +342,18 @@ def mount_start(
                         json.dumps(body.draft.needs),
                     ),
                 )
+            doors.open(
+                created["coalition_id"],
+                redeemed["participant"],
+                [r.model_dump() for r in body.draft.roles],
+                body.visibility,
+                body.draft.goal,
+                body.draft.place,
+                closes,
+            )
             server.gardener.start(created["coalition_id"])
             return {
+                "door": doors.view(created["coalition_id"]),
                 "coalition_id": created["coalition_id"],
                 "owner": {"participant": redeemed["participant"], "token": redeemed["token"]},
                 # The key members pin at join; the browser verifies the log against it.
@@ -383,7 +431,7 @@ def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document 
                     )
             # Each deletion and its progress marker commit together. Retried cleanup cannot
             # lose counts or require private hosted keys that have already been erased.
-            for step in ("vaults_erased", "tokens_revoked", "invitations_revoked"):
+            for step in ("vaults_erased", "tokens_revoked", "invitations_revoked", "door_erased"):
                 if step in done:
                     continue
                 with server.store.transaction(coalition) as tx:
@@ -398,6 +446,8 @@ def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document 
                             "DELETE FROM server_credentials WHERE coalition = ? RETURNING digest",
                             (coalition,),
                         ).fetchall()
+                    elif step == "door_erased":
+                        rows = [None] * erase_door(tx, coalition)
                     else:
                         rows = tx.execute(
                             "DELETE FROM server_invites WHERE coalition = ? RETURNING digest",
