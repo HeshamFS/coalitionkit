@@ -36,6 +36,16 @@ describe("theatreFrom", () => {
     expect(t.gardener.doing).toBe("drafting a plan");
     expect(t.steward[0]?.policy).toBe("no-contact-before-consent");
   });
+  it("shows a pack policy the host enforced, with its name", () => {
+    const refusals = [
+      { type: "coalition.offer", code: "pack_violation", policy: "daily-no-contact", at: "t" },
+      { type: "coalition.offer", code: "schema_invalid", at: "t" },
+    ];
+    const p = theatreFrom({ ...momentsFixture, refusals });
+    expect(p.steward.map((s) => [s.policy, s.summary])).toEqual([
+      ["daily-no-contact", "blocked your agent's offer"],
+    ]);
+  });
   it("invents nothing from an empty state", () => {
     const e = theatreFrom(null);
     expect(e.agents).toEqual([]);

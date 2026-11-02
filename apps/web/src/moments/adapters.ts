@@ -101,7 +101,8 @@ export function theatreFrom(state: ViewerState | null): TheatreProps {
   // The host gives each viewer only their own agent's refusals (sender-only `refusals`).
   const steward: StewardBubble[] = (Array.isArray(state?.refusals) ? state.refusals : [])
     .map(record)
-    .filter((s) => text(s.code) === "steward_blocked")
+    // The Steward's own block, or a pack policy the host enforced; both name the policy.
+    .filter((s) => ["steward_blocked", "pack_violation"].includes(text(s.code)))
     .map((s, i) => ({
       key: `${text(s.at) || "r"}-${i}`,
       policy: text(s.policy) || "policy not named",

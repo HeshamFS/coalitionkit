@@ -138,9 +138,11 @@ class SurfaceHub:
 
     def refused(self, viewer: str, kind: str, error: Document) -> None:
         """Keep only safe refusal metadata, never the refused payload or error detail."""
-        if error.get("code") != "steward_blocked":
+        # The Steward's own block, or a pack policy the host enforced; both name a policy.
+        code = error.get("code")
+        if code not in {"steward_blocked", "pack_violation"}:
             return
-        item: Document = {"type": kind, "code": "steward_blocked", "at": self.host.clock()}
+        item: Document = {"type": kind, "code": code, "at": self.host.clock()}
         policy = error.get("detail", {}).get("policy_id")
         if isinstance(policy, str):
             item["policy"] = policy

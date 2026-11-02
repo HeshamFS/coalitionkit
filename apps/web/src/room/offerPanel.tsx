@@ -40,6 +40,8 @@ export function openNeeds(state: ViewerState | null): { id: string; label: strin
 function explain(error: unknown): string {
   if (error instanceof ActionError) {
     if (error.status === 409) return "Your own agent sends offers for you, outside this page.";
+    if (error.detail === "pack_violation" || error.detail === "steward_blocked")
+      return "A policy of this coalition held this offer back. Agents shows which one.";
     if (error.status === 422) return "The host refused these values. Check the fields.";
     return `The host refused (${error.status}).`;
   }
