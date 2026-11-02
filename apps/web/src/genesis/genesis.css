@@ -480,7 +480,7 @@
     padding: 20px 16px;
   }
   .gn-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .gn-centre {
     order: -1;

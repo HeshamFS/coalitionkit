@@ -237,6 +237,8 @@ export function Genesis({
             invitations={invites}
             busy={inviting}
             mcpUrl={mcpUrl}
+            goal={draft?.goal ?? ""}
+            seats={draft?.roles.reduce((sum, role) => sum + (role.count ?? 1), 0) ?? 0}
             onInvite={addInvite}
           />
         </div>

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // The first screen for anyone without a session: one sentence box over a live map of goals, with
 // the explanation below. Rooms come from the host; a room marked as a sample always says so.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "../genesis/Composer";
 import { takeStartCode } from "../genesis/fragment";
 import { chooseTheme, storedTheme, type Theme } from "../shell/theme";
 import { DotMap } from "./DotMap";
 import { Logo, RoomMark } from "./marks";
+import { QrScanner } from "./QrScanner";
 import { invitationIn, listRooms, NO_ROOMS, type Room, type RoomList, spots } from "./rooms";
 import "../genesis/genesis.css";
 import "./landing.css";
@@ -50,6 +51,46 @@ function CodeBox({ onJoin }: { onJoin: (secret: string) => void }) {
         </p>
       )}
     </form>
+  );
+}
+
+function ScanButton({ onJoin }: { onJoin: (secret: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="ld-scan"
+        aria-label="Scan QR"
+        onClick={() => setOpen(true)}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M9 9h6v6H9z" fill="currentColor" />
+        </svg>
+        <span>Scan QR</span>
+      </button>
+      {open && (
+        <QrScanner
+          onJoin={(secret) => {
+            setOpen(false);
+            onJoin(secret);
+          }}
+          onClose={() => {
+            setOpen(false);
+            button.current?.focus();
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -165,6 +206,7 @@ export function Landing({
         </nav>
         <div className="ld-right">
           <CodeBox onJoin={onJoin} />
+          <ScanButton onJoin={onJoin} />
           <ThemeButton
             theme={theme}
             onChange={(t) => {

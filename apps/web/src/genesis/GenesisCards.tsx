@@ -2,6 +2,7 @@
 // The cards that germinate beside the table as the Gardener reads the goal (board: Genesis).
 // Every card is editable in place until the coalition starts (story J-02).
 import { useState } from "react";
+import { QrCard } from "../door/QrCard";
 import { capital, makeWord, type WordFn } from "../feed/vocabulary";
 import { Assemble } from "../ui/Assemble";
 import type { Draft, Invitation, PackInfo, PackRef, Role, Suggestion } from "./api";
@@ -281,15 +282,20 @@ export function InviteCard({
   invitations,
   busy,
   mcpUrl,
+  goal,
+  seats,
   onInvite,
 }: {
   started: boolean;
   invitations: Invitation[];
   busy: boolean;
   mcpUrl: string;
+  goal: string;
+  seats: number;
   onInvite: (kind: Invitation["kind"]) => void;
 }) {
   const [copied, setCopied] = useState("");
+  const [held, setHeld] = useState<Invitation | null>(null);
   const copy = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -340,10 +346,16 @@ export function InviteCard({
               <button type="button" className="gn-chip" onClick={() => copy(inv.link, inv.id)}>
                 {copied === inv.id ? "Copied" : "Copy"}
               </button>
+              {inv.kind === "member" && (
+                <button type="button" className="gn-chip" onClick={() => setHeld(inv)}>
+                  QR
+                </button>
+              )}
             </li>
           ))}
         </ul>
       </Assemble>
+      {held && <QrCard link={held.link} goal={goal} seats={seats} onClose={() => setHeld(null)} />}
     </section>
   );
 }

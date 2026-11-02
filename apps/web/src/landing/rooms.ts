@@ -52,3 +52,19 @@ export function invitationIn(text: string): string | null {
   const secret = value.includes("#") ? value.slice(value.lastIndexOf("#") + 1) : value;
   return /^[A-Za-z0-9_-]{16,256}$/.test(secret) ? secret : null;
 }
+
+export type Scanned = { secret: string } | { problem: "elsewhere" | "not-invitation" };
+
+/** What a scanned QR holds. A link to another address is refused and never followed. */
+export function scannedInvitation(text: string, origin: string): Scanned {
+  const value = text.trim();
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) {
+    try {
+      if (new URL(value).origin !== origin) return { problem: "elsewhere" };
+    } catch {
+      return { problem: "not-invitation" };
+    }
+  }
+  const secret = invitationIn(value);
+  return secret ? { secret } : { problem: "not-invitation" };
+}
