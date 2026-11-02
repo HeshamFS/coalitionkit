@@ -3,15 +3,18 @@
 // from the host; the page asks again every two seconds, so a new seat shows within that time.
 import { useEffect, useState } from "react";
 import { RoomQr } from "../door/QrCard";
+import { clearToken } from "../feed/config";
 import { capital } from "../feed/vocabulary";
 import {
   type AgentHome,
   answerKnock,
   type DoorState,
+  HostError,
   invite,
   readDoor,
   stopDoor,
 } from "../genesis/api";
+import { clearOwner } from "../genesis/owner";
 import { PublicNav } from "../landing/PublicNav";
 import "../genesis/genesis.css";
 import "../door/door.css";
@@ -77,6 +80,7 @@ export function Door({
   const [hold, setHold] = useState(false);
   const [note, setNote] = useState("");
   const [lost, setLost] = useState(false);
+  const [gone, setGone] = useState(false);
   useEffect(() => {
     let live = true;
     const ask = async () => {
@@ -86,12 +90,22 @@ export function Door({
           setDoor(next);
           setLost(false);
         }
-      } catch {
-        if (live) setLost(true);
+      } catch (e) {
+        if (!live) return;
+        setLost(true);
+        if (e instanceof HostError && [401, 403, 404].includes(e.status)) {
+          // Asking again won't help: this token no longer holds a Door.
+          window.clearInterval(timer);
+          setGone(true);
+          if (e.status === 401) {
+            clearToken();
+            clearOwner();
+          }
+        }
       }
     };
-    void ask();
     const timer = window.setInterval(ask, ASK_EVERY_MS);
+    void ask();
     return () => {
       live = false;
       window.clearInterval(timer);
@@ -105,7 +119,35 @@ export function Door({
       setNote("This browser wouldn't copy it.");
     }
   };
+  const answer = async (id: string, reply: "yes" | "no") => {
+    try {
+      setDoor(await answerKnock(token, id, reply));
+    } catch (e) {
+      setNote(
+        e instanceof HostError && e.status === 409
+          ? "The room is full, so nobody more can come in."
+          : "That knock has gone.",
+      );
+    }
+  };
   const nav = <PublicNav onJoin={() => {}} ways={false} />;
+  if (gone) {
+    return (
+      <div className="ld fm-door-page">
+        {nav}
+        <main className="fm-door">
+          <p className="ld-sub" role="status">
+            This Door has closed, or isn't yours to hold.
+          </p>
+          <div className="fm-door-actions">
+            <a className="fm-btn" data-solid href="/">
+              Back
+            </a>
+          </div>
+        </main>
+      </div>
+    );
+  }
   if (!door) {
     return (
       <div className="ld fm-door-page">
@@ -227,18 +269,14 @@ export function Door({
                   </ul>
                   {door.knocks.slice(0, 1).map((k) => (
                     <div key={k.id} className="fm-knock">
-                      <span>Someone on the map knocked.</span>
-                      <button
-                        type="button"
-                        data-yes
-                        onClick={async () => setDoor(await answerKnock(token, k.id, "yes"))}
-                      >
+                      <span>
+                        Someone on the map knocked.
+                        {door.knocks.length > 1 ? ` ${door.knocks.length - 1} more waiting.` : ""}
+                      </span>
+                      <button type="button" data-yes onClick={() => answer(k.id, "yes")}>
                         Let in
                       </button>
-                      <button
-                        type="button"
-                        onClick={async () => setDoor(await answerKnock(token, k.id, "no"))}
-                      >
+                      <button type="button" onClick={() => answer(k.id, "no")}>
                         Say no
                       </button>
                     </div>

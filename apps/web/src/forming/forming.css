@@ -767,20 +767,6 @@
   font-size: 13px;
   color: var(--ink-2);
 }
-.fm-join label {
-  font-size: 14px;
-  color: var(--ink-2);
-}
-.fm-join input {
-  height: var(--ctl);
-  box-sizing: border-box;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-}
 .fm-join .fm-error {
   margin: 0;
   max-width: none;

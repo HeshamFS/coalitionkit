@@ -45,6 +45,21 @@ function refusal(e: unknown): string {
   return "The host could not be reached.";
 }
 
+const readKey = (goal: string, pack: PackRef | null | undefined) =>
+  `${goal}|${pack ? `${pack.name}@${pack.version}` : ""}`;
+
+/** An old start code in this tab must not block a host that needs none: try once without it. */
+async function openWithoutOldCode(draft: Draft, visibility: Visibility) {
+  const code = takeStartCode();
+  try {
+    return await openRoom(draft, visibility, code);
+  } catch (e) {
+    if (!code || !(e instanceof HostError) || e.status !== 401) throw e;
+    forgetStartCode();
+    return await openRoom(draft, visibility);
+  }
+}
+
 function closesLine(draft: Draft): string {
   if (!draft.deadline) return "closes in a week";
   const when = new Date(draft.deadline);
@@ -74,6 +89,8 @@ export function Forming({
   /** Undefined until the writer chooses; then the host's suggestion leads. */
   const [picked, setPicked] = useState<PackRef | null | undefined>(undefined);
   const asked = useRef<AbortController | null>(null);
+  /** What the shown draft was read from, so choosing what it already used reads nothing again. */
+  const read = useRef("");
 
   useEffect(() => {
     const ctl = new AbortController();
@@ -86,7 +103,7 @@ export function Forming({
   }, []);
 
   useEffect(() => {
-    if (!goal) return;
+    if (!goal || read.current === readKey(goal, picked)) return;
     asked.current?.abort();
     const ctl = new AbortController();
     asked.current = ctl;
@@ -94,17 +111,18 @@ export function Forming({
     setReply(null);
     setDraft(null);
     setStage("read");
-    draftGoal(goal, ctl.signal, undefined, picked ?? null)
+    // The first reading takes the host's suggested pack in one go; the writer can still change it.
+    draftGoal(goal, ctl.signal, undefined, picked ?? null, picked === undefined)
       .then((r) => {
         if (ctl.signal.aborted) return;
         setReply(r);
         setDraft(r.draft);
         setVisibility(r.draft.place ? "nearby" : "code");
         setError("");
-        const hint = r.suggested;
-        if (picked === undefined && hint) {
-          setPicked({ name: hint.name, version: hint.version });
-        }
+        setReading(false);
+        const used = picked === undefined ? (r.draft.pack ?? null) : picked;
+        read.current = readKey(goal, used);
+        if (picked === undefined) setPicked(used);
       })
       .catch((e) => {
         if (!ctl.signal.aborted) setError(refusal(e));
@@ -119,7 +137,7 @@ export function Forming({
     if (!draft) return;
     setStage("opening");
     try {
-      const started = await openRoom({ ...draft, goal }, visibility, takeStartCode());
+      const started = await openWithoutOldCode({ ...draft, goal }, visibility);
       forgetStartCode();
       saveToken(started.owner.token);
       markOwner(started.coalition_id);

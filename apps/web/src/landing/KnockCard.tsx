@@ -2,17 +2,38 @@
 // A real room on the map: you knock, and the person who opened it answers. A yes hands this browser
 // a one-use invitation; a no is told plainly, and only to you.
 import { useEffect, useState } from "react";
-import { knockAt, readKnock } from "../genesis/api";
+import { HostError, knockAt, readKnock } from "../genesis/api";
 import type { Room } from "./rooms";
 import "../forming/forming.css";
 
 type State = "idle" | "waiting" | "no" | "failed";
+type Ticket = { knock: string; secret: string };
 
 const ASK_EVERY_MS = 2000;
 
+/** The ticket survives leaving this pin or reloading, so a yes given later still arrives. */
+function stored(room: string): Ticket | null {
+  try {
+    const raw = globalThis.sessionStorage?.getItem(`ck.knock.${room}`);
+    return raw ? (JSON.parse(raw) as Ticket) : null;
+  } catch {
+    return null;
+  }
+}
+
+function keep(room: string, ticket: Ticket | null) {
+  try {
+    const key = `ck.knock.${room}`;
+    if (ticket) globalThis.sessionStorage?.setItem(key, JSON.stringify(ticket));
+    else globalThis.sessionStorage?.removeItem(key);
+  } catch {
+    // Without storage the knock lasts as long as this card.
+  }
+}
+
 export function KnockCard({ room, onJoin }: { room: Room; onJoin: (secret: string) => void }) {
-  const [state, setState] = useState<State>("idle");
-  const [ticket, setTicket] = useState<{ knock: string; secret: string } | null>(null);
+  const [ticket, setTicket] = useState<Ticket | null>(() => stored(room.id));
+  const [state, setState] = useState<State>(() => (stored(room.id) ? "waiting" : "idle"));
   useEffect(() => {
     if (!ticket) return;
     const timer = window.setInterval(async () => {
@@ -20,14 +41,20 @@ export function KnockCard({ room, onJoin }: { room: Room; onJoin: (secret: strin
         const reply = await readKnock(room.id, ticket.knock, ticket.secret);
         if (reply.state === "yes" && reply.invitation) {
           window.clearInterval(timer);
+          keep(room.id, null);
           onJoin(reply.invitation);
         } else if (reply.state === "no") {
           window.clearInterval(timer);
+          keep(room.id, null);
           setState("no");
         }
-      } catch {
-        window.clearInterval(timer);
-        setState("failed");
+      } catch (e) {
+        // A dropped connection or a busy host passes; only a refusal ends the wait.
+        if (e instanceof HostError && [403, 404].includes(e.status)) {
+          window.clearInterval(timer);
+          keep(room.id, null);
+          setState("failed");
+        }
       }
     }, ASK_EVERY_MS);
     return () => window.clearInterval(timer);
@@ -45,7 +72,9 @@ export function KnockCard({ room, onJoin }: { room: Room; onJoin: (secret: strin
             className="ld-knock-go"
             onClick={async () => {
               try {
-                setTicket(await knockAt(room.id));
+                const made = await knockAt(room.id);
+                keep(room.id, made);
+                setTicket(made);
                 setState("waiting");
               } catch {
                 setState("failed");

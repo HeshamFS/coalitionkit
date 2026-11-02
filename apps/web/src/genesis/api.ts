@@ -152,12 +152,15 @@ export function draftGoal(
   signal?: AbortSignal,
   fetchFn = defaultFetch,
   pack: PackRef | null = null,
+  acceptSuggestion = false,
 ) {
   // Day words ("tonight", "by Friday") are read in the writer's own time zone.
   const utc_offset_minutes = -new Date().getTimezoneOffset();
   return post<DraftReply>(
     "/v1/genesis/draft",
-    pack ? { goal, utc_offset_minutes, pack } : { goal, utc_offset_minutes },
+    pack
+      ? { goal, utc_offset_minutes, pack }
+      : { goal, utc_offset_minutes, accept_suggestion: acceptSuggestion },
     undefined,
     fetchFn,
     signal,

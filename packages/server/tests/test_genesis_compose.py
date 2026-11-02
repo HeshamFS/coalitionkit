@@ -149,6 +149,16 @@ def test_graph_steps_read_in_order_without_internal_names() -> None:
     assert graph.props["edges"] == [{"from": "1", "to": "2"}]
 
 
+def test_two_joined_things_are_not_steps() -> None:
+    assert "DependencyGraph" not in components("Food and drinks for twelve of us by Friday")
+
+
+def test_cards_need_the_fact_behind_them() -> None:
+    result = read_goal("Do the thing")
+    result.model_cards = [CardChoice(kind="deadline", word=None), CardChoice(kind="map", word=None)]
+    assert {card.component for card in compose_draft(result).cards} == {"SeatRing"}
+
+
 @pytest.mark.live
 @pytest.mark.parametrize("goal", [PLACED, ORDERED, WEEKLY])
 async def test_live_model_composes_within_the_catalog(goal: str) -> None:

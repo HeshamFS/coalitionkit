@@ -93,12 +93,16 @@ def ordered_steps(goal: str) -> GraphChoice | None:
     verbs = r"(?:prepare|review|check|send|collect|share|write|read|plan|build|test|finish|approve)"
     clause = re.split(r"\s+(?:on|by)\s+(?=\w)|[.!?]", goal, maxsplit=1)[0]
     clause = re.sub(r"^.*?\b(?:need|needs|want|wants)\s+(?:to\s+)?", "", clause, flags=re.I)
-    opening = re.match(r"([A-Z]\w+) and ([a-z]\w+)\b", clause)
+    # Two joined words only count as steps when they act on something: "Sort and pack these".
+    opening = re.match(
+        r"([A-Z]\w+) and ([a-z]\w+) (?:these|those|this|that|the|all|every|each|my|our|your)\b",
+        clause,
+    )
     if re.search(r"\bthen\b", clause, re.I):
         parts = re.split(r"\s+(?:and\s+)?then\s+", clause, flags=re.I)
     elif opening:
         # An instruction opening on two joined words: "Do this and that ..."
-        clause, parts = opening[0], [opening[1], opening[2]]
+        clause, parts = f"{opening[1]} and {opening[2]}", [opening[1], opening[2]]
     else:
         match = re.search(rf"\b{verbs}\b.+?\s+and\s+{verbs}\b.*", clause, re.I)
         if not match:
@@ -254,6 +258,11 @@ def build_cards(
     seats = CardChoice(kind="seats", word=seats_word(result))
     for choice in [seats, *(c for c in choices if c.kind != "seats")]:
         if any(card.id == choice.kind for card in cards):
+            continue
+        # The model may choose these, but they say nothing without the fact behind them.
+        if (choice.kind == "deadline" and result.draft.deadline is None) or (
+            choice.kind == "map" and result.draft.place is None
+        ):
             continue
         if choice.word is not None and (not choice.word or choice.word not in result.draft.goal):
             raise ValueError("card word is not in goal")

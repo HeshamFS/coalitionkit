@@ -219,6 +219,62 @@ describe("the Door", () => {
   });
 });
 
+describe("when things go wrong", () => {
+  it("says so when a knock can't be answered, and keeps the Door", async () => {
+    host((url) =>
+      url.includes("/knocks/")
+        ? new Response("{}", { status: 409 })
+        : door({ knocks: [{ id: "k1", at: "t2" }] }),
+    );
+    render(<Door token="owner-token" first={door()} onEnter={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Let in" }));
+    expect(await screen.findByText(/The room is full/)).toBeTruthy();
+  });
+
+  it("offers a way out when the Door is gone", async () => {
+    host(() => new Response("{}", { status: 404 }));
+    render(<Door token="owner-token" first={door()} onEnter={() => {}} />);
+    expect(await screen.findByText(/This Door has closed/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back" }).getAttribute("href")).toBe("/");
+  });
+
+  it("opens without an old start code the host no longer knows", async () => {
+    sessionStorage.setItem("ck.start", "an-old-start-code-from-before");
+    const auth: (string | undefined)[] = [];
+    host((url, init) => {
+      if (url.includes("/v1/packs")) return [];
+      if (url.includes("/v1/genesis/draft")) return draftReply([seats]);
+      if (!url.includes("/v1/genesis/start")) return door();
+      const sent = (init?.headers as Record<string, string> | undefined)?.authorization;
+      auth.push(sent);
+      return sent
+        ? new Response("{}", { status: 401 })
+        : { coalition_id: "c1", owner: { participant: "p1", token: "t" }, door: door() };
+    });
+    render(<Forming onEnter={() => {}} initialGoal={GOAL} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Looks right" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open the room" }));
+    await screen.findByText("KT7-4QMZ");
+    expect(auth).toEqual(["Start an-old-start-code-from-before", undefined]);
+  });
+
+  it("reads once when the host applies its suggested pack", async () => {
+    const drafts: string[] = [];
+    host((url, init) => {
+      if (url.includes("/v1/packs")) {
+        return [{ name: "p", version: "1", label: "P", roles: {}, vocabulary: {} }];
+      }
+      drafts.push(String(init?.body));
+      return draftReply([seats], { pack: { name: "p", version: "1" } });
+    });
+    render(<Forming onEnter={() => {}} initialGoal={GOAL} />);
+    const chip = await screen.findByRole("button", { name: "P" });
+    await waitFor(() => expect(chip.getAttribute("aria-pressed")).toBe("true"));
+    expect(drafts).toHaveLength(1);
+    expect(JSON.parse(drafts[0] ?? "{}").accept_suggestion).toBe(true);
+  });
+});
+
 describe("arriving by code", () => {
   it("reads a spoken code in any case, with or without its dash", () => {
     expect(doorCodeIn("kt7-4qmz")).toBe("KT7-4QMZ");

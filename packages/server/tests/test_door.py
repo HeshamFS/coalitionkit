@@ -288,14 +288,14 @@ def test_knock_needs_a_listed_room(client: TestClient) -> None:
 def test_listed_room_shows_public_fields_only(client: TestClient) -> None:
     open_room(client)  # a code room never appears
     assert client.get("/v1/rooms").json()["rooms"] == []
-    room = open_room(client, visibility="nearby", place="the square")
+    room = open_room(client, visibility="nearby", place="a table")
     listed = client.get("/v1/rooms").json()["rooms"]
     assert len(listed) == 1
     entry = listed[0]
     assert set(entry) == ROOM_FIELDS
     assert (entry["goal"], entry["place"], entry["seats"], entry["filled"]) == (
         "Share a table",
-        "the square",
+        "a table",
         3,
         1,
     )
@@ -344,3 +344,46 @@ def test_dissolve_erases_door_knock_and_arrival_rows(client: TestClient) -> None
         ).status_code
         == 403
     )
+
+
+def test_a_full_room_refuses_an_invitation_before_spending_it(client: TestClient) -> None:
+    room = open_room(client, roles=[("member", 2)])
+    owner = owner_of(room)
+    spare = client.post(
+        "/v1/invitations", json={"kind": "member", "count": 2}, headers=owner
+    ).json()["invitations"]
+    secrets_held = [i["link"].split("#")[1] for i in spare]
+    first = client.post("/v1/invitations/accept", json={"invitation": secrets_held[0]})
+    assert first.status_code == 200
+    second = client.post("/v1/invitations/accept", json={"invitation": secrets_held[1]})
+    assert second.status_code == 409
+    door = client.get("/v1/coalition/door", headers=owner).json()
+    assert (door["seats"], door["filled"]) == (2, 2)
+
+
+def test_an_unanswered_knock_lapses(client: TestClient) -> None:
+    room = open_room(client, visibility="nearby")
+    listed = client.get("/v1/rooms").json()["rooms"][0]["id"]
+    ticket = client.post(f"/v1/rooms/{listed}/knock", json={}).json()
+    with server_for(client).store.transaction("") as tx:
+        tx.execute("UPDATE server_door_knocks SET at = '2000-01-01T00:00:00+00:00'")
+    owner = owner_of(room)
+    assert client.get("/v1/coalition/door", headers=owner).json()["knocks"] == []
+    answered = client.post(
+        f"/v1/coalition/door/knocks/{ticket['knock']}", json={"answer": "yes"}, headers=owner
+    )
+    assert answered.status_code == 404
+    seen = client.get(f"/v1/rooms/{listed}/knocks/{ticket['knock']}?secret={ticket['secret']}")
+    assert seen.json() == {"state": "no"}
+
+
+def test_a_room_cannot_open_already_closed(client: TestClient) -> None:
+    body = {"draft": draft(deadline="2000-01-01T00:00:00Z"), "visibility": "code"}
+    assert client.post("/v1/genesis/start", json=body).status_code == 422
+
+
+def test_only_words_from_the_goal_go_public_as_the_place(client: TestClient) -> None:
+    room = open_room(client, visibility="nearby", place="somewhere else entirely")
+    assert room["door"]["place"] is None
+    room = open_room(client, visibility="nearby", place="a table")
+    assert room["door"]["place"] == "a table"

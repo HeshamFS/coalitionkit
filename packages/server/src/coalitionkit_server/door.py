@@ -15,7 +15,7 @@ import secrets
 import time
 from collections import deque
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -40,6 +40,7 @@ JOIN_PER_CALLER = 10
 KNOCK_PER_CALLER = 5
 KNOCK_POLL_PER_CALLER = 60
 KNOCKS_OPEN_MAX = 20
+KNOCK_LIFETIME = timedelta(minutes=15)
 WINDOW_S = 60.0
 
 TABLES = (
@@ -97,6 +98,11 @@ def position(room: str, box: Box) -> tuple[float, float]:
     raw = hashlib.sha256(room.encode()).digest()
     u, v = (int.from_bytes(raw[i : i + 4], "big") / 2**32 for i in (0, 4))
     return round(box[0] + u * (box[1] - box[0]), 5), round(box[2] + v * (box[3] - box[2]), 5)
+
+
+def knocks_since() -> str:
+    """A knock nobody answered lapses, so it can neither hold the queue nor wait for ever."""
+    return (datetime.now(UTC) - KNOCK_LIFETIME).isoformat()
 
 
 def erase_door(tx: Any, coalition: str) -> int:
@@ -189,7 +195,7 @@ class DoorStore:
         }
         return found
 
-    def seated(self, door: Document) -> list[Document]:
+    def present(self, door: Document) -> list[tuple[str, str, str]]:
         """Arrivals newest first, only for people still in the room."""
         coalition = door["coalition"]
         with self.server.store.transaction(coalition) as tx:
@@ -199,10 +205,13 @@ class DoorStore:
                 (coalition,),
             ).fetchall()
         members = self.server.hosts[coalition].state.members
+        return [(p, r, a) for p, r, a in rows if p in members]
+
+    def seated(self, door: Document) -> list[Document]:
+        coalition = door["coalition"]
         return [
             {"participant": p, "role": r, "at": a, "home": self.home(coalition, p)}
-            for p, r, a in rows
-            if p in members
+            for p, r, a in self.present(door)
         ]
 
     def home(self, coalition: str, participant: str) -> str:
@@ -222,10 +231,10 @@ class DoorStore:
         return "hosted" if hosted and hosted[0] else "a2a"
 
     def seats(self, door: Document) -> tuple[int, int, dict[str, int]]:
-        arrivals = self.seated(door)
+        arrivals = self.present(door)
         used: dict[str, int] = {}
-        for arrival in arrivals:
-            used[arrival["role"]] = used.get(arrival["role"], 0) + 1
+        for _, role, _ in arrivals:
+            used[role] = used.get(role, 0) + 1
         return sum(r["count"] for r in door["roles"]), len(arrivals), used
 
     def is_open(self, door: Document) -> bool:
@@ -258,8 +267,8 @@ class DoorStore:
         with self.server.store.transaction(coalition) as tx:
             knocks = tx.execute(
                 "SELECT id, at FROM server_door_knocks WHERE coalition = ? AND state = 'waiting' "
-                "ORDER BY at DESC",
-                (coalition,),
+                "AND at > ? ORDER BY at DESC",
+                (coalition, knocks_since()),
             ).fetchall()
         return {
             "code": door["code"],
@@ -382,8 +391,8 @@ def mount_door(
             with server.store.transaction(coalition) as tx:
                 row = tx.execute(
                     "SELECT 1 FROM server_door_knocks WHERE id = ? AND coalition = ? "
-                    "AND state = 'waiting'",
-                    (knock, coalition),
+                    "AND state = 'waiting' AND at > ?",
+                    (knock, coalition, knocks_since()),
                 ).fetchone()
                 if not row:
                     raise HTTPException(404, "knock not found")
@@ -445,8 +454,8 @@ def mount_door(
             with server.store.transaction(coalition) as tx:
                 waiting = tx.execute(
                     "SELECT COUNT(*) FROM server_door_knocks WHERE coalition = ? "
-                    "AND state = 'waiting'",
-                    (coalition,),
+                    "AND state = 'waiting' AND at > ?",
+                    (coalition, knocks_since()),
                 ).fetchone()[0]
                 if waiting >= KNOCKS_OPEN_MAX:
                     raise HTTPException(429, "too many knocks")
@@ -466,7 +475,7 @@ def mount_door(
         async with mutation:
             with server.store.transaction(door["coalition"]) as tx:
                 row = tx.execute(
-                    "SELECT secret, state, invitation FROM server_door_knocks "
+                    "SELECT secret, state, invitation, at FROM server_door_knocks "
                     "WHERE id = ? AND coalition = ?",
                     (knock, door["coalition"]),
                 ).fetchone()
@@ -478,7 +487,8 @@ def mount_door(
                         "UPDATE server_door_knocks SET invitation = '' WHERE id = ?", (knock,)
                     )
                     return {"state": "yes", "invitation": row[2]}
-        return {"state": row[1]}
+        # Nobody answered in time: to the person knocking, that is a no.
+        return {"state": "no" if row[1] == "waiting" and row[3] <= knocks_since() else row[1]}
 
 
 __all__ = ["DoorStore", "Limiter", "caller", "erase_door", "mount_door"]

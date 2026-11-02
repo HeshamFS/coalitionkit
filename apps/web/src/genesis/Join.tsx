@@ -28,7 +28,6 @@ export function Join({ onJoined }: { onJoined: () => void }) {
   const code = doorCodeIn(invitation);
   const [card, setCard] = useState<DoorCard | null>(null);
   const [seat, setSeat] = useState("");
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(
     invitation ? "" : "This link has no invitation in it. Ask for a new link.",
@@ -46,8 +45,8 @@ export function Join({ onJoined }: { onJoined: () => void }) {
     setBusy(true);
     try {
       const joined = code
-        ? await joinByCode(code, name, seat)
-        : await acceptInvitation(invitation, name);
+        ? await joinByCode(code, "", seat)
+        : await acceptInvitation(invitation, "");
       saveToken(joined.token);
       pinAtJoin(joined.coalition_id, joined.host_key);
       onJoined();
@@ -124,16 +123,6 @@ export function Join({ onJoined }: { onJoined: () => void }) {
                 ))}
               </fieldset>
             )}
-            <label htmlFor="fm-name">
-              Your name, as others will see it after you say yes (optional)
-            </label>
-            <input
-              id="fm-name"
-              value={name}
-              maxLength={64}
-              autoComplete="given-name"
-              onChange={(e) => setName(e.target.value)}
-            />
             {error && (
               <p className="fm-error" role="alert">
                 {error}

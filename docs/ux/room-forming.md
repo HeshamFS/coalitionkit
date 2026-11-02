@@ -51,7 +51,13 @@ Rules:
 - Body adds `visibility: "code" | "nearby"` (default `"code"`). `draft.place` is stored.
 - Reply adds `door: Door`.
 
-`up` keeps printing its start line only if something still needs it; the page no longer does.
+A draft may ask for `accept_suggestion: true`, so the first reading uses the suggested pack without a
+second model call. A deadline already past is refused (422). A `place` that isn't words from the goal
+is dropped, because it goes public.
+
+`up` keeps printing its start line only if something still needs it; the page no longer does. Local mode
+trusts loopback, so a local host must never sit behind a tunnel or a proxy: that would open starts to
+anyone. A public host needs its own mode, which does not exist yet.
 
 ## 3. The Door
 
@@ -83,7 +89,8 @@ Door = {
 | `POST /v1/rooms/{id}/knock` | anyone through the gate | `{knock: id, secret}`, rate limited; 404 unless the room is listed |
 | `GET /v1/rooms/{id}/knocks/{knock}?secret=` | the knocker | `{state: "waiting" \| "yes" \| "no"}`, plus `invitation` once on yes (a one-use secret for `/join#`) |
 
-A join by code reuses `issue_invitation`, `redeem` and `enroll_member`. The opener's own seat counts as
+A knock nobody answers lapses after 15 minutes: it leaves the queue and reads as a no. An invitation
+for a full room answers 409 before it is spent. A join by code reuses `issue_invitation`, `redeem` and `enroll_member`. The opener's own seat counts as
 filled and appears in arrivals. Refused joins name no seat holder.
 
 ## 4. The map

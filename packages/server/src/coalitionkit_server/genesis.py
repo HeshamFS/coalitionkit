@@ -78,6 +78,10 @@ async def enroll_member(server: Server, redeemed: Document, role: str = "member"
         raise ValueError(f"join refused for {participant}: {reply['error']['code']}")
 
 
+class DraftAsk(Goal):
+    accept_suggestion: bool = False
+
+
 class Start(BaseModel):
     draft: Draft
     owner_name: str | None = Field(default=None, min_length=1, max_length=64)
@@ -183,10 +187,13 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
     @app.post("/v1/invitations/accept", dependencies=[Depends(gate)])
     async def accept(body: Accept) -> Document:
         async with mutation:
+            # A full room says so before the invitation is spent, however it was granted.
+            door = doors.door_row("coalition", registry.invitation_coalition(body.invitation) or "")
+            if door and doors.choose_role(door, None) is None:
+                raise HTTPException(409, "room is full")
             try:
                 redeemed = registry.redeem(body.invitation, server.ports, None, None)
                 roles = server.hosts[redeemed["coalition_id"]].state.charter["roles"]
-                door = doors.door_row("coalition", redeemed["coalition_id"])
                 # A person let in from the map takes a seat that is free, not always the first.
                 role = (doors.choose_role(door, None) if door else None) or roles[0]["id"]
                 await enroll_member(server, redeemed, role)
@@ -222,15 +229,20 @@ def mount_drafting(
         return [public_pack(pack) for pack in server.packs.values()]
 
     @app.post("/v1/genesis/draft", dependencies=[Depends(gate)])
-    async def draft(request: Request, body: Goal) -> DraftResponse:
+    async def draft(request: Request, body: DraftAsk) -> DraftResponse:
         if server.settings.genesis == "admin":
             from .app import admin
 
             admin(request, server.settings)
-        pack = chosen_pack(body.pack) if body.pack else None
+        suggested = suggest_pack(body.goal, server.packs)
+        # Reading with the suggestion on the first go saves a second model call for the same words.
+        ref = body.pack
+        if ref is None and body.accept_suggestion and suggested:
+            ref = PackRef(name=suggested.name, version=suggested.version)
+        pack = chosen_pack(ref) if ref else None
         result = await draft_goal(body.goal, server.gateway, body.utc_offset_minutes)
-        result.draft.pack = body.pack
-        result.suggested = suggest_pack(body.goal, server.packs)
+        result.draft.pack = ref
+        result.suggested = suggested
         result.vocabulary = {}
         if pack:
             result.vocabulary = public_pack(pack)["vocabulary"]
@@ -278,6 +290,14 @@ def mount_start(
         local = server.settings.genesis == "local"
         if local and not starts.allow(caller(request)):
             raise HTTPException(429, "too many starts")
+        now = datetime.now(UTC)
+        if body.draft.deadline is not None and body.draft.deadline <= now:
+            raise HTTPException(422, "that deadline has passed")
+        # The place goes public on the map, so it may only be words the opener wrote in the goal.
+        if body.draft.place and (
+            len(body.draft.place) > 120 or body.draft.place not in body.draft.goal
+        ):
+            body.draft.place = None
         coded = bool(value) or not local
         if coded and not value.startswith("Start "):
             raise HTTPException(401, "start code required")
