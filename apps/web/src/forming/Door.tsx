@@ -133,11 +133,8 @@ export function Door({
                 {door.stopped ? "Code stopped" : "Hold this up, or say it"}
               </p>
             )}
-            <div
-              className="fm-code"
-              data-stopped={door.stopped}
-              aria-label={`Room code ${door.code}`}
-            >
+            <div className="fm-code" data-stopped={door.stopped}>
+              <span className="sr-only">Room code </span>
               {door.code}
             </div>
             <p className="fm-door-goal">{door.goal}</p>

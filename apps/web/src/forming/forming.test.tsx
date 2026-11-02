@@ -137,16 +137,18 @@ describe("room forming", () => {
     });
     render(<Forming onEnter={() => {}} initialGoal={GOAL} />);
     await userEvent.click(await screen.findByRole("button", { name: "Looks right" }));
-    const near = screen.getByRole("radio", { name: /People nearby/ });
-    expect(near.getAttribute("aria-checked")).toBe("true");
+    const near = screen.getByRole<HTMLInputElement>("radio", { name: /People nearby/ });
+    expect(near.checked).toBe(true);
     expect(screen.getByText("What becomes public")).toBeTruthy();
     await userEvent.click(screen.getByRole("radio", { name: /Only with the code/ }));
     expect(screen.getByText("Nothing is listed")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Open the room" }));
-    await screen.findByLabelText("Room code KT7-4QMZ");
+    await screen.findByText("KT7-4QMZ");
     const start = seen.find((s) => s.url.includes("/v1/genesis/start"));
     expect(JSON.parse(String(start?.init?.body)).visibility).toBe("code");
-    expect((start?.init?.headers as Record<string, string>).authorization).toBeUndefined();
+    expect(
+      (start?.init?.headers as Record<string, string> | undefined)?.authorization,
+    ).toBeUndefined();
     expect(globalThis.location.pathname).toBe("/door");
   });
 
@@ -154,12 +156,12 @@ describe("room forming", () => {
     host((url) => (url.includes("/v1/packs") ? [] : draftReply([seats], { place: null })));
     render(<Forming onEnter={() => {}} initialGoal={GOAL} />);
     await userEvent.click(await screen.findByRole("button", { name: "Looks right" }));
+    expect(screen.getByRole<HTMLInputElement>("radio", { name: /People nearby/ }).disabled).toBe(
+      true,
+    );
     expect(
-      (screen.getByRole("radio", { name: /People nearby/ }) as HTMLButtonElement).disabled,
+      screen.getByRole<HTMLInputElement>("radio", { name: /Only with the code/ }).checked,
     ).toBe(true);
-    expect(
-      screen.getByRole("radio", { name: /Only with the code/ }).getAttribute("aria-checked"),
-    ).toBe("true");
   });
 
   it("says plainly when the host refuses to open", async () => {
@@ -211,7 +213,7 @@ describe("the Door", () => {
     render(<Door token="owner-token" first={door()} onEnter={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: "Hold up" }));
     expect(screen.queryByRole("region", { name: "Who has arrived" })).toBeNull();
-    expect(screen.getByLabelText("Room code KT7-4QMZ")).toBeTruthy();
+    expect(screen.getByText("KT7-4QMZ")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.getByRole("region", { name: "Who has arrived" })).toBeTruthy();
   });
@@ -249,12 +251,10 @@ describe("arriving by code", () => {
     const onJoined = vi.fn();
     render(<Join onJoined={onJoined} />);
     expect((await screen.findByRole("heading", { level: 1 })).textContent).toBe(GOAL);
-    const group = await screen.findByRole("radiogroup", { name: "Which seat fits you?" });
-    expect(
-      within(group)
-        .getByRole("radio", { name: /Second/ })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+    const group = await screen.findByRole("group", { name: "Which seat fits you?" });
+    expect(within(group).getByRole<HTMLInputElement>("radio", { name: /Second/ }).checked).toBe(
+      true,
+    );
     await userEvent.click(screen.getByRole("button", { name: "Take a seat" }));
     await waitFor(() => expect(onJoined).toHaveBeenCalled());
     expect(JSON.parse(sent[0] ?? "{}")).toEqual({ code: "KT7-4QMZ", role: "second" });
