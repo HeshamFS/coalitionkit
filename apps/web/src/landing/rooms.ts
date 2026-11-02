@@ -46,11 +46,20 @@ export function spots(rooms: Room[]): Spot[] {
   }));
 }
 
-/** The secret in a pasted invitation: a whole `/join#…` link, or the secret alone. */
+const DOOR_CODE = /^[A-HJKMNP-Z2-9]{3}-[A-HJKMNP-Z2-9]{4}$/;
+
+/** A room's short code, as a person might say or type it: any case, dash or not. */
+export function doorCodeIn(text: string): string | null {
+  const value = text.trim().toUpperCase().replace(/\s+/g, "");
+  const dashed = /^[A-Z0-9]{7}$/.test(value) ? `${value.slice(0, 3)}-${value.slice(3)}` : value;
+  return DOOR_CODE.test(dashed) ? dashed : null;
+}
+
+/** What a pasted link or typed code holds: an invitation's secret, or a room's short code. */
 export function invitationIn(text: string): string | null {
   const value = text.trim();
   const secret = value.includes("#") ? value.slice(value.lastIndexOf("#") + 1) : value;
-  return /^[A-Za-z0-9_-]{16,256}$/.test(secret) ? secret : null;
+  return /^[A-Za-z0-9_-]{16,256}$/.test(secret) ? secret : doorCodeIn(secret);
 }
 
 export type Scanned = { secret: string } | { problem: "elsewhere" | "not-invitation" };

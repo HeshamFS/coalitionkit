@@ -38,10 +38,10 @@ export function forgetStartCode(): void {
   storage()?.removeItem(START_KEY);
 }
 
-/** Read `/join#<secret>` once and clear it from the address. */
+/** Read `/join#<secret>` or `/join#<room code>` once and clear it from the address. */
 export function takeInvitation(): string {
   const hash = globalThis.location?.hash ?? "";
-  const match = /^#([A-Za-z0-9_-]{16,256})$/.exec(hash);
+  const match = /^#([A-Za-z0-9_-]{16,256}|[A-Za-z0-9]{3}-[A-Za-z0-9]{4})$/.exec(hash);
   if (!match?.[1]) return "";
   dropFragment();
   return match[1];

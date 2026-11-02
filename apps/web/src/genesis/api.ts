@@ -21,10 +21,22 @@ export type Draft = {
   deadline: string | null;
   deciders: "all" | string[];
   pack: PackRef | null;
+  place?: string | null;
 };
-export type ReadingKind = "role" | "need" | "deadline" | "count";
+export type ReadingKind = "role" | "need" | "deadline" | "count" | "place";
 export type Reading = { span: [number, number]; kind: ReadingKind };
+export type CardSize = "hero" | "wide" | "half" | "third";
+/** One component the host chose for this sentence from the closed catalog. */
+export type Card = {
+  id: string;
+  component: string;
+  title: string;
+  word: string | null;
+  size: CardSize;
+  props: Record<string, unknown>;
+};
 export type DraftReply = {
+  composition?: { source: "reader" | "model"; cards: Card[] };
   draft: Draft;
   source: "reader" | "model";
   reading: Reading[];
@@ -34,10 +46,41 @@ export type DraftReply = {
   vocabulary?: PackInfo["vocabulary"];
 };
 export type HostKey = { kty: string; crv: string; x: string; kid?: string };
+export type Visibility = "code" | "nearby";
+export type AgentHome = "hosted" | "whatsapp" | "mcp" | "a2a";
+export type Arrival = {
+  participant: string;
+  role: string;
+  label: string;
+  home: AgentHome;
+  at: string;
+};
+export type DoorState = {
+  code: string;
+  link: string;
+  stopped: boolean;
+  visibility: Visibility;
+  goal: string;
+  place: string | null;
+  closes_at: string;
+  seats: number;
+  filled: number;
+  arrivals: Arrival[];
+  knocks: { id: string; at: string }[];
+};
+export type DoorCard = {
+  goal: string;
+  place: string | null;
+  closes_at: string;
+  seats: number;
+  filled: number;
+  roles: { id: string; label: string; open: number }[];
+};
 export type Started = {
   coalition_id: string;
   owner: { participant: string; token: string };
   host_key?: HostKey;
+  door?: DoorState;
 };
 export type Invitation = { id: string; kind: "member" | "business"; link: string };
 export type Joined = {
@@ -121,8 +164,86 @@ export function draftGoal(
   );
 }
 
-export function startCoalition(draft: Draft, startCode: string, fetchFn = defaultFetch) {
-  return post<Started>("/v1/genesis/start", { draft }, `Start ${startCode}`, fetchFn);
+/** Open a room. A start code is sent only if this tab holds one; a local host needs none. */
+export function openRoom(
+  draft: Draft,
+  visibility: Visibility,
+  startCode = "",
+  fetchFn = defaultFetch,
+) {
+  return post<Started>(
+    "/v1/genesis/start",
+    { draft, visibility },
+    startCode ? `Start ${startCode}` : undefined,
+    fetchFn,
+  );
+}
+
+async function read<T>(path: string, auth: string | undefined, fetchFn: Fetch): Promise<T> {
+  const res = await fetchFn(`${base()}${path}`, {
+    method: "GET",
+    headers: auth ? { authorization: auth } : {},
+  });
+  if (!res.ok) throw new HostError(res.status, "");
+  return (await res.json()) as T;
+}
+
+export function readDoor(ownerToken: string, fetchFn = defaultFetch) {
+  return read<DoorState>("/v1/coalition/door", `Bearer ${ownerToken}`, fetchFn);
+}
+
+export function stopDoor(ownerToken: string, fetchFn = defaultFetch) {
+  return post<DoorState>("/v1/coalition/door/stop", {}, `Bearer ${ownerToken}`, fetchFn);
+}
+
+export function answerKnock(
+  ownerToken: string,
+  id: string,
+  answer: "yes" | "no",
+  fetchFn = defaultFetch,
+) {
+  return post<DoorState>(
+    `/v1/coalition/door/knocks/${encodeURIComponent(id)}`,
+    { answer },
+    `Bearer ${ownerToken}`,
+    fetchFn,
+  );
+}
+
+export function readDoorCard(code: string, fetchFn = defaultFetch) {
+  return read<DoorCard>(`/v1/door/${encodeURIComponent(code)}`, undefined, fetchFn);
+}
+
+export function joinByCode(
+  code: string,
+  displayName: string,
+  role: string,
+  fetchFn = defaultFetch,
+) {
+  const name = displayName.trim();
+  return post<Joined>(
+    "/v1/door/join",
+    { code, ...(name ? { display_name: name } : {}), ...(role ? { role } : {}) },
+    undefined,
+    fetchFn,
+  );
+}
+
+export function knockAt(room: string, fetchFn = defaultFetch) {
+  return post<{ knock: string; secret: string }>(
+    `/v1/rooms/${encodeURIComponent(room)}/knock`,
+    {},
+    undefined,
+    fetchFn,
+  );
+}
+
+export function readKnock(room: string, knock: string, secret: string, fetchFn = defaultFetch) {
+  return read<{ state: "waiting" | "yes" | "no"; invitation?: string }>(
+    `/v1/rooms/${encodeURIComponent(room)}/knocks/${encodeURIComponent(knock)}?secret=${encodeURIComponent(secret)}`,
+    undefined,
+    fetchFn,
+  );
 }
 
 export function invite(
