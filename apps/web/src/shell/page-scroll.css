@@ -1,0 +1,74 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Scrolling in the design's own terms. The page has no system bar: PageScroll draws a pill that
+   shows while you scroll or when the pointer reaches the edge. Inner panels keep a slim bar. */
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+body * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+@supports not (scrollbar-color: auto) {
+  body *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  body *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: var(--r-pill);
+  }
+}
+
+.page-scroll {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  width: 12px;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.page-scroll:hover,
+.page-scroll[data-live] {
+  opacity: 1;
+}
+.page-scroll-thumb {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  width: 6px;
+  border-radius: var(--r-pill);
+  background: var(--blue-line);
+  cursor: grab;
+  touch-action: none;
+  transition: background 120ms ease;
+}
+.page-scroll:hover .page-scroll-thumb {
+  background: var(--blue);
+}
+.page-scroll-thumb:active {
+  background: var(--blue);
+  cursor: grabbing;
+}
+
+/* A finger scrolls the page itself; the pill only reports, and the edge stays free to touch. */
+@media (pointer: coarse) {
+  .page-scroll {
+    pointer-events: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-scroll,
+  .page-scroll-thumb {
+    transition: none;
+  }
+}
+@media print {
+  .page-scroll {
+    display: none;
+  }
+}

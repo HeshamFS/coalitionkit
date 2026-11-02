@@ -10,6 +10,7 @@ import "./styles/lens.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { PageScroll } from "./shell/PageScroll";
 import { applyStoredTheme } from "./shell/theme";
 
 applyStoredTheme();
@@ -19,6 +20,7 @@ if (el) {
   createRoot(el).render(
     <StrictMode>
       <App />
+      <PageScroll />
     </StrictMode>,
   );
 }
