@@ -94,3 +94,20 @@ def test_feed_carries_only_its_viewers_agent_channel(
         assert [e["delta"] for e in legacy if e["type"] == "TEXT_MESSAGE_CONTENT"] == [
             "legacy message"
         ]
+
+
+def test_a_pack_policy_refusal_reaches_its_viewer_with_the_policy(
+    client: TestClient, world: World, hub: SurfaceHub
+) -> None:
+    world.propose(world.need(), ["alice"])
+    detail = {"policy_id": "pack-no-contact", "matched": "secret text"}
+    hub.refused("alice", "coalition.offer", {"code": "pack_violation", "detail": detail})
+    hub.refused("alice", "coalition.offer", {"code": "schema_invalid"})
+    frames = events(client.get("/v1/feed", headers=auth("alice")).text)
+    refusals = frames[1]["snapshot"]["refusals"]
+    assert [(r["code"], r["policy"], r["type"]) for r in refusals] == [
+        ("pack_violation", "pack-no-contact", "coalition.offer")
+    ]
+    assert "secret text" not in json.dumps(frames)
+    other = events(client.get("/v1/feed", headers=auth("bob")).text)
+    assert other[1]["snapshot"]["refusals"] == []
