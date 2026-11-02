@@ -62,7 +62,7 @@ def test_static_and_redeem(tmp_path: Path) -> None:
     with TestClient(Room(app, dist)) as client:
         assert client.get("/").text == "<h1>Room</h1>"
         assert client.get("/confirm/code").text == "<h1>Room</h1>"
-        for page in ("/join", "/signin", "/glasses", "/lens"):
+        for page in ("/join", "/open", "/signin", "/glasses", "/lens"):
             assert client.get(page).text == "<h1>Room</h1>", page
         assert client.get("/healthz").status_code == 200
         assert client.get("/v1/feed").status_code == 401

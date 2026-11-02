@@ -214,3 +214,11 @@ Judging: Claude reviews Codex's slices; Codex critiques Claude's and Sonnet's di
 2. Local Genesis: drafting open on 127.0.0.1 and starting with the printed start code (proposed), admin token on hosted deployments.
 3. Glasses: real Ray-Ban Display or the simulator for filming.
 4. Move the G3 empty-diff baseline from the G1 commit to `core-freeze-2`.
+
+## First screen
+
+A visitor without a session lands on `/`: a sentence box over a map of open rooms, with the explanation below. The sentence carries to `/open`, the Genesis screen. Light is the default whatever the system says; dark is a choice the browser remembers.
+
+Two ways in sit at the top of the screen: a box for an invitation link, and Scan QR, which reads a QR with the device camera and joins with the invitation inside it. Frames are read in the browser and the camera stops when the scanner closes. A QR for another address is refused, not followed. Short codes are not built yet, and no screen shows a room's own QR until the Door exists.
+
+Discoverable rooms are not stored yet. `GET /v1/rooms` lists only what an operator supplies with `COALITIONKIT_SAMPLE_ROOMS`, and marks every entry as a sample; without a file the map says it is empty. The kit ships no such file. `examples/rooms/sample-rooms.json` is one to run with. The ground under the map is a fixed pattern that keeps the rooms' relative places. It is not a street map yet.

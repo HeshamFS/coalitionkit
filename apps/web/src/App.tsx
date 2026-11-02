@@ -7,6 +7,7 @@ import { Gallery } from "./gallery/Gallery";
 import { Genesis } from "./genesis/Genesis";
 import { Join } from "./genesis/Join";
 import { clearOwner } from "./genesis/owner";
+import { Landing } from "./landing/Landing";
 import { LensView } from "./lens/LensView";
 import type { DissolveEvent } from "./moments/Dissolve";
 import { RoomView } from "./RoomView";
@@ -21,14 +22,24 @@ function go(path: string) {
   globalThis.history.replaceState(null, "", path);
 }
 
+function goForward(path: string) {
+  globalThis.history.pushState(null, "", path);
+}
+
 export function App() {
   const [config, setConfig] = useState(() => readConfig());
   const [notice, setNotice] = useState<string | undefined>();
   const [code] = useState(() => confirmCode(location.pathname));
   const [path, setPath] = useState(() => location.pathname);
+  const [goal, setGoal] = useState("");
   const [ended, setEnded] = useState<DissolveEvent | null>(null);
   const run = useEndRun();
   useEffect(() => scrubAddress(), []);
+  useEffect(() => {
+    const back = () => setPath(location.pathname);
+    globalThis.addEventListener("popstate", back);
+    return () => globalThis.removeEventListener("popstate", back);
+  }, []);
   const enter = () => {
     setNotice(undefined);
     go("/");
@@ -48,7 +59,17 @@ export function App() {
   if (!config) {
     if (code || path.startsWith("/signin") || notice)
       return <SignIn notice={notice} onDone={() => (code ? setConfig(readConfig()) : enter())} />;
-    return <Genesis onEnter={enter} />;
+    if (path.startsWith("/open")) return <Genesis onEnter={enter} initialGoal={goal} />;
+    return (
+      <Landing
+        onOpen={(sentence) => {
+          setGoal(sentence);
+          goForward("/open");
+          setPath("/open");
+        }}
+        onJoin={(secret) => location.assign(`/join#${secret}`)}
+      />
+    );
   }
   return (
     <FeedProvider

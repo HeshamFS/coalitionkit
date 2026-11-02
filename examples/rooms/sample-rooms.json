@@ -1,0 +1,14 @@
+{
+  "rooms": [
+    { "id": "gate", "goal": "Get nine of us home from Gate B12 tonight", "seats": 11, "filled": 4, "closes": "closes 23:40", "lat": 50.868, "lon": 7.142, "status": "forming" },
+    { "id": "van", "goal": "Share one van to the city from Terminal 2", "seats": 6, "filled": 3, "closes": "closes 22:15", "lat": 50.951, "lon": 7.012, "status": "forming" },
+    { "id": "block", "goal": "Cover this week's grocery runs for the block", "seats": 8, "filled": 5, "closes": "closes Sunday", "lat": 50.822, "lon": 6.905, "status": "forming" },
+    { "id": "lab", "goal": "Find a lab slot to image two samples by Friday", "seats": 4, "filled": 2, "closes": "closes Friday", "lat": 50.965, "lon": 7.255, "status": "forming" },
+    { "id": "rides", "goal": "Rides to three cities: plan signed", "seats": 7, "filled": 7, "closes": "acting now", "lat": 50.782, "lon": 7.215, "status": "acting" }
+  ],
+  "examples": [
+    "Nine of us are stranded at gate B12. Get everyone home tonight, fairly.",
+    "Anneal and image these samples across three labs by Friday.",
+    "Bring my grandmother's groceries on Saturday and keep the visits fair across the family."
+  ]
+}

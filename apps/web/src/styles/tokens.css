@@ -1,24 +1,24 @@
-/* CoalitionKit design tokens: Coalition Blue. Light values are the owner's kit (ck.css :root).
+/* CoalitionKit design tokens: Big Blue. Light values are the owner's kit (ck.css :root).
    Dark values are derived from the kit's dark-door tokens; the sheets define no full dark theme. */
 :root {
   color-scheme: light;
-  --bg: #f7f8fa;
-  --sidebar: #eff1f5;
-  --canvas: #f3f5f8;
-  --bg-dot: #d5dae3;
+  --bg: #ffffff;
+  --sidebar: #f1f3fb;
+  --canvas: #fafbff;
+  --bg-dot: #c2c9e6;
   --surface: #ffffff;
-  --surface-2: #f3f5f8;
-  --surface-3: #e9edf3;
-  --line: #e3e7ee;
-  --line-strong: #cbd2dd;
-  --ink: #0e1726;
-  --ink-2: #4a5568;
-  --ink-3: #64708a;
+  --surface-2: #f1f3fb;
+  --surface-3: #e6e9f5;
+  --line: #e1e5f2;
+  --line-strong: #c6cde3;
+  --ink: #10163a;
+  --ink-2: #4f5678;
+  --ink-3: #626a8c;
   --ink-inverse: #ffffff;
-  --blue: #0b63f6;
-  --blue-text: #0a4fc4;
-  --blue-tint: #e6effe;
-  --blue-line: #a9c6fb;
+  --blue: #1d4df0;
+  --blue-text: #1a3fc4;
+  --blue-tint: #e6ecff;
+  --blue-line: #a9bbf7;
   --ok-fg: #14603a;
   --ok-bg: #ddf1e4;
   --ok-line: #a9d9bc;
@@ -54,7 +54,7 @@
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 
   /* roles the kit hard-codes; named here so dark can move them */
-  --blue-rgb: 11, 99, 246;
+  --blue-rgb: 29, 77, 240;
   --bad-rgb: 161, 38, 47;
   --on-blue: #ffffff;
   --on-ink: #ffffff;
@@ -62,10 +62,10 @@
   --code-bg: #f9fafc;
   --skel-a: #eceff4;
   --skel-b: #f7f8fa;
-  --flash-from: #cfe0ff;
-  --btn-hover: #0a57d9;
-  --btn-press: #0948b5;
-  --toast-act: #a9c6fb;
+  --flash-from: #c9d6ff;
+  --btn-hover: #1942d3;
+  --btn-press: #1638b4;
+  --toast-act: #a9bbf7;
   --bn-info: #0b2e6b;
   --bn-warn: #4d3200;
   --bn-bad: #6b1820;
@@ -73,27 +73,40 @@
   --phone-frame: #1b2436;
   --presence-live: #1e9e5a;
   --presence-away: #c9a227;
+
+  /* Public pages: the opening band, the map, and the larger controls for everyone */
+  --hero-bg: #1d4df0;
+  --hero-ink: #ffffff;
+  --hero-muted: #e3e8ff;
+  --needs: #b45309;
+  --map-ground: #fafbff;
+  --map-dot: #c2c9e6;
+  --map-road: #7f89b8;
+  --ctl-sm: 36px;
+  --ctl: 44px;
+  --ctl-lg: 52px;
+  --field: 56px;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b1220;
-  --sidebar: #0e1729;
-  --canvas: #0d1527;
-  --bg-dot: #1e2b42;
-  --surface: #121b2e;
-  --surface-2: #17223a;
-  --surface-3: #1f2c47;
-  --line: #233149;
-  --line-strong: #34466a;
-  --ink: #e8edf5;
-  --ink-2: #a9b4c6;
-  --ink-3: #8d9bb3;
-  --ink-inverse: #0b1220;
-  --blue: #4d8dff;
-  --blue-text: #8fb4ff;
-  --blue-tint: #13284f;
-  --blue-line: #2d5199;
+  --bg: #0b1030;
+  --sidebar: #0e1438;
+  --canvas: #0f1538;
+  --bg-dot: #303a6d;
+  --surface: #131a40;
+  --surface-2: #1b2350;
+  --surface-3: #232c5e;
+  --line: #283266;
+  --line-strong: #3a4580;
+  --ink: #eef0fb;
+  --ink-2: #aeb5d6;
+  --ink-3: #959dc4;
+  --ink-inverse: #0b1030;
+  --blue: #7c97ff;
+  --blue-text: #b6c5ff;
+  --blue-tint: #1b2a70;
+  --blue-line: #3a4fa8;
   --ok-fg: #7fd6a1;
   --ok-bg: #12301f;
   --ok-line: #23603d;
@@ -113,18 +126,18 @@
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
   --shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.45), 0 1px 3px 0 rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 24px -12px rgba(0, 0, 0, 0.6), 0 3px 8px -4px rgba(0, 0, 0, 0.4);
-  --blue-rgb: 77, 141, 255;
+  --blue-rgb: 124, 151, 255;
   --bad-rgb: 255, 143, 151;
-  --on-blue: #06101f;
-  --on-ink: #0b1220;
-  --on-fill: #0b1220;
-  --code-bg: #0f172a;
-  --skel-a: #1a2540;
-  --skel-b: #24304e;
-  --flash-from: #1f3e7a;
-  --btn-hover: #6aa0ff;
-  --btn-press: #86b2ff;
-  --toast-act: #1b4da8;
+  --on-blue: #060a24;
+  --on-ink: #0b1030;
+  --on-fill: #0b1030;
+  --code-bg: #0f1538;
+  --skel-a: #1b2350;
+  --skel-b: #283266;
+  --flash-from: #27408f;
+  --btn-hover: #95abff;
+  --btn-press: #adbfff;
+  --toast-act: #2c44a8;
   --bn-info: #cfe0ff;
   --bn-warn: #f6dfa6;
   --bn-bad: #ffd0d3;
@@ -132,28 +145,34 @@
   --phone-frame: #34466a;
   --presence-live: #3dcb7e;
   --presence-away: #e3bf48;
+  --hero-bg: #16307f;
+  --hero-muted: #d4dcff;
+  --needs: #fbbf24;
+  --map-ground: #0f1538;
+  --map-dot: #303a6d;
+  --map-road: #606a9a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0b1220;
-    --sidebar: #0e1729;
-    --canvas: #0d1527;
-    --bg-dot: #1e2b42;
-    --surface: #121b2e;
-    --surface-2: #17223a;
-    --surface-3: #1f2c47;
-    --line: #233149;
-    --line-strong: #34466a;
-    --ink: #e8edf5;
-    --ink-2: #a9b4c6;
-    --ink-3: #8d9bb3;
-    --ink-inverse: #0b1220;
-    --blue: #4d8dff;
-    --blue-text: #8fb4ff;
-    --blue-tint: #13284f;
-    --blue-line: #2d5199;
+    --bg: #0b1030;
+    --sidebar: #0e1438;
+    --canvas: #0f1538;
+    --bg-dot: #303a6d;
+    --surface: #131a40;
+    --surface-2: #1b2350;
+    --surface-3: #232c5e;
+    --line: #283266;
+    --line-strong: #3a4580;
+    --ink: #eef0fb;
+    --ink-2: #aeb5d6;
+    --ink-3: #959dc4;
+    --ink-inverse: #0b1030;
+    --blue: #7c97ff;
+    --blue-text: #b6c5ff;
+    --blue-tint: #1b2a70;
+    --blue-line: #3a4fa8;
     --ok-fg: #7fd6a1;
     --ok-bg: #12301f;
     --ok-line: #23603d;
@@ -173,18 +192,18 @@
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
     --shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.45), 0 1px 3px 0 rgba(0, 0, 0, 0.35);
     --shadow-lg: 0 8px 24px -12px rgba(0, 0, 0, 0.6), 0 3px 8px -4px rgba(0, 0, 0, 0.4);
-    --blue-rgb: 77, 141, 255;
+    --blue-rgb: 124, 151, 255;
     --bad-rgb: 255, 143, 151;
-    --on-blue: #06101f;
-    --on-ink: #0b1220;
-    --on-fill: #0b1220;
-    --code-bg: #0f172a;
-    --skel-a: #1a2540;
-    --skel-b: #24304e;
-    --flash-from: #1f3e7a;
-    --btn-hover: #6aa0ff;
-    --btn-press: #86b2ff;
-    --toast-act: #1b4da8;
+    --on-blue: #060a24;
+    --on-ink: #0b1030;
+    --on-fill: #0b1030;
+    --code-bg: #0f1538;
+    --skel-a: #1b2350;
+    --skel-b: #283266;
+    --flash-from: #27408f;
+    --btn-hover: #95abff;
+    --btn-press: #adbfff;
+    --toast-act: #2c44a8;
     --bn-info: #cfe0ff;
     --bn-warn: #f6dfa6;
     --bn-bad: #ffd0d3;
@@ -192,5 +211,11 @@
     --phone-frame: #34466a;
     --presence-live: #3dcb7e;
     --presence-away: #e3bf48;
+    --hero-bg: #16307f;
+    --hero-muted: #d4dcff;
+    --needs: #fbbf24;
+    --map-ground: #0f1538;
+    --map-dot: #303a6d;
+    --map-road: #606a9a;
   }
 }

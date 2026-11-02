@@ -1,23 +1,22 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* Genesis: the dark stage of the first screen (board: Genesis). Always dark, in both themes. */
+/* Genesis: the screen after the first sentence (board: Genesis). Follows the theme. */
+.gn-stage,
+.ld {
+  --g-bg: var(--canvas);
+  --g-dot: var(--line);
+  --g-surface: var(--surface);
+  --g-surface-2: var(--surface-2);
+  --g-line: var(--line);
+  --g-line-strong: var(--line-strong);
+  --g-ink: var(--ink);
+  --g-ink-2: var(--ink-2);
+  --g-ink-3: var(--ink-3);
+  --g-blue: var(--blue);
+  --g-blue-fill: var(--blue);
+  --g-blue-text: var(--blue-text);
+  --g-blue-tint: var(--blue-tint);
+}
 .gn-stage {
-  --g-bg: #0d1526;
-  --g-dot: #1f2b42;
-  --g-surface: #121b2e;
-  --g-surface-2: #172238;
-  --g-line: #233149;
-  --g-line-strong: #314263;
-  --g-ink: #e8edf5;
-  --g-ink-2: #a9b4c6;
-  --g-ink-3: #8693a8;
-  --g-blue: #4d8dff;
-  --g-blue-fill: #1f66e5;
-  --g-blue-text: #8db8ff;
-  --g-blue-tint: #142a52;
-  --skel-a: #172238;
-  --skel-b: #1f2b42;
-  --ink-3: #8693a8;
-  --blue-rgb: 77, 141, 255;
   min-height: 100vh;
   box-sizing: border-box;
   display: flex;
@@ -29,7 +28,6 @@
   background-size: 24px 24px;
   color: var(--g-ink);
   font-family: var(--font-ui);
-  color-scheme: dark;
 }
 .gn-head {
   display: flex;
@@ -200,7 +198,7 @@
   color: var(--g-ink);
 }
 .gn-chip[data-on="true"] {
-  border-color: #2b4c86;
+  border-color: var(--blue-line);
   background: var(--g-blue-tint);
   color: var(--g-blue-text);
 }
@@ -321,7 +319,7 @@
   border-radius: 10px;
   border: 0;
   background: var(--g-blue-fill);
-  color: #fff;
+  color: var(--on-blue);
   font: 600 15px var(--font-ui);
   cursor: pointer;
 }
@@ -342,7 +340,7 @@
   background: var(--g-surface);
   border: 1px solid var(--g-line-strong);
   border-radius: 14px;
-  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-lg);
 }
 .gn-composer:focus-within {
   border-color: var(--g-blue);
@@ -396,10 +394,10 @@
   border-bottom: 2px solid var(--g-blue);
 }
 .gn-mirror mark[data-kind="deadline"] {
-  border-bottom-color: #f5c66b;
+  border-bottom-color: var(--needs);
 }
 .gn-mirror mark[data-kind="need"] {
-  border-bottom-color: #6ee7a0;
+  border-bottom-color: var(--presence-live);
 }
 .gn-field input {
   width: 100%;
@@ -435,7 +433,7 @@
   border-radius: 10px;
   border: 0;
   background: var(--g-blue-fill);
-  color: #fff;
+  color: var(--on-blue);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -464,9 +462,9 @@
   margin: 0;
   padding: 8px 12px;
   border-radius: 10px;
-  background: #3a1418;
-  border: 1px solid #6b2a30;
-  color: #ffd0d3;
+  background: var(--bad-bg);
+  border: 1px solid var(--bad-line);
+  color: var(--bad-fg);
   font-size: 13px;
 }
 .sr-only {
@@ -482,7 +480,7 @@
     padding: 20px 16px;
   }
   .gn-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .gn-centre {
     order: -1;
@@ -517,7 +515,7 @@
   background: var(--g-surface);
   border: 1px solid var(--g-line);
   border-radius: 16px;
-  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-lg);
 }
 .gn-join-card .gn-title {
   font-size: 34px;
