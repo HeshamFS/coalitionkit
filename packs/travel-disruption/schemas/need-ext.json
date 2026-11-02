@@ -9,6 +9,5 @@
     "spending_limit": { "type": "string", "x-private": true },
     "phone": { "type": "string", "x-private": true }
   },
-  "required": ["destination", "latest_arrival", "party_size"],
   "additionalProperties": false
 }
