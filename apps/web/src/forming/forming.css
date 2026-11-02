@@ -29,6 +29,9 @@
   color: var(--hero-bg);
   border-bottom-color: var(--hero-ink);
 }
+.fm-keep {
+  white-space: nowrap;
+}
 .fm-word:focus-visible {
   outline: 2px solid var(--hero-ink);
   outline-offset: 2px;
@@ -78,11 +81,11 @@
     box-shadow 0.2s;
 }
 .fm-card[data-size="hero"] {
-  grid-column: span 7;
+  grid-column: span 8;
   grid-row: span 2;
 }
 .fm-card[data-size="half"] {
-  grid-column: span 5;
+  grid-column: span 6;
 }
 .fm-card[data-size="wide"] {
   grid-column: span 12;
@@ -122,6 +125,29 @@
 .fm-card-body {
   flex: 1;
   min-width: 0;
+}
+.fm-map {
+  position: relative;
+  height: 100%;
+  min-height: 300px;
+  overflow: hidden;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  background: var(--map-ground);
+}
+.fm-map-pin {
+  cursor: default;
+}
+.fm-map-note {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--ink-2);
 }
 .fm-from {
   margin-top: auto;

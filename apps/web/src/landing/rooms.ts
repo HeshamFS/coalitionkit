@@ -48,10 +48,25 @@ export function spots(rooms: Room[]): Spot[] {
   const [loLat, hiLat] = [Math.min(...lats), Math.max(...lats)];
   const [loLon, hiLon] = [Math.min(...lons), Math.max(...lons)];
   const share = (v: number, lo: number, hi: number) => (hi === lo ? 0.5 : (v - lo) / (hi - lo));
-  return rooms.map((r) => ({
-    x: 14 + share(r.lon, loLon, hiLon) * 72,
-    y: 16 + (1 - share(r.lat, loLat, hiLat)) * 68,
-  }));
+  const placed: Spot[] = [];
+  for (const r of rooms) {
+    const spot = {
+      x: 14 + share(r.lon, loLon, hiLon) * 72,
+      y: 16 + (1 - share(r.lat, loLat, hiLat)) * 68,
+    };
+    // Labels are wide. A room that would sit on another moves down a line, wrapping inside the map.
+    for (let tries = 0; tries < 5 && placed.some((p) => crowded(p, spot)); tries++) {
+      spot.y = spot.y + LINE > 84 ? 16 + ((spot.y + LINE) % 68) : spot.y + LINE;
+    }
+    placed.push(spot);
+  }
+  return placed;
+}
+
+const LINE = 17;
+
+function crowded(a: Spot, b: Spot): boolean {
+  return Math.abs(a.x - b.x) < 24 && Math.abs(a.y - b.y) < LINE;
 }
 
 const DOOR_CODE = /^[A-HJKMNP-Z2-9]{3}-[A-HJKMNP-Z2-9]{4}$/;

@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -48,7 +49,7 @@ class Card(BaseModel):
 
 class Composition(BaseModel):
     source: Literal["reader", "model"] = "reader"
-    cards: list[Card] = Field(default_factory=list)
+    cards: list[Card] = Field(default_factory=list[Card])
 
 
 @lru_cache(maxsize=8)
@@ -57,6 +58,7 @@ def composition_catalog(path: Path | None = None) -> Catalog:
     return load_catalog(path or Settings().catalog_file)
 
 
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 WEEKDAY = re.compile(r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b", re.I)
 COMPONENTS = {
     "map": ("MapView", "place"),
@@ -159,7 +161,10 @@ def card_props(choice: CardChoice | GraphChoice, result: DraftResponse) -> Docum
         case "map":
             return {"points": [], "routes": [], "areas": []}
         case "deadline":
-            props: Document = {"label": "Closes", "consequence": "The code stops working then."}
+            props: Document = {
+                "label": (choice.word or "Closes").capitalize(),
+                "consequence": "The code stops working then.",
+            }
             if draft.deadline:
                 props["deadline"] = draft.deadline.isoformat()
             return props
@@ -169,12 +174,11 @@ def card_props(choice: CardChoice | GraphChoice, result: DraftResponse) -> Docum
             assert isinstance(choice, GraphChoice)
             return {
                 "nodes": [
-                    {"task": f"step-{i}", "title": step, "status": "open"}
+                    {"task": str(i + 1), "title": step, "status": "open"}
                     for i, step in enumerate(choice.steps)
                 ],
                 "edges": [
-                    {"from": f"step-{i}", "to": f"step-{i + 1}"}
-                    for i in range(len(choice.steps) - 1)
+                    {"from": str(i + 1), "to": str(i + 2)} for i in range(len(choice.steps) - 1)
                 ],
             }
         case "availability":
@@ -183,7 +187,7 @@ def card_props(choice: CardChoice | GraphChoice, result: DraftResponse) -> Docum
                 "slots": [],
             }
         case "week":
-            return {"events": [], "range": {}}
+            return week_props(draft.goal)
         case "fairness":
             return {
                 "rows": [
@@ -199,6 +203,39 @@ def card_props(choice: CardChoice | GraphChoice, result: DraftResponse) -> Docum
             return {"items": []}
         case "route":
             return {"steps": [], "participants": []}
+
+
+def week_props(goal: str) -> Document:
+    """The week around the day the sentence names, with that day marked and no hour claimed."""
+    today = datetime.now(UTC).date()
+    named = WEEKDAY.search(goal)
+    if not named:
+        return {"events": [], "range": {"start": today.isoformat()}}
+    ahead = (WEEKDAYS.index(named[0].lower()) - today.weekday()) % 7
+    day = today + timedelta(days=ahead)
+    first = today if ahead < 5 else day - timedelta(days=4)
+    return {
+        "range": {"start": first.isoformat()},
+        "events": [
+            {
+                "kind": "task",
+                "task": named[0].capitalize(),
+                "state": "scheduled",
+                "start": f"{day.isoformat()}T09:00:00Z",
+                "end": f"{day.isoformat()}T17:00:00Z",
+                "assignee": "",
+            }
+        ],
+    }
+
+
+def pack_title(vocabulary: Document, term: str) -> str | None:
+    """A pack's own word for a card, plural where it has one."""
+    word = vocabulary.get(term)
+    if isinstance(word, dict):
+        forms = cast("dict[str, object]", word)
+        word = forms.get("other") or forms.get("one")
+    return word if isinstance(word, str) else None
 
 
 def card_errors(card: Card, catalog: Catalog) -> list[str]:
@@ -228,13 +265,11 @@ def build_cards(
                     raise ValueError("steps are not ordered goal substrings")
                 cursor = at + len(step)
         component, term = COMPONENTS[choice.kind]
-        title = result.vocabulary.get(term)
-        if isinstance(title, dict):
-            title = title.get("other") or title.get("one")
+        title = pack_title(result.vocabulary, term)
         card = Card(
             id=choice.kind,
             component=component,
-            title=title.capitalize() if isinstance(title, str) else TITLES[choice.kind],
+            title=title.capitalize() if title else TITLES[choice.kind],
             word=choice.word,
             size="third",
             props=card_props(choice, result),
@@ -302,8 +337,11 @@ def compose_draft(result: DraftResponse, catalog: Catalog | None = None) -> Comp
     catalog = catalog or composition_catalog()
     if result.model_cards:
         try:
+            # What the reader found stays: the model adds to it and never loses a place or a step.
+            chosen = {choice.kind for choice in result.model_cards}
+            found = [choice for choice in reader_choices(result) if choice.kind not in chosen]
             return Composition(
-                source="model", cards=build_cards(result, result.model_cards, catalog)
+                source="model", cards=build_cards(result, [*result.model_cards, *found], catalog)
             )
         except ValueError, TypeError:
             result.model_cards = []

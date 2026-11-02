@@ -49,14 +49,16 @@ function SeatGlyph({
           {name.slice(-1)}
         </text>
       )}
-      <text
-        x={i === 0 ? 148 : i === 1 ? 4 : i === 2 ? 6 : x + 14}
-        y={i === 0 ? 22 : i === 1 ? 20 : i === 2 ? 128 : y + 4}
-        fontSize="9"
-        fill="var(--ink-2)"
-      >
-        {seat ? `${name}${seat.state === "acting" ? " · acting" : ""}` : "open seat"}
-      </text>
+      {seat && (
+        <text
+          x={i === 0 ? 148 : i === 1 ? 4 : i === 2 ? 6 : x + 14}
+          y={i === 0 ? 22 : i === 1 ? 20 : i === 2 ? 128 : y + 4}
+          fontSize="9"
+          fill="var(--ink-2)"
+        >
+          {`${name}${seat.state === "acting" ? " · acting" : ""}`}
+        </text>
+      )}
       {seat && (
         <foreignObject x={x - 15} y={y - 15} width="30" height="30">
           <button

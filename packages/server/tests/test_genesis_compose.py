@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -20,7 +21,15 @@ from coalitionkit_server.genesis_compose import (
     compose_draft,
     composition_catalog,
 )
-from coalitionkit_server.genesis_draft import ModelDraft, draft_goal, read_goal
+from coalitionkit_server.genesis_draft import (
+    DRAFT_METER,
+    DraftResponse,
+    ModelDraft,
+    Role,
+    draft_goal,
+    read_goal,
+    with_reader_gaps,
+)
 from coalitionkit_surfaces import validate_surface
 
 PLACED = "Twelve of us meet at Hall 3. Finish everything tonight, fairly."
@@ -98,7 +107,10 @@ def test_a_broken_model_choice_falls_back_to_the_readers_cards() -> None:
 
 def test_no_invented_facts_in_the_props() -> None:
     cards = {c.component: c.props for c in read_goal(WEEKLY).composition.cards}
-    assert cards["CalendarWeek"]["events"] == []
+    events = cards["CalendarWeek"]["events"]
+    assert [event["task"] for event in events] == ["Saturday"]
+    assert datetime.fromisoformat(events[0]["start"]).strftime("%A") == "Saturday"
+    assert all(event["assignee"] == "" for event in events)
     assert all(row["hours"]["value"] == 0 for row in cards["FairnessMeter"]["rows"])
 
 
@@ -110,6 +122,31 @@ def test_the_reply_model_is_a_closed_schema_and_the_host_reply_is_not_it() -> No
     assert schema["$defs"]["CardChoice"]["additionalProperties"] is False
     assert schema["$defs"]["GraphChoice"]["additionalProperties"] is False
     assert Composition().cards == []
+
+
+def test_the_model_never_loses_counted_seats_and_never_says_a_need_twice() -> None:
+    reader = read_goal(ORDERED)
+    model = DraftResponse(
+        draft=reader.draft.model_copy(
+            update={
+                "roles": [Role(id="member", label="member", count=1)],
+                "needs": ["pack these", "pack these boxes", "pack these"],
+            }
+        ),
+        source="model",
+        reading=[],
+    )
+    merged = with_reader_gaps(model, reader)
+    assert sum(role.count for role in merged.draft.roles) == 2
+    assert merged.draft.needs == ["pack these boxes"]
+
+
+def test_graph_steps_read_in_order_without_internal_names() -> None:
+    graph = next(
+        c for c in read_goal(ORDERED).composition.cards if c.component == "DependencyGraph"
+    )
+    assert [(n["task"], n["title"]) for n in graph.props["nodes"]] == [("1", "Sort"), ("2", "pack")]
+    assert graph.props["edges"] == [{"from": "1", "to": "2"}]
 
 
 @pytest.mark.live
@@ -131,7 +168,9 @@ async def test_live_model_composes_within_the_catalog(goal: str) -> None:
         "seconds": round(time.perf_counter() - started, 2),
         "source": result.composition.source,
         "components": [card.component for card in result.composition.cards],
-        "cost": str(meter.total("")),
+        "prompt_tokens": sum(r.prompt_tokens for r in meter.records),
+        "completion_tokens": sum(r.completion_tokens for r in meter.records),
+        "cost": str(meter.total(DRAFT_METER)),
     }
     print(json.dumps(measured))
     assert result.composition.cards

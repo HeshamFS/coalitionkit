@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // The sentence as the headline. A word that produced a card can be pointed at, and the card lights.
 
+const LEADING = /^[.,;:!?]+/;
+
 /** The goal cut into plain stretches and the words the cards came from, in reading order. */
 export function pieces(goal: string, words: string[]): { text: string; word: boolean }[] {
   const found = [...new Set(words)]
@@ -32,26 +34,33 @@ export function Sentence({
 }) {
   return (
     <>
-      {pieces(goal, words).map((p, i) =>
-        p.word ? (
-          <button
-            // biome-ignore lint/suspicious/noArrayIndexKey: pieces are positional
-            key={i}
-            type="button"
-            className="fm-word"
-            data-hot={hot === p.text}
-            onMouseEnter={() => onHot(p.text)}
-            onMouseLeave={() => onHot(null)}
-            onFocus={() => onHot(p.text)}
-            onBlur={() => onHot(null)}
-          >
-            {p.text}
-          </button>
-        ) : (
+      {pieces(goal, words).map((p, i, all) => {
+        if (!p.word) {
+          // A stop or comma right after a word stays with that word, so a line never starts on one.
+          const before = all[i - 1]?.word;
           // biome-ignore lint/suspicious/noArrayIndexKey: pieces are positional
-          <span key={i}>{p.text}</span>
-        ),
-      )}
+          return <span key={i}>{before ? p.text.replace(LEADING, "") : p.text}</span>;
+        }
+        const tail = all[i + 1];
+        const stop = tail && !tail.word ? (LEADING.exec(tail.text)?.[0] ?? "") : "";
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: pieces are positional
+          <span key={i} className="fm-keep">
+            <button
+              type="button"
+              className="fm-word"
+              data-hot={hot === p.text}
+              onMouseEnter={() => onHot(p.text)}
+              onMouseLeave={() => onHot(null)}
+              onFocus={() => onHot(p.text)}
+              onBlur={() => onHot(null)}
+            >
+              {p.text}
+            </button>
+            {stop}
+          </span>
+        );
+      })}
     </>
   );
 }

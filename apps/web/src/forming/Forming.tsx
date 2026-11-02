@@ -26,7 +26,7 @@ import { PublicNav } from "../landing/PublicNav";
 import { Door } from "./Door";
 import { FormingCard, withEdits } from "./FormingCard";
 import { Sentence } from "./Sentence";
-import { seatTotal, WhoCanFind } from "./WhoCanFind";
+import { seatWords, WhoCanFind } from "./WhoCanFind";
 import "../genesis/genesis.css";
 import "../landing/landing.css";
 import "./forming.css";
@@ -251,7 +251,7 @@ export function Forming({
           <div className="fm-bar">
             <div className="fm-bar-in">
               <p>
-                <b>{seatTotal(draft)} seats</b> · {closesLine(draft)}. Change anything above.
+                <b>{seatWords(draft)}</b> · {closesLine(draft)}. Change anything above.
               </p>
               <button type="button" className="fm-go" onClick={() => setStage("who")}>
                 Looks right

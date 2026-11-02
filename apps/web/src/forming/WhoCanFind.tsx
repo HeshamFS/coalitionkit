@@ -7,6 +7,11 @@ export function seatTotal(draft: Draft): number {
   return draft.roles.reduce((n, r) => n + Math.max(1, r.count ?? 1), 0);
 }
 
+export function seatWords(draft: Draft): string {
+  const n = seatTotal(draft);
+  return `${n} ${n === 1 ? "seat" : "seats"}`;
+}
+
 export function WhoCanFind({
   draft,
   value,
@@ -76,7 +81,7 @@ export function WhoCanFind({
               <q>{draft.goal}</q>
               <span>
                 {place ? `Pin at ${place}. ` : ""}
-                {seatTotal(draft)} seats. It leaves the map when it closes, fills or you stop it.
+                {seatWords(draft)}. It leaves the map when it closes, fills or you stop it.
                 Your name doesn't show.
               </span>
             </>

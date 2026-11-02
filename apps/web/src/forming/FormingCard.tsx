@@ -5,13 +5,14 @@ import { useState } from "react";
 import { One } from "../gallery/Drawn";
 import type { Card, Draft } from "../genesis/api";
 import { Assemble } from "../ui/Assemble";
+import { PlaceMap } from "./PlaceMap";
 import { seatTotal } from "./WhoCanFind";
 
 /** The chosen component's props, with the writer's changes to the draft carried in. */
 export function withEdits(card: Card, draft: Draft): Card {
   if (card.component === "SeatRing") {
     const shown = Array.isArray(card.props.seats) ? card.props.seats.length : 0;
-    return { ...card, props: { ...card.props, openSeats: Math.max(0, seatTotal(draft) - shown) } };
+    return { ...card, props: { ...card.props, openSeats: { value: Math.max(0, seatTotal(draft) - shown), event_ref: "draft:roles" } } };
   }
   if (card.component === "Deadline" && draft.deadline) {
     return { ...card, props: { ...card.props, deadline: draft.deadline } };
@@ -126,10 +127,14 @@ export function FormingCard({
       <Assemble ready label={card.component} delay={delay}>
         <div className="fm-card-head">
           <b>{title}</b>
-          <span>{card.component}</span>
+          {!(card.component === "MapView" && draft.place) && <span>{card.component}</span>}
         </div>
         <div className="fm-card-body">
-          <One component={card.component} props={card.props} />
+          {card.component === "MapView" && draft.place ? (
+            <PlaceMap place={draft.place} seats={seatTotal(draft)} />
+          ) : (
+            <One component={card.component} props={card.props} />
+          )}
         </div>
         {card.component === "SeatRing" && <SeatsEditor draft={draft} onEdit={onEdit} />}
         {card.component === "Deadline" && (

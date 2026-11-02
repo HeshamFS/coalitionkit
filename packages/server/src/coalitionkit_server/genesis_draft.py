@@ -61,6 +61,8 @@ class Draft(Goal):
         return self
 
 
+# Model spend on drafts is metered here, since no coalition exists yet.
+DRAFT_METER = "genesis-draft"
 # How long Genesis waits for the model's draft before answering with the reader's own.
 MODEL_DRAFT_BUDGET_S = 10
 
@@ -78,7 +80,9 @@ class ModelDraft(BaseModel):
     draft: Draft
     source: Literal["reader", "model"]
     reading: list[Reading]
-    cards: list[CardChoice | GraphChoice] = Field(default_factory=list, max_length=6)
+    cards: list[CardChoice | GraphChoice] = Field(
+        default_factory=list[CardChoice | GraphChoice], max_length=6
+    )
 
     @model_validator(mode="after")
     def valid_spans(self) -> Self:
@@ -95,7 +99,9 @@ class DraftResponse(BaseModel):
     source: Literal["reader", "model"]
     reading: list[Reading]
     composition: Composition = Field(default_factory=Composition)
-    model_cards: list[CardChoice | GraphChoice] = Field(default_factory=list, exclude=True)
+    model_cards: list[CardChoice | GraphChoice] = Field(
+        default_factory=list[CardChoice | GraphChoice], exclude=True
+    )
     suggested: Suggestion | None = None
     vocabulary: Document = Field(default_factory=dict)
 
@@ -241,8 +247,20 @@ def read_goal(
 
 
 def with_reader_gaps(result: DraftResponse, reader: DraftResponse) -> DraftResponse:
-    """Fill needs or a deadline the model left empty with what the reader found."""
+    """Fill what the model left empty or at its default with what the reader found."""
     kinds: set[str] = set()
+    # One default seat from the model never beats seats the sentence counted.
+    alone = sum(role.count for role in result.draft.roles) <= 1
+    if alone and sum(role.count for role in reader.draft.roles) > 1:
+        result.draft.roles = reader.draft.roles
+        kinds.update({"role", "count"})
+    # A need said twice, once inside a longer form of itself, is one need.
+    needs = result.draft.needs
+    result.draft.needs = [
+        need
+        for i, need in enumerate(needs)
+        if need not in needs[:i] and not any(need != o and need in o for o in needs)
+    ]
     if result.draft.place is None and reader.draft.place is not None:
         result.draft.place = reader.draft.place
         kinds.add("place")
@@ -292,6 +310,7 @@ async def draft_goal(
                 ],
                 response_schema=ModelDraft,
                 reasoning_effort="minimal",  # a short extraction; the reader answers otherwise
+                coalition_id=DRAFT_METER,
             )
             parsed = ModelDraft.model_validate_json(reply.text)
             result = DraftResponse.model_validate(parsed.model_dump(exclude={"cards"}))
