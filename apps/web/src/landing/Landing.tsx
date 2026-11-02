@@ -9,12 +9,14 @@ import { DotMap } from "./DotMap";
 import { KnockCard } from "./KnockCard";
 import { RoomMark } from "./marks";
 import { PublicNav } from "./PublicNav";
-import { listRooms, NO_ROOMS, type Room, type RoomList, spots } from "./rooms";
+import { closesLabel, listRooms, NO_ROOMS, type Room, type RoomList, spots } from "./rooms";
 import "../genesis/genesis.css";
 import "./landing.css";
 
 const seatsLine = (r: Room) =>
-  r.status === "acting" ? `all seated · ${r.closes}` : `${r.filled} of ${r.seats} · ${r.closes}`;
+  r.status === "acting"
+    ? `all seated · ${closesLabel(r.closes)}`
+    : `${r.filled} of ${r.seats} · ${closesLabel(r.closes)}`;
 
 function RoomsMap({
   list,

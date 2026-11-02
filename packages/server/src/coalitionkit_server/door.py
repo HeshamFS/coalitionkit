@@ -239,7 +239,7 @@ class DoorStore:
     def open_roles(self, door: Document) -> list[Document]:
         _, _, used = self.seats(door)
         return [
-            {"id": r["id"], "label": r["label"], "open": used.get(r["id"], 0) < r["count"]}
+            {"id": r["id"], "label": r["label"], "open": max(0, r["count"] - used.get(r["id"], 0))}
             for r in door["roles"]
         ]
 

@@ -185,10 +185,13 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             try:
                 redeemed = registry.redeem(body.invitation, server.ports, None, None)
                 roles = server.hosts[redeemed["coalition_id"]].state.charter["roles"]
-                await enroll_member(server, redeemed, roles[0]["id"])
+                door = doors.door_row("coalition", redeemed["coalition_id"])
+                # A person let in from the map takes a seat that is free, not always the first.
+                role = (doors.choose_role(door, None) if door else None) or roles[0]["id"]
+                await enroll_member(server, redeemed, role)
             except ValueError, KeyError:
                 raise HTTPException(400, "invitation refused") from None
-            doors.arrive(redeemed["coalition_id"], redeemed["participant"], roles[0]["id"])
+            doors.arrive(redeemed["coalition_id"], redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
                 "host_key": public_key_to_jwk(server.key.public_key(), "host"),

@@ -149,7 +149,7 @@ def test_join_by_code_twice_gives_two_seats(client: TestClient) -> None:
         "closes_at": seen.json()["closes_at"],
         "seats": 3,
         "filled": 1,
-        "roles": [{"id": "member", "label": "Member", "open": True}],
+        "roles": [{"id": "member", "label": "Member", "open": 2}],
     }
     first, second = join(client, code), join(client, code.lower())
     for reply in (first, second):
@@ -172,7 +172,7 @@ def test_role_with_an_open_seat_is_chosen(client: TestClient) -> None:
     code = room["door"]["code"]
     assert join(client, code, role="scribe").status_code == 200
     roles = {r["id"]: r["open"] for r in client.get("/v1/door/" + code).json()["roles"]}
-    assert roles == {"lead": False, "scribe": True}
+    assert roles == {"lead": 0, "scribe": 1}
     # The lead seat is the opener's, so a request for it falls to the first role with a seat.
     assert join(client, code, role="lead").status_code == 200
     arrivals = client.get("/v1/coalition/door", headers=owner_of(room)).json()["arrivals"]

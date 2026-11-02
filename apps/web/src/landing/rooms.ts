@@ -26,6 +26,14 @@ export async function listRooms(
   return { rooms: body.rooms ?? [], examples: body.examples ?? [] };
 }
 
+/** A real room sends when it closes as a time; a sample's words are shown as they are. */
+export function closesLabel(closes: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(closes)) return closes;
+  const when = new Date(closes);
+  if (Number.isNaN(when.getTime())) return "closes soon";
+  return `closes ${when.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })}`;
+}
+
 /** A point on the map, in percent of its width and height. */
 export type Spot = { x: number; y: number };
 

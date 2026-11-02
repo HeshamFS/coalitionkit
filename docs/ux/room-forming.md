@@ -78,7 +78,7 @@ Door = {
 | `GET /v1/coalition/door` | owner bearer | the Door |
 | `POST /v1/coalition/door/stop` | owner bearer | stops the code, returns the Door |
 | `POST /v1/coalition/door/knocks/{id}` `{answer: "yes" \| "no"}` | owner bearer | answers a knock, returns the Door |
-| `GET /v1/door/{code}` | anyone through the gate | `{goal, place, closes_at, seats, filled, roles: [{id, label, open}]}`; 404 when unknown, stopped or closed |
+| `GET /v1/door/{code}` | anyone through the gate | `{goal, place, closes_at, seats, filled, roles: [{id, label, open}]}` where `open` is seats left; 404 when unknown, stopped or closed |
 | `POST /v1/door/join` `{code, display_name?, role?}` | anyone through the gate | same reply as `/v1/invitations/accept`; a role with an open seat is used, else the first role with one; 404 unknown or closed, 409 full, 429 too many tries (per code and per caller, sliding minute) |
 | `POST /v1/rooms/{id}/knock` | anyone through the gate | `{knock: id, secret}`, rate limited; 404 unless the room is listed |
 | `GET /v1/rooms/{id}/knocks/{knock}?secret=` | the knocker | `{state: "waiting" \| "yes" \| "no"}`, plus `invitation` once on yes (a one-use secret for `/join#`) |
