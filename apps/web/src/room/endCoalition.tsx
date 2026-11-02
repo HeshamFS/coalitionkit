@@ -101,9 +101,13 @@ export function EndedView({
     ask(run);
   }, [run, ask]);
   const base = event ?? readEnded();
+  // The owner's feed closes with the dissolve; the host's report names the lessons too.
+  const counts = report && "failed" in report ? report.done : report;
   const shown: DissolveEvent = {
     reason: run?.reason ?? base?.reason ?? "completed",
-    skills_written: base?.skills_written ?? [],
+    skills_written: base?.skills_written?.length
+      ? base.skills_written
+      : (counts?.skills_written ?? base?.skills_written ?? []),
   };
   if (run && refused) {
     return (
@@ -124,7 +128,12 @@ export function EndedView({
   }
   return (
     <main className="ck-ended" aria-label="The coalition has ended">
-      <Dissolve event={shown} cleanup={report} onRetry={run ? () => ask(run) : undefined} />
+      <Dissolve
+        event={shown}
+        cleanup={report}
+        lessons={counts?.lessons}
+        onRetry={run ? () => ask(run) : undefined}
+      />
       <p className="ck-ended-out">
         <button type="button" className="btn" onClick={() => leave(onLeave)}>
           Back to the start

@@ -18,6 +18,7 @@ from starlette.responses import JSONResponse
 
 from coalitionkit_contracts import (
     SchemaValidationError,
+    jwk_thumbprint,
     public_key_to_jwk,
     sign_owner_proof,
     validate_payload,
@@ -304,6 +305,27 @@ def mount_start(
             }
 
 
+def owner_lessons(server: Server, coalition: str, ids: list[str]) -> Document:
+    """Titles of the written lessons the owner may read (a lesson is scoped to its sources)."""
+    with server.store.transaction(coalition) as tx:
+        owner = tx.execute(
+            "SELECT participant FROM server_owners WHERE coalition = ?", (coalition,)
+        ).fetchone()
+        rows = tx.execute(
+            "SELECT name, audience, body FROM pack_lessons WHERE coalition = ?", (coalition,)
+        ).fetchall()
+    member = server.hosts[coalition].state.members.get(owner[0]) if owner else None
+    if member is None:
+        return {}
+    # A lesson's audience is the owner keys of the members its sources reached.
+    key = jwk_thumbprint(member["owner_key"])
+    titles: Document = {}
+    for name, audience, body in rows:
+        if name in ids and key in json.loads(audience):
+            titles[name] = {"title": json.loads(body)["title"]}
+    return titles
+
+
 def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document | JSONResponse:
     registry, host = server.registry, server.hosts[coalition]
     done: Document = {}
@@ -337,7 +359,14 @@ def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document 
                         break
                     before.apply(previous)
                 tasks = sum(t["status"] not in {"done", "withdrawn"} for t in before.tasks.values())
-                done.update(seq=event["seq"], tasks_closed=tasks)
+                done.update(
+                    seq=event["seq"],
+                    tasks_closed=tasks,
+                    # The owner's closing screen names the lessons; the feed that would carry
+                    # the dissolve event closes with the owner's access.
+                    skills_written=event["payload"]["skills_written"],
+                    lessons=owner_lessons(server, coalition, event["payload"]["skills_written"]),
+                )
                 with server.store.transaction(coalition) as tx:
                     tx.execute(
                         "INSERT INTO server_dissolutions VALUES (?, ?) "
