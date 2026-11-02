@@ -53,6 +53,16 @@ class GardenerLoop:
         if coalition not in self.tasks:
             self.tasks[coalition] = asyncio.create_task(self.run(coalition))
 
+    async def release(self, coalition: str) -> None:
+        """Stop driving a coalition for good: a caller that plays the Gardener itself (an
+        acceptance harness) would otherwise race this loop's needs and proposals."""
+        task = self.tasks.pop(coalition, None)
+        if task is not None:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        with self.server.store.transaction(coalition) as tx:
+            tx.execute("DELETE FROM server_genesis WHERE coalition = ?", (coalition,))
+
     async def close(self) -> None:
         for task in self.tasks.values():
             task.cancel()
