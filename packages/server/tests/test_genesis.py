@@ -289,7 +289,13 @@ async def test_model_fallback_and_success(monkeypatch: pytest.MonkeyPatch) -> No
     assert (await draft_goal("A shared goal", gateway)).source == "reader"
     assert (await draft_goal("A shared goal", gateway)).source == "reader"
     expected = read_goal("A shared goal")
-    fake.script.append(ScriptedResponse(expected.model_dump_json()))
+    fake.script.append(
+        ScriptedResponse(
+            ModelDraft(
+                draft=expected.draft, source="model", reading=expected.reading
+            ).model_dump_json()
+        )
+    )
     assert (await draft_goal("A shared goal", gateway)).source == "model"
     monkeypatch.delenv("COALITIONKIT_META_API_KEY")
     assert (await draft_goal("A shared goal", gateway)).source == "reader"

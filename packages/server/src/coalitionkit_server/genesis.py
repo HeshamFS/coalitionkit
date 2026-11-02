@@ -30,6 +30,7 @@ from coalitionkit_runtime.lifecycle import State
 
 from .adapter import Document
 from .door import START_PER_MINUTE, DoorStore, Limiter, caller, erase_door, mount_door
+from .genesis_compose import compose_draft, composition_catalog
 from .genesis_draft import (
     NUMBER,
     Draft,
@@ -210,6 +211,8 @@ def mount_drafting(
     gate: Callable[[Request], None],
     chosen_pack: Callable[[PackRef], Pack],
 ) -> None:
+    catalog = composition_catalog(server.settings.catalog_file)
+
     @app.get("/v1/packs", dependencies=[Depends(gate)])
     async def packs(request: Request) -> list[Document]:
         if server.settings.genesis == "admin":
@@ -252,6 +255,7 @@ def mount_drafting(
                         ]
                     )
             result.draft.roles = roles
+        result.composition = compose_draft(result, catalog)
         return result
 
 
