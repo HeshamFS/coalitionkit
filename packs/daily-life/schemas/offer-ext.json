@@ -15,6 +15,11 @@
       "required": ["from", "to"]
     },
     "has_car": { "type": "boolean" },
+    "note": {
+      "type": "string",
+      "maxLength": 280,
+      "description": "A short note the others see. Contact details and street addresses are held back."
+    },
     "home_address": { "type": "string", "x-private": true },
     "phone": { "type": "string", "x-private": true },
     "own_limits": {
