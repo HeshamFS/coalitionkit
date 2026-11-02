@@ -36,6 +36,7 @@ class Draft(Goal):
     roles: list[Role] = Field(min_length=1)
     needs: list[str]
     deadline: datetime | None
+    place: str | None = None
     deciders: Literal["all"] = "all"
 
     @field_validator("deadline")

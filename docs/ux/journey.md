@@ -52,7 +52,7 @@ Every screen is composed on the host for the **requesting viewer**, from the eve
 | Action | Who may do it | Credential |
 | --- | --- | --- |
 | Draft a coalition from a sentence | Anyone at the local host (`up`), or the operator with the admin token on a hosted deployment | Local: loopback client, `Origin` equals the host, JSON body. Hosted: admin token, server side only, never in a browser |
-| Start the drafted coalition | The person holding the **start code** | `up` prints a start link `http://127.0.0.1:<port>/#start=<code>`. The code is single use, expires after 24 hours, travels in the URL fragment (never sent in a request line, never logged), and the web removes it from the address on load. Starting returns the owner's viewer token |
+| Start the drafted coalition | The person at the local host (local mode), or the holder of the **start code** (admin mode) | In local mode no start link is needed: the gate already holds the caller to this machine, at most 10 starts a minute, and a start code that is sent must still be valid. In admin mode `up` prints a start link `http://127.0.0.1:<port>/#start=<code>`; the code is single use, expires after 24 hours, travels in the URL fragment (never sent in a request line, never logged), and the web removes it from the address on load. Starting returns the owner's viewer token and the Door (see `room-forming.md`) |
 | Invite | The owner | Owner viewer token. Each invitation is single use, carried in a link fragment (`/join#<invitation>`), revocable by the owner until redeemed |
 | Join | Whoever holds an unused invitation | The invitation; it is exchanged for a viewer token and dies |
 | Decide, approve, commit | The participant themselves | Owner-key `consent_sig` (spec, Owner keys). Agents propose and answer; they never commit anyone |
@@ -211,7 +211,7 @@ Judging: Claude reviews Codex's slices; Codex critiques Claude's and Sonnet's di
 ## 6. Decisions for Hesham
 
 1. The two packs for G3 (science, daily life, flight, or another).
-2. Local Genesis: drafting open on 127.0.0.1 and starting with the printed start code (proposed), admin token on hosted deployments.
+2. Local Genesis: drafting and starting open on 127.0.0.1 without a start link (a valid code is still accepted), admin token and start code on hosted deployments.
 3. Glasses: real Ray-Ban Display or the simulator for filming.
 4. Move the G3 empty-diff baseline from the G1 commit to `core-freeze-2`.
 
