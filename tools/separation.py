@@ -3,7 +3,7 @@
 
 1. Domain words: no word from the denylist and no pack name under ``packages/``, ``apps/`` or
    ``spec/``. Packs add their own domain words to the denylist, so the scan covers them.
-2. Freeze: after the ``core-freeze-3`` tag (the kit release packs build on), a ``pack/*``
+2. Freeze: after the ``core-freeze-3.1`` tag (the kit release packs build on), a ``pack/*``
    branch may change only ``packs/``, ``docs/`` and the denylist.
 3. Packs: every folder in ``packs/`` validates with the loader, and its scripted evals pass.
 """
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DENYLIST = ROOT / "tools" / "discipline-denylist.txt"
 PACKS = ROOT / "packs"
 KIT_DIRS = ("packages", "apps", "spec")
-FREEZE_TAG = "core-freeze-3"
+FREEZE_TAG = "core-freeze-3.1"
 PACK_BRANCH = "pack/"
 PACK_BRANCH_MAY_CHANGE = ("packs/", "docs/", "tools/discipline-denylist.txt")
 SKIP_DIRS = {
