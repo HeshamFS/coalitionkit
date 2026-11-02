@@ -42,6 +42,7 @@ from .genesis_draft import (
     read_goal,
 )
 from .packs import PackRef, public_pack, suggest_pack
+from .rooms import mount_rooms
 
 __all__ = ["DraftResponse", "ModelDraft", "draft_goal", "read_goal"]
 
@@ -149,6 +150,13 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
             raise HTTPException(422, "pack is not installed")
         return pack
 
+    def visitor(request: Request) -> None:
+        if server.settings.genesis == "admin":
+            from .app import admin
+
+            admin(request, server.settings)
+
+    mount_rooms(app, server.settings.sample_rooms, gate, visitor)
     mount_drafting(app, server, gate, chosen_pack)
     mount_start(app, server, gate, chosen_pack, mutation)
 

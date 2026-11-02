@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # Author key IDs mapped to public Ed25519 JWKs (also configurable through the environment).
     pack_trusted_keys: dict[str, dict[str, str]] = Field(default_factory=dict[str, dict[str, str]])
     genesis: Literal["off", "local", "admin"] = "off"
+    # A file of sample rooms for the first screen. The kit ships none.
+    sample_rooms: Path | None = None
     admin_token: SecretStr | None = None
     # WhatsApp message door: mounted only when all four are set.
     whatsapp_token: SecretStr | None = None

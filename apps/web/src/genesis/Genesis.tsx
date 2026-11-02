@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// The first screen (board: Genesis, story J-01 to J-03). Type or say a goal; the Gardener reads it
+// Opening a room (board: Genesis, story J-01 to J-03). Type or say a goal; the Gardener reads it
 // live, seats arrive at the table and the draft germinates beside it; Start creates the coalition.
 import { useEffect, useRef, useState } from "react";
 import { pinAtJoin } from "../chain/pin";
@@ -49,8 +49,17 @@ function refusal(e: unknown): string {
   return "The host could not be reached.";
 }
 
-export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: string }) {
-  const [goal, setGoal] = useState("");
+export function Genesis({
+  onEnter,
+  notice,
+  initialGoal = "",
+}: {
+  onEnter: () => void;
+  notice?: string;
+  /** The sentence typed on the map, read as soon as this screen opens. */
+  initialGoal?: string;
+}) {
+  const [goal, setGoal] = useState(initialGoal);
   const [reply, setReply] = useState<DraftReply | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   /** The sentence the current draft was read from, so Start never sends a draft of older text. */
@@ -164,7 +173,7 @@ export function Genesis({ onEnter, notice }: { onEnter: () => void; notice?: str
   return (
     <main className="gn-stage" aria-labelledby="gn-title">
       <header className="gn-head">
-        <p className="gn-eyebrow">The first screen · zero-pack</p>
+        <p className="gn-eyebrow">Opening a room</p>
         <h1 id="gn-title" className="gn-title">
           Type a goal. <em>Watch a coalition form.</em>
         </h1>
