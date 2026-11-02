@@ -11,6 +11,8 @@
 }
 .fm-word {
   display: inline;
+  max-width: 100%;
+  white-space: normal;
   padding: 0 0.12em;
   border: 0;
   border-bottom: 3px solid color-mix(in srgb, var(--hero-ink) 75%, transparent);
@@ -184,7 +186,6 @@
 .fm-roles li > span:first-child {
   min-width: 0;
   overflow-wrap: anywhere;
-  text-transform: capitalize;
 }
 .fm-step {
   display: inline-flex;
@@ -564,7 +565,6 @@
 }
 .fm-arrivals b {
   font-weight: 600;
-  text-transform: capitalize;
 }
 .fm-arrivals small {
   display: block;

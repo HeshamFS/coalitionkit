@@ -219,8 +219,16 @@ Judging: Claude reviews Codex's slices; Codex critiques Claude's and Sonnet's di
 
 A visitor without a session lands on `/`: a sentence box over a map of open rooms, with the explanation below. The sentence carries to `/open`, the Genesis screen. Light is the default whatever the system says; dark is a choice the browser remembers.
 
-Two ways in sit at the top of the screen: a box for an invitation link, and Scan QR, which reads a QR with the device camera and joins with the invitation inside it. Frames are read in the browser and the camera stops when the scanner closes. A QR for another address is refused, not followed. Short codes are not built yet, and no screen shows a room's own QR until the Door exists.
+Two ways in sit at the top of the screen: a box for a room code or an invitation link, and Scan QR, which reads a QR with the device camera and joins with what is inside it. Frames are read in the browser and the camera stops when the scanner closes. A QR for another address is refused, not followed.
 
 The page has no system scrollbar. A slim pill in the palette shows while you scroll or when the pointer reaches the right edge, and it can be dragged; wheel, touch and keys scroll as usual. Inner panels keep a thin bar in the palette.
 
-Discoverable rooms are not stored yet. `GET /v1/rooms` lists only what an operator supplies with `COALITIONKIT_SAMPLE_ROOMS`, and marks every entry as a sample; without a file the map says it is empty. The kit ships no such file. `examples/rooms/sample-rooms.json` is one to run with. The ground under the map is a fixed pattern that keeps the rooms' relative places. It is not a street map yet.
+`GET /v1/rooms` lists an operator's samples from `COALITIONKIT_SAMPLE_ROOMS`, each marked as a sample, and every open room whose opener chose "People nearby". The kit ships no sample file; `examples/rooms/sample-rooms.json` is one to run with. The ground under the map is a fixed pattern that keeps the rooms' relative places. It is not a street map yet, and a real room's place on it comes from its id, because rooms hold no coordinates.
+
+## Room forming and the Door
+
+The sentence carries to `/open`. The same band continues and the sentence becomes its headline. Under it, on a sheet framed like the map, the host's chosen catalog components arrive as labelled skeletons and settle: a sentence naming a place is built around the map, ordered steps around a graph, a named day around the week. Pointing at a word lights the card it produced. Seats, the deadline and the needs change in place. Nothing is public until the opener presses Open.
+
+One question comes before opening: who can find this room? Only with the code, or people nearby, which means a pin on this host's map. There is no distance filter yet, and "Anyone" is cut. The screen shows exactly what goes public first.
+
+The Door follows at `/door`: the room's QR in its ring of seats, a short code to say aloud, seats and arrivals that follow the host within two seconds, knocks to answer, and Hold up for showing it across a room. The owner gets back to it from the room's header. Arriving by code shows the goal and the open seats before anyone sits down. The host contract is `docs/ux/room-forming.md`.

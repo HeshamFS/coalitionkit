@@ -2,6 +2,7 @@
 // One component the host chose, drawn through the same catalog path as the room. It arrives as a
 // labelled skeleton, fills and settles. Seats, the deadline and the needs can be changed in place.
 import { useState } from "react";
+import { capital } from "../feed/vocabulary";
 import { One } from "../gallery/Drawn";
 import type { Card, Draft } from "../genesis/api";
 import { Assemble } from "../ui/Assemble";
@@ -12,7 +13,13 @@ import { seatTotal } from "./WhoCanFind";
 export function withEdits(card: Card, draft: Draft): Card {
   if (card.component === "SeatRing") {
     const shown = Array.isArray(card.props.seats) ? card.props.seats.length : 0;
-    return { ...card, props: { ...card.props, openSeats: { value: Math.max(0, seatTotal(draft) - shown), event_ref: "draft:roles" } } };
+    return {
+      ...card,
+      props: {
+        ...card.props,
+        openSeats: { value: Math.max(0, seatTotal(draft) - shown), event_ref: "draft:roles" },
+      },
+    };
   }
   if (card.component === "Deadline" && draft.deadline) {
     return { ...card, props: { ...card.props, deadline: draft.deadline } };
@@ -35,7 +42,7 @@ function SeatsEditor({ draft, onEdit }: { draft: Draft; onEdit: (patch: Partial<
         const n = r.count ?? 1;
         return (
           <li key={r.id}>
-            <span>{r.label}</span>
+            <span>{capital(r.label)}</span>
             <span className="fm-step">
               <button
                 type="button"

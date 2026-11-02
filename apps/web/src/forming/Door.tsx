@@ -3,6 +3,7 @@
 // from the host; the page asks again every two seconds, so a new seat shows within that time.
 import { useEffect, useState } from "react";
 import { RoomQr } from "../door/QrCard";
+import { capital } from "../feed/vocabulary";
 import {
   type AgentHome,
   answerKnock,
@@ -218,7 +219,7 @@ export function Door({
                       <li key={a.participant}>
                         <OrbitToken home={a.home} arriving={a.at === newest} />
                         <span>
-                          <b>{a.label}</b>
+                          <b>{capital(a.label)}</b>
                           <small>{HOME[a.home]}</small>
                         </span>
                       </li>

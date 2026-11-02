@@ -81,8 +81,8 @@ export function WhoCanFind({
               <q>{draft.goal}</q>
               <span>
                 {place ? `Pin at ${place}. ` : ""}
-                {seatWords(draft)}. It leaves the map when it closes, fills or you stop it.
-                Your name doesn't show.
+                {seatWords(draft)}. It leaves the map when it closes, fills or you stop it. Your
+                name doesn't show.
               </span>
             </>
           ) : (
