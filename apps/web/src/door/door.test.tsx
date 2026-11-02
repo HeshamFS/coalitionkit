@@ -79,6 +79,17 @@ describe("the QR card", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("hands focus back when it closes", () => {
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const view = render(<QrCard link={LINK} goal="" seats={2} onClose={() => {}} />);
+    expect(document.activeElement).not.toBe(opener);
+    view.unmount();
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
   it("keeps Tab inside and copies the whole link", async () => {
     const writeText = vi.fn(async () => {});
     render(<QrCard link={LINK} goal="" seats={2} onClose={() => {}} />);

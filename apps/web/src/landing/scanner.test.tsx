@@ -93,6 +93,22 @@ describe("the scanner", () => {
     expect(track.stop).toHaveBeenCalled();
   });
 
+  it("stops the camera if the video won't play", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValue(new DOMException("no"));
+    render(<QrScanner onJoin={() => {}} onClose={() => {}} />);
+    expect(await screen.findByText(/didn't start/)).toBeTruthy();
+    expect(track.stop).toHaveBeenCalled();
+  });
+
+  it("stops the camera if a frame can't be read", async () => {
+    read.mockImplementation(() => {
+      throw new Error("bad frame");
+    });
+    render(<QrScanner onJoin={() => {}} onClose={() => {}} />);
+    expect(await screen.findByText(/didn't start/)).toBeTruthy();
+    expect(track.stop).toHaveBeenCalled();
+  });
+
   it.each([
     ["NotAllowedError", /Camera access is off/],
     ["NotFoundError", /No camera found/],

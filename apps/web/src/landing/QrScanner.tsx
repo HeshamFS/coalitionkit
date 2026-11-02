@@ -52,6 +52,7 @@ export function QrScanner({
     };
     const fail = (message: string) => {
       if (stopped) return;
+      stop();
       setFailed(true);
       setNote(message);
     };
@@ -82,9 +83,14 @@ export function QrScanner({
           frame.height = Math.round(el.videoHeight * scale);
           const paint = frame.getContext("2d", { willReadFrequently: true });
           if (!paint) return;
-          paint.drawImage(el, 0, 0, frame.width, frame.height);
-          const { data } = paint.getImageData(0, 0, frame.width, frame.height);
-          const code = readQr(data, frame.width, frame.height);
+          let code: ReturnType<typeof readQr>;
+          try {
+            paint.drawImage(el, 0, 0, frame.width, frame.height);
+            const { data } = paint.getImageData(0, 0, frame.width, frame.height);
+            code = readQr(data, frame.width, frame.height);
+          } catch {
+            return fail(CAMERA_FAILED);
+          }
           if (!code) return;
           const scanned = scannedInvitation(code.data, location.origin);
           if ("secret" in scanned) {

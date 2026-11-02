@@ -56,7 +56,11 @@ export function QrCard({
   const card = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
+    const before = document.activeElement;
     card.current?.querySelector<HTMLButtonElement>("[data-close]")?.focus();
+    return () => {
+      if (before instanceof HTMLElement) before.focus();
+    };
   }, []);
   return createPortal(
     // The keys belong to the dialog as a whole: Escape closes, and Tab stays inside it.
@@ -69,7 +73,7 @@ export function QrCard({
         if (e.key === "Escape") onClose();
         if (e.key !== "Tab") return;
         const stops = [...(card.current?.querySelectorAll("button") ?? [])];
-        const at = stops.indexOf(document.activeElement as HTMLButtonElement);
+        const at = Math.max(0, stops.indexOf(document.activeElement as HTMLButtonElement));
         e.preventDefault();
         stops[(at + (e.shiftKey ? stops.length - 1 : 1)) % stops.length]?.focus();
       }}
