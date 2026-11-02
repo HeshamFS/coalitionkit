@@ -193,6 +193,9 @@ class Journey:
         response.raise_for_status()
         started = response.json()
         self.cid, self.owner_token = started["coalition_id"], started["owner"]["token"]
+        # This journey plays the Gardener itself (needs, plans, the ripple's re-plan), so the
+        # host's own Genesis driver must not race it.
+        await self.server.gardener.release(self.cid)
         self.host.policy = self.policy
         for index, entry in enumerate(scenario.members, 1):
             name = f"p{index}"

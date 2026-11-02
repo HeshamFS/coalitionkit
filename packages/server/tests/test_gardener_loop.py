@@ -367,3 +367,16 @@ def test_no_plan_before_every_decider_has_joined(pack_client: TestClient) -> Non
     member = joined.json()
     consent(pack_client, cid, member["token"], member["participant"])
     assert wait_for(pack_client, cid, "propose")
+
+
+def test_a_released_coalition_is_never_driven(pack_client: TestClient) -> None:
+    created = begin(pack_client)
+    cid, owner = created["coalition_id"], created["owner"]
+    server = server_for(pack_client)
+    pack_client.portal.call(server.gardener.release, cid)  # type: ignore[union-attr]
+    consent(pack_client, cid, owner["token"], "p1")
+    time.sleep(2.5)
+    assert not events(pack_client, cid, "need")  # the caller plays the Gardener itself
+    assert cid not in server.gardener.tasks
+    with server.store.transaction(cid) as tx:
+        assert not tx.execute("SELECT 1 FROM server_genesis WHERE coalition = ?", (cid,)).fetchall()

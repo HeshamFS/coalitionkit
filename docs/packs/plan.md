@@ -28,7 +28,7 @@ Three Discipline Packs that work end to end, from a typed goal to Dissolve, each
 1. All three packs.
 2. Packs live in `packs/<name>/` in this repository, outside `packages/`, kept apart by the checks in section 7.
 3. A pack may suggest itself from the typed goal through a new optional `pack.yaml` field (spec change first, slice A0).
-4. G3 measures the empty core diff from `core-freeze-2`. **Moved to `core-freeze-3` (2026-11-01, Hesham's call):** the Phase C walk found a kit bug that no pack caused. Browsers send no `Origin` on a same-origin GET, so the Genesis guard refused `GET /v1/packs` and no pack could be picked in the browser. `core-freeze-3` is `core-freeze-2` plus that one fix; the three packs changed nothing in the kit. The same walk then found that the Genesis path had no Gardener at all, so `core-freeze-3` also carries the host's Gardener loop. Two follow-up kit fixes from the walk (plans wait for every decider; the owner's closing screen names the lessons) are tagged `core-freeze-3.1`. `core-freeze-3.2` adds the last one, Theatre and the offer form naming a pack policy the host enforced, and is the baseline the freeze check uses now.
+4. G3 measures the empty core diff from `core-freeze-2`. **Moved to `core-freeze-3` (2026-11-01, Hesham's call):** the Phase C walk found a kit bug that no pack caused. Browsers send no `Origin` on a same-origin GET, so the Genesis guard refused `GET /v1/packs` and no pack could be picked in the browser. `core-freeze-3` is `core-freeze-2` plus that one fix; the three packs changed nothing in the kit. The same walk then found that the Genesis path had no Gardener at all, so `core-freeze-3` also carries the host's Gardener loop. Two follow-up kit fixes from the walk (plans wait for every decider; the owner's closing screen names the lessons) are tagged `core-freeze-3.1`. `core-freeze-3.2` adds the last one, Theatre and the offer form naming a pack policy the host enforced, `core-freeze-3.3` stops the Gardener loop from racing the acceptance harness, which plays the Gardener itself, and is the baseline the freeze check uses now.
 
 ## 4. Phase 0 · finish the zero-pack journey
 
@@ -94,7 +94,7 @@ Owners: `science-lab` Codex, `daily-life` Sonnet, `travel-disruption` Sonnet. Cl
 
 1. Domain words: no word from `tools/discipline-denylist.txt` under `packages/`, `apps/` or `spec/` (extended in A6). Packs add their own domain words to the denylist so the scan covers them.
 2. Imports: an import-linter contract forbids any import of `packs` from the kit.
-3. Freeze: `git diff --quiet core-freeze-3.2 -- packages apps spec` on pack branches (`core-freeze-2` until the Phase C kit fix; see decision 4).
+3. Freeze: `git diff --quiet core-freeze-3.3 -- packages apps spec` on pack branches (`core-freeze-2` until the Phase C kit fix; see decision 4).
 4. Packs: `coalitionkit pack validate` and the scripted evals for every folder in `packs/`.
 
 ## 8. Phase C · each pack walked
@@ -108,7 +108,7 @@ Gate per pack, all in Chrome on a local host started with `--pack packs/<name>`:
 3. One of the pack's policies blocks something; Theatre shows it with the policy name.
 4. Dissolve writes the pack's lessons.
 5. Its evals pass scripted, and live with the key (cost reported).
-6. The freeze check shows an empty kit diff since `core-freeze-3.2` (decision 4).
+6. The freeze check shows an empty kit diff since `core-freeze-3.3` (decision 4).
 
 When all three pass: G3.
 
