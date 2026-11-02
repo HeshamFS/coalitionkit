@@ -219,6 +219,14 @@ A message must pass two independent tests: the scope rules (who may see what) an
 | `ripple` | A member | Tasks visible to the sender only; every ID in `invalidates` must be one |
 | `charter`, `need`, `query`, `propose`, `tension`, `dissolve`, `projection`, `receipt` (and `error`) | The host only | Rejected from any member, vault or edge |
 
+### Admission by short code and knock
+
+A host MAY admit a participant by means other than a one-use invitation link, as long as every admission still ends in a one-use invitation redeemed by the `join` above; the matrix does not change.
+
+- **Short code.** A host MAY give a Coalition one many-use short code. Presenting it makes the host issue and redeem a one-use invitation for the presenter, so each joiner is a separate participant. The host MUST refuse the code once the opener stops it, the charter deadline has passed, every seat the charter plans is filled, or the Coalition is dissolved, and MUST rate-limit attempts per code and per caller. A refusal MUST NOT name any member or seat holder.
+- **Knock.** A host MAY let a stranger knock on a Coalition the opener has chosen to list. The knock gives the stranger a secret that only they hold; the opener answers yes or no. A yes yields exactly one one-use invitation, handed to the knocker once and only on presenting that secret, compared in constant time. A no admits nothing.
+- A host erases every short code, knock and arrival record when the Coalition dissolves.
+
 ## Visibility scopes and disclosure
 
 Every envelope says who may see it, and the narrowest reading wins. A host MUST NOT deliver an event, or project it onto a surface, for anyone outside its scope.
