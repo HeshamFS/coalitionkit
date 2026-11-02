@@ -62,6 +62,7 @@ describe("Landing", () => {
     render(<Landing onOpen={() => {}} onJoin={() => {}} />);
     expect(await screen.findByText("2 sample rooms on the map")).toBeTruthy();
     const pin = screen.getByRole("button", { name: /Goal one.*sample/ });
+    expect(pin.textContent).toMatch(/· sample/);
     await userEvent.click(pin);
     expect(screen.getByRole("status").textContent).toMatch(/sample room/);
   });

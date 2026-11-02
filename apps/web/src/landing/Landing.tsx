@@ -109,7 +109,10 @@ function RoomsMap({ list, theme }: { list: RoomList; theme: Theme }) {
           </span>
           <span className="ld-pinlabel">
             {r.goal}
-            <small>{seatsLine(r)}</small>
+            <small>
+              {seatsLine(r)}
+              {r.sample ? " · sample" : ""}
+            </small>
           </span>
         </button>
       ))}
