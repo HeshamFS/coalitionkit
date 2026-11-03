@@ -31,6 +31,13 @@ GOALS = [
     "Two of us need to organise a small get-together: find a place, share the costs, and "
     "write a short invitation to send out",
 ]
+
+
+def goal_of(index: int) -> str:
+    """The goal for a run; ROOM_LIVE_GOAL_TEXT replaces it, so a case stays out of the repo."""
+    return os.environ.get("ROOM_LIVE_GOAL_TEXT") or GOALS[index]
+
+
 KEY = bool(os.environ.get("COALITIONKIT_META_API_KEY"))
 REAL_STEWARD = bool(os.environ.get("COALITIONKIT_BASETEN_API_KEY"))
 STEWARD_MODEL = "meta-models/muse-spark-open"
@@ -190,7 +197,7 @@ class Run:
 @pytest.mark.live
 @pytest.mark.skipif(not KEY, reason="no key")
 def test_gate_one_a_real_room_reaches_plans(tmp_path: Path) -> None:
-    goal = GOALS[int(os.environ.get("ROOM_LIVE_GOAL", "0"))]
+    goal = goal_of(int(os.environ.get("ROOM_LIVE_GOAL", "0")))
     with live_client(tmp_path) as client:
         run = Run(client, goal)
         outcome = "plans"
@@ -229,7 +236,7 @@ def test_gate_two_a_plan_is_made_a_sentence_changes_only_what_it_touches_and_the
     tmp_path: Path,
 ) -> None:
     with live_client(tmp_path) as client:
-        run = Run(client, GOALS[1])
+        run = Run(client, goal_of(1))
         cid, engine, c = run.cid, run.engine, client
         host = run.server.hosts[cid]
         run.to_plans()
@@ -319,7 +326,7 @@ def test_gate_two_a_plan_is_made_a_sentence_changes_only_what_it_touches_and_the
 @pytest.mark.skipif(not KEY, reason="no key")
 def test_gate_two_the_deadline_ends_a_live_room(tmp_path: Path) -> None:
     with live_client(tmp_path) as client:
-        run = Run(client, GOALS[1])
+        run = Run(client, goal_of(1))
         run.to_plans()
         run.decide_and_commit()
         until(lambda: len(results_of(client, run.cid)) >= 1, 240, "a result")

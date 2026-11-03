@@ -447,7 +447,7 @@ async def make(
     source = "model" if made is not None else "rules"
     title = title_for(kind, data, facts["need"])
     shown = None
-    needs_layout = (kind == "place" and data["options"]) or kind in {"draft", "list"}
+    needs_layout = (kind == "place" and data["options"]) or kind == "list"
     if needs_layout or (kind == "budget" and data["amount"] is not None):
         shown = await layout(engine, coalition, kind, assignee, task, facts, data, known)
     if shown is not None:

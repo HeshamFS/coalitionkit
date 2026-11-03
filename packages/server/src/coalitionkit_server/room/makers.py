@@ -55,7 +55,7 @@ KIND_RULES = {
     ),
     "place": (
         "Suggest 2 or 3 kinds of place (not named venues), each with why it fits this goal and "
-        "what to check first before booking it."
+        "what to check first before booking it, each in one or two plain sentences that end properly."
     ),
     "schedule": (
         "Give the ordered steps of the plan, each a short action. The times are added from the "
@@ -168,8 +168,8 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
         ideas = [
             {
                 "name": tidy(i.kind_of_place, 60),
-                "why": tidy(i.why_it_fits, 140),
-                "check": tidy(i.check_first, 140),
+                "why": tidy(i.why_it_fits, 220),
+                "check": tidy(i.check_first, 220),
             }
             for i in out.ideas
         ]

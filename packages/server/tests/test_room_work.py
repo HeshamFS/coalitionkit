@@ -221,9 +221,9 @@ def test_a_bad_layout_is_asked_for_again_then_replaced_by_a_fixed_one(tmp_path: 
         until(lambda: len(results_of_events(client, cid)) == 3, 40, "results")
         calls = [c for c in scripted.calls if c[0] == "composer"]
         layouts = [c for c in calls if "You choose how to show" in str(c[1][0]["content"])]
-        assert len(layouts) == 4, "place and draft are laid out; each asked twice, then fixed"
+        assert len(layouts) == 2, "the place is laid out: asked twice, then fixed"
         fixes = [json.loads(str(c[1][-1]["content"]))["fix_this"] for c in layouts]
-        assert sum(1 for f in fixes if f) == 2
+        assert sum(1 for f in fixes if f) == 1
         for c in results_of_events(client, cid):
             ids = [n["id"] for n in c["components"]]
             assert ids[0] == "root" and c["source"] == "model"
