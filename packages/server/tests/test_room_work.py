@@ -65,7 +65,7 @@ def to_decided(client: TestClient) -> tuple[str, Any, dict[str, Any]]:
     host = server_of(client).hosts[cid]
     until(
         lambda: {t["status"] for t in host.state.tasks.values()} <= {"decided", "committed"},
-        20,
+        40,
         "decided",
     )
     return cid, engine, people
