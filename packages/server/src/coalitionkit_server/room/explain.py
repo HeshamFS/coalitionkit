@@ -22,6 +22,7 @@ from .brief import given
 from .engine import FOR_YOU
 from .model import ask
 from .needs import tidy
+from .offer_rules import limits, span
 from .seats import people, read_state
 
 if TYPE_CHECKING:
@@ -109,6 +110,16 @@ def rule_note(index: int, shown: Document) -> Document:
     }
 
 
+def over_limit(who: str, plan: Document, state: State, cap: int | None) -> str:
+    """Said by code, not the model: the plan asks more of them than the hours they gave."""
+    asked = sum(
+        minutes_of(state, who, a["task_id"]) for a in plan["assignments"] if a["assignee"] == who
+    )
+    if cap is None or asked <= cap:
+        return ""
+    return f" This asks {span(asked)} of your {span(cap)}."
+
+
 def rule_for_you(who: str, plan: Document, titles: dict[str, str], state: State) -> str:
     mine = [a for a in plan["assignments"] if a["assignee"] == who]
     if not mine:
@@ -189,14 +200,15 @@ async def for_you(
         only=who,
     )
     wording = {p.plan_id: tidy(p.line, LINE_MAX) for p in reply.plans} if reply else {}
+    cap = limits(given(engine, coalition, who)).cap
     lines: Document = {}
     for plan in todo:
         said = wording.get(plan["plan_id"])
-        lines[plan["plan_id"]] = (
-            {"line": said, "source": "model"}
-            if said
-            else {"line": rule_for_you(who, plan, titles, state), "source": "rules"}
-        )
+        line = said or rule_for_you(who, plan, titles, state)
+        lines[plan["plan_id"]] = {
+            "line": line + over_limit(who, plan, state, cap),
+            "source": "model" if said else "rules",
+        }
     with engine.lock:
         engine.vault_put(
             coalition, who, FOR_YOU, {**engine.vault(coalition, who).get(FOR_YOU, {}), **lines}

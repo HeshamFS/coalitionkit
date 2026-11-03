@@ -121,7 +121,7 @@ class RoomModel:
             if self.gardener_delay and "public name" not in system:
                 await asyncio.sleep(self.gardener_delay)
         elif route.role == "hosted_agent":
-            if "Decide what to offer" in system:
+            if "An offer says" in system:
                 reply = self.pick(self.offers, user)
                 if self.offers_delay:
                     await asyncio.sleep(self.offers_delay)

@@ -12,11 +12,7 @@ the room gives it a short grace and moves on.
 from __future__ import annotations
 
 import asyncio
-import re
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
-
-from pydantic import BaseModel
+from typing import TYPE_CHECKING
 
 from coalitionkit_contracts import new_ulid, validate_payload
 from coalitionkit_mcp.gateway import build_envelope
@@ -26,129 +22,35 @@ from ..adapter import Document
 from .brief import given
 from .model import ask
 from .needs import tidy
+from .offer_rules import (
+    HELPER_MINUTES,
+    OfferItem,
+    OffersReply,
+    checked,
+    cover_items,
+    feed_text,
+    limits,
+    rule_offers,
+    span,
+)
 from .seats import people, read_state
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
 GRACE_S = 60.0  # how long a person's own (not hosted) agent has to offer
-DEFAULT_MINUTES = 30  # a starting offer for someone who gave no limit
-MIN_MINUTES = 5
-HELPER_MINUTES = 15
-RESERVE_MINUTES = 15  # held back per other need from a model's first offer
 NOTE_MAX = 300
 
 SYSTEM = (
-    "You are one person's agent in a small group room. Decide what to offer on the room's "
-    "needs for that person, from what they told you. Offer only on needs you list by id, "
-    "give minutes and money as whole numbers inside the limits they set, and set the effort "
-    "(low, medium or high). A plan can only be made when every need has an offer from "
-    "somebody, so spread the minutes they gave over more than one need whenever you can, "
-    "most on what they prefer. Offer on no need they cannot afford. Then "
-    "write one short note to the person saying what you offered and why, in plain words."
+    "You are one person's agent in a small group room. An offer says: I could do this need, "
+    "and it would take me about this long. Offers are alternatives, not a bill; the room "
+    "picks among everyone's offers. Offer on every need this person could do, with your own "
+    "honest estimate in minutes for each one, different from need to need and never above "
+    "the most they said they would give to any one job. Set the effort from fit: low for "
+    "what they prefer, medium for the rest, high for what they would rather not do. Money is "
+    "a whole number inside any limit they gave, else 0. Then write one short note to the "
+    "person saying what you offered and why, in plain words."
 )
-
-
-class OfferItem(BaseModel):
-    need_id: str
-    minutes: int
-    money: int
-    effort: Literal["low", "medium", "high"]
-
-
-class OffersReply(BaseModel):
-    offers: list[OfferItem]
-    note: str
-
-
-@dataclass(frozen=True)
-class Limits:
-    minutes: int | None  # None: the person set no limit on time
-    money: int  # 0 unless the person gave an amount in some other unit
-    picked: tuple[str, ...]  # the words of what they chose to take on
-    answered: bool  # they answered at least one question
-
-
-def words(text: str) -> set[str]:
-    return {w for w in re.findall(r"[a-z]+", text.lower()) if len(w) >= 4}
-
-
-def limits(told: list[Document]) -> Limits:
-    minutes: int | None = None
-    money = 0
-    picked: list[str] = []
-    for item in told:
-        if item["kind"] == "amount":
-            unit = str(item["unit"]).lower()
-            if "hour" in unit or unit in {"h", "hr", "hrs"}:
-                minutes = int(item["answer"] * 60) + (minutes or 0)
-            else:
-                money += int(item["answer"])
-        elif item["kind"] == "choice":
-            picked.append(str(item["answer"]))
-    return Limits(minutes, money, tuple(picked), bool(told))
-
-
-def effort_of(minutes: int) -> Literal["low", "medium", "high"]:
-    return "low" if minutes <= 30 else "medium" if minutes <= 120 else "high"
-
-
-def chosen_needs(needs: list[Document], lim: Limits) -> list[Document]:
-    """The needs the person pointed at; every need when they pointed at none that match."""
-    wanted = [n for n in needs if any(words(p) & words(n["title"]) for p in lim.picked)]
-    return wanted or needs
-
-
-def rule_offers(needs: list[Document], lim: Limits) -> list[OfferItem]:
-    """No model: offer on the needs they chose, inside the hours they gave. 0 hours is no offer."""
-    if lim.minutes == 0:
-        return []
-    chosen = chosen_needs(needs, lim)
-    rest = [n for n in needs if n not in chosen]
-    if lim.minutes is None:
-        per, count = DEFAULT_MINUTES, len(chosen)
-    else:
-        # What they pointed at gets twice the share of the rest, so a need nobody chose is
-        # still covered by a small offer rather than left for the room to wait on.
-        unit = lim.minutes // (2 * len(chosen) + len(rest))
-        if rest and unit >= MIN_MINUTES:
-            return [
-                OfferItem(need_id=n["id"], minutes=m, money=0, effort=effort_of(m))
-                for n, m in [(n, 2 * unit) for n in chosen] + [(n, unit) for n in rest]
-            ]
-        count = max(0, min(len(chosen), lim.minutes // MIN_MINUTES))
-        per = lim.minutes // count if count else 0
-    return [
-        OfferItem(need_id=n["id"], minutes=per, money=0, effort=effort_of(per))
-        for n in chosen[:count]
-    ]
-
-
-def checked(
-    reply: OffersReply | None, needs: list[Document], lim: Limits
-) -> list[OfferItem] | None:
-    """The model's offers, clamped to the person's limits; None when none is usable."""
-    if reply is None or lim.minutes == 0:
-        return None
-    known = {n["id"] for n in needs}
-    left = lim.minutes
-    # Keep a little back for the needs not yet offered on, so the room can still cover them.
-    keep = 0 if left is None else min(RESERVE_MINUTES, left // (2 * len(known))) * (len(known) - 1)
-    out: list[OfferItem] = []
-    for item in reply.offers:
-        if item.need_id not in known or any(o.need_id == item.need_id for o in out):
-            continue
-        minutes = max(MIN_MINUTES, item.minutes)
-        if left is not None:
-            minutes = min(minutes, left - (keep if not out else 0))
-            if minutes < MIN_MINUTES:
-                break
-            left -= minutes
-        money = max(0, min(item.money, lim.money))
-        out.append(
-            OfferItem(need_id=item.need_id, minutes=minutes, money=money, effort=item.effort)
-        )
-    return out or None
 
 
 async def send_offer(
@@ -185,7 +87,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
     lim = limits(told)
     entry = engine.start_activity(coalition, "offering", "Choosing what to offer", seat=who)
     reply = None
-    if lim.minutes != 0:
+    if not lim.silent:
         reply = await ask(
             engine,
             coalition,
@@ -195,7 +97,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
                 "goal": state.charter["goal"],
                 "needs": [{k: n[k] for k in ("id", "title", "kind", "detail")} for n in needs],
                 "told_by_the_person": told,
-                "limit_minutes": lim.minutes,
+                "most_minutes_for_any_one_job": lim.cap,
                 "limit_money": lim.money,
             },
             OffersReply,
@@ -222,20 +124,6 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
     if source == "model" and reply is not None and reply.note.strip():
         engine.feed_add(coalition, who, tidy(reply.note, NOTE_MAX))
     engine.update(coalition, lambda d: d["offers"].__setitem__(who, {"count": len(items)}))
-
-
-def feed_text(items: list[OfferItem], names: dict[str, str], lim: Limits, source: str) -> str:
-    if not items:
-        why = "you gave it no hours" if lim.minutes == 0 else "nothing fit what you said"
-        return f"Your agent made no offer, because {why}. You can still join a plan later."
-    parts = "; ".join(f"{i.minutes} minutes on {names[i.need_id]}" for i in items)
-    start = (
-        "You skipped the questions, so your agent offered a starting amount: "
-        if not lim.answered
-        else "Your agent offered "
-    )
-    how = "" if source == "model" else " (fixed rules, no model)"
-    return f"{start}{parts}{how}. Nothing here binds you: only your own yes on a plan does."
 
 
 async def helper_offer(engine: RoomEngine, coalition: str, pid: str, state: State) -> None:
@@ -296,56 +184,36 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         note_gaps(engine, coalition, state, doc)
 
 
-def spent_minutes(state: State, who: str) -> int:
-    return sum(int(o["cost"]["minutes"]) for o in state.offers.values() if o["owner"] == who)
-
-
 async def cover(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:
-    """Offer, inside the hours left, on any need nobody offered on, one need per person in turn.
+    """Make sure no need is left without an offer, unless every hosted person said 0 hours.
 
-    A plan has to cover every need, so a need with no offer would stall the room. These offers
-    bind no one: the person's own yes on a plan is still what counts, and their feed says so.
+    A plan has to cover every need, and an offer only says "I could do this, about this long",
+    so anyone who gave any hours can cover a bare need. These offers bind no one: the person's
+    own yes on a plan is what counts, and their feed says so.
     """
     offered = {str(o["target"]["id"]) for o in state.offers.values()}
     gone = engine.refused_needs(coalition)
-    bare = [n for n in doc["needs"] if n["id"] not in offered and n["id"] not in gone]
+    needs = [n for n in doc["needs"] if n["id"] not in gone]
+    bare = [n for n in needs if n["id"] not in offered]
     hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
     if not bare or not hosted:
         return
-    room: dict[str, int | None] = {}
-    for who in hosted:
-        lim = limits(given(engine, coalition, who))
-        room[who] = None if lim.minutes is None else max(0, lim.minutes - spent_minutes(state, who))
-        if lim.minutes == 0:
-            room[who] = 0
-    taken: dict[str, list[OfferItem]] = {}
-    for turn, need in enumerate(bare):
-        for step in range(len(hosted)):
-            who = hosted[(turn + step) % len(hosted)]
-            left = room[who]
-            share = len(bare) - turn  # needs still to cover, this one included
-            minutes = DEFAULT_MINUTES
-            if left is not None:
-                minutes = min(DEFAULT_MINUTES, max(MIN_MINUTES, left // share), left)
-            if minutes < MIN_MINUTES:
-                continue
-            taken.setdefault(who, []).append(
-                OfferItem(need_id=need["id"], minutes=minutes, money=0, effort=effort_of(minutes))
-            )
-            room[who] = None if left is None else left - minutes
-            break
+    mine = {who: limits(given(engine, coalition, who)) for who in hosted}
+    taken = cover_items(needs, bare, mine)
     names = titles(doc["needs"])
     for who, items in taken.items():
         for item in items:
             await send_offer(engine, coalition, who, state, item)
         engine.note(coalition, "offering", "Covered a need nobody had offered on", seat=who)
-        parts = "; ".join(f"{i.minutes} minutes on {names[i.need_id]}" for i in items)
+        parts = "; ".join(
+            f"{names[i.need_id]}, about {span(i.minutes)} ({i.effort} effort)" for i in items
+        )
         engine.feed_add(
             coalition,
             who,
             f"Nobody had offered on {', '.join(names[i.need_id] for i in items)}, and a plan "
-            f"needs every need covered, so your agent also offered {parts}, inside the hours "
-            "you gave. Nothing here binds you: only your own yes on a plan does.",
+            f"needs every need covered, so your agent also said you could do {parts}. That is "
+            "an offer, not a promise: nothing binds you until you say yes to a plan.",
         )
 
 

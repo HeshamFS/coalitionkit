@@ -47,7 +47,8 @@ SYSTEM = (
     "behalf. Ask that person one to three short questions whose answers you need to decide "
     "which needs they can take and what it costs them. Each question has a kind: choice (pick "
     "one of two to six short options you write), amount (a whole number between low and high "
-    "with a unit, such as hours), slots (pick any of the room's shared time slots; leave "
+    "with a unit; for time, make it the most they would give to any one job, in hours), "
+    "slots (pick any of the room's shared time slots; leave "
     "options empty) or text (a short free answer). Ask only what the goal, the needs and the "
     "slots make useful; never ask for private details that no need requires. For each question "
     "write why you ask it in one line. Unused fields stay empty or zero."
@@ -101,8 +102,8 @@ def fallback_items(needs: list[Document], slots: list[Document]) -> list[AskItem
         )
     out.append(
         AskItem(
-            ask="How many hours could you give?",
-            why="Your agent keeps its offers inside this.",
+            ask="What is the most time, in hours, you would give to any one job?",
+            why="Your agent will not say any single job takes you longer than this.",
             kind="amount",
             options=[],
             low=0,

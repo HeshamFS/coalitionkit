@@ -46,22 +46,23 @@ def test_rule_offers_follow_the_hours_and_say_what_they_did(tmp_path: Path) -> N
         mine = offers_by(client, cid, "p1")
         titles = {n["id"]: n["title"] for n in engine.read(cid)["needs"]}
         by_need = {titles[o["payload"]["target"]["id"]]: o["payload"]["cost"] for o in mine}
-        # What they pointed at gets twice the share; the 120 minutes given are all there is.
-        assert {k: v["minutes"] for k, v in by_need.items()} == {
-            "Find a venue": 60,
-            "Share the costs": 30,
-            "Write the invitation": 30,
+        # Each offer is its own estimate: quicker and easier for what they chose, slower and
+        # harder for the rest, never above the most they would give to one job (2 hours).
+        assert by_need == {
+            "Find a venue": {"minutes": 45, "money": 0, "effort": "low"},
+            "Share the costs": {"minutes": 67, "money": 0, "effort": "high"},
+            "Write the invitation": {"minutes": 120, "money": 0, "effort": "high"},
         }
-        assert by_need["Find a venue"] == {"minutes": 60, "money": 0, "effort": "medium"}
         assert offers_by(client, cid, a_id) == [], "0 hours means no offer"
         starter = offers_by(client, cid, b_id)
-        assert [o["payload"]["cost"]["minutes"] for o in starter] == [30, 30, 30]
+        assert [o["payload"]["cost"]["minutes"] for o in starter] == [60, 45, 90]
+        assert {o["payload"]["cost"]["effort"] for o in starter} == {"medium"}
         feed_b = " ".join(x["text"] for x in view_of(engine, cid, b_id)["mine"]["feed"])
-        assert "starting amount" in feed_b and "Nothing here binds you" in feed_b
+        assert "starting guesses" in feed_b and "nothing binds you" in feed_b
         feed_a = " ".join(x["text"] for x in view_of(engine, cid, a_id)["mine"]["feed"])
         assert "made no offer" in feed_a and "no hours" in feed_a
         feed_1 = " ".join(x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"])
-        assert "60 minutes on Find a venue" in feed_1
+        assert "Find a venue, about 45 minutes (low effort)" in feed_1 and "alternatives" in feed_1
         closed = {"offer_id", "target", "capacity", "cost", "valid_until"}
         assert all(set(o["payload"]) == closed for o in mine + starter)
 
@@ -88,8 +89,10 @@ def test_model_offers_are_clamped_to_the_persons_limits(tmp_path: Path) -> None:
             reply_brief(client, who["token"], {"q1": None, "q2": 0, "q3": None})
         offers_done(cid, engine)
         made = [o["payload"]["cost"] for o in offers_by(client, cid, "p1")]
-        # 9999 is cut so some of the hour stays for the other needs; the hour is never exceeded.
-        assert [c["minutes"] for c in made] == [40, 20]
+        # 9999 is cut to the most they would give to one job; the other estimate stands; the
+        # bare third need is covered with this person's own estimate. Nothing is summed.
+        assert [c["minutes"] for c in made[:2]] == [60, 40]
+        assert all(c["minutes"] <= 60 for c in made) and len(made) == 3
         assert made[0]["money"] == 0, "no money was given, so none is offered"
         assert offers_by(client, cid, a["participant"]) == []
         feed = [x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"]]
@@ -97,7 +100,7 @@ def test_model_offers_are_clamped_to_the_persons_limits(tmp_path: Path) -> None:
         done = [
             x
             for x in view_of(engine, cid, "p1")["activity"]
-            if x["verb"] == "offering" and x["seat"] == "p1" and x["state"] == "done"
+            if x["verb"] == "offering" and x["seat"] == "p1" and x["label"].startswith("Offered on")
         ]
         assert done and done[-1]["source"] == "model"
 
@@ -134,7 +137,7 @@ def test_a_slow_offer_call_does_not_hold_up_a_click(tmp_path: Path) -> None:
         for who in (room["owner"], a, b):
             reply_brief(client, who["token"], {"q1": None, "q2": 1, "q3": None})
         until(
-            lambda: any("Decide what to offer" in str(c[1][0]["content"]) for c in model.calls),
+            lambda: any("An offer says" in str(c[1][0]["content"]) for c in model.calls),
             what="the slow call",
         )
         started = time.monotonic()
@@ -170,8 +173,5 @@ def test_a_need_left_bare_is_covered_inside_the_hours_left(tmp_path: Path) -> No
         covered = {titles[e["payload"]["target"]["id"]] for e in events(client, cid, "offer")}
         assert covered == set(titles.values()), "every need has an offer"
         assert offers_by(client, cid, b["participant"]) == [], "0 hours is still no offer"
-        for who in ("p1", a["participant"]):
-            spent = sum(o["payload"]["cost"]["minutes"] for o in offers_by(client, cid, who))
-            assert spent <= {"p1": 120, a["participant"]: 60}[who]
         feed = " ".join(x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"])
-        assert "Nobody had offered on" in feed and "Nothing here binds you" in feed
+        assert "Nobody had offered on" in feed and "nothing binds you" in feed
