@@ -67,6 +67,8 @@ def decide_plan(client: TestClient, coalition: str, people: dict[str, Document])
         asks = host.open_consents(who)
         if any(a["kind"] == "tension_option" for a in asks):
             asks = [a for a in asks if a["kind"] == "tension_option"]
+        else:  # saying yes to one plan supersedes the others of its set
+            asks = [a for a in asks if a["kind"] == "plan"][:1]
         for ask in asks:
             if ask["kind"] == "tension_option":
                 tension = next(

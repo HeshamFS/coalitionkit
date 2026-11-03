@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from room_rig import (
     NEEDS,
     RoomModel,
     bearer,
+    engine_of,
     events,
     serve,
     server_of,
@@ -72,7 +74,11 @@ def to_decided(client: TestClient) -> tuple[str, Any, dict[str, Any]]:
 def approve_commitments(client: TestClient, cid: str, people: dict[str, Any]) -> None:
     host = server_of(client).hosts[cid]
     for who, person in people.items():
-        mine = [t for t in host.state.tasks.values() if t["assignee"] == who]
+        mine = [
+            t
+            for t in host.state.tasks.values()
+            if t["assignee"] == who and t["status"] == "decided"
+        ]
         if mine:
             until(
                 lambda who=who: any(a["kind"] == "commitment" for a in host.open_consents(who)),
@@ -203,3 +209,64 @@ def test_a_bad_tree_is_asked_for_again_then_replaced_by_a_fixed_one(tmp_path: Pa
                 content = json.loads(e["payload"]["content"])
                 ids = [n["id"] for n in content["components"]]
                 assert ids[0] == "root" and "h" in ids and content["source"] == "model"
+
+
+def test_a_helper_signs_its_own_commitment_and_reports_done_itself(tmp_path: Path) -> None:
+    from room_flow import briefs_open, decide_plan, reply_brief
+    from room_rig import join, sign, start_room
+
+    def offers(user: str) -> dict[str, Any]:
+        ids = [n["id"] for n in json.loads(user)["needs"]]
+        return {
+            "offers": [{"need_id": i, "minutes": 40, "money": 0, "effort": "low"} for i in ids],
+            "note": "Offered a little on each.",
+        }
+
+    scripted = RoomModel(needs=NEEDS, brief=BRIEF, offers=offers, made=made)
+    with serve(tmp_path, scripted) as client:
+        room = start_room(client, seats=3)
+        cid, engine = room["coalition_id"], engine_of(client)
+        member = join(client, room)
+        sign(client, cid, room["owner"]["token"], "p1")
+        sign(client, cid, member["token"], member["participant"])
+        until(lambda: len(events(client, cid, "need")) >= 3, what="needs")
+        client.post(
+            "/v1/room/begin", json={"helpers": True}, headers=bearer(room["owner"]["token"])
+        )
+        sign(client, cid, member["token"], member["participant"])
+        briefs_open(engine, cid, ["p1", member["participant"]])
+        for token in (room["owner"]["token"], member["token"]):
+            reply_brief(client, token, {"q1": None, "q2": 2, "q3": None})
+        until(lambda: events(client, cid, "propose"), 60, "plans")
+        people = {"p1": room["owner"], member["participant"]: member}
+        until(lambda: server_of(client).hosts[cid].open_consents("p1"), 20, "an ask")
+        decide_plan(client, cid, people)
+        host = server_of(client).hosts[cid]
+        until(
+            lambda: {t["status"] for t in host.state.tasks.values()} <= {"decided", "committed"},
+            20,
+            "decided",
+        )
+        assert host.state.tasks, "tasks exist"
+        helper_task = next(
+            (k for k, t in host.state.tasks.items() if t["assignee"] == "helper-1"), None
+        )
+        assert helper_task, "the cheapest offer on one need is the helper's"
+        approve_commitments(client, cid, people)
+        until(lambda: host.state.tasks[helper_task]["status"] == "done", 40, "the helper to finish")
+        commit = [e for e in events(client, cid, "commit") if e["on_behalf_of"] == "helper-1"]
+        decided = [
+            e
+            for e in events(client, cid, "decide")
+            if e["on_behalf_of"] == "helper-1" and e["payload"]["subject"]["kind"] == "commitment"
+        ]
+        assert len(commit) == 1 and len(decided) == 1 and decided[0]["payload"]["consent"] is True
+        done = [e for e in events(client, cid, "done") if e["on_behalf_of"] == "helper-1"]
+        assert len(done) == 1 and done[0]["payload"]["evidence"][0]["verified_by"] == "helper-1"
+        until(
+            lambda: any(t["status"] == "committed" for t in host.state.tasks.values()),
+            40,
+            "people's tasks",
+        )
+        time.sleep(2)
+        assert not [e for e in events(client, cid, "done") if e["on_behalf_of"] != "helper-1"]
