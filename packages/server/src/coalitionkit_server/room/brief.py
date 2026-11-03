@@ -28,7 +28,7 @@ from .seats import people
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
-BRIEF_SECONDS = 120
+BRIEF_SECONDS = 300
 MAX_QUESTIONS = 3
 KEY = "_room_brief"
 KIND = Literal["choice", "amount", "slots", "text"]
@@ -51,7 +51,9 @@ SYSTEM = (
     "slots (pick any of the room's shared time slots; leave "
     "options empty) or text (a short free answer). Ask only what the goal, the needs and the "
     "slots make useful; never ask for private details that no need requires. For each question "
-    "write why you ask it in one line. Unused fields stay empty or zero."
+    "write why you ask it in one line. If the goal states an amount of money, that amount is "
+    "the group's shared budget: do not ask what the budget is, and ask at most how much this "
+    "person could pay themselves. Unused fields stay empty or zero."
 )
 
 

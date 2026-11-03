@@ -55,7 +55,8 @@ KIND_RULES = {
     ),
     "place": (
         "Suggest 2 or 3 kinds of place (not named venues), each with why it fits this goal and "
-        "what to check first before booking it, each in one or two plain sentences that end properly."
+        "what to check first before booking it, each in one or two plain sentences that "
+        "end properly."
     ),
     "schedule": (
         "Give the ordered steps of the plan, each a short action. The times are added from the "

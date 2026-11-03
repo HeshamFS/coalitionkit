@@ -339,7 +339,7 @@ async def reoffer(
                 "needs": [{k: n[k] for k in ("id", "title", "kind", "detail")} for n in needs],
                 "told_by_the_person": told,
                 "most_minutes_for_any_one_job": lim.cap,
-                "limit_money": lim.money,
+                "most_money_they_would_pay_themselves": lim.money,
             },
             OffersReply,
             verb="offering",

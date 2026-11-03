@@ -143,10 +143,13 @@ def over_limit(who: str, plan: Document, state: State, cap: int | None) -> str:
     return f" This asks {span(asked)} of your {span(cap)}."
 
 
+NO_PART = "You have no part in this plan."
+
+
 def rule_for_you(who: str, plan: Document, titles: dict[str, str], state: State) -> str:
     mine = [a for a in plan["assignments"] if a["assignee"] == who]
     if not mine:
-        return "In this plan you take nothing on; others carry the work."
+        return NO_PART
     parts = "; ".join(
         f"{titles.get(a['task_id'], 'a need')} ({minutes_of(state, who, a['task_id'])} minutes)"
         for a in mine
@@ -237,10 +240,11 @@ async def for_you(
     cap = limits(given(engine, coalition, who)).cap
     lines: Document = {}
     for plan in todo:
-        said = wording.get(plan["plan_id"])
+        taking = any(a["assignee"] == who for a in plan["assignments"])
+        said = wording.get(plan["plan_id"]) if taking else None
         line = said or rule_for_you(who, plan, titles, state)
         lines[plan["plan_id"]] = {
-            "line": line + over_limit(who, plan, state, cap),
+            "line": line + (over_limit(who, plan, state, cap) if taking else ""),
             "source": "model" if said else "rules",
         }
     with engine.lock:

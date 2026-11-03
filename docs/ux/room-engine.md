@@ -101,7 +101,7 @@ type Room = {
     state: "running" | "done" | "failed"; ms: number | null;
     source: "model" | "rules" | "host"; event: string | null;
   }[];
-  slots: { id: string; label: string }[];
+  slots: { id: string; label: string; start: string | null }[]; // start is ISO, read by code
   common: { slots: string[]; count_private: number | null; compared: number } | null;
   plan_notes: Record<string, { name: string; line: string; source: "model" | "rules" }>;
   results: {
@@ -126,6 +126,8 @@ type Room = {
     }[];
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
+    brief_closes: string | null; // ISO; the brief closes then (300 s after it opens) or when all is answered
+    asks: { kind: string; id: string; revision: number; summary: string }[]; // plain words
     tasks: {
       task_id: string; title: string; status: string;
       result: string | null; can_mark_done: boolean;
@@ -137,7 +139,9 @@ type Room = {
 What the fields mean:
 
 - `results[].id` is the id of the `observe` event, and `needs[].result` and `mine.tasks[].result` hold that id. `by` is a seat id. `seqs` holds the log positions of those `sources` this viewer may see, so it can be shorter than `sources`.
-- `plan_notes` and `mine.for_you` are keyed by plan id.
+- `plan_notes` and `mine.for_you` are keyed by plan id. A seat with no task in a plan reads "You have no part in this plan." (by code).
+- `asks` is what the viewer is asked to decide; a task request whose commitment is also pending is left out, and one yes on the commitment closes both (nothing else stays open for that task).
+- `measured` is `{calendars_shared, minutes, cost, vendors}`, real numbers for the closing screen (`cost` is null without a meter).
 - `stops[].to` is the seat a stopped message was aimed at, or `null` when it was aimed at the room.
 - `change.from` is the seat that caused the change, or `null` when the host did.
 - `checked` counts the events the Steward has reviewed in this room, including the ones it stopped.

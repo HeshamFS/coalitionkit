@@ -161,16 +161,7 @@ def feed_text(items: list[OfferItem], names: dict[str, str], lim: Limits, source
     if not items:
         why = "you gave it no hours" if lim.silent else "nothing fit what you said"
         return f"Your agent made no offer, because {why}. You can still join a plan later."
-    parts = "; ".join(
-        f"{names[i.need_id]}, about {span(i.minutes)} ({i.effort} effort)" for i in items
-    )
-    start = (
-        "You skipped the questions, so your agent offered starting guesses: "
-        if not lim.answered
-        else "Your agent said you could do "
-    )
-    how = "" if source == "model" else " (fixed rules, no model)"
-    return (
-        f"{start}{parts}{how}. These are alternatives, not a total: a plan usually asks you "
-        "for only some of them, and nothing binds you until you say yes to a plan."
-    )
+    count = f"{len(items)} of {len(names)} needs"
+    if not lim.answered:
+        return f"You skipped the questions, so your agent made starting guesses on {count}."
+    return f"Your agent offered on {count}. The plan picks among them; nothing binds you."

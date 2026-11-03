@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
@@ -25,7 +25,7 @@ from coalitionkit_surfaces import compose_surface
 from ..adapter import Document
 from . import makers
 from .model import ask
-from .needs import tidy
+from .needs import slot_start, tidy
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -57,20 +57,6 @@ class Node(BaseModel):
 class LayoutReply(BaseModel):
     title: str
     components: list[Node]
-
-
-def slot_start(label: str, now: datetime) -> datetime | None:
-    """The start time a slot label names ("Wed 5 Nov, 10:00 UTC"), in the year of ``now``."""
-    found = re.search(r"(\d{1,2}) (\w{3}),? (\d{1,2}):(\d{2})", label)
-    if not found:
-        return None
-    try:
-        parsed = datetime.strptime(
-            f"{found[1]} {found[2]} {now.year} {found[3]}:{found[4]}", "%d %b %Y %H:%M"
-        ).replace(tzinfo=UTC)
-    except ValueError:
-        return None
-    return parsed if parsed >= now - timedelta(days=200) else parsed.replace(year=now.year + 1)
 
 
 def echoes(label: str, facts: Document) -> bool:

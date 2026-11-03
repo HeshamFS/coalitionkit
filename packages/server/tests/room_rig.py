@@ -8,6 +8,7 @@ import json
 import time
 from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,7 +33,9 @@ NEEDS: Document = {
         {"title": "Share the costs", "kind": "budget", "detail": "Who pays what."},
         {"title": "Write the invitation", "kind": "draft", "detail": "A short note to send."},
     ],
-    "slots": ["Saturday morning", "Saturday afternoon", "Sunday morning"],
+    "slots": [
+        (datetime.now(UTC) + timedelta(hours=h)).strftime("%a %d %b, %H:00 UTC") for h in (3, 5, 7)
+    ],
 }
 BRIEF: Document = {
     "questions": [

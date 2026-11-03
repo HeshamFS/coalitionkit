@@ -132,7 +132,17 @@ def test_a_signed_plan_gives_results_of_three_kinds(tmp_path: Path) -> None:
             for e in events(client, cid, "decide")
             if e["payload"]["subject"]["kind"] == "commitment"
         ]
+        asks = view_of(engine, cid, "p1")["mine"]["asks"]
+        assert [a["kind"] for a in asks] == ["commitment"], "the task request is not shown twice"
+        assert asks[0]["summary"].startswith("Commit to doing: ")
         approve_commitments(client, cid, people)
+        assert view_of(engine, cid, "p1")["mine"]["asks"] == []
+        assert set(view_of(engine, cid, "p1")["measured"]) == {
+            "calendars_shared",
+            "minutes",
+            "cost",
+            "vendors",
+        }
         results = lambda: [  # noqa: E731
             e for e in events(client, cid, "observe") if '"result": 1' in e["payload"]["content"]
         ]
@@ -300,7 +310,7 @@ def test_a_place_with_nothing_to_suggest_says_so_and_a_time_budget_is_called_one
             {"title": "Settle the budget", "kind": "budget", "detail": "Who gives what time."},
             {"title": "Write the invitation", "kind": "draft", "detail": "A short note."},
         ],
-        "slots": ["Saturday morning"],
+        "slots": [],
     }
 
     def echoing(user: str) -> dict[str, Any]:

@@ -58,11 +58,11 @@ def test_rule_offers_follow_the_hours_and_say_what_they_did(tmp_path: Path) -> N
         assert [o["payload"]["cost"]["minutes"] for o in starter] == [60, 45, 90]
         assert {o["payload"]["cost"]["effort"] for o in starter} == {"medium"}
         feed_b = " ".join(x["text"] for x in view_of(engine, cid, b_id)["mine"]["feed"])
-        assert "starting guesses" in feed_b and "nothing binds you" in feed_b
+        assert "starting guesses" in feed_b and len(feed_b) < 100
         feed_a = " ".join(x["text"] for x in view_of(engine, cid, a_id)["mine"]["feed"])
         assert "made no offer" in feed_a and "no hours" in feed_a
         feed_1 = " ".join(x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"])
-        assert "Find a venue, about 45 minutes (low effort)" in feed_1 and "alternatives" in feed_1
+        assert "offered on 3 of 3 needs" in feed_1 and "nothing binds you" in feed_1
         closed = {"offer_id", "target", "capacity", "cost", "valid_until"}
         assert all(set(o["payload"]) == closed for o in mine + starter)
 
@@ -96,7 +96,7 @@ def test_model_offers_are_clamped_to_the_persons_limits(tmp_path: Path) -> None:
         assert made[0]["money"] == 0, "no money was given, so none is offered"
         assert offers_by(client, cid, a["participant"]) == []
         feed = [x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"]]
-        assert "Offered what you can give." in feed
+        assert feed[0].startswith("Your agent offered on 2 of 3 needs")
         done = [
             x
             for x in view_of(engine, cid, "p1")["activity"]
