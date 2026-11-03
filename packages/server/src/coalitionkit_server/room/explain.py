@@ -28,19 +28,19 @@ if TYPE_CHECKING:
     from .engine import RoomEngine
 
 NAME_MAX = 40
-LINE_MAX = 180
+LINE_MAX = 260
 
 NAMES_SYSTEM = (
     "You are the Gardener of a small group room. For each plan, write a short public name "
-    "(under 30 characters, no quotes) and one plain line saying what the plan does, from the "
-    "numbers and assignments given. Do not say which plan is best, and do not add facts that "
-    "are not in the data."
+    "(under 30 characters, no quotes) and one plain line of under 160 characters saying what "
+    "the plan does, from the numbers and assignments given. Do not say which plan is best, "
+    "and do not add facts that are not in the data."
 )
 FOR_YOU_SYSTEM = (
     "You are one person's agent in a small group room. For each plan, write one plain line "
-    "telling that person what the plan means for them: what they would take on and anything "
-    "from what they told you that bears on it. Say only what the data holds. Speak to them "
-    "as 'you'."
+    "telling that person what the plan means for them, in one short sentence of under 160 "
+    "characters: what they would take on, and only if it matters, one thing they told you "
+    "that bears on it. Say only what the data holds. Speak to them as 'you'."
 )
 
 

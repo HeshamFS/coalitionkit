@@ -39,8 +39,9 @@ def offers_by(client: TestClient, coalition: str, who: str) -> list[Document]:
     return [e for e in events(client, coalition, "offer") if e["on_behalf_of"] == who]
 
 
-def briefs_open(engine: Any, coalition: str, people: list[str]) -> None:
+def briefs_open(engine: Any, coalition: str, people: list[str], seconds: float = 12.0) -> None:
     until(
         lambda: all(engine.read(coalition)["briefs"].get(p) for p in people),
-        what="every brief to open",
+        seconds,
+        "every brief to open",
     )

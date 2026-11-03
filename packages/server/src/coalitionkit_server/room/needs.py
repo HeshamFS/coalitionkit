@@ -66,12 +66,16 @@ class NeedsReply(BaseModel):
 
 
 def tidy(text: str, limit: int) -> str:
-    """One plain line: no markup characters, no runs of space, cut at a word."""
+    """One plain line: no markup characters, no runs of space, cut at a sentence or a word."""
     line = re.sub(r"\s+", " ", re.sub(r"[<>]", "", text.replace("&", " and "))).strip()
     if len(line) <= limit:
         return line
-    cut = line[:limit].rsplit(" ", 1)[0]
-    return (cut or line[:limit]).rstrip(",;:- ")
+    head = line[:limit]
+    stop = max(head.rfind(". "), head.rfind("! "), head.rfind("? "))
+    if stop > limit // 2:
+        return head[: stop + 1]
+    cut = head.rsplit(" ", 1)[0]
+    return (cut or head).rstrip(",;:- ")
 
 
 def kind_of(title: str) -> Kind:

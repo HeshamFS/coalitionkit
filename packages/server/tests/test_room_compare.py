@@ -240,3 +240,46 @@ def test_a_private_answer_never_reaches_anything_public(tmp_path: Path) -> None:
                 "cost",
                 "valid_until",
             }
+
+
+def test_the_gate_flow_with_a_helper_reaches_plans(tmp_path: Path) -> None:
+    from room_rig import bearer, join, sign, start_room
+    from test_room_live import answers_for
+
+    def offers(user: str) -> dict[str, Any]:
+        ids = [n["id"] for n in json.loads(user)["needs"]]
+        return {
+            "offers": [{"need_id": i, "minutes": 30, "money": 0, "effort": "low"} for i in ids],
+            "note": "Offered a little on each.",
+        }
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, offers=offers)) as client:
+        room = start_room(client, seats=3)
+        cid, engine = room["coalition_id"], engine_of(client)
+        member = join(client, room)
+        sign(client, cid, room["owner"]["token"], "p1")
+        sign(client, cid, member["token"], member["participant"])
+        until(lambda: len(events(client, cid, "need")) >= 3, what="needs")
+        begun = client.post(
+            "/v1/room/begin", json={"helpers": True}, headers=bearer(room["owner"]["token"])
+        )
+        assert begun.status_code == 200
+        sign(client, cid, member["token"], member["participant"])
+        who = ["p1", member["participant"]]
+        briefs_open(engine, cid, who)
+        slots = [s["id"] for s in engine.read(cid)["slots"]]
+        for shift, (person, token) in enumerate(
+            zip(who, (room["owner"]["token"], member["token"]), strict=True)
+        ):
+            questions = view_of(engine, cid, person)["mine"]["brief"]
+            for question, value in answers_for(questions, slots, shift).items():
+                reply = client.post(
+                    "/v1/room/brief",
+                    json={"question_id": question, "value": value},
+                    headers=bearer(token),
+                )
+                assert reply.status_code == 200, (question, value, reply.text)
+        until(lambda: events(client, cid, "propose"), 60, "plans")
+        until(lambda: engine.read(cid)["plan_notes"], 30, "plan names")
+        assert view_of(engine, cid, "p1")["common"]["slots"] == ["s2", "s3"]
+        assert "helper-1" in {o["on_behalf_of"] for o in events(client, cid, "offer")}

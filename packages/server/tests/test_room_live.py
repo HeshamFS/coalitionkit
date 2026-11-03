@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # pyright: reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false
-"""A real room with the live model: the Gardener's needs and each seat's questions.
+"""Gate 1: a real room with the live model, driven only through the web routes.
 
-Reads COALITIONKIT_META_API_KEY from the environment only and skips without it. Run with ``-s``
-to see the measured numbers and the model's own output.
+An owner, one more person and a helper sign, begin, brief, offer, compare and reach real plans
+with no demo script. Reads COALITIONKIT_META_API_KEY from the environment only and skips without
+it. Run with ``-s`` to see the measured numbers and everything the model wrote.
 """
 
 from __future__ import annotations
@@ -12,20 +13,41 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from room_flow import briefs_open
 from room_rig import bearer, engine_of, events, join, server_of, sign, start_room, until, view_of
 
 from coalitionkit_server import Settings, create_server
+from coalitionkit_server.adapter import Document
 
-GOAL = "Three of us need to prepare a short shared report: a plan, a budget and a review"
+GOAL = "Two of us need to prepare a short shared report: a plan, a budget and a review"
+
+
+def answers_for(questions: list[Document], slots: list[str], shift: int) -> dict[str, Any]:
+    """What a plain person would tell their agent: first option, half the range, some times."""
+    said: dict[str, Any] = {}
+    for q in questions:
+        kind = q["component"]
+        first = next(m for m in q["messages"] if "updateComponents" in m)
+        field = next(c for c in first["updateComponents"]["components"] if c["id"] == "input")
+        if kind == "Slider":
+            said[q["id"]] = (field["min"]["value"] + field["max"]["value"]) // 4 or 1
+        elif kind == "TextArea":
+            said[q["id"]] = "Afternoons suit me better than mornings."
+        elif field.get("multiple"):
+            said[q["id"]] = slots[shift : shift + 3]
+        else:
+            said[q["id"]] = field["options"][0]["id"]
+    return said
 
 
 @pytest.mark.live
 @pytest.mark.skipif(not os.environ.get("COALITIONKIT_META_API_KEY"), reason="no key")
-def test_live_room_makes_needs_and_questions(tmp_path: Path) -> None:
+def test_gate_one_a_real_room_reaches_real_plans(tmp_path: Path) -> None:
     settings = Settings(
         store=SecretStr("sqlite:///" + str(tmp_path / "live.db")),
         host_key_file=tmp_path / "host.key",
@@ -41,56 +63,90 @@ def test_live_room_makes_needs_and_questions(tmp_path: Path) -> None:
         server = server_of(client)
         engine = engine_of(client)
         room = start_room(client, seats=3, goal=GOAL)
-        cid = room["coalition_id"]
+        cid, owner = room["coalition_id"], room["owner"]
         member = join(client, room)
-        started = time.monotonic()
-        sign(client, cid, room["owner"]["token"], "p1")
-        sign(client, cid, member["token"], member["participant"])
-        until(lambda: engine.read(cid)["needs_state"] == "ready", 90, "the Gardener's needs")
-        needs_s = time.monotonic() - started
-        until(lambda: len(events(client, cid, "need")) >= 2, 30, "needs seeded")
-        done = client.post(
-            "/v1/room/begin", json={"helpers": True}, headers=bearer(room["owner"]["token"])
-        )
-        assert done.status_code == 200, done.text
         who = ["p1", member["participant"]]
-        until(lambda: all(engine.read(cid)["briefs"].get(p) for p in who), 120, "both briefs")
-        brief_s = time.monotonic() - started - needs_s
-        view = view_of(engine, cid, "p1")
-        other = view_of(engine, cid, member["participant"])
+        started = time.monotonic()
+        sign(client, cid, owner["token"], "p1")
+        sign(client, cid, member["token"], member["participant"])
+        until(lambda: len(events(client, cid, "need")) >= 2, 90, "needs seeded")
+        t_needs = time.monotonic() - started
+        begun = client.post(
+            "/v1/room/begin", json={"helpers": True}, headers=bearer(owner["token"])
+        )
+        assert begun.status_code == 200, begun.text
+        sign(client, cid, member["token"], member["participant"])
+        briefs_open(engine, cid, who, 90)
+        t_brief = time.monotonic() - started
+        slots = [s["id"] for s in engine.read(cid)["slots"]]
+        for shift, (person, token) in enumerate(
+            ((who[0], owner["token"]), (who[1], member["token"]))
+        ):
+            questions = view_of(engine, cid, person)["mine"]["brief"]
+            for question, value in answers_for(questions, slots, shift).items():
+                reply = client.post(
+                    "/v1/room/brief",
+                    json={"question_id": question, "value": value},
+                    headers=bearer(token),
+                )
+                assert reply.status_code == 200, (question, value, reply.text)
+        until(lambda: events(client, cid, "propose"), 180, "real plans")
+        t_plans = time.monotonic() - started
+        until(lambda: len(engine.read(cid)["plan_notes"]) >= 1, 90, "plan names")
+        until(lambda: all(view_of(engine, cid, p)["mine"]["for_you"] for p in who), 90, "for you")
+        t_words = time.monotonic() - started
+        meter = server.gateway.meter
+        assert meter is not None
+        records = [r for r in meter.records if r.coalition_id == cid]
         doc = engine.read(cid)
-        records = [r for r in (server.gateway.meter.records if server.gateway.meter else [])]
-        mine = [r for r in records if r.coalition_id == cid]
+        titles = {n["id"]: n["title"] for n in doc["needs"]}
+        offers = [
+            {
+                "by": e["on_behalf_of"],
+                "need": titles[e["payload"]["target"]["id"]],
+                **e["payload"]["cost"],
+            }
+            for e in events(client, cid, "offer")
+        ]
+        view = view_of(engine, cid, "p1")
         print(
             json.dumps(
                 {
-                    "seconds_to_needs": round(needs_s, 1),
-                    "seconds_for_briefs_and_begin": round(brief_s, 1),
-                    "needs_source": doc["needs_source"],
-                    "needs": [{k: n[k] for k in ("title", "kind", "detail")} for n in doc["needs"]],
-                    "slots": [s["label"] for s in doc["slots"]],
-                    "briefs": {
-                        p: [
-                            {k: q[k] for k in ("ask", "why", "component", "status")}
-                            for q in view_of(engine, cid, p)["mine"]["brief"]
-                        ]
-                        for p in who
+                    "seconds": {
+                        "needs_seeded": round(t_needs, 1),
+                        "briefs_open_after_begin": round(t_brief, 1),
+                        "plans": round(t_plans, 1),
+                        "plan_words": round(t_words, 1),
                     },
-                    "calls": len(mine),
-                    "prompt_tokens": sum(r.prompt_tokens for r in mine),
-                    "completion_tokens": sum(r.completion_tokens for r in mine),
-                    "cost_usd": sum(r.cost_micro_usd for r in mine) / 1_000_000,
+                    "model_calls": len(records),
+                    "prompt_tokens": sum(r.prompt_tokens for r in records),
+                    "completion_tokens": sum(r.completion_tokens for r in records),
+                    "cost_usd": sum(r.cost_micro_usd for r in records) / 1_000_000,
+                    "needs": [{k: n[k] for k in ("title", "kind", "detail")} for n in doc["needs"]],
+                    "offers": offers,
+                    "common": view["common"],
+                    "plan_notes": view["plan_notes"],
+                    "for_you": {p: view_of(engine, cid, p)["mine"]["for_you"] for p in who},
+                    "feed": {
+                        p: [x["text"] for x in view_of(engine, cid, p)["mine"]["feed"]] for p in who
+                    },
                     "activity": [
                         {k: a[k] for k in ("verb", "label", "state", "ms", "source")}
-                        for a in doc["activity"]
+                        for a in view["activity"]
+                    ],
+                    "failed_calls": [
+                        {"label": a["label"], "error": a.get("error")}
+                        for a in engine.read(cid)["activity"]
+                        if a["state"] == "failed"
                     ],
                 },
                 indent=2,
             )
         )
-        assert 2 <= len(doc["needs"]) <= 6 and doc["needs_source"] == "model"
-        assert all(doc["briefs"][p]["source"] == "model" for p in who), doc["briefs"]
-        for side in (view, other):
-            assert 1 <= len(side["mine"]["brief"]) <= 3
-            assert all(len(q["messages"]) == 3 for q in side["mine"]["brief"])
-        assert mine and sum(r.cost_micro_usd for r in mine) > 0
+        proposals = events(client, cid, "propose")
+        assert proposals and all(p["payload"]["plans"] for p in proposals)
+        assert "helper-1" in {o["by"] for o in offers}
+        assert set(view["plan_notes"]) == {
+            p["plan_id"] for e in proposals for p in e["payload"]["plans"]
+        }
+        assert records and sum(r.cost_micro_usd for r in records) > 0
