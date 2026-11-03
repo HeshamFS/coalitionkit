@@ -225,6 +225,7 @@ def test_a_change_to_a_finished_need_publishes_a_successor(tmp_path: Path) -> No
         replaced = next(r for r in view["results"] if r["id"] == old["event_id"])
         assert replaced["replaced_by"] == successor, "marked replaced at once, by the new need"
         # These people said 0 hours, so their agents make no offers; they offer by hand.
+        engine.update(cid, lambda d: d.__setitem__("change_pending", True))  # hold planning
         for who, person in people.items():
             cost = {"minutes": 40, "money": 0, "effort": "low" if who == "p3" else "medium"}
             reply = client.post(
@@ -233,6 +234,8 @@ def test_a_change_to_a_finished_need_publishes_a_successor(tmp_path: Path) -> No
                 headers=bearer(person["token"]),
             )
             assert reply.status_code == 200, reply.text
+        engine.update(cid, lambda d: d.__setitem__("change_pending", False))
+        engine.wake_gardener(cid)
         until(lambda: len(events(client, cid, "propose")) >= 2, 40, "a plan for the successor")
         decide_plan(client, cid, people)
         approve_commitments(client, cid, people)
