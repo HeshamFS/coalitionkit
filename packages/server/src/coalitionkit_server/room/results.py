@@ -267,10 +267,10 @@ def fixed_body(kind: str, data: Document) -> list[Document]:
                 "component": "Card",
                 "title": data["subject"],
                 "provenance": "estimate",
-                "children": ["fx1"],
+                "children": ["fxb"],
             }
         )
-        body.append({"id": "fx1", "component": "Text", "text": data["body"]})
+        body.append({"id": "fxb", "component": "Text", "text": data["body"]})
     return body
 
 
@@ -281,7 +281,7 @@ def fixed_tree(kind: str, title: str, detail: str, data: Document) -> list[Docum
         {"id": "h", "component": "Heading", "text": title, "variant": "h2"},
         {"id": "d", "component": "Text", "text": detail, "variant": "caption", "tone": "muted"},
     ]
-    top = [n["id"] for n in body if n["id"] != "fx1"]
+    top = [n["id"] for n in body if n["id"] != "fxb"]
     root: Document = {
         "id": "root",
         "component": "Column",
@@ -325,8 +325,24 @@ def drop_empty(tree: list[Document]) -> list[Document]:
     return out
 
 
+def reachable(tree: list[Document]) -> list[Document]:
+    """The nodes a viewer can reach from the root, through children, in tree order."""
+    by_id = {n["id"]: n for n in tree}
+    seen: set[str] = set()
+    stack = ["root"]
+    while stack:
+        node = by_id.get(stack.pop())
+        if node is None or node["id"] in seen:
+            continue
+        seen.add(node["id"])
+        kids = node.get("children")
+        if isinstance(kids, list):
+            stack.extend(str(k) for k in cast(list[Any], kids))
+    return [n for n in tree if n["id"] in seen]
+
+
 def shown_text(tree: list[Document]) -> str:
-    return json.dumps(tree, ensure_ascii=False).lower()
+    return json.dumps(reachable(tree), ensure_ascii=False).lower()
 
 
 def covers(tree: list[Document], kind: str, data: Document) -> str | None:
@@ -399,6 +415,9 @@ async def layout(
             errors = ["give a title from the need or the content, not 'Suggestion'"]
         else:
             errors = tree_errors(engine, parsed, known)
+            hidden = [n["id"] for n in parsed if n not in reachable(parsed)]
+            if hidden and not errors:
+                errors = [f"these nodes are not reachable from root: {', '.join(hidden)}"]
             missing = covers(parsed, kind, data)
             if missing and not errors:
                 errors = [missing]

@@ -46,3 +46,39 @@ def test_a_money_budget_keeps_the_signed_minutes_apart() -> None:
     data = results.budget_data(facts, made)
     assert data["currency"] == "EUR" and data["total"] == 300
     assert data["time_total"] == 30 and data["time"][0]["ref"] == "e1"
+
+
+def test_every_card_of_a_fixed_tree_is_reachable_from_root() -> None:
+    reading = {"label": "Mira: Find a place", "amount": 50, "provenance": "signed", "ref": "e1"}
+    idea = {"why": "Room", "check": "Is it free", "provenance": "estimate"}
+    cases = {
+        "place": {"options": [{"name": f"Place {n}", **idea} for n in range(3)], "chosen": None},
+        "schedule": {
+            "items": [
+                {"title": f"Step {n}", "start": "a", "end": "b", "where": "c"} for n in range(3)
+            ],
+            "steps": ["Meet", "Talk"],
+        },
+        "budget": {
+            "currency": "EUR",
+            "amount": 300,
+            "rows": [
+                {"label": "Hall", "amount": 200, "who": "all", "provenance": "estimate"},
+                {"label": "Food", "amount": 100, "who": "all", "provenance": "estimate"},
+            ],
+            "how_shared": "equally",
+            "suggested": [],
+            "time": [reading],
+            "time_total": 50,
+            "total": 300,
+        },
+        "list": {"items": [{"label": "Chairs", "who": "anyone", "provenance": "estimate"}] * 2},
+        "draft": {"subject": "Hello", "body": "Come to our fair. " * 6},
+    }
+    for kind, data in cases.items():
+        tree = results.fixed_tree(kind, "Title", "Detail", data)
+        shown = {n["id"] for n in results.reachable(tree)}
+        assert {n["id"] for n in tree} == shown, kind
+        cards = [n for n in tree if n["component"] == "Card"]
+        wanted = {"place": 3, "schedule": 4, "budget": 2, "list": 1, "draft": 1}[kind]
+        assert len(cards) == wanted, (kind, len(cards))
