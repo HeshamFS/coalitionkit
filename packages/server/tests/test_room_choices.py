@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -86,8 +87,10 @@ def test_differing_offers_give_a_real_choice_and_a_tension(tmp_path: Path) -> No
         notes = view_of(engine, cid, "p1")["plan_notes"]
         names = [n["name"] for n in notes.values()]
         assert len(set(names)) == len(names), names
-        assert any(w in " ".join(names) for w in ("Fastest", "Most even", "Most preferred"))
-        assert all("minutes" in n["line"] for n in notes.values())
+        assert any(w in " ".join(names) for w in ("Quickest", "Shared evenly", "Suits people best"))
+        assert all(" takes " in n["line"] for n in notes.values())
+        for n in notes.values():
+            assert not re.search(r"effort|points|best at", n["name"] + n["line"], re.I)
 
 
 def test_voting_a_tension_through_decides_the_plan(tmp_path: Path) -> None:
