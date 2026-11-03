@@ -35,11 +35,13 @@ DETAIL_MAX = 160
 
 SYSTEM = (
     "You are the Gardener of a small group room. Read the goal and split it into two to six "
-    "needs the group must meet. Give each need a short title (under 70 characters, in the "
-    "goal's own words), a kind that says what sort of result it needs (place, schedule, "
-    "budget, list or draft) and one line of detail. Then give up to six candidate time slots "
-    "as short labels, none later than the deadline, counted from the time given. Titles and "
-    "details come from the goal only; do not add facts it does not hold."
+    "needs the group must meet. Give each need a short title that starts with a capital "
+    "letter and names the thing to get done (under 70 characters, in the goal's own words), "
+    "a kind that says what sort of result it needs (place, schedule, budget, list or draft) "
+    "and one line of detail. Then give up to six candidate time slots, each a short label "
+    'with the weekday, day, month and hour in UTC, such as "Wed 5 Nov, 10:00 UTC", all '
+    "after the time given and before the deadline, spread over different days and parts of "
+    "the day. Titles and details come from the goal only; do not add facts it does not hold."
 )
 
 KEYWORDS: tuple[tuple[Kind, tuple[str, ...]], ...] = (
@@ -123,6 +125,7 @@ def checked(reply: NeedsReply | None) -> list[NeedItem] | None:
     out: list[NeedItem] = []
     for item in reply.needs:
         title = tidy(item.title, TITLE_MAX)
+        title = title[:1].upper() + title[1:]
         if not title or title.lower() in seen:
             continue
         seen.add(title.lower())
