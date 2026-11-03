@@ -221,6 +221,17 @@ def test_gate_one_a_real_room_reaches_plans(tmp_path: Path) -> None:
                     for e in events(client, run.cid, "offer")
                 ],
                 "common": view_of(run.engine, run.cid, "p1")["common"],
+                "brief_answers": {
+                    p: [
+                        (q["ask"], q["answer"])
+                        for q in run.engine.vault(run.cid, p)["_room_brief"]["questions"]
+                    ]
+                    for p in run.people
+                },
+                "plan_scores": [
+                    {k: str(v) for k, v in pl["objective_scores"].items()}
+                    for pl in events(client, run.cid, "propose")[0]["payload"]["plans"]
+                ],
                 "plan_notes": view_of(run.engine, run.cid, "p1")["plan_notes"],
                 "for_you": {
                     p: view_of(run.engine, run.cid, p)["mine"]["for_you"] for p in run.people

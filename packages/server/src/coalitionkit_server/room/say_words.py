@@ -20,11 +20,26 @@ STARTS = re.compile(
 QUESTION = re.compile(
     r"\?\s*$|^(who|what|when|where|which|how|is|are|do|does|can|will|why)\b", re.I
 )
+DONE_CLAIM = re.compile(
+    r"\b(done|finished|complete[d]?|already (?:made|written|booked|sorted))\b", re.I
+)
+STATUS_WORDS = {
+    "open": "not planned yet",
+    "negotiating": "being planned",
+    "proposed": "waiting for the group to choose a plan",
+    "decided": "planned, waiting for a yes to start",
+    "committed": "taken on and under way, not finished",
+    "done": "finished",
+    "withdrawn": "dropped",
+}
 NOT_KNOWN = "I do not know that yet; nothing the room holds says."
 
 
+FILLER = {"the", "and", "for", "with", "our", "its", "this", "that", "has", "have", "who", "any"}
+
+
 def words(text: str) -> set[str]:
-    return set(re.findall(r"[a-z]{3,}", text.lower()))
+    return set(re.findall(r"[a-z]{3,}", text.lower())) - FILLER
 
 
 def adds(sentence: str, route_line: str) -> bool:
@@ -49,7 +64,10 @@ def room_facts(state: State, doc: Document, labels: dict[str, str]) -> Document:
             {
                 "title": n["title"],
                 "what_done_looks_like": n["detail"],
-                "status": task["status"] if task else "not yet a task",
+                "status": STATUS_WORDS.get(task["status"], "being planned")
+                if task
+                else "not yet a task",
+                "finished": bool(task and task["status"] == "done"),
                 "taken_by": labels.get(who, who) if who else None,
             }
         )
@@ -62,6 +80,16 @@ def room_facts(state: State, doc: Document, labels: dict[str, str]) -> Document:
         "needs": needs,
         "times_everyone_can_do": [names.get(s, s) for s in shared],
     }
+
+
+def false_done(sentence: str, facts: Document) -> bool:
+    """A reply that says something is done while no need it could mean is finished."""
+    if not DONE_CLAIM.search(sentence):
+        return False
+    said = words(sentence)
+    named = [n for n in facts["needs"] if said & words(n["title"])]
+    pool = named or facts["needs"]
+    return not any(n["finished"] for n in pool)
 
 
 def rule_answer(text: str, facts: Document) -> str:

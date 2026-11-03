@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -174,3 +175,55 @@ def test_the_front_is_computed_only_among_plans_inside_the_share_cap() -> None:
     assert [dict(p.assignments) for p in tight.plans] == [
         {"budget": "helper", "plan": "p2", "review": "p1"}
     ], "the only other fair permutation is dominated, and a dominated plan is never added"
+
+
+def test_two_people_who_want_the_same_job_with_crossing_estimates_meet_a_tension(
+    tmp_path: Path,
+) -> None:
+    """Both pick the venue as the job they want; each is quicker at a different job."""
+    minutes: dict[str, list[int]] = {}
+
+    def crossing(user: str) -> dict[str, Any]:
+        asked = json.loads(user)
+        mine = minutes[asked["person"]]
+        ids = [n["id"] for n in asked["needs"]]
+        offers = [
+            {"need_id": i, "minutes": m, "money": 0, "effort": "low" if k == 0 else "high"}
+            for k, (i, m) in enumerate(zip(ids, mine, strict=True))
+        ]
+        return {"offers": offers, "note": "Offered on each."}
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, offers=crossing)) as client:
+        room, (a, b) = full_room(client)
+        cid, engine = room["coalition_id"], engine_of(client)
+        who = [room["owner"], a, b]
+        ids = ["p1", a["participant"], b["participant"]]
+        names = [engine.name_of(cid, i) for i in ids]
+        # p1 and p2 both want the venue (first need) and both are quick at a different job.
+        minutes[names[0]] = [90, 20, 60]
+        minutes[names[1]] = [90, 60, 20]
+        minutes[names[2]] = [60, 60, 30]
+        briefs_open(engine, cid, ids)
+        for person, pick in zip(who, ("o1", "o1", "o2"), strict=True):
+            reply_brief(client, person["token"], {"q1": pick, "q2": 2, "q3": None})
+        until(lambda: events(client, cid, "propose"), 60, "plans")
+        plans = events(client, cid, "propose")[0]["payload"]["plans"]
+        venue = events(client, cid, "need")[0]["payload"]["need_id"]
+        takers = {
+            next(a["assignee"] for a in p["assignments"] if a["task_id"] == venue) for p in plans
+        }
+        assert len(plans) >= 2 and len(takers) == 2, "the same job is taken by each in turn"
+        # A tension is raised only when plans differ by at least half on some objective (the
+        # gardener's TradeoffPolicy); plans that merely swap who does what are a plain choice.
+        scores = [p["objective_scores"] for p in plans]
+        wide = any(
+            max(float(x[k]) for x in scores) > 0
+            and (max(float(x[k]) for x in scores) - min(float(x[k]) for x in scores))
+            / max(float(x[k]) for x in scores)
+            >= 0.5
+            for k in ("total_cost", "max_share_ratio", "third")
+        )
+        time.sleep(8)
+        assert bool(events(client, cid, "tension")) == wide
+        asks = server_of(client).hosts[cid].open_consents("p1")
+        assert any(a["kind"] == "plan" for a in asks) or wide, "the plans are put to the group"
