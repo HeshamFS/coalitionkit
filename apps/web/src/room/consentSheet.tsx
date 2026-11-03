@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // The consent seal as the Consent board draws it (story J-09): the question in one line, what a
-// yes does, what stays private, then press and hold to sign with the owner key. Built only from
+// yes does, what stays private, then press and hold to say yes, which the host signs for you. Built only from
 // the host's open request and the viewer's own projection, never from a composed tree.
 import type { ConsentAcknowledgement } from "../components/f08/ConsentSeal";
 import { TrustedConsentSeal } from "../components/f08/ConsentSeal";

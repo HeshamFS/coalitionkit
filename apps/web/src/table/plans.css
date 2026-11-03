@@ -1,0 +1,86 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* ---------- Plans on the table ---------- */
+.tb-plans {
+  z-index: 9;
+  display: flex;
+  gap: 14px;
+}
+.tb-plans[data-placement="stage"] {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  align-items: stretch;
+  justify-content: center;
+  width: 920px;
+  transform: translateX(-50%);
+}
+.tb-plans[data-placement="side"] {
+  flex-direction: column;
+}
+.tb-plan {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -12px rgba(14, 23, 38, 0.2);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  animation: rise 0.5s ease-out 1;
+}
+.tb-plan[data-on="true"] {
+  border: 2px solid var(--blue);
+  padding: 15px;
+  box-shadow: 0 0 0 4px var(--blue-tint);
+}
+.tb-plan-k {
+  color: var(--blue-text);
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.1em;
+}
+.tb-plan-h {
+  margin: 2px 0 4px;
+  font: 400 24px / 1.1 var(--font-display);
+}
+.tb-plan-line {
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.tb-plan ul {
+  margin: 4px 0 0;
+  padding: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+  list-style: none;
+}
+.tb-plan-strength {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.tb-plan-src {
+  color: var(--ink-3);
+  font: 500 10px var(--font-mono);
+}
+.tb-plan-fy {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 13px;
+}
+.tb-plan-fy b {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ink-3);
+  font: 500 10px var(--font-mono);
+}

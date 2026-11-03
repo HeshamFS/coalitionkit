@@ -1,0 +1,35 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.tbg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: #0b1030;
+  color: #eef0fb;
+  font: 500 12px var(--font-ui);
+}
+.tbg-bar b {
+  margin-right: 8px;
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.06em;
+}
+.tbg-bar button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #3a4580;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.tbg-bar button[aria-pressed="true"] {
+  background: #7c97ff;
+  border-color: #7c97ff;
+  color: #060a24;
+}
+
+.tbg-wrap .tb {
+  min-height: calc(100vh - 40px);
+}
