@@ -142,6 +142,13 @@ What the fields mean:
 - `change.from` is the seat that caused the change, or `null` when the host did.
 - `checked` counts the events the Steward has reviewed in this room, including the ones it stopped.
 - `state.cost_meter` is `{spent, currency, calls}`, measured from real model calls.
+- `closes` is the charter deadline (ISO). `begin` is only for the owner, before the room has begun.
+- `results[].replaced_by` is the id of the result that replaced it, or, while that result is still being made, the id of the successor need.
+- `common.count_private` is computed from the viewer's own vault and is `null` for a seat that sat out the comparison; it is never stored in the public document.
+- An offer means "I could do this, and it would take me about this long": its minutes are one person's own estimate for one need, capped by the most time they said they would give to any one job, and are never summed. `mine.for_you[plan]` adds, in words written by code, "This asks 3 hours of your 2" when a plan asks more than the hours they gave.
+- `needs[].status` is `no offers` when the offer round is over and nobody has offered on it; the room then says so and waits for an offer.
+- A message the Steward holds on a seat's behalf appears in `stops` and is not sent again. A plan set the Steward holds appears as a stop without a seat; plans the fairness rule would hold are held back when others exist.
+- Late joiners (an old invitation used after the room has begun) get a brief and a vault, are not deciders, and are not part of the offer or compare rounds; they can offer by hand.
 
 `results[].data` has one shape per kind, so the screen can offer real exports:
 
