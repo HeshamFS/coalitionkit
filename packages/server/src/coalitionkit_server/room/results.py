@@ -136,17 +136,15 @@ def budget_data(facts: Document, made: Document | None) -> Document:
 
 
 def draft_by_rules(facts: Document) -> Document:
-    """A complete message built from what the room knows, with the open points said as such."""
-    when = (
-        "the shared times are " + " or ".join(c["label"] for c in facts["common"][:3])
-        if facts["common"]
-        else "the time is still to be confirmed"
-    )
+    """A complete message built from what the room knows, with the open points said as such.
+
+    The shared free times are when the people can meet, never when the event is, so the
+    message does not give them as the time."""
     goal = facts["goal"].rstrip(".")
     names = " and ".join(facts["people"][:3]) or "the organisers"
     body = (
         f"Hello,\n\nWe are getting together to do this: {goal}.\n\n"
-        f"When: {when}.\nWhere: the place is still to be confirmed.\n\n"
+        "When: the time is still to be confirmed.\nWhere: the place is still to be confirmed.\n\n"
         "Please reply to say whether you can come, and tell us if you have ideas or can help.\n\n"
         f"Thanks,\n{names}"
     )

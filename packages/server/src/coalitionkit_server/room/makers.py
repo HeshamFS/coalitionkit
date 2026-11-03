@@ -29,6 +29,8 @@ AMOUNT = re.compile(
     r"(?:([€$£])\s*(\d[\d.,]*))|(?:(\d[\d.,]*)\s*(euros?|eur|dollars?|usd|pounds?|gbp)\b)", re.I
 )
 UNITS = {"€": "EUR", "$": "USD", "£": "GBP", "euro": "EUR", "euros": "EUR", "eur": "EUR"}
+HEDGE = re.compile(r"^\s*(as an? (?:proposal|suggestion)|proposal|suggestion)\s*[:,]\s*", re.I)
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bUTC\b")
 PLACEHOLDER = re.compile(r"\[[^\]]{1,40}\]|<[^>]{1,40}>|\bTBD\b|lorem ipsum", re.I)
 
 SYSTEM = (
@@ -60,8 +62,9 @@ KIND_RULES = {
     "place": (
         "Suggest 2 or 3 kinds of place (not named venues), each named in at most six words, with "
         "why it fits this goal and "
-        "what to check first before booking it, each in one or two plain sentences that "
-        "end properly."
+        "what to check first before booking it. Write the way a neighbour would say it across "
+        "a table: plain, direct, one or two short sentences that end properly, no hedging "
+        "such as 'it could' or 'as a proposal', and no list of tasks for named people."
     ),
     "schedule": (
         "Give the ordered steps of the plan, each a short action. The times are added from the "
@@ -158,12 +161,38 @@ def clean_budget(out: BudgetOut, amount: int) -> Document | str:
     return {"lines": lines, "how_shared": tidy(out.how_shared, 200)}
 
 
+def shows_free_slot(body: str, facts: Document) -> bool:
+    """The text names one of the shared free slots, or a clock time the goal does not give."""
+    low = body.lower()
+    for slot in facts.get("common", []):
+        label = str(slot["label"]).lower()
+        if label and label in low:
+            return True
+        day = re.sub(r",?\s*\d{1,2}:\d{2}.*$", "", label).strip()
+        if day and day in low:
+            return True
+    stated = CLOCK.findall(str(facts.get("goal", "")))
+    return any(c not in stated for c in CLOCK.findall(body))
+
+
+def plain(text: str, limit: int) -> str:
+    """Written like a person: no leading 'As a proposal,' hedge, first letter capital."""
+    line = tidy(text, limit)
+    line = HEDGE.sub("", line)
+    return line[:1].upper() + line[1:]
+
+
 def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Document | str:
     """The maker's output made safe and checked, or the reason it cannot be used."""
     if isinstance(out, DraftOut):
         body = out.body.strip()
         if len(body) < 80 or PLACEHOLDER.search(body) or PLACEHOLDER.search(out.subject):
             return "write the whole message with no placeholders"
+        if shows_free_slot(body, facts):
+            return (
+                "do not write the shared free times or any clock time: they are when the "
+                "people are free, not when the event is; use the day the goal names"
+            )
         return {"subject": tidy(out.subject, 100), "body": body[:2500]}
     if isinstance(out, BudgetOut):
         wanted = facts["amount"]
@@ -174,8 +203,8 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
         ideas = [
             {
                 "name": tidy(i.kind_of_place, 90).rstrip(". "),
-                "why": tidy(i.why_it_fits, 220),
-                "check": tidy(i.check_first, 220),
+                "why": plain(i.why_it_fits, 220),
+                "check": plain(i.check_first, 220),
             }
             for i in out.ideas
         ]

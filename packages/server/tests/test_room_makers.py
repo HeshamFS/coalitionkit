@@ -82,3 +82,35 @@ def test_every_card_of_a_fixed_tree_is_reachable_from_root() -> None:
         cards = [n for n in tree if n["component"] == "Card"]
         wanted = {"place": 3, "schedule": 4, "budget": 2, "list": 1, "draft": 1}[kind]
         assert len(cards) == wanted, (kind, len(cards))
+
+
+def test_a_draft_may_not_present_free_slots_as_the_event_time() -> None:
+    facts = {
+        "amount": None,
+        "goal": "A fair next Saturday",
+        "common": [{"id": "s2", "label": "Thu 05 Nov, 14:00 UTC"}],
+    }
+    base = "Hello neighbours, we run a small fair next Saturday and we would love you to come. "
+    for bad in (
+        "Join us on Thu 05 Nov, 14:00 UTC.",
+        "Come at 14:00.",
+        "Meet Thu 05 Nov for a preview.",
+    ):
+        out = makers.clean("draft", makers.DraftOut(subject="Fair", body=base + bad), facts, set())
+        assert isinstance(out, str) and "free" in out, bad
+    fine = makers.clean(
+        "draft", makers.DraftOut(subject="Fair", body=base + "Reply please."), facts, set()
+    )
+    assert isinstance(fine, dict)
+    rules = results.draft_by_rules({**facts, "people": ["Mira"], "need": {"title": "Invitation"}})
+    assert "Thu 05 Nov" not in rules["body"] and "still to be confirmed" in rules["body"]
+
+
+def test_place_ideas_lose_the_hedge_in_front() -> None:
+    assert (
+        makers.plain("As a proposal, it could give room for tables.", 200)
+        == "It could give room for tables."
+    )
+    assert (
+        makers.plain("As a suggestion: Check the opening hours.", 200) == "Check the opening hours."
+    )
