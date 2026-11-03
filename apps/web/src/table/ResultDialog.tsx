@@ -9,7 +9,13 @@ import type { Room, RoomResult } from "./room";
 import { ComposedSurface } from "./useSurface";
 
 export type SourceRow = { id: string; seq: number | null; type: string };
-export type Shown = { result: RoomResult; byLabel: string; sources: SourceRow[] };
+export type Shown = {
+  result: RoomResult;
+  byLabel: string;
+  sources: SourceRow[];
+  /** The need's status in the host's own word, for "Show the work" only. */
+  needStatus?: string;
+};
 
 const record = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -39,10 +45,19 @@ export function shownFor(room: Room, state: ViewerState | null, result: RoomResu
     result,
     byLabel: byLabelOf(room, result.by),
     sources: sourceRows(state, result.seqs),
+    needStatus: room.needs.find((n) => n.id === result.need_id)?.status,
   };
 }
 
-function Work({ result, sources }: { result: RoomResult; sources: SourceRow[] }) {
+function Work({
+  result,
+  sources,
+  needStatus,
+}: {
+  result: RoomResult;
+  sources: SourceRow[];
+  needStatus?: string;
+}) {
   return (
     <div className="tb-work">
       <p>
@@ -66,6 +81,12 @@ function Work({ result, sources }: { result: RoomResult; sources: SourceRow[] })
           )}
         </ul>
       )}
+      {needStatus ? (
+        <>
+          <h4>Need status, as the host says it</h4>
+          <p>{needStatus}</p>
+        </>
+      ) : null}
       <h4>Check passed</h4>
       <p>
         The component tree is valid for the closed catalog. An invalid tree would have been replaced
@@ -147,7 +168,7 @@ export function ResultDialog({ shown, onClose }: { shown: Shown; onClose: () => 
           </p>
         )}
         {back ? (
-          <Work result={result} sources={sources} />
+          <Work result={result} sources={sources} needStatus={shown.needStatus} />
         ) : (
           <ComposedSurface
             messages={result.messages}

@@ -17,6 +17,8 @@ export function TrustedRequest({
   state,
   onAnswer,
   onSeePlans,
+  summary,
+  compact,
 }: {
   request: OpenRequest;
   state: ViewerState | null;
@@ -24,6 +26,8 @@ export function TrustedRequest({
     | ((answer: Answer) => void)
     | ((answer: Answer) => Promise<ConsentAcknowledgement | undefined>);
   onSeePlans?: () => void;
+  summary?: string;
+  compact?: boolean;
 }) {
   const [declined, setDeclined] = useState<string>();
   const [problem, setProblem] = useState<string | null>(null);
@@ -86,6 +90,8 @@ export function TrustedRequest({
           }
         }}
         onSeePlans={onSeePlans}
+        summary={summary}
+        compact={compact}
       />
     </>
   );

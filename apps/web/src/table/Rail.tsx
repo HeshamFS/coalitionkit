@@ -5,6 +5,7 @@ import { type FormEvent, useState } from "react";
 import { problemText, type SayReply } from "./api";
 import { useTable } from "./context";
 import { MOMENTS, momentIndex } from "./phase";
+import type { Room } from "./room";
 
 const WHERE: Record<SayReply["route"], string> = {
   private: "Kept private. Only your agent has it.",
@@ -12,8 +13,6 @@ const WHERE: Record<SayReply["route"], string> = {
   change: "Sent as a change. Only what it touches will move.",
   other: "",
 };
-
-type Exchange = { said: string; reply: SayReply };
 
 export function Moments() {
   const { room } = useTable();
@@ -35,29 +34,33 @@ export function Moments() {
   );
 }
 
-export function Say() {
-  const { room, io } = useTable();
+/** Why the box is closed, from this viewer's own seat. Null when they may speak. */
+export function sayLock(room: Room): string | null {
   const me = room.seats.find((s) => s.you);
+  if (room.phase === "ended") return "The room has ended";
+  if (!me?.signed) return "Take your seat to speak";
+  if (room.phase === "gather") return "Waiting for the room to begin";
+  return null;
+}
+
+export function Say() {
+  const { room, io, setSaid } = useTable();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<Exchange | null>(null);
-  const [problem, setProblem] = useState("");
-  const locked = room.phase === "ended" || room.phase === "gather" || !me?.signed;
-  const why = room.phase === "ended" ? "The room has ended" : "Take your seat to speak";
+  const lock = sayLock(room);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const said = text.trim();
     if (!said || busy) return;
     setBusy(true);
-    setProblem("");
     const r = await io.say(said);
     setBusy(false);
     if (!r.ok) {
-      setProblem(problemText(r));
+      setSaid({ text: said, error: problemText(r) });
       return;
     }
-    setLast({ said, reply: r.data });
+    setSaid({ text: said, reply: r.data });
     setText("");
   };
 
@@ -71,24 +74,43 @@ export function Say() {
         type="text"
         maxLength={500}
         value={text}
-        disabled={locked}
-        placeholder={locked ? why : "Tell your agent, or the room"}
+        disabled={lock !== null}
+        placeholder={lock ?? "Tell your agent, or the room"}
         onChange={(e) => setText(e.target.value)}
       />
-      <button type="submit" className="btn" disabled={locked || busy || text.trim() === ""}>
+      <button type="submit" className="btn" disabled={lock !== null || busy || text.trim() === ""}>
         {busy ? "Sending…" : "Say"}
       </button>
-      <div className="tb-sayreply" role="status" aria-live="polite">
-        {problem && <span role="alert">{problem}</span>}
-        {!problem && last && (
-          <>
-            <b data-stopped={last.reply.stopped === true}>
-              {last.reply.stopped ? "Stopped by the Steward." : WHERE[last.reply.route]}
-            </b>
-            {last.reply.reply && <span> {last.reply.reply}</span>}
-          </>
-        )}
-      </div>
     </form>
+  );
+}
+
+/** What you last said and where it went. It sits on your side, so the footer never grows. */
+export function SayNote() {
+  const { said, setSaid } = useTable();
+  if (!said) return null;
+  const r = said.reply;
+  return (
+    <section className="tb-saynote" role="status" aria-live="polite" aria-label="What you said">
+      <span className="tb-tag">You said</span>
+      <p className="tb-said">{said.text}</p>
+      {said.error ? (
+        <p role="alert" className="tb-bad">
+          {said.error}
+        </p>
+      ) : (
+        r && (
+          <p>
+            <b data-stopped={r.stopped === true}>
+              {r.stopped ? "Stopped by the Steward." : WHERE[r.route]}
+            </b>
+            {r.reply && <> {r.reply}</>}
+          </p>
+        )
+      )}
+      <button type="button" className="tb-linky" onClick={() => setSaid(null)}>
+        Dismiss
+      </button>
+    </section>
   );
 }

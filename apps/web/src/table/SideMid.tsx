@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Your side while agents work, while plans are on the table, and while commitments are asked.
 
+import { useState } from "react";
 import type { Plan } from "../components/f06/plans";
 import { TrustedConsentSeal } from "../components/f08/ConsentSeal";
-import { askForPlan, requestLabel } from "../feed/derive";
-import { AskCard, Asks } from "./Asks";
+import { askForPlan, requestLabel, visibleRequests } from "../feed/derive";
+import { AskCard, Asks, summaryOf } from "./Asks";
 import { answerAll, partRequests } from "./commit";
 import { useTable } from "./context";
 import { PlanCards } from "./PlanCards";
@@ -78,9 +79,12 @@ export function SideDecide({
 }
 
 export function SideCommit() {
-  const { requests, state, answer, room } = useTable();
-  const mine = partRequests(requests);
+  const { requests, state, outcome, room } = useTable();
+  // A task that an open commitment covers is closed by that commitment's yes, so it is not a
+  // second thing waiting: count and answer what is shown.
+  const mine = visibleRequests(state, partRequests(requests));
   const key = mine.map((r) => r.id).join("|");
+  const [note, setNote] = useState("");
   return (
     <>
       <h2>Start my part</h2>
@@ -94,16 +98,28 @@ export function SideCommit() {
         <>
           <p>
             {mine.length} {mine.length === 1 ? "thing waits" : "things wait"} for your yes. One hold
-            answers each, one after the other.
+            answers {mine.length === 1 ? "it" : "each, one after the other"}.
           </p>
           <ul className="tb-list" aria-label="What you would say yes to">
             {mine.map((r) => (
-              <li key={r.id}>{requestLabel(state, r)}</li>
+              <li key={r.id}>{summaryOf(room, r) ?? requestLabel(state, r)}</li>
             ))}
           </ul>
           <div className="tb-seal">
-            <TrustedConsentSeal key={key} onApprove={() => answerAll(mine, answer)} />
+            <TrustedConsentSeal
+              key={key}
+              onApprove={async () => {
+                const done = await answerAll(mine, outcome);
+                setNote(
+                  done.handled > 0
+                    ? `${done.answered + done.handled} answered. ${done.handled} was already closed by an earlier yes.`
+                    : "",
+                );
+                return done.last;
+              }}
+            />
           </div>
+          {note && <p role="status">{note}</p>}
           <p className="tb-note">
             Each yes is its own record, signed for you by the host after your yes. Your agent never
             answers for you.

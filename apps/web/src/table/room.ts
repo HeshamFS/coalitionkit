@@ -102,14 +102,28 @@ export type MyTask = {
   result: string | null;
   can_mark_done: boolean;
 };
+/** Real numbers for the closing screen. Each is null when the host could not measure it. */
+export type Measured = {
+  calendars_shared: number | null;
+  minutes: number | null;
+  cost: string | null;
+  vendors: number | null;
+};
+
 export type Room = {
   phase: Phase;
   lights: Lights;
   goal: string;
+  /** When the room ends by itself (ISO), or null when the host did not say. */
+  closes: string | null;
   seats: RoomSeat[];
   needs: RoomNeed[];
   activity: Activity[];
-  slots: { id: string; label: string }[];
+  slots: {
+    id: string;
+    label: string /** ISO start, when the host gave one */;
+    start: string | null;
+  }[];
   common: Common | null;
   plan_notes: Record<string, { name: string; line: string; source: Source }>;
   results: RoomResult[];
@@ -117,8 +131,13 @@ export type Room = {
   checked: number;
   change: Change | null;
   begin: { can: boolean; open_seats: number } | null;
+  measured: Measured | null;
   mine: {
     brief: BriefItem[];
+    /** When your agent stops waiting for answers (ISO), or null. */
+    brief_closes: string | null;
+    /** What the viewer is asked to decide, in plain words. Null when the host sent none. */
+    asks: { kind: string; id: string; revision: number; summary: string }[] | null;
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
     tasks: MyTask[];
@@ -254,6 +273,18 @@ function readNotes(v: unknown): Room["plan_notes"] {
   return out;
 }
 
+function readMeasured(v: unknown): Measured | null {
+  if (!isRec(v)) return null;
+  const count = (x: unknown) =>
+    numOrNull(x) !== null && (x as number) >= 0 ? (x as number) : null;
+  return {
+    calendars_shared: count(v.calendars_shared),
+    minutes: count(v.minutes),
+    cost: strOrNull(v.cost),
+    vendors: count(v.vendors),
+  };
+}
+
 function readMine(v: unknown): Room["mine"] {
   const m = isRec(v) ? v : {};
   const forYou: Record<string, string> = {};
@@ -272,6 +303,17 @@ function readMine(v: unknown): Room["mine"] {
         messages: Array.isArray(b.messages) ? b.messages : [],
         status: oneOf(b.status, ["open", "answered", "skipped"] as const, "open"),
       })),
+    brief_closes: strOrNull(m.brief_closes),
+    asks: Array.isArray(m.asks)
+      ? list(m.asks)
+          .filter((a) => str(a.id) !== "" && str(a.summary) !== "")
+          .map((a) => ({
+            kind: str(a.kind),
+            id: str(a.id),
+            revision: Math.trunc(num(a.revision)),
+            summary: str(a.summary),
+          }))
+      : null,
     feed: list(m.feed).map((f) => ({ at: str(f.at), text: str(f.text) })),
     for_you: forYou,
     tasks: list(m.tasks)
@@ -303,12 +345,17 @@ export function readRoom(state: ViewerState | null): Room | null {
     phase: oneOf(raw.phase, PHASES, "gather"),
     lights: raw.lights === "night" ? "night" : "day",
     goal: str(raw.goal),
+    closes: strOrNull(raw.closes),
     seats: readSeats(raw.seats),
     needs: readNeeds(raw.needs),
     activity: readActivity(raw.activity),
     slots: list(raw.slots)
       .filter((s) => str(s.id) !== "")
-      .map((s) => ({ id: str(s.id), label: str(s.label) || str(s.id) })),
+      .map((s) => ({
+        id: str(s.id),
+        label: str(s.label) || str(s.id),
+        start: strOrNull(s.start),
+      })),
     common: readCommon(raw.common),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),
@@ -325,6 +372,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     checked: Math.max(0, Math.trunc(num(raw.checked))),
     change: readChange(raw.change),
     begin,
+    measured: readMeasured(raw.measured),
     mine: readMine(raw.mine),
   };
 }

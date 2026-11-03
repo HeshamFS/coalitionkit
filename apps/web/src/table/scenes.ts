@@ -14,7 +14,7 @@ import {
   TASKS,
 } from "./fixtures";
 
-export const SCENES: Scene[] = [
+const RAW: Scene[] = [
   {
     id: "arrive",
     name: "Arrive",
@@ -55,7 +55,14 @@ export const SCENES: Scene[] = [
           ms: null,
         }),
       ],
-      mine: { brief: BRIEF, feed: [], for_you: {}, tasks: [] },
+      mine: {
+        brief: BRIEF,
+        brief_closes: "2026-11-03T10:04:00Z",
+        asks: null,
+        feed: [],
+        for_you: {},
+        tasks: [],
+      },
     }),
     state: { events: events(false), viewer: "p5" },
     requests: [],
@@ -96,6 +103,8 @@ export const SCENES: Scene[] = [
         }),
       ],
       mine: {
+        brief_closes: null,
+        asks: null,
         brief: BRIEF.map((b) => ({ ...b, status: "answered" as const })),
         feed: [
           { at: "10:00", text: "I read the five needs." },
@@ -138,6 +147,8 @@ export const SCENES: Scene[] = [
         },
       ],
       mine: {
+        brief_closes: null,
+        asks: null,
         brief: [],
         feed: [{ at: "10:02", text: "Day 1 fits you. I shared nothing else." }],
         for_you: {},
@@ -166,6 +177,8 @@ export const SCENES: Scene[] = [
         p3: { name: "Smaller, closer", line: "Two days, nearer to everyone.", source: "model" },
       },
       mine: {
+        brief_closes: null,
+        asks: null,
         brief: [],
         feed: [],
         for_you: {
@@ -243,6 +256,8 @@ export const SCENES: Scene[] = [
       results: RESULTS.slice(0, 3),
       checked: 36,
       mine: {
+        brief_closes: null,
+        asks: null,
         brief: [],
         feed: [{ at: "10:09", text: "I am laying out the days." }],
         for_you: {},
@@ -260,12 +275,14 @@ export const SCENES: Scene[] = [
       seats: seatsDone,
       needs: NEEDS.map((n, i) => ({
         ...n,
-        status: i < 3 ? "done" : "ready",
-        result: i < 3 ? `r${i + 1}` : null,
+        status: "done",
+        result: `r${i + 1}`,
       })),
       results: RESULTS,
       checked: 42,
       mine: {
+        brief_closes: null,
+        asks: null,
         brief: [],
         feed: [{ at: "10:12", text: "I need two things from you." }],
         for_you: {},
@@ -284,7 +301,7 @@ export const SCENES: Scene[] = [
       needs: NEEDS.map((n, i) => ({
         ...n,
         status: i === 1 || i === 3 ? "re-planning" : "done",
-        result: i < 3 ? `r${i + 1}` : null,
+        result: i === 0 || i === 2 ? `r${i + 1}` : null,
       })),
       activity: [
         act({
@@ -306,7 +323,14 @@ export const SCENES: Scene[] = [
         untouched: 3,
       },
       checked: 46,
-      mine: { brief: [], feed: [], for_you: {}, tasks: TASKS(false) },
+      mine: {
+        brief: [],
+        brief_closes: null,
+        asks: null,
+        feed: [],
+        for_you: {},
+        tasks: TASKS(false),
+      },
     }),
     state: { events: events(true), viewer: "p5" },
     requests: [ask("commitment", "c2", "Take the Day 3 stand instead")],
@@ -314,8 +338,47 @@ export const SCENES: Scene[] = [
   {
     id: "ended",
     name: "Finish",
-    room: base({ phase: "ended", seats: seatsDone, results: RESULTS, checked: 48 }),
+    room: base({
+      phase: "ended",
+      seats: seatsDone,
+      results: RESULTS,
+      checked: 48,
+      measured: { calendars_shared: 5, minutes: 47, cost: "$0.12", vendors: 1 },
+    }),
     state: { events: events(true), viewer: "p5" },
     requests: [],
   },
 ];
+
+/** The host's plain words for each ask, as `mine.asks` carries them. */
+const SUMMARY: Record<string, string> = {
+  "charter:c1":
+    "Join this room and take your seat. You agree to the goal; your agent never decides for you.",
+  "plan:p1": "Choose Everyone together as the plan.",
+  "plan:p2": "Choose Cheapest as the plan.",
+  "plan:p3": "Choose Smaller, closer as the plan.",
+  "commitment:c1": "Take your part: bring the tables on Day 1.",
+  "commitment:c2": "Take the Day 3 stand instead.",
+};
+
+/**
+ * Every scene carries `mine.asks` the way the engine sends it: one plain line per request, and no
+ * line for a task whose commitment is also waiting, since one yes closes both.
+ */
+export const SCENES: Scene[] = RAW.map((s) => ({
+  ...s,
+  room: {
+    ...s.room,
+    mine: {
+      ...s.room.mine,
+      asks: s.requests
+        .filter((r) => r.kind !== "task")
+        .map((r) => ({
+          kind: r.kind,
+          id: r.subjectId,
+          revision: r.revision,
+          summary: SUMMARY[`${r.kind}:${r.subjectId}`] ?? r.message,
+        })),
+    },
+  },
+}));

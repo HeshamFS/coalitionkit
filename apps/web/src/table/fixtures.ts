@@ -2,8 +2,10 @@
 // A scripted room for the gallery and the tests, with neutral words only. It is the Room type
 // stepped through every phase, so the screen can be looked at before an engine is behind it.
 // Nothing imports this from the live path.
+
 import type { OpenRequest } from "../feed/agent";
 import type { ViewerState } from "../feed/delta";
+import { ENGINE_RESULTS } from "./engineResults";
 import type { Activity, BriefItem, Room, RoomNeed, RoomResult, RoomSeat } from "./room";
 
 export type Scene = {
@@ -26,20 +28,6 @@ const open = (
     ? [{ version: "v0.9", updateDataModel: { surfaceId: id, path: "/", value: data } }]
     : []),
 ];
-
-const table = (id: string, columns: [string, string][], rows: Record<string, string>[]) =>
-  open(
-    id,
-    [
-      {
-        id: "root",
-        component: "Table",
-        rows: { path: "/rows" },
-        columns: columns.map(([key, label]) => ({ key, label, sortable: false })),
-      },
-    ],
-    { rows: rows.map((r, i) => ({ id: `r${i}`, ...r })) },
-  );
 
 export const people = (me: { signed: boolean }): RoomSeat[] => [
   {
@@ -173,9 +161,12 @@ export const BRIEF: BriefItem[] = [
       "Your agent compares this with the others without showing them.",
       chips(
         [
-          ["s1", "Day 1"],
-          ["s2", "Day 2"],
-          ["s3", "Day 3"],
+          ["s1", "Day 1 morning"],
+          ["s2", "Day 1 afternoon"],
+          ["s3", "Day 2 morning"],
+          ["s4", "Day 2 afternoon"],
+          ["s5", "Day 3 morning"],
+          ["s6", "Day 3 afternoon"],
         ],
         true,
       ),
@@ -219,114 +210,7 @@ export const BRIEF: BriefItem[] = [
   },
 ];
 
-const view = (id: string, rows: Record<string, string>[], cols: [string, string][]) =>
-  table(id, cols, rows);
-
-export const RESULTS: RoomResult[] = [
-  {
-    id: "r1",
-    need_id: "n1",
-    kind: "place",
-    title: "The place",
-    by: "p1",
-    seq: 14,
-    source: "model",
-    sources: ["e2", "e4"],
-    seqs: [11, 24],
-    tree: [{ component: "Table", props: { rows: "/rows" } }],
-    data: {
-      options: [
-        { name: "Venue 1", why: "Free on all three days", provenance: "vault" },
-        { name: "Venue 2", why: "Closer, one day short", provenance: "estimate" },
-      ],
-      chosen: "Venue 1",
-    },
-    messages: view(
-      "r1",
-      [
-        { name: "Venue 1", why: "Free on all three days" },
-        { name: "Venue 2", why: "Closer, one day short" },
-      ],
-      [
-        ["name", "Option"],
-        ["why", "Why"],
-      ],
-    ),
-    replaced_by: null,
-  },
-  {
-    id: "r2",
-    need_id: "n2",
-    kind: "schedule",
-    title: "The days",
-    by: "p5",
-    seq: 16,
-    source: "rules",
-    sources: ["e2", "e3"],
-    seqs: [11, 12],
-    tree: [{ component: "Table", props: { rows: "/rows" } }],
-    data: {
-      items: [
-        {
-          title: "Set up",
-          start: "2026-11-07T09:00:00Z",
-          end: "2026-11-07T12:00:00Z",
-          where: "Venue 1",
-        },
-        {
-          title: "Open",
-          start: "2026-11-08T10:00:00Z",
-          end: "2026-11-08T16:00:00Z",
-          where: "Venue 1",
-        },
-      ],
-    },
-    messages: view(
-      "r2",
-      [
-        { title: "Set up", start: "Day 1, 09:00" },
-        { title: "Open", start: "Day 2, 10:00" },
-      ],
-      [
-        ["title", "Day"],
-        ["start", "Starts"],
-      ],
-    ),
-    replaced_by: null,
-  },
-  {
-    id: "r3",
-    need_id: "n3",
-    kind: "budget",
-    title: "The budget",
-    by: "p2",
-    seq: 18,
-    source: "model",
-    sources: ["e3", "e4", "e6"],
-    seqs: [12, 24],
-    tree: [{ component: "Table", props: { rows: "/rows" } }],
-    data: {
-      currency: "EUR",
-      rows: [
-        { label: "Materials", amount: { value: 120, event_ref: "e3" }, provenance: "vault" },
-        { label: "Snacks", amount: { value: 60, event_ref: "e4" }, provenance: "estimate" },
-      ],
-      total: { value: 180, event_ref: "e4" },
-    },
-    messages: view(
-      "r3",
-      [
-        { label: "Materials", amount: "120" },
-        { label: "Snacks", amount: "60" },
-      ],
-      [
-        ["label", "Item"],
-        ["amount", "Cost"],
-      ],
-    ),
-    replaced_by: null,
-  },
-];
+export const RESULTS: RoomResult[] = ENGINE_RESULTS;
 
 export const TASKS = (done: boolean) => [
   {
@@ -383,13 +267,17 @@ export const base = (over: Partial<Room>): Room => ({
   phase: "gather",
   lights: "day",
   goal: "Get one shared piece of work done by Friday, with four members and a shared budget",
+  closes: "2026-11-06T22:59:00Z",
   seats: people({ signed: true }),
   needs: NEEDS,
   activity: [],
   slots: [
-    { id: "s1", label: "Day 1" },
-    { id: "s2", label: "Day 2" },
-    { id: "s3", label: "Day 3" },
+    { id: "s1", label: "Day 1 morning", start: "2026-11-07T09:00:00Z" },
+    { id: "s2", label: "Day 1 afternoon", start: "2026-11-07T14:00:00Z" },
+    { id: "s3", label: "Day 2 morning", start: "2026-11-08T09:00:00Z" },
+    { id: "s4", label: "Day 2 afternoon", start: "2026-11-08T14:00:00Z" },
+    { id: "s5", label: "Day 3 morning", start: "2026-11-09T09:00:00Z" },
+    { id: "s6", label: "Day 3 afternoon", start: "2026-11-09T14:00:00Z" },
   ],
   common: null,
   plan_notes: {},
@@ -398,7 +286,8 @@ export const base = (over: Partial<Room>): Room => ({
   checked: 0,
   change: null,
   begin: null,
-  mine: { brief: [], feed: [], for_you: {}, tasks: [] },
+  measured: null,
+  mine: { brief: [], brief_closes: null, asks: null, feed: [], for_you: {}, tasks: [] },
   ...over,
 });
 

@@ -40,27 +40,27 @@
 }
 .tb-stagewrap {
   position: relative;
-  display: flex;
-  flex: 1 0 auto;
-  align-items: flex-start;
-  justify-content: center;
+  flex: 1 1 0;
+  min-height: 0;
   overflow: hidden;
 }
 .tb-stage {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform-origin: 50% 0;
+}
+.tb--phone .tb-stagewrap {
   flex: none;
-  transform-origin: 50% 50%;
 }
 .tb-caption {
-  position: absolute;
-  top: 8px;
-  left: 50%;
+  position: relative;
   z-index: 6;
-  width: min(980px, 94%);
-  transform: translateX(-50%);
+  flex: none;
+  padding: 12px 16px 2px;
   text-align: center;
   color: var(--ink);
-  font: 400 32px / 1.1 var(--font-display);
+  font: 400 clamp(22px, 2.2vw, 32px) / 1.1 var(--font-display);
   transition: color 1.2s;
 }
 .tb-caption small {
@@ -72,7 +72,18 @@
   text-transform: uppercase;
 }
 .tb--phone .tb-caption {
-  font-size: 26px;
+  font-size: 24px;
+}
+.tb-planstrip,
+.tb-stewardbar,
+.tb-tray,
+.tb-needlist {
+  flex: none;
+}
+.tb-planstrip {
+  position: relative;
+  z-index: 9;
+  padding: 0 14px 12px;
 }
 
 /* ---------- Seats ---------- */

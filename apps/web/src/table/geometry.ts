@@ -18,9 +18,9 @@ export type Layout = {
 
 export const WIDE: Layout = {
   W: 1120,
-  H: 560,
+  H: 508,
   CX: 560,
-  CY: 304,
+  CY: 252,
   RX: 420,
   RY: 196,
   NRX: 196,
@@ -29,9 +29,9 @@ export const WIDE: Layout = {
 };
 export const COMPACT: Layout = {
   W: 400,
-  H: 500,
+  H: 452,
   CX: 200,
-  CY: 262,
+  CY: 214,
   RX: 148,
   RY: 188,
   NRX: 70,
@@ -72,13 +72,6 @@ export function needPoints(needs: RoomNeed[], l: Layout): Map<string, Pt> {
     out.set(n.id, polar(90 + (360 / needs.length) * i, l.NRX, l.NRY, l));
   });
   return out;
-}
-
-/** The row seats stand in while plans are on the table. */
-export function rowPoint(i: number, n: number, l: Layout): Pt {
-  const gap = l.compact ? 76 : 160;
-  const start = l.CX - (gap * (n - 1)) / 2;
-  return { x: start + gap * i, y: l.compact ? l.H - 40 : 462 };
 }
 
 export type BeamBox = { x: number; y: number; w: number; a: number };

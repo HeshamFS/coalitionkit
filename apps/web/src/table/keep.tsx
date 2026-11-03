@@ -3,7 +3,9 @@
 // cannot be reloaded; what the agents made is kept in this tab (beside the remembered ending) and
 // shown again on the closing screen, each with the count of events it came from.
 import { useState } from "react";
+import type { ViewerState } from "../feed/delta";
 import { ResultDialog, type Shown } from "./ResultDialog";
+import { type Room, readRoom } from "./room";
 import "./table.css";
 import "./stage.css";
 import "./beams.css";
@@ -11,6 +13,7 @@ import "./side.css";
 import "./tray.css";
 
 export const KEPT_KEY = "ck.ended.results";
+export const ROOM_KEY = "ck.ended.room";
 
 function store(): Storage | undefined {
   try {
@@ -26,6 +29,46 @@ export function rememberResults(shown: Shown[]): void {
     store()?.setItem(KEPT_KEY, JSON.stringify(shown));
   } catch {
     // The tab would not keep it (full or private). The ending still shows without the results.
+  }
+}
+
+/** The part of a room worth drawing after it ends: who sat, what was needed, what was made. */
+export type SavedRoom = { room: Room; state: ViewerState };
+
+export function rememberRoom(room: Room, state: ViewerState | null): void {
+  const wanted = new Set(room.results.flatMap((r) => r.seqs));
+  const events = Object.fromEntries(
+    Object.entries((state?.events ?? {}) as Record<string, { seq?: number }>).filter(([, e]) =>
+      wanted.has(Number(e?.seq)),
+    ),
+  );
+  const slim: Room = {
+    ...room,
+    activity: [],
+    stops: [],
+    common: null,
+    change: null,
+    begin: null,
+    mine: { brief: [], brief_closes: null, asks: null, feed: [], for_you: {}, tasks: [] },
+  };
+  try {
+    store()?.setItem(
+      ROOM_KEY,
+      JSON.stringify({ room: slim, state: { events, cost_meter: state?.cost_meter } }),
+    );
+  } catch {
+    // The tab would not keep it. The ending then shows without the table.
+  }
+}
+
+export function readSavedRoom(): SavedRoom | null {
+  try {
+    const raw = JSON.parse(store()?.getItem(ROOM_KEY) ?? "null") as unknown;
+    if (!isRec(raw) || !isRec(raw.room)) return null;
+    const room = readRoom({ room: raw.room });
+    return room ? { room, state: (isRec(raw.state) ? raw.state : {}) as ViewerState } : null;
+  } catch {
+    return null;
   }
 }
 

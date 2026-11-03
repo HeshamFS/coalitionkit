@@ -180,3 +180,11 @@
     animation: none !important;
   }
 }
+
+/* The dialog already carries the result's title, so the tree's own big heading is not drawn twice. */
+.tb-doc .f01-root-Heading h2 {
+  display: none;
+}
+.tb-doc .f01-root-Text span {
+  white-space: pre-line;
+}

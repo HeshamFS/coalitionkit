@@ -5,12 +5,13 @@ import { useMemo, useState } from "react";
 import { ChainView } from "../chain/ChainView";
 import { chainInputFrom } from "../chain/input";
 import { readConfig } from "../feed/config";
+import type { CleanupCounts } from "../moments/Dissolve";
 import { EndConfirm } from "../room/endCoalition";
 import { beginEnd, readEnded } from "../room/ended";
 import { Asks } from "./Asks";
 import { problemText } from "./api";
 import { useTable } from "./context";
-import { humanStatus } from "./phase";
+import { needStatus } from "./needWords";
 import type { MyTask } from "./room";
 
 function Task({ task }: { task: MyTask }) {
@@ -35,7 +36,7 @@ function Task({ task }: { task: MyTask }) {
     <li className="tb-task">
       <span>
         {task.title}
-        <small>{humanStatus(task.status) || "waiting"}</small>
+        <small>{needStatus(task.status, 0, "waiting")}</small>
       </span>
       <span className="tb-row">
         {task.result && (
@@ -130,37 +131,125 @@ export function SideLive() {
   );
 }
 
-export function SideEnded() {
-  const { room, openResult } = useTable();
-  const kept = room.results.filter((r) => r.replaced_by === null);
-  const lessons = readEnded()?.skills_written.length ?? 0;
+const ERASED: [keyof CleanupCounts, string, string][] = [
+  ["vaults_erased", "private vault erased", "private vaults erased"],
+  ["tokens_revoked", "viewer link stopped", "viewer links stopped"],
+  ["tasks_closed", "open task closed", "open tasks closed"],
+  ["invitations_revoked", "invitation withdrawn", "invitations withdrawn"],
+];
+
+/** What the host says it cleaned up. Only numbers it actually sent are shown. */
+function Erased({ counts }: { counts: CleanupCounts }) {
+  const lines = ERASED.flatMap(([key, one, many]) => {
+    const n = counts[key];
+    return typeof n === "number" ? [`${n} ${n === 1 ? one : many}`] : [];
+  });
+  if (lines.length === 0) return null;
   return (
     <>
-      <h2>What is left</h2>
+      <span className="tb-tag">What was erased</span>
+      <ul className="tb-list">
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** The room's own measured numbers. A number the host could not measure is left out. */
+function Measured() {
+  const { room } = useTable();
+  const m = room.measured;
+  if (!m) return null;
+  const lines = [
+    m.calendars_shared !== null &&
+      `${m.calendars_shared} ${m.calendars_shared === 1 ? "calendar" : "calendars"} shared`,
+    m.minutes !== null &&
+      `${m.minutes} ${m.minutes === 1 ? "minute" : "minutes"} from start to end`,
+    m.cost !== null && `${m.cost} spent on the model`,
+    m.vendors !== null && `${m.vendors} ${m.vendors === 1 ? "outside agent" : "outside agents"}`,
+  ].filter((l): l is string => typeof l === "string");
+  if (lines.length === 0) return null;
+  return (
+    <>
+      <span className="tb-tag">Measured</span>
+      <ul className="tb-list">
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+export function SideEnded() {
+  const { room, openResult, ending } = useTable();
+  const kept = room.results.filter((r) => r.replaced_by === null);
+  const base = ending?.event ?? readEnded();
+  const report = ending?.report;
+  const counts: CleanupCounts | undefined = report && "failed" in report ? report.done : report;
+  const skills = counts?.skills_written?.length
+    ? counts.skills_written
+    : (base?.skills_written ?? []);
+  return (
+    <>
+      <h2>The room has ended</h2>
+      {ending?.pending && <p role="status">Ending the room for everyone…</p>}
+      {ending?.refused && (
+        <>
+          <p role="alert" className="tb-bad">
+            {ending.refused}
+          </p>
+          {ending.onRetry && (
+            <button type="button" className="btn tb-quietbtn" onClick={ending.onRetry}>
+              Try again
+            </button>
+          )}
+        </>
+      )}
+      {counts && <Erased counts={counts} />}
+      <Measured />
+      {skills.length > 0 && (
+        <>
+          <span className="tb-tag">Lessons kept, with no private data in them</span>
+          <ul className="tb-list">
+            {skills.map((id) => (
+              <li key={id}>{counts?.lessons?.[id]?.title || id}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <span className="tb-tag">What the room made</span>
       {kept.length === 0 ? (
         <p role="status">Nothing was made in this room.</p>
       ) : (
-        <ul className="tb-kept">
-          {kept.map((r) => (
-            <li key={r.id}>
-              <button type="button" className="tb-linky" onClick={() => openResult(r.id)}>
-                {r.title}
-              </button>
-              <small>
-                from {r.sources.length} {r.sources.length === 1 ? "event" : "events"}
-              </small>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p>
+            These results live only in this tab. Export or copy what you want now: once you leave,
+            they are gone.
+          </p>
+          <ul className="tb-kept">
+            {kept.map((r) => (
+              <li key={r.id}>
+                <button type="button" className="tb-linky" onClick={() => openResult(r.id)}>
+                  {r.title}
+                </button>
+                <small>
+                  from {r.sources.length} {r.sources.length === 1 ? "event" : "events"}
+                </small>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
-      {lessons > 0 && (
-        <p>
-          {lessons} {lessons === 1 ? "lesson" : "lessons"} written as{" "}
-          {lessons === 1 ? "a skill" : "skills"}, with no private data in{" "}
-          {lessons === 1 ? "it" : "them"}.
-        </p>
+      {ending ? (
+        <button type="button" className="btn tb-quietbtn" onClick={ending.onLeave}>
+          Leave, back to the start
+        </button>
+      ) : (
+        <Finish canEnd={false} />
       )}
-      <Finish canEnd={false} />
     </>
   );
 }

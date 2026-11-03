@@ -11,8 +11,8 @@ import { SideGather } from "./SideGather";
 import { SideCommit, SideDecide, SideWork } from "./SideMid";
 
 const NOTE: Record<SideKind, string> = {
-  gather: "The consent sheet is built here from the host's request, never from a composed tree.",
-  brief: "Your agent chose this question. The host checked it against the catalog.",
+  gather: "Your yes is signed for you by the host, after you say it.",
+  brief: "Your answers stay in your vault.",
   work: "Only you get this feed. Others see offers, never its words.",
   decide: "The same plans for everyone. The line marked for you only is yours alone.",
   commit: "Agents never commit anyone. Only your own yes does.",
@@ -57,7 +57,7 @@ export function Side({
         </>
       )}
       <div className="tb-composed">
-        {looking ? "Built by the host for both of your scopes." : NOTE[kind]}
+        {looking ? "Only what you both may see is shown." : NOTE[kind]}
       </div>
     </aside>
   );

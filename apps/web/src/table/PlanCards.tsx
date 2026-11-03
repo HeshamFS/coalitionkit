@@ -26,7 +26,7 @@ export function PlanCards({
   /** Plan ids the viewer already said yes to. */
   signed: ReadonlySet<string>;
   onPick: (id: string) => void;
-  placement: "stage" | "side";
+  placement: "strip" | "side";
 }) {
   if (plans.length === 0) {
     return (
@@ -41,7 +41,6 @@ export function PlanCards({
       {plans.map((p) => {
         const note = room.plan_notes[p.id];
         const mine = room.mine.for_you[p.id];
-        const numbers = (p.note ?? "").split(" · ").filter(Boolean);
         return (
           <button
             key={p.id}
@@ -57,14 +56,6 @@ export function PlanCards({
             </span>
             <span className="tb-plan-h">{nameOf(p, room)}</span>
             {note?.line && <span className="tb-plan-line">{note.line}</span>}
-            {numbers.length > 0 && (
-              <ul>
-                {numbers.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            )}
-            {p.strength && <span className="tb-plan-strength">{p.strength}</span>}
             {note && (
               <span className="tb-plan-src">
                 named by the {note.source === "model" ? "model" : "rules"}

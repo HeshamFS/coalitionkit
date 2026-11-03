@@ -11,22 +11,13 @@ import { clearOwner } from "./genesis/owner";
 import { Landing } from "./landing/Landing";
 import { LensView } from "./lens/LensView";
 import type { DissolveEvent } from "./moments/Dissolve";
-import { EndedView } from "./room/endCoalition";
 import { beginEnd, clearEnded, readEnded, useEndRun } from "./room/ended";
 import { GlassesRoute } from "./room/glasses";
 import { SignIn } from "./SignIn";
+import { EndedTable } from "./table/EndedTable";
 import { RoomEntry } from "./table/Entry";
-import { KeptResults } from "./table/keep";
 
 export const EXPIRED_NOTICE = "Your session ended. Sign in again.";
-
-/** The closing screen, with what the room made kept below it. */
-const withKept = (ending: React.ReactNode) => (
-  <>
-    {ending}
-    <KeptResults />
-  </>
-);
 
 function go(path: string) {
   globalThis.history.replaceState(null, "", path);
@@ -62,8 +53,8 @@ export function App() {
     setConfig(null);
     enter();
   };
-  if (run) return withKept(<EndedView run={run} onLeave={leave} />);
-  if (ended) return withKept(<EndedView event={ended} onLeave={leave} />);
+  if (run) return <EndedTable run={run} onLeave={leave} />;
+  if (ended) return <EndedTable event={ended} onLeave={leave} />;
   if (path.startsWith("/gallery")) return <Gallery />;
   if (path.startsWith("/join")) return <Join onJoined={enter} />;
   if (!config) {

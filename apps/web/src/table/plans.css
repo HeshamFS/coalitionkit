@@ -5,14 +5,16 @@
   display: flex;
   gap: 14px;
 }
-.tb-plans[data-placement="stage"] {
-  position: absolute;
-  top: 92px;
-  left: 50%;
+.tb-plans[data-placement="strip"] {
   align-items: stretch;
-  justify-content: center;
-  width: 920px;
-  transform: translateX(-50%);
+  gap: 12px;
+}
+.tb-plans[data-placement="strip"] .tb-plan {
+  min-width: 0;
+  padding: 12px 14px;
+}
+.tb-plans[data-placement="strip"] .tb-plan-h {
+  font-size: 22px;
 }
 .tb-plans[data-placement="side"] {
   flex-direction: column;
@@ -83,4 +85,29 @@
   margin-bottom: 3px;
   color: var(--ink-3);
   font: 500 10px var(--font-mono);
+}
+
+/* On a short window the plans give the stage more room. */
+@media (max-height: 800px) {
+  .tb-plans[data-placement="strip"] .tb-plan {
+    gap: 2px;
+    padding: 8px 12px;
+  }
+  .tb-plans[data-placement="strip"] .tb-plan-h {
+    margin: 0;
+    font-size: 19px;
+  }
+  .tb-plans[data-placement="strip"] .tb-plan-src {
+    display: none;
+  }
+  .tb-plans[data-placement="strip"] .tb-plan ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    margin: 0;
+  }
+  .tb-plans[data-placement="strip"] .tb-plan-fy {
+    margin-top: 4px;
+    padding-top: 6px;
+  }
 }

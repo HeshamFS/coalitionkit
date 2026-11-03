@@ -60,6 +60,19 @@ describe("readRoom", () => {
     expect(room?.checked).toBe(0);
   });
 
+  it("reads the measured numbers, nulls included, and never invents one", () => {
+    const room = readRoom({
+      room: { measured: { calendars_shared: 5, minutes: null, cost: null, vendors: -2 } },
+    });
+    expect(room?.measured).toEqual({
+      calendars_shared: 5,
+      minutes: null,
+      cost: null,
+      vendors: null,
+    });
+    expect(readRoom({ room: {} })?.measured).toBeNull();
+  });
+
   it("reads every scripted scene back unchanged", () => {
     for (const s of SCENES) expect(readRoom({ room: s.room })).toEqual(s.room);
   });
@@ -113,23 +126,41 @@ describe("start my part", () => {
     const list = [req("task", "t"), req("plan", "p"), req("commitment", "c"), req("charter", "x")];
     expect(partRequests(list).map((r) => r.kind)).toEqual(["commitment", "task"]);
   });
-  it("answers each through `answer`, in order", async () => {
+  const good = (sent: unknown[]) => async (a: unknown) => {
+    sent.push(a);
+    return { ok: true as const, ack: { seq: sent.length, signature: "sig" } };
+  };
+  it("answers each through the trusted outcome, in order, quietly", async () => {
     const sent: unknown[] = [];
-    const ack = await answerAll([req("commitment", "c"), req("task", "t")], async (a) => {
-      sent.push(a);
-      return { seq: sent.length, signature: "sig" };
+    const quiet: unknown[] = [];
+    const done = await answerAll([req("commitment", "c"), req("task", "t")], async (a, q) => {
+      quiet.push(q);
+      return good(sent)(a);
     });
     expect(sent).toEqual([
       { interrupt_id: "commitment:c:1:u", consent: true },
       { interrupt_id: "task:t:1:u", consent: true },
     ]);
-    expect(ack.seq).toBe(2);
+    expect(done).toMatchObject({ answered: 2, handled: 0 });
+    expect(done.last?.seq).toBe(2);
+    expect(quiet).toEqual([true, true]);
   });
-  it("stops at the first refusal and says how far it got", async () => {
+  it("counts a request the host says is no longer open as handled, not as a failure", async () => {
+    let n = 0;
+    const done = await answerAll([req("commitment", "c"), req("task", "t")], async () =>
+      n++ === 0
+        ? { ok: true as const, ack: { seq: 1, signature: "s" } }
+        : { ok: false as const, error: "not_open", detail: "" },
+    );
+    expect(done).toMatchObject({ answered: 1, handled: 1 });
+  });
+  it("stops at any other refusal and says how far it got", async () => {
     let n = 0;
     await expect(
       answerAll([req("commitment", "c"), req("task", "t")], async () =>
-        n++ === 0 ? { seq: 1, signature: "s" } : undefined,
+        n++ === 0
+          ? { ok: true as const, ack: { seq: 1, signature: "s" } }
+          : { ok: false as const, error: "not_your_request", detail: "" },
       ),
     ).rejects.toThrow(/1 of 2 answered/);
     expect(n).toBe(2);
@@ -151,9 +182,19 @@ describe("exports", () => {
     expect(exportsFor(draft)).toEqual([]);
     expect(exportsFor({ ...of("budget"), data: { rows: [] } })).toEqual([]);
   });
-  it("makes the budget csv with unwrapped amounts and the total", () => {
+  it("makes the budget csv: rows, total, time offered in minutes, then what is only suggested", () => {
     expect(budgetCsv(of("budget"))).toBe(
-      "label,amount,currency,provenance\r\nMaterials,120,EUR,vault\r\nSnacks,60,EUR,estimate\r\nTotal,180,EUR,\r\n",
+      [
+        "label,amount,unit,who,provenance",
+        "Materials,120,EUR,Shared,estimate",
+        "Snacks,60,EUR,Member 2,estimate",
+        "Total,180,EUR,,",
+        "Member 1 (time offered),90,minutes,,signed",
+        "Member 2 (time offered),45,minutes,,signed",
+        "Time offered in all,135,minutes,,",
+        "Table hire (suggested),40,EUR,,estimate",
+        "",
+      ].join("\r\n"),
     );
   });
   it("makes a list csv and quotes what needs it", () => {
@@ -172,6 +213,8 @@ describe("exports", () => {
   });
   it("copies text by kind", () => {
     expect(toText(draft)).toBe("Hello\n\nCome along.");
-    expect(toText(of("place"))).toContain("Venue 1 (chosen): Free on all three days");
+    expect(toText(of("place"))).toContain(
+      "Venue 1: Free on all three days Check first: Ask about step-free access",
+    );
   });
 });

@@ -3,6 +3,7 @@
 
 import type { ViewerState } from "../feed/delta";
 import { Logo } from "../landing/marks";
+import { closesLabel } from "../landing/rooms";
 import type { Room } from "./room";
 
 /** The host's cost meter as a small, real number. Nothing is shown unless it sent one. */
@@ -43,7 +44,7 @@ export function Band({
         <span className="tb-eyebrow">
           {seats === 0
             ? "Seats are being set"
-            : `${seats} ${seats === 1 ? "seat" : "seats"}${open > 0 ? ` · ${open} open` : ""}`}
+            : `${seats} ${seats === 1 ? "seat" : "seats"}${open > 0 ? ` · ${open} open` : ""}${room.closes ? ` · ${closesLabel(room.closes)}` : ""}`}
         </span>
         {cost && <span className="tb-cost">{cost}</span>}
         {onSignOut && (

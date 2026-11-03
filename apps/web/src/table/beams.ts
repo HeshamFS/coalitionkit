@@ -6,6 +6,7 @@
 import { newest } from "./caption";
 import type { Pt } from "./geometry";
 import type { Activity, Room } from "./room";
+import { slotLabel } from "./slots";
 
 export type Beam = {
   key: string;
@@ -65,7 +66,10 @@ export const comparing = (room: Room) =>
 export function commonLine(room: Room): string | null {
   const c = room.common;
   if (!c) return null;
-  const label = (id: string) => room.slots.find((s) => s.id === id)?.label ?? id;
+  const label = (id: string) => {
+    const slot = room.slots.find((s) => s.id === id);
+    return slot ? slotLabel(slot) : id;
+  };
   const fits = c.slots.length
     ? `${c.slots.map(label).join(" and ")} fits ${c.compared > 0 ? `all ${c.compared}` : "everyone"}.`
     : "No time fits everyone yet.";

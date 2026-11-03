@@ -374,7 +374,7 @@
 
 /* ---------- Phone: your side first, the table one swipe away ---------- */
 .tb--phone .tb-band {
-  padding: 12px 16px 40px;
+  padding: 10px 16px 34px;
 }
 .tb--phone .tb-eyebrow {
   flex-basis: 100%;
@@ -382,7 +382,7 @@
   margin: 0;
 }
 .tb--phone .tb-sentence {
-  font-size: 24px;
+  font-size: 21px;
 }
 .tb-switch {
   display: flex;
@@ -479,4 +479,67 @@
 .tb--kept {
   min-height: 0;
   background: transparent;
+}
+
+/* ---------- One screen: on a wide window nothing scrolls but your side ---------- */
+@media (min-width: 901px) {
+  .tb--wide {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .tb--wide .tb-band,
+  .tb--wide .tb-rail {
+    flex: none;
+  }
+  .tb--wide .tb-grid {
+    flex: 1 1 0;
+    flex-wrap: nowrap;
+    min-height: 0;
+  }
+  .tb--wide .tb-sheet,
+  .tb--wide .tb-sidecol {
+    min-height: 0;
+  }
+  .tb--wide .tb-side {
+    min-height: 0;
+    overflow: auto;
+  }
+}
+.tb-notice {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(680px, calc(100% - 24px));
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--warn-line);
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  transform: translateX(-50%);
+}
+.tb-notice[data-bad="true"] {
+  border-color: var(--bad-line);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.tb-notice span {
+  flex: 1;
+}
+.tb-notice button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid currentcolor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: 600 13px var(--font-ui);
+  cursor: pointer;
 }

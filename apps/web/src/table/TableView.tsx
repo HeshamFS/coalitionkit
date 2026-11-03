@@ -8,16 +8,16 @@ import type { Answer } from "../feed/actions";
 import type { OpenRequest } from "../feed/agent";
 import type { ViewerState } from "../feed/delta";
 import { derivePlans, visibleRequests } from "../feed/derive";
+import type { AnswerOutcome } from "../feed/useFeed";
 import { sheetFor } from "../room/consentSheet";
 import { SignedNotice } from "../room/signed";
 import type { RoomIo } from "./api";
 import { Band } from "./Band";
-import { TableContext, type TableCtx } from "./context";
+import { type Ending, type Said, TableContext, type TableCtx } from "./context";
 import { COMPACT, WIDE } from "./geometry";
-import { rememberResults } from "./keep";
 import { PlanCards } from "./PlanCards";
 import { layoutClass } from "./phase";
-import { Moments, Say } from "./Rail";
+import { Moments, Say, SayNote } from "./Rail";
 import { ResultDialog, type Shown, shownFor } from "./ResultDialog";
 import type { Room } from "./room";
 import { Side } from "./Side";
@@ -38,16 +38,59 @@ export type TableViewProps = {
   focus: string | null;
   setFocus: (id: string | null) => void;
   answer: (a: Answer) => Promise<ConsentAcknowledgement | undefined>;
+  outcome: (a: Answer, quiet?: boolean) => Promise<AnswerOutcome>;
   io: RoomIo;
   phone: boolean;
   owner: boolean;
   status: "connecting" | "live" | "reconnecting";
   refusal?: string | null;
   onSignOut?: () => void;
+  /** Set when the feed has closed and this screen is showing how the room ended. */
+  ending?: Ending;
 };
 
-type Signed = { question: string; seq: number; signature: string };
+type Receipt = { question: string; seq: number; signature: string; phase: string };
 
+function Receipts({
+  list,
+  phase,
+  banner,
+  onDone,
+}: {
+  list: Receipt[];
+  phase: string;
+  banner: boolean;
+  onDone: () => void;
+}) {
+  const last = list.at(-1);
+  if (!last) return null;
+  // The loud banner lasts only while the room is still in the phase of the yes. After that the
+  // receipt stays, quietly, in the list.
+  const fresh = banner && last.phase === phase;
+  return (
+    <>
+      {fresh && (
+        <SignedNotice
+          question={last.question}
+          seq={last.seq}
+          signature={last.signature}
+          onClose={onDone}
+        />
+      )}
+      <details className="tb-receipts">
+        <summary>Your signatures ({list.length})</summary>
+        <ul>
+          {list.map((r) => (
+            <li key={`${r.seq}:${r.signature}`}>
+              {r.question.replace(/\?$/, "")} · seq {r.seq} · sig {r.signature.slice(0, 4)}…
+              {r.signature.slice(-2)}
+            </li>
+          ))}
+        </ul>
+      </details>
+    </>
+  );
+}
 function Panes({
   phone,
   waiting,
@@ -102,11 +145,20 @@ function Panes({
 }
 
 export function TableView(props: TableViewProps) {
-  const { room, state, requests, answer, phone, status } = props;
+  const { room, state, answer, phone, status } = props;
   const [viewing, setViewing] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
-  const [signed, setSigned] = useState<Signed>();
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [banner, setBanner] = useState(true);
+  const [said, setSaid] = useState<Said | null>(null);
+  const [hidden, setHidden] = useState("");
+  // The host leaves out a task whose commitment is also waiting: one yes closes both, so a second
+  // consent for it must not be shown.
+  const theirs = room.mine.asks;
+  const requests = theirs
+    ? props.requests.filter((r) => r.kind !== "task" || theirs.some((a) => a.id === r.subjectId))
+    : props.requests;
   const asks = visibleRequests(state, requests);
   const plans = derivePlans(state);
   const looking = room.seats.find((s) => s.seat === viewing) ?? null;
@@ -114,24 +166,27 @@ export function TableView(props: TableViewProps) {
     const r = room.results.find((x) => x.id === opened);
     return r ? shownFor(room, state, r) : null;
   })();
-
-  // What the agents made outlives the room: keep it in this tab for the closing screen.
-  const resultsKey = JSON.stringify(room.results.map((r) => [r.id, r.replaced_by]));
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the results
-  useEffect(() => {
-    rememberResults(room.results.map((r) => shownFor(room, state, r)));
-  }, [resultsKey]);
   useEffect(() => {
     if (room.phase !== "decide") setPicked(null);
   }, [room.phase]);
 
-  const record = async (a: Answer) => {
-    const ack = await answer(a);
+  const note = (a: Answer, ack: ConsentAcknowledgement | undefined) => {
     const req = requests.find((r) => r.id === a.interrupt_id);
     if (ack && a.consent) {
-      setSigned({ question: req ? sheetFor(req, state).question : "Your yes", ...ack });
+      const question = req ? sheetFor(req, state).question : "Your yes";
+      setReceipts((list) => [...list, { question, ...ack, phase: room.phase }]);
+      setBanner(true);
     }
+  };
+  const record = async (a: Answer) => {
+    const ack = await answer(a);
+    note(a, ack);
     return ack;
+  };
+  const recordOutcome = async (a: Answer, quiet?: boolean) => {
+    const done = await props.outcome(a, quiet);
+    note(a, done.ok ? done.ack : undefined);
+    return done;
   };
   const ctx: TableCtx = {
     room,
@@ -141,11 +196,15 @@ export function TableView(props: TableViewProps) {
     focus: props.focus,
     setFocus: props.setFocus,
     answer: record,
+    outcome: recordOutcome,
     io: props.io,
     phone,
     owner: props.owner,
     viewing,
     openResult: setOpened,
+    said,
+    setSaid,
+    ending: props.ending,
   };
   const pick = (id: string) => setPicked(id);
   const cards = (
@@ -155,7 +214,7 @@ export function TableView(props: TableViewProps) {
       selected={picked}
       signed={new Set()}
       onPick={pick}
-      placement="stage"
+      placement="strip"
     />
   );
   const stage = (
@@ -169,22 +228,34 @@ export function TableView(props: TableViewProps) {
       }}
       plans={cards}
       plansCount={plans.length}
+      waiting={asks.length > 0}
       tray={trayVisible(room) ? <Tray room={room} onOpen={setOpened} /> : null}
     />
   );
+  const refusal = props.refusal && props.refusal !== hidden ? props.refusal : null;
   return (
     <TableContext.Provider value={ctx}>
       <div className={`tb ${layoutClass(phone)}`} data-lights={room.lights}>
         <Band room={room} state={state} onSignOut={props.onSignOut} />
         {status === "reconnecting" && (
-          <p className="tb-conn" role="status">
-            The connection to the host dropped. This is the last state it sent; it updates when the
-            host is back.
+          <p className="tb-notice" role="status">
+            <span>
+              The connection to the host dropped. This is the last state it sent; it updates when
+              the host is back.
+            </span>
           </p>
         )}
-        {props.refusal && (
-          <p className="tb-conn" role="alert" data-bad="true">
-            The host did not take that answer: {props.refusal}
+        {refusal && (
+          <p
+            className="tb-notice"
+            role="alert"
+            data-bad="true"
+            style={{ top: status === "reconnecting" ? 74 : 10 }}
+          >
+            <span>The host did not take that answer: {refusal}</span>
+            <button type="button" onClick={() => setHidden(refusal)}>
+              Dismiss
+            </button>
           </p>
         )}
         <Panes
@@ -192,14 +263,13 @@ export function TableView(props: TableViewProps) {
           waiting={asks.length > 0}
           side={
             <div className="tb-sidecol">
-              {signed && (
-                <SignedNotice
-                  question={signed.question}
-                  seq={signed.seq}
-                  signature={signed.signature}
-                  onClose={() => setSigned(undefined)}
-                />
-              )}
+              <SayNote />
+              <Receipts
+                list={receipts}
+                phase={room.phase}
+                banner={banner}
+                onDone={() => setBanner(false)}
+              />
               <Side
                 looking={looking}
                 onBack={() => setViewing(null)}

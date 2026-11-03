@@ -3,7 +3,7 @@
 // and stop are live, and what is new since the screen opened. All of it comes from the room.
 import { beamsFor, busySeats, comparing } from "./beams";
 import { finishedInView, useInitial, useInitialIds, useRan } from "./fresh";
-import { type Layout, needPoints, ordered, type Pt, rowPoint, seatPoints } from "./geometry";
+import { type Layout, needPoints, ordered, type Pt, seatPoints } from "./geometry";
 import type { Room, Stop } from "./room";
 
 /** The newest stop that arrived while someone watched, until the room moves on past it. */
@@ -16,7 +16,6 @@ export function useCurrentStop(room: Room): Stop | null {
 }
 
 export function useStageFx(room: Room, layout: Layout) {
-  const decide = room.phase === "decide";
   const ended = room.phase === "ended";
   const initialSeats = useInitialIds(room.seats.map((s) => `${s.seat}:${s.kind}`));
   const initialNeeds = useInitialIds(room.needs.map((n) => n.id));
@@ -30,11 +29,6 @@ export function useStageFx(room: Room, layout: Layout) {
   const home = seatPoints(room.seats, layout);
   const needPts = needPoints(room.needs, layout);
   const list = ordered(room.seats);
-  const where = (seat: string, i: number): Pt => {
-    if (ended) return centre;
-    if (decide) return rowPoint(i, list.length, layout);
-    return home.get(seat) ?? centre;
-  };
 
   const busy = busySeats(room);
   const making = new Set(
@@ -42,7 +36,7 @@ export function useStageFx(room: Room, layout: Layout) {
       .filter((a) => a.verb === "making" && a.state === "running" && a.need)
       .map((a) => a.need),
   );
-  const beams = decide || ended ? [] : beamsFor(room, home, needPts, finished);
+  const beams = ended ? [] : beamsFor(room, home, needPts, finished);
   const moved = new Set(room.change?.moved ?? []);
   const commonKey = room.common ? JSON.stringify(room.common) : "";
   const crossing = comparing(room)
@@ -76,7 +70,6 @@ export function useStageFx(room: Room, layout: Layout) {
     home,
     needPts,
     list,
-    where,
     busy,
     making,
     beams,

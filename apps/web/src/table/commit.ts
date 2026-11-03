@@ -5,6 +5,7 @@
 import type { ConsentAcknowledgement } from "../components/f08/ConsentSeal";
 import { type Answer, answerFor } from "../feed/actions";
 import type { OpenRequest } from "../feed/agent";
+import type { AnswerOutcome } from "../feed/useFeed";
 
 /** The requests "Start my part" covers: commitments first, then their tasks. */
 export function partRequests(requests: OpenRequest[]): OpenRequest[] {
@@ -12,20 +13,31 @@ export function partRequests(requests: OpenRequest[]): OpenRequest[] {
   return [...mine.filter((r) => r.kind === "commitment"), ...mine.filter((r) => r.kind === "task")];
 }
 
+/**
+ * Answers each request in turn. A request the host says is no longer open was already closed by an
+ * earlier yes in the same run (a commitment's yes closes the task under it), so it counts as
+ * handled, not as a failure. Anything else stops the run and says how far it got.
+ */
 export async function answerAll(
   requests: OpenRequest[],
-  answer: (a: Answer) => Promise<ConsentAcknowledgement | undefined>,
-): Promise<ConsentAcknowledgement> {
+  outcome: (a: Answer, quiet?: boolean) => Promise<AnswerOutcome>,
+): Promise<{ answered: number; handled: number; last: ConsentAcknowledgement | undefined }> {
   let last: ConsentAcknowledgement | undefined;
-  for (const [i, request] of requests.entries()) {
-    const ack = await answer(answerFor(request, true));
-    if (!ack) {
+  let answered = 0;
+  let handled = 0;
+  for (const request of requests) {
+    const done = await outcome(answerFor(request, true), true);
+    if (done.ok) {
+      answered += 1;
+      last = done.ack;
+    } else if (done.error === "not_open") {
+      handled += 1;
+    } else {
+      const why = done.detail ? `${done.error}: ${done.detail}` : done.error;
       throw new Error(
-        `${i} of ${requests.length} answered. The host stopped at the next one, so the rest still wait for you.`,
+        `${answered} of ${requests.length} answered. The host stopped at the next one (${why}), so the rest still wait for you.`,
       );
     }
-    last = ack;
   }
-  if (!last) throw new Error("Nothing is waiting for your yes.");
-  return last;
+  return { answered, handled, last };
 }
