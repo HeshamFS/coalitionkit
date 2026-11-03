@@ -30,7 +30,7 @@ AMOUNT = re.compile(
 )
 UNITS = {"€": "EUR", "$": "USD", "£": "GBP", "euro": "EUR", "euros": "EUR", "eur": "EUR"}
 HEDGE = re.compile(r"^\s*(as an? (?:proposal|suggestion)|proposal|suggestion)\s*[:,]\s*", re.I)
-CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bUTC\b")
+CLOCK = re.compile(r"\b\d{1,2}:\d{2}\b|\bUTC\b|\b\d{1,2} ?(?:am|pm)\b", re.I)
 PLACEHOLDER = re.compile(r"\[[^\]]{1,40}\]|<[^>]{1,40}>|\bTBD\b|lorem ipsum", re.I)
 
 SYSTEM = (
@@ -175,10 +175,21 @@ def shows_free_slot(body: str, facts: Document) -> bool:
     return any(c not in stated for c in CLOCK.findall(body))
 
 
+SENTENCE_HEDGE = re.compile(
+    r"(^|(?<=[.!?]) )(?:as an? (?:proposal|suggestion)|proposal|suggestion) ?[:,] ?(.)", re.I
+)
+SAYS_PROPOSAL = re.compile(r" ?This is an? (?:proposal|suggestion)(?: for the group)?\.", re.I)
+
+
+def unhedged(text: str) -> str:
+    """No 'As a proposal,' opening a sentence and no 'This is a proposal.' sentence."""
+    text = SAYS_PROPOSAL.sub("", text)
+    return SENTENCE_HEDGE.sub(lambda m: m[1] + m[2].upper(), text).strip()
+
+
 def plain(text: str, limit: int) -> str:
-    """Written like a person: no leading 'As a proposal,' hedge, first letter capital."""
-    line = tidy(text, limit)
-    line = HEDGE.sub("", line)
+    """Written like a person: no 'As a proposal,' hedges, first letter capital."""
+    line = unhedged(tidy(text, limit))
     return line[:1].upper() + line[1:]
 
 
@@ -193,7 +204,7 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
                 "do not write the shared free times or any clock time: they are when the "
                 "people are free, not when the event is; use the day the goal names"
             )
-        return {"subject": tidy(out.subject, 100), "body": body[:2500]}
+        return {"subject": tidy(out.subject, 100), "body": unhedged(body)[:2500]}
     if isinstance(out, BudgetOut):
         wanted = facts["amount"]
         if wanted is None:
@@ -209,6 +220,8 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
             for i in out.ideas
         ]
         ideas = [i for i in ideas if i["name"] and i["why"]][:3]
+        if any(shows_free_slot(f"{i['why']} {i['check']}", facts) for i in ideas):
+            return "do not write the shared free times, a clock time or a deadline in the ideas"
         return {"ideas": ideas} if len(ideas) >= 2 else "give two or three kinds of place"
     if isinstance(out, ScheduleOut):
         steps = [tidy(s.step, 80) for s in out.steps if tidy(s.step, 80)][:6]

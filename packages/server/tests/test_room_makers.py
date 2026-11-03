@@ -114,3 +114,19 @@ def test_place_ideas_lose_the_hedge_in_front() -> None:
     assert (
         makers.plain("As a suggestion: Check the opening hours.", 200) == "Check the opening hours."
     )
+
+
+def test_hedges_and_invented_clock_times_are_caught() -> None:
+    said = makers.unhedged("We run a fair. As a proposal, we suggest a start. This is a proposal.")
+    assert said == "We run a fair. We suggest a start."
+    facts: dict[str, object] = {"amount": None, "goal": "A fair", "common": []}
+    body = "Hello neighbours, we run a small fair next Saturday and we would love you to come. "
+    out = makers.clean(
+        "draft", makers.DraftOut(subject="Fair", body=body + "Start at 11am."), facts, set()
+    )
+    assert isinstance(out, str)
+    idea = makers.Idea(
+        kind_of_place="Hall", why_it_fits="Space", check_first="Ask before 18:00 UTC"
+    )
+    placed = makers.clean("place", makers.PlaceOut(ideas=[idea, idea]), facts, set())
+    assert isinstance(placed, str)
