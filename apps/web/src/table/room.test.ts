@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it } from "vitest";
 import { answerAll, partRequests } from "./commit";
-import { exportsFor, rowsOf, toCsv, toIcs, toText } from "./exports";
+import { budgetCsv, exportsFor, listCsv, toIcs, toText } from "./exports";
 import { layoutClass, momentIndex, sideFor } from "./phase";
 import { lightsOf, readRoom } from "./room";
 import { SCENES } from "./scenes";
@@ -52,7 +52,7 @@ describe("readRoom", () => {
     });
     expect(room?.results[0]).toMatchObject({ messages: [], sources: ["e1"], tree: [] });
     expect(room?.common).toEqual({ slots: [], count_private: null, compared: 0 });
-    expect(room?.change).toEqual({ text: "", moved: ["n1"], asked: [], untouched: 0 });
+    expect(room?.change).toEqual({ text: "", from: null, moved: ["n1"], asked: [], untouched: 0 });
     expect(room?.begin).toEqual({ can: false, open_seats: 0 });
     expect(room?.mine.brief[0]?.status).toBe("open");
     expect(room?.mine.tasks[0]?.can_mark_done).toBe(false);
@@ -90,7 +90,7 @@ describe("lights, phase, rail, layout", () => {
     expect(momentIndex({ phase: "gather", change: null })).toBe(0);
     expect(momentIndex({ phase: "work", change: null })).toBe(2);
     expect(momentIndex({ phase: "make", change: null })).toBe(4);
-    const change = { text: "", moved: [], asked: [], untouched: 0 };
+    const change = { text: "", from: null, moved: [], asked: [], untouched: 0 };
     expect(momentIndex({ phase: "live", change })).toBe(5);
     expect(momentIndex({ phase: "ended", change })).toBe(6);
   });
@@ -137,24 +137,41 @@ describe("start my part", () => {
 });
 
 describe("exports", () => {
-  const result = (over: object) =>
-    ({ ...(SCENES[8]?.room.results[0] as object), ...over }) as never;
-  it("makes csv from a list of records, unwrapping numbers", () => {
-    const rows = rowsOf({ rows: [{ a: "x,y", n: { value: 3, event_ref: "e" } }] });
-    expect(toCsv(rows ?? [])).toBe('a,n\r\n"x,y",3\r\n');
+  const all = SCENES[8]?.room.results ?? [];
+  const of = (kind: string) => {
+    const r = all.find((x) => x.kind === kind);
+    if (!r) throw new Error(kind);
+    return r;
+  };
+  const draft = { ...of("place"), kind: "draft", data: { subject: "Hello", body: "Come along." } };
+  it("offers one export per kind: csv for budget and list, ics for schedule, none for place and draft", () => {
+    expect(exportsFor(of("budget")).map((e) => e.label)).toEqual(["Export .csv"]);
+    expect(exportsFor(of("schedule")).map((e) => e.label)).toEqual(["Export .ics"]);
+    expect(exportsFor(of("place"))).toEqual([]);
+    expect(exportsFor(draft)).toEqual([]);
+    expect(exportsFor({ ...of("budget"), data: { rows: [] } })).toEqual([]);
   });
-  it("offers csv only when there are rows, and ics only for a schedule with times", () => {
-    const sched = SCENES[8]?.room.results.find((r) => r.kind === "schedule");
-    const budget = SCENES[8]?.room.results.find((r) => r.kind === "budget");
-    if (!sched || !budget) throw new Error("fixtures missing");
-    expect(exportsFor(sched).map((e) => e.label)).toEqual(["Export .csv", "Export .ics"]);
-    expect(exportsFor(budget).map((e) => e.label)).toEqual(["Export .csv"]);
-    expect(exportsFor(result({ kind: "draft", data: { text: "Hello" } }))).toEqual([]);
-    expect(toIcs(result({ kind: "schedule", data: { rows: [{ title: "x" }] } }))).toBeNull();
-    expect(toIcs(sched)).toContain("DTSTART:20261107T090000Z");
+  it("makes the budget csv with unwrapped amounts and the total", () => {
+    expect(budgetCsv(of("budget"))).toBe(
+      "label,amount,currency,provenance\r\nMaterials,120,EUR,vault\r\nSnacks,60,EUR,estimate\r\nTotal,180,EUR,\r\n",
+    );
   });
-  it("copies a draft's words, else a table as text", () => {
-    expect(toText(result({ data: { text: "Hello there" } }))).toBe("Hello there");
-    expect(toText(result({ data: { rows: [{ a: 1, b: 2 }] } }))).toBe("a\tb\n1\t2");
+  it("makes a list csv and quotes what needs it", () => {
+    const r = {
+      ...of("place"),
+      kind: "list",
+      data: { items: [{ label: "a,b", who: "p1", provenance: "vault" }] },
+    };
+    expect(listCsv(r)).toBe('label,who,provenance\r\n"a,b",p1,vault\r\n');
+  });
+  it("makes the schedule ics from items with a start", () => {
+    const ics = toIcs(of("schedule")) ?? "";
+    expect(ics).toContain("DTSTART:20261107T090000Z");
+    expect(ics).toContain("LOCATION:Venue 1");
+    expect(toIcs({ ...of("schedule"), data: { items: [{ title: "x" }] } })).toBeNull();
+  });
+  it("copies text by kind", () => {
+    expect(toText(draft)).toBe("Hello\n\nCome along.");
+    expect(toText(of("place"))).toContain("Venue 1 (chosen): Free on all three days");
   });
 });

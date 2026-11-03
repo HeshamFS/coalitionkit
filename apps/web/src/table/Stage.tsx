@@ -11,7 +11,7 @@ import { humanStatus } from "./phase";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
-import { useStageFx } from "./useStageFx";
+import { useCurrentStop, useStageFx } from "./useStageFx";
 
 function useFit(layout: Layout, reserve: number) {
   const ref = useRef<HTMLDivElement>(null);
@@ -85,8 +85,7 @@ function StageContents({
     crossing,
     wave,
     waveFrom,
-    stop,
-    stopCount,
+    stops,
     finished,
     initialNeeds,
     initialSeats,
@@ -112,9 +111,11 @@ function StageContents({
         />
       )}
       {wave && !decide && !ended && <Waves origin={waveFrom} loop={wave} layout={layout} />}
-      {stop?.seat && !decide && !ended && (
-        <StopBeam stop={stop} from={home.get(stop.seat) ?? centre} toward={centre} fresh />
-      )}
+      {!decide &&
+        !ended &&
+        stops.map((x) => (
+          <StopBeam key={x.stop.id} from={x.from} toward={x.toward} current={x.current} />
+        ))}
       {!decide && !ended && <GoalDisc at={centre} text={lit ? "plan signed" : "goal"} lit={lit} />}
       {ended && (
         <div className="tb-mark" style={{ left: centre.x, top: centre.y }}>
@@ -143,7 +144,7 @@ function StageContents({
           at={where(s.seat, i)}
           color={seatColor(s, i)}
           viewing={viewing === s.seat}
-          stops={stopCount(s.seat)}
+          stops={room.stops.filter((x) => x.seat === s.seat)}
           fresh={!initialSeats.has(`${s.seat}:${s.kind}`)}
           busy={busy.has(s.seat)}
           fold={ended}
@@ -184,7 +185,8 @@ export function Stage({
   tray: ReactNode;
 }) {
   const decide = room.phase === "decide";
-  const { ref, scale } = useFit(layout, 190 + (tray ? 92 : 0));
+  const { ref, scale } = useFit(layout, 190 + (tray ? 92 : 0) + 56);
+  const steward = useCurrentStop(room);
   return (
     <main className="tb-sheet" aria-label="The table">
       <div className="tb-dots" />
@@ -205,6 +207,13 @@ export function Stage({
           />
         </div>
       </div>
+      {steward && room.phase !== "ended" && (
+        <p className="tb-stewardbar" role="status">
+          <b>Stopped by the Steward</b>
+          <code>{steward.policy}</code>
+          {steward.explain && <span>{steward.explain}</span>}
+        </p>
+      )}
       {layout.compact && !decide && <NeedList room={room} />}
       {tray}
       {room.checked > 0 && <div className="tb-stamp">{room.checked} events checked</div>}

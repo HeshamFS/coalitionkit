@@ -130,8 +130,9 @@ export const SCENES: Scene[] = [
       stops: [
         {
           id: "x1",
-          at: "10:02",
+          at: "2026-11-03T10:00:07Z",
           seat: "p3",
+          to: "p5",
           policy: "no-contact-before-consent",
           explain: "A message asked for a phone number.",
         },
@@ -299,6 +300,7 @@ export const SCENES: Scene[] = [
       results: RESULTS,
       change: {
         text: "Member 3 cannot come on Day 3.",
+        from: "p3",
         moved: ["n2", "n4"],
         asked: ["p5"],
         untouched: 3,

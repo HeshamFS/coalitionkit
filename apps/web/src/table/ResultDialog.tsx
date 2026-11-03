@@ -14,15 +14,15 @@ export type Shown = { result: RoomResult; byLabel: string; sources: SourceRow[] 
 const record = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 
-/** The events a result came from, as the viewer's state knows them. */
-export function sourceRows(state: ViewerState | null, ids: string[]): SourceRow[] {
-  const events = record(state?.events);
-  return ids.map((id) => {
-    const e = record(events[id]);
+/** The sources this viewer may see, by their log position, with what kind of event each is. */
+export function sourceRows(state: ViewerState | null, seqs: number[]): SourceRow[] {
+  const events = Object.values(record(state?.events)).map(record);
+  return seqs.map((seq) => {
+    const e = events.find((x) => x.seq === seq);
     return {
-      id,
-      seq: typeof e.seq === "number" ? e.seq : null,
-      type: typeof e.type === "string" ? e.type.replace(/^coalition\./, "") : "event",
+      id: String(seq),
+      seq,
+      type: typeof e?.type === "string" ? e.type.replace(/^coalition\./, "") : "event",
     };
   });
 }
@@ -38,7 +38,7 @@ export function shownFor(room: Room, state: ViewerState | null, result: RoomResu
   return {
     result,
     byLabel: byLabelOf(room, result.by),
-    sources: sourceRows(state, result.sources),
+    sources: sourceRows(state, result.seqs),
   };
 }
 
@@ -50,15 +50,20 @@ function Work({ result, sources }: { result: RoomResult; sources: SourceRow[] })
         on the host before it reached you. Every number points at the event it came from.
       </p>
       <h4>Source events</h4>
-      {sources.length === 0 ? (
+      {result.sources.length === 0 ? (
         <p className="tb-quiet">The host listed no source events for this result.</p>
       ) : (
         <ul>
           {sources.map((s) => (
             <li key={s.id}>
-              {s.seq === null ? "not in your view" : `seq ${s.seq}`} · {s.type}
+              seq {s.seq} · {s.type}
             </li>
           ))}
+          {result.sources.length > sources.length && (
+            <li className="tb-quiet">
+              {result.sources.length - sources.length} more, outside your view
+            </li>
+          )}
         </ul>
       )}
       <h4>Check passed</h4>

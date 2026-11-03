@@ -1,35 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
-// Taking a result with you: its text, a .csv for tables, a .ics for a schedule. All of it is made
-// in the browser from the result's own `data`; if the data does not hold what a format needs, that
-// format is not offered, and nothing is guessed.
+// Taking a result with you. Each kind of result has one data shape (room-engine.md, "What the
+// fields mean") and one export: `schedule` gives a .ics, `budget` and `list` give a .csv, `draft`
+// gives its text, `place` gives none. All of it is made in the browser from the result's `data`;
+// a result whose data does not hold what a format needs is not offered that format.
 import type { RoomResult } from "./room";
 
 type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /** `{value, event_ref}` numbers show as their value. */
-function plain(v: unknown): unknown {
+export function plain(v: unknown): unknown {
   return isRec(v) && "value" in v && "event_ref" in v ? v.value : v;
-}
-
-const KEYS = ["rows", "items", "lines", "entries", "days", "slots", "list", "events", "stands"];
-
-/** The first list of records in the data: the data itself, a well-known key, or any key. */
-export function rowsOf(data: unknown): Rec[] | null {
-  const recs = (v: unknown): Rec[] | null =>
-    Array.isArray(v) && v.length > 0 && v.every(isRec) ? (v as Rec[]) : null;
-  const direct = recs(data);
-  if (direct) return direct;
-  if (!isRec(data)) return null;
-  for (const k of KEYS) {
-    const hit = recs(data[k]);
-    if (hit) return hit;
-  }
-  for (const v of Object.values(data)) {
-    const hit = recs(v);
-    if (hit) return hit;
-  }
-  return null;
 }
 
 const cell = (v: unknown): string => {
@@ -38,36 +19,31 @@ const cell = (v: unknown): string => {
   return typeof x === "object" ? JSON.stringify(x) : String(x);
 };
 
-function columns(rows: Rec[]): string[] {
-  const cols: string[] = [];
-  for (const r of rows) for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
-  return cols;
-}
+const list = (v: unknown): Rec[] => (Array.isArray(v) ? v.filter(isRec) : []);
+const data = (r: RoomResult): Rec => (isRec(r.data) ? r.data : {});
 
 const quote = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+const csv = (head: string[], rows: string[][]) =>
+  `${[head, ...rows].map((r) => r.map(quote).join(",")).join("\r\n")}\r\n`;
 
-export function toCsv(rows: Rec[]): string {
-  const cols = columns(rows);
-  const lines = [cols.map(quote).join(",")];
-  for (const r of rows) lines.push(cols.map((c) => quote(cell(r[c]))).join(","));
-  return `${lines.join("\r\n")}\r\n`;
+/** The budget as a .csv: its rows, then the total if the host gave one. Null with no rows. */
+export function budgetCsv(r: RoomResult): string | null {
+  const d = data(r);
+  const rows = list(d.rows);
+  if (rows.length === 0) return null;
+  const cur = cell(d.currency);
+  const lines = rows.map((x) => [cell(x.label), cell(x.amount), cur, cell(x.provenance)]);
+  if (d.total !== undefined) lines.push(["Total", cell(d.total), cur, ""]);
+  return csv(["label", "amount", "currency", "provenance"], lines);
 }
 
-const TEXT_KEYS = ["text", "draft", "body", "content", "message"];
-
-/** The result as plain text: a draft's words, a table as tab-separated lines, else the data. */
-export function toText(result: RoomResult): string {
-  const d = result.data;
-  if (typeof d === "string") return d;
-  if (isRec(d)) {
-    for (const k of TEXT_KEYS) if (typeof d[k] === "string" && d[k] !== "") return d[k] as string;
-  }
-  const rows = rowsOf(d);
-  if (rows) {
-    const cols = columns(rows);
-    return [cols.join("\t"), ...rows.map((r) => cols.map((c) => cell(r[c])).join("\t"))].join("\n");
-  }
-  return d === null || d === undefined ? result.title : JSON.stringify(d, null, 2);
+export function listCsv(r: RoomResult): string | null {
+  const items = list(data(r).items);
+  if (items.length === 0) return null;
+  return csv(
+    ["label", "who", "provenance"],
+    items.map((x) => [cell(x.label), cell(x.who), cell(x.provenance)]),
+  );
 }
 
 const stamp = (iso: string): string | null => {
@@ -81,31 +57,65 @@ const stamp = (iso: string): string | null => {
 };
 
 const ics = (s: string) => s.replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n");
+const now = () =>
+  new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
 
-/** A calendar file, only if some rows carry a start time. Otherwise null. */
-export function toIcs(result: RoomResult): string | null {
-  const rows = rowsOf(result.data) ?? [];
+/** A calendar file from `items`, only for those with a readable start. Otherwise null. */
+export function toIcs(r: RoomResult): string | null {
   const events: string[] = [];
-  rows.forEach((r, i) => {
-    const start = stamp(cell(r.start ?? r.begin ?? r.from ?? r.when));
+  list(data(r).items).forEach((x, i) => {
+    const start = stamp(cell(x.start));
     if (!start) return;
-    const end = stamp(cell(r.end ?? r.until ?? r.to));
-    const title = cell(r.title ?? r.label ?? r.name ?? r.summary) || result.title;
+    const end = stamp(cell(x.end));
     events.push(
       "BEGIN:VEVENT",
-      `UID:${result.id}-${i}@coalitionkit`,
-      `DTSTAMP:${new Date()
-        .toISOString()
-        .replace(/[-:]/g, "")
-        .replace(/\.\d{3}/, "")}`,
+      `UID:${r.id}-${i}@coalitionkit`,
+      `DTSTAMP:${now()}`,
       `DTSTART${start}`,
       ...(end ? [`DTEND${end}`] : []),
-      `SUMMARY:${ics(title)}`,
+      `SUMMARY:${ics(cell(x.title) || r.title)}`,
+      ...(cell(x.where) ? [`LOCATION:${ics(cell(x.where))}`] : []),
       "END:VEVENT",
     );
   });
   if (events.length === 0) return null;
-  return `${["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//coalitionkit//table//EN", ...events, "END:VCALENDAR"].join("\r\n")}\r\n`;
+  const head = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//coalitionkit//table//EN"];
+  return `${[...head, ...events, "END:VCALENDAR"].join("\r\n")}\r\n`;
+}
+
+/** The result as plain text, by kind. Falls back to the data as JSON for an unknown shape. */
+export function toText(r: RoomResult): string {
+  const d = data(r);
+  if (r.kind === "draft" && (typeof d.body === "string" || typeof d.subject === "string")) {
+    return [cell(d.subject), cell(d.body)].filter(Boolean).join("\n\n");
+  }
+  if (r.kind === "place" && list(d.options).length) {
+    const chosen = cell(d.chosen);
+    return list(d.options)
+      .map((o) => `${cell(o.name)}${cell(o.name) === chosen ? " (chosen)" : ""}: ${cell(o.why)}`)
+      .join("\n");
+  }
+  if (r.kind === "schedule" && list(d.items).length) {
+    return list(d.items)
+      .map((x) =>
+        [cell(x.title), cell(x.start), cell(x.end), cell(x.where)].filter(Boolean).join(" · "),
+      )
+      .join("\n");
+  }
+  if (r.kind === "budget" && list(d.rows).length) {
+    const rows = list(d.rows).map((x) => `${cell(x.label)}\t${cell(x.amount)}`);
+    if (d.total !== undefined) rows.push(`Total\t${cell(d.total)}`);
+    return `${cell(d.currency) ? `${cell(d.currency)}\n` : ""}${rows.join("\n")}`;
+  }
+  if (r.kind === "list" && list(d.items).length) {
+    return list(d.items)
+      .map((x) => `${cell(x.label)}${cell(x.who) ? ` (${cell(x.who)})` : ""}`)
+      .join("\n");
+  }
+  return r.data === null || r.data === undefined ? r.title : JSON.stringify(r.data, null, 2);
 }
 
 export type Export = { label: string; file: string; mime: string; body: string };
@@ -116,18 +126,19 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "result";
 
-/** The downloads this result can honestly offer. */
-export function exportsFor(result: RoomResult): Export[] {
-  const out: Export[] = [];
-  const rows = rowsOf(result.data);
-  const name = slug(result.title);
-  if (rows)
-    out.push({ label: "Export .csv", file: `${name}.csv`, mime: "text/csv", body: toCsv(rows) });
-  if (result.kind === "schedule") {
-    const body = toIcs(result);
-    if (body) out.push({ label: "Export .ics", file: `${name}.ics`, mime: "text/calendar", body });
-  }
-  return out;
+/** The downloads this kind of result can honestly offer. */
+export function exportsFor(r: RoomResult): Export[] {
+  const name = slug(r.title);
+  const pick: [string, string, string, string | null] | null =
+    r.kind === "budget"
+      ? ["Export .csv", `${name}.csv`, "text/csv", budgetCsv(r)]
+      : r.kind === "list"
+        ? ["Export .csv", `${name}.csv`, "text/csv", listCsv(r)]
+        : r.kind === "schedule"
+          ? ["Export .ics", `${name}.ics`, "text/calendar", toIcs(r)]
+          : null;
+  if (!pick || pick[3] === null) return [];
+  return [{ label: pick[0], file: pick[1], mime: pick[2], body: pick[3] }];
 }
 
 export function download(x: Export): void {

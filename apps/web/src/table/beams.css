@@ -31,7 +31,7 @@
   background: var(--bad-fg);
   opacity: 0.9;
 }
-.tb-beam[data-state="stopped"][data-fresh="true"] .tb-bl {
+.tb-beam[data-state="stopped"][data-current="true"] .tb-bl {
   animation: draw 0.7s ease-out 1;
 }
 .tb-spark {
@@ -68,33 +68,8 @@
   transform: translate(0, 0);
   margin: -4px 0 0 -4px;
 }
-.tb-spark[data-bad="true"][data-fresh="true"] {
+.tb-spark[data-bad="true"][data-current="true"] {
   animation: pop 0.5s ease-out 1;
-}
-.tb-steward {
-  position: absolute;
-  z-index: 8;
-  width: 220px;
-  padding: 8px 12px;
-  border: 1px solid var(--bad-line);
-  border-radius: 10px;
-  background: var(--bad-bg);
-  color: var(--bad-fg);
-  font: 600 12px var(--font-ui);
-  text-align: center;
-}
-.tb-steward[data-fresh="true"] {
-  animation: rise 0.3s ease-out 1;
-}
-.tb-steward code {
-  display: block;
-  margin-top: 2px;
-  font: 500 10.5px var(--font-mono);
-}
-.tb-steward span {
-  display: block;
-  margin-top: 4px;
-  font: 400 11.5px / 1.35 var(--font-ui);
 }
 .tb-wave {
   position: absolute;

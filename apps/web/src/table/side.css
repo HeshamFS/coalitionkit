@@ -6,8 +6,8 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px;
+  gap: 10px;
+  padding: 16px 18px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background-color: var(--surface);
@@ -170,7 +170,7 @@
   background: var(--surface-2);
 }
 .tb-finish {
-  margin-top: 6px;
+  margin-top: 2px;
 }
 .tb-chain {
   max-height: 60vh;
@@ -263,4 +263,23 @@
   background: none;
   border: 0;
   cursor: pointer;
+}
+
+.tb-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tb .tb-brief .f01-root-Heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display) !important;
+  font-size: 31px !important;
+  font-weight: 400 !important;
+  line-height: 1.08 !important;
+}
+
+.tb-brief .f01-choice-trigger,
+.tb-brief .f01-choice-control {
+  min-height: 44px;
 }

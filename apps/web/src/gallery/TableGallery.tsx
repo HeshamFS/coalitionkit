@@ -57,8 +57,10 @@ export function TableGallery() {
     };
   }, [calls]);
 
+  const lights = new URLSearchParams(location.search).get("lights");
   const room: Room = {
     ...scene.room,
+    ...(lights === "day" || lights === "night" ? { lights } : {}),
     mine: {
       ...scene.room.mine,
       brief: scene.room.mine.brief.map((b) =>
@@ -70,7 +72,7 @@ export function TableGallery() {
     },
   };
   return (
-    <>
+    <div className="tbg-wrap">
       <nav className="tbg-bar" aria-label="Scripted scenes">
         <b>The Table · scripted room, neutral words</b>
         {SCENES.map((s, i) => (
@@ -98,6 +100,6 @@ export function TableGallery() {
         owner
         status="live"
       />
-    </>
+    </div>
   );
 }

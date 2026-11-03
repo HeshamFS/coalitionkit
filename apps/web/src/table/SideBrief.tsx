@@ -4,33 +4,44 @@
 // which checks it against the question's closed shape. It goes to your vault and nowhere else.
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import { useRef, useState } from "react";
+import type { Surface } from "../feed/surfaces";
 import { problemText } from "./api";
 import { useTable } from "./context";
 import type { BriefItem } from "./room";
-import { briefValue, useSurface } from "./useSurface";
+import { useSurface } from "./useSurface";
+
+/** `{value, event_ref}` numbers go to the host as the plain value. */
+export const unwrap = (v: unknown): unknown =>
+  v !== null && typeof v === "object" && !Array.isArray(v) && "value" in v && "event_ref" in v
+    ? (v as { value: unknown }).value
+    : v;
 
 function Question({ item, index, total }: { item: BriefItem; index: number; total: number }) {
   const { io } = useTable();
   const [sentId, setSentId] = useState("");
   const [problem, setProblem] = useState("");
-  // The inputs in the tree report what the person chose as `change` and `select` actions; the
-  // last value wins. A `submit` from the tree (a button, or Enter) sends it, like the control below.
-  const picked = useRef<unknown>(undefined);
+  const model = useRef<Surface | null>(null);
+  // The inputs report the person's choice as `change` and `select` actions; it goes to `/answer` of
+  // this question's surface. The tree's own Send button carries `room.brief` with the question id
+  // and the value at `/answer`, and that is what is posted.
   const found = useSurface(item.messages, (a) => {
-    if (a.context && "value" in a.context) picked.current = a.context.value;
-    if (a.name === "submit") void send();
+    const ctx = (a.context ?? {}) as Record<string, unknown>;
+    if ((a.name === "change" || a.name === "select") && "value" in ctx) {
+      model.current?.dataModel.set("/answer", unwrap(ctx.value));
+    }
+    if (a.name === "room.brief")
+      void send({ value: unwrap(ctx.value) }, String(ctx.question_id ?? item.id));
   });
-  const last = index === total - 1;
+  model.current = found?.model ?? null;
   const sent = sentId === item.id;
 
-  async function send(skip = false) {
+  async function send(answer: { value: unknown } | { skip: true }, id = item.id) {
     setProblem("");
-    const value = skip ? undefined : (picked.current ?? briefValue(found?.model ?? null));
-    if (!skip && value === undefined) {
+    if ("value" in answer && answer.value === undefined) {
       setProblem("Pick or fill in an answer first, or skip this one.");
       return;
     }
-    const r = await io.brief(item.id, skip ? { skip: true } : { value });
+    const r = await io.brief(id, answer);
     if (!r.ok) {
       setProblem(
         r.status === 422
@@ -43,43 +54,32 @@ function Question({ item, index, total }: { item: BriefItem; index: number; tota
   }
 
   return (
-    <>
+    <div className="tb-brief">
       <span className="tb-tag">
         Your agent asks · {index + 1} of {total}
       </span>
-      <h2>{item.ask || "A question for you"}</h2>
-      {item.why && <p>{item.why}</p>}
-      <div className="tb-card tb-card--tall">
-        {!found && (
+      {found?.fallback && <h2>{item.ask || "A question for you"}</h2>}
+      {!found && (
+        <div className="tb-card tb-card--tall">
           <div className="tb-germ">{item.component || "A question"} is being composed</div>
-        )}
-        {found && !found.fallback && <A2uiSurface surface={found.model} />}
-        {found?.fallback && (
-          <p className="tb-quiet" role="note">
-            This question could not be drawn as the host designed it. You can skip it.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
+      {found && !found.fallback && <A2uiSurface surface={found.model} />}
+      {found?.fallback && (
+        <p className="tb-quiet" role="note">
+          This question could not be drawn as the host designed it. You can skip it.
+        </p>
+      )}
       {sent ? (
         <p role="status">Saved to your vault. Waiting for the next step.</p>
       ) : (
-        <div className="tb-row">
-          <button
-            type="button"
-            className="btn"
-            disabled={!found || found.fallback}
-            onClick={() => send()}
-          >
-            {last ? "Let the agents work" : "Next"}
-          </button>
-          <button type="button" className="tb-linky" onClick={() => send(true)}>
-            Skip
-          </button>
-        </div>
+        <button type="button" className="tb-linky" onClick={() => send({ skip: true })}>
+          Skip this one
+        </button>
       )}
       {problem && <p role="alert">{problem}</p>}
       <p className="tb-note">Stays in your vault. Your agent shares only what you agree to.</p>
-    </>
+    </div>
   );
 }
 

@@ -60,16 +60,3 @@ export function ComposedSurface({
   }
   return <A2uiSurface surface={found.model} />;
 }
-
-/** The value a brief question holds: the surface's `/value`, else the whole data model. */
-export function briefValue(model: Surface | null): unknown {
-  if (!model) return undefined;
-  const dm = model.dataModel;
-  try {
-    if (dm.hasPath("/value")) return dm.get("/value");
-    const root = dm.get("/");
-    return root && typeof root === "object" && Object.keys(root).length > 0 ? root : undefined;
-  } catch {
-    return undefined;
-  }
-}

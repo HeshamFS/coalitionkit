@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import type { Pt } from "./geometry";
 import { humanStatus } from "./phase";
-import type { RoomNeed, RoomSeat } from "./room";
+import type { RoomNeed, RoomSeat, Stop } from "./room";
 
 /** Seat colour: you are blue, helpers are slate, the rest take the landing's seat colours. */
 export function seatColor(seat: RoomSeat, index: number): string {
@@ -19,6 +19,11 @@ function initials(seat: RoomSeat): string {
   const mark = words.length > 1 ? words.map((w) => w[0]).join("") : (words[0] ?? "").slice(0, 2);
   return mark.slice(0, 2).toUpperCase();
 }
+
+const stopWords = (stops: Stop[]) =>
+  `${stops.length} ${stops.length === 1 ? "message" : "messages"} stopped by the Steward: ${stops
+    .map((s) => `${s.policy}${s.explain ? `, ${s.explain}` : ""}`)
+    .join("; ")}`;
 
 const aria = (seat: RoomSeat, viewing: boolean) => {
   if (seat.you) return viewing ? "Back to my side" : "Your seat";
@@ -41,7 +46,7 @@ export function SeatNode({
   at: Pt;
   color: string;
   viewing: boolean;
-  stops: number;
+  stops: Stop[];
   fresh: boolean;
   busy: boolean;
   /** The room has ended: the seat folds into the mark. */
@@ -70,18 +75,24 @@ export function SeatNode({
           onClick={onPick}
         >
           {initials(seat)}
-          {stops > 0 && (
-            <i
-              className="tb-stopbadge"
-              role="img"
-              aria-label={`${stops} ${stops === 1 ? "message" : "messages"} stopped by the Steward`}
-            >
-              {stops}
+          {stops.length > 0 && (
+            <i className="tb-stopbadge" role="img" aria-label={stopWords(stops)}>
+              {stops.length}
             </i>
           )}
         </button>
         <span className="tb-seatname">{open ? "Open seat" : seat.label}</span>
         {seat.kind === "helper" && <span className="tb-agenttag">agent</span>}
+        {stops.length > 0 && (
+          <ul className="tb-stoptip" aria-label="Stopped by the Steward">
+            {stops.map((s) => (
+              <li key={s.id}>
+                <code>{s.policy}</code>
+                {s.explain && <span>{s.explain}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
         <span className="tb-seatstate">{humanStatus(seat.state) || (open ? "waiting" : "")}</span>
       </div>
       {seat.kind === "person" && (
@@ -127,7 +138,7 @@ export function NeedNode({
       data-fresh={fresh}
       title={compact ? need.title : undefined}
     >
-      {making && <div className="tb-germ">{compact ? "" : "making"}</div>}
+      {making && <div className="tb-germ" aria-hidden="true" />}
       {compact ? (
         <span className="tb-need-n">{index + 1}</span>
       ) : (

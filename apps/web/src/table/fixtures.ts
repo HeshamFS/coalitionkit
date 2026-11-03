@@ -118,6 +118,48 @@ export const act = (a: Partial<Activity> & Pick<Activity, "id" | "verb" | "label
   ...a,
 });
 
+const bound = (value: number, ref = "e2") => ({ value, event_ref: ref });
+
+/** A brief question's tree, exactly as the engine composes it (`brief.py: tree()`). */
+const briefTree = (
+  id: string,
+  ask: string,
+  why: string,
+  field: Record<string, unknown>,
+  answer: unknown,
+) =>
+  open(
+    `brief-${id}`,
+    [
+      { id: "root", component: "Column", gap: "12", children: ["ask", "why", "input", "go"] },
+      { id: "ask", component: "Heading", text: ask, variant: "h3" },
+      {
+        id: "why",
+        component: "Text",
+        text: why,
+        variant: "caption",
+        tone: "muted",
+        provenance: "model",
+      },
+      { id: "input", ...field, value: { path: "/answer" } },
+      {
+        id: "go",
+        component: "Button",
+        label: "Send",
+        variant: "primary",
+        action: { name: "room.brief", context: { question_id: id, value: { path: "/answer" } } },
+      },
+    ],
+    { answer },
+  );
+
+const chips = (opts: [string, string][], multiple: boolean) => ({
+  component: "ChoicePicker",
+  display: "chips",
+  ...(multiple ? { multiple: true } : {}),
+  options: opts.map(([id, label]) => ({ id, label })),
+});
+
 export const BRIEF: BriefItem[] = [
   {
     id: "q1",
@@ -125,23 +167,19 @@ export const BRIEF: BriefItem[] = [
     why: "Your agent compares this with the others without showing them.",
     component: "ChoicePicker",
     status: "open",
-    messages: open(
+    messages: briefTree(
       "q1",
-      [
-        {
-          id: "root",
-          component: "ChoicePicker",
-          multiple: true,
-          display: "chips",
-          value: { path: "/value" },
-          options: [
-            { id: "d1", label: "Day 1" },
-            { id: "d2", label: "Day 2" },
-            { id: "d3", label: "Day 3" },
-          ],
-        },
-      ],
-      { value: ["d1"] },
+      "When could you help?",
+      "Your agent compares this with the others without showing them.",
+      chips(
+        [
+          ["s1", "Day 1"],
+          ["s2", "Day 2"],
+          ["s3", "Day 3"],
+        ],
+        true,
+      ),
+      [],
     ),
   },
   {
@@ -150,46 +188,39 @@ export const BRIEF: BriefItem[] = [
     why: "Others never see this number.",
     component: "Slider",
     status: "open",
-    messages: open(
+    messages: briefTree(
       "q2",
-      [
-        {
-          id: "root",
-          component: "Slider",
-          label: "Up to",
-          unit: "units",
-          value: { path: "/value" },
-        },
-      ],
-      { value: 40 },
+      "How much can you put in?",
+      "Others never see this number.",
+      { component: "Slider", min: bound(0), max: bound(100), step: bound(5), unit: "units" },
+      bound(50),
     ),
   },
   {
     id: "q3",
     ask: "What can you bring?",
-    why: "Your agent offers only what you tick.",
+    why: "Your agent offers only what you pick.",
     component: "ChoicePicker",
     status: "open",
-    messages: open(
+    messages: briefTree(
       "q3",
-      [
-        {
-          id: "root",
-          component: "ChoicePicker",
-          multiple: true,
-          display: "chips",
-          value: { path: "/value" },
-          options: [
-            { id: "b1", label: "Tables" },
-            { id: "b2", label: "A van" },
-            { id: "b3", label: "Time on the day" },
-          ],
-        },
-      ],
-      { value: [] },
+      "What can you bring?",
+      "Your agent offers only what you pick.",
+      chips(
+        [
+          ["b1", "Tables"],
+          ["b2", "A van"],
+          ["b3", "Time on the day"],
+        ],
+        false,
+      ),
+      "",
     ),
   },
 ];
+
+const view = (id: string, rows: Record<string, string>[], cols: [string, string][]) =>
+  table(id, cols, rows);
 
 export const RESULTS: RoomResult[] = [
   {
@@ -201,22 +232,24 @@ export const RESULTS: RoomResult[] = [
     seq: 14,
     source: "model",
     sources: ["e2", "e4"],
+    seqs: [11, 24],
     tree: [{ component: "Table", props: { rows: "/rows" } }],
     data: {
-      rows: [
-        { what: "Where", detail: "Venue 1" },
-        { what: "Days", detail: "Day 1 to Day 3" },
+      options: [
+        { name: "Venue 1", why: "Free on all three days", provenance: "vault" },
+        { name: "Venue 2", why: "Closer, one day short", provenance: "estimate" },
       ],
+      chosen: "Venue 1",
     },
-    messages: table(
+    messages: view(
       "r1",
       [
-        ["what", "What"],
-        ["detail", "Detail"],
+        { name: "Venue 1", why: "Free on all three days" },
+        { name: "Venue 2", why: "Closer, one day short" },
       ],
       [
-        { what: "Where", detail: "Venue 1" },
-        { what: "Days", detail: "Day 1 to Day 3" },
+        ["name", "Option"],
+        ["why", "Why"],
       ],
     ),
     replaced_by: null,
@@ -230,22 +263,33 @@ export const RESULTS: RoomResult[] = [
     seq: 16,
     source: "rules",
     sources: ["e2", "e3"],
+    seqs: [11, 12],
     tree: [{ component: "Table", props: { rows: "/rows" } }],
     data: {
-      rows: [
-        { title: "Set up", start: "2026-11-07T09:00:00Z", end: "2026-11-07T12:00:00Z" },
-        { title: "Open", start: "2026-11-08T10:00:00Z", end: "2026-11-08T16:00:00Z" },
+      items: [
+        {
+          title: "Set up",
+          start: "2026-11-07T09:00:00Z",
+          end: "2026-11-07T12:00:00Z",
+          where: "Venue 1",
+        },
+        {
+          title: "Open",
+          start: "2026-11-08T10:00:00Z",
+          end: "2026-11-08T16:00:00Z",
+          where: "Venue 1",
+        },
       ],
     },
-    messages: table(
+    messages: view(
       "r2",
-      [
-        ["title", "Day"],
-        ["start", "Starts"],
-      ],
       [
         { title: "Set up", start: "Day 1, 09:00" },
         { title: "Open", start: "Day 2, 10:00" },
+      ],
+      [
+        ["title", "Day"],
+        ["start", "Starts"],
       ],
     ),
     replaced_by: null,
@@ -258,24 +302,26 @@ export const RESULTS: RoomResult[] = [
     by: "p2",
     seq: 18,
     source: "model",
-    sources: ["e3", "e4"],
+    sources: ["e3", "e4", "e6"],
+    seqs: [12, 24],
     tree: [{ component: "Table", props: { rows: "/rows" } }],
     data: {
+      currency: "EUR",
       rows: [
-        { item: "Materials", paid_by: "Shared", cost: { value: 120, event_ref: "e3" } },
-        { item: "Snacks", paid_by: "Shared", cost: { value: 60, event_ref: "e4" } },
+        { label: "Materials", amount: { value: 120, event_ref: "e3" }, provenance: "vault" },
+        { label: "Snacks", amount: { value: 60, event_ref: "e4" }, provenance: "estimate" },
       ],
+      total: { value: 180, event_ref: "e4" },
     },
-    messages: table(
+    messages: view(
       "r3",
       [
-        ["item", "Item"],
-        ["paid_by", "Paid by"],
-        ["cost", "Cost"],
+        { label: "Materials", amount: "120" },
+        { label: "Snacks", amount: "60" },
       ],
       [
-        { item: "Materials", paid_by: "Shared", cost: "120" },
-        { item: "Snacks", paid_by: "Shared", cost: "60" },
+        ["label", "Item"],
+        ["amount", "Cost"],
       ],
     ),
     replaced_by: null,

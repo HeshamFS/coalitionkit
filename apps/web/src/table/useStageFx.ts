@@ -4,7 +4,16 @@
 import { beamsFor, busySeats, comparing } from "./beams";
 import { finishedInView, useInitial, useInitialIds, useRan } from "./fresh";
 import { type Layout, needPoints, ordered, type Pt, rowPoint, seatPoints } from "./geometry";
-import type { Room } from "./room";
+import type { Room, Stop } from "./room";
+
+/** The newest stop that arrived while someone watched, until the room moves on past it. */
+export function useCurrentStop(room: Room): Stop | null {
+  const initial = useInitialIds(room.stops.map((s) => s.id));
+  const latest = room.stops.at(-1);
+  return latest && !initial.has(latest.id) && !room.activity.some((a) => a.at > latest.at)
+    ? latest
+    : null;
+}
 
 export function useStageFx(room: Room, layout: Layout) {
   const decide = room.phase === "decide";
@@ -12,7 +21,6 @@ export function useStageFx(room: Room, layout: Layout) {
   const initialSeats = useInitialIds(room.seats.map((s) => `${s.seat}:${s.kind}`));
   const initialNeeds = useInitialIds(room.needs.map((n) => n.id));
   const initialActs = useInitialIds(room.activity.map((a) => a.id));
-  const initialStops = useInitialIds(room.stops.map((s) => s.id));
   const initialCommon = useInitial(room.common ? JSON.stringify(room.common) : "");
   const initialChange = useInitial(room.change ? JSON.stringify(room.change) : "");
   const ran = useRan(room.activity);
@@ -49,13 +57,20 @@ export function useStageFx(room: Room, layout: Layout) {
     : changeKey && changeKey !== initialChange
       ? ("twice" as const)
       : null;
-  const waveSeat =
-    changing?.seat ?? [...room.activity].reverse().find((a) => a.verb === "changing")?.seat;
-  const waveFrom = (waveSeat && home.get(waveSeat)) || centre;
-  const stop = [...room.stops]
-    .reverse()
-    .find((s) => !initialStops.has(s.id) && s.seat && home.has(s.seat));
-  const stopCount = (seat: string) => room.stops.filter((s) => s.seat === seat).length;
+  const waveFrom = (room.change?.from && home.get(room.change.from)) || centre;
+  // Every stop keeps its stopped beam. The newest one that arrived while someone watched is
+  // "current" until the room moves on (anything newer happens); then only its beam and the badge on
+  // the seat stay.
+  const current = useCurrentStop(room);
+  const stops = room.stops
+    .filter((s) => s.seat && home.has(s.seat))
+    .slice(-4)
+    .map((s) => ({
+      stop: s,
+      from: home.get(s.seat as string) as Pt,
+      toward: (s.to && home.get(s.to)) || centre,
+      current: s.id === current?.id,
+    }));
   return {
     centre,
     home,
@@ -69,8 +84,8 @@ export function useStageFx(room: Room, layout: Layout) {
     crossing,
     wave,
     waveFrom,
-    stop,
-    stopCount,
+    stops,
+    current,
     finished,
     initialNeeds,
     initialSeats,

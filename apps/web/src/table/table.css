@@ -125,6 +125,12 @@
   outline: 3px solid var(--blue);
   outline-offset: 2px;
 }
+.tb :where(fieldset) {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .tb-sr {
   position: absolute;
   left: -9999px;
@@ -473,11 +479,4 @@
 .tb--kept {
   min-height: 0;
   background: transparent;
-}
-
-.tb fieldset {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
 }

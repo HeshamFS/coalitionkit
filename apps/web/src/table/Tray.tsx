@@ -65,7 +65,7 @@ export function Tray({ room, onOpen }: { room: Room; onOpen: (id: string) => voi
               />
             ) : making.has(need.id) ? (
               <div className="tb-made" data-state="making" role="status">
-                <div className="tb-germ">making</div>
+                <div className="tb-germ" aria-hidden="true" />
                 <b>{need.title}</b>
                 <span>being made</span>
               </div>

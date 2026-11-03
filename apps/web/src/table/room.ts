@@ -62,14 +62,31 @@ export type RoomResult = {
   seq: number;
   source: Source;
   sources: string[];
+  /** Log positions of the sources this viewer may see: can be shorter than `sources`. */
+  seqs: number[];
   tree: unknown[];
   data: unknown;
   messages: unknown[];
   replaced_by: string | null;
 };
-export type Stop = { id: string; at: string; seat: string | null; policy: string; explain: string };
+export type Stop = {
+  id: string;
+  at: string;
+  seat: string | null;
+  /** The seat the message was aimed at, or null when it was aimed at the room. */
+  to: string | null;
+  policy: string;
+  explain: string;
+};
 export type Common = { slots: string[]; count_private: number | null; compared: number };
-export type Change = { text: string; moved: string[]; asked: string[]; untouched: number };
+export type Change = {
+  text: string;
+  /** The seat that caused the change, or null when the host did. */
+  from: string | null;
+  moved: string[];
+  asked: string[];
+  untouched: number;
+};
 export type BriefItem = {
   id: string;
   ask: string;
@@ -198,6 +215,9 @@ function readResults(v: unknown): RoomResult[] {
       seq: num(r.seq),
       source: source(r.source),
       sources: strings(r.sources),
+      seqs: Array.isArray(r.seqs)
+        ? r.seqs.filter((n): n is number => typeof n === "number" && Number.isFinite(n))
+        : [],
       tree: Array.isArray(r.tree) ? r.tree : [],
       data: r.data ?? null,
       messages: Array.isArray(r.messages) ? r.messages : [],
@@ -218,6 +238,7 @@ function readChange(v: unknown): Change | null {
   if (!isRec(v)) return null;
   return {
     text: str(v.text),
+    from: strOrNull(v.from),
     moved: strings(v.moved),
     asked: strings(v.asked),
     untouched: Math.max(0, Math.trunc(num(v.untouched))),
@@ -297,6 +318,7 @@ export function readRoom(state: ViewerState | null): Room | null {
         id: str(s.id),
         at: str(s.at),
         seat: strOrNull(s.seat),
+        to: strOrNull(s.to),
         policy: str(s.policy),
         explain: str(s.explain),
       })),

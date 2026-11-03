@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Answer } from "../feed/actions";
@@ -87,7 +87,8 @@ describe("the Table", () => {
     const s = scene("compare");
     a.view.rerender(<TableView {...a.props} room={s.room} state={s.state} requests={s.requests} />);
     expect(screen.getByText("Day 1 fits all 5. Your other 2 stayed private.")).toBeInTheDocument();
-    expect(screen.getByText("no-contact-before-consent")).toBeInTheDocument();
+    const bar = screen.getByText("Stopped by the Steward").closest("p");
+    expect(bar?.textContent).toContain("no-contact-before-consent");
     a.view.unmount();
     mount("change");
     expect(
@@ -104,17 +105,55 @@ describe("the Table", () => {
 });
 
 describe("brief", () => {
-  it("posts the value the person chose, then can skip", async () => {
+  const asking = (answered: string[]) => {
+    const s = scene("brief");
+    return {
+      ...s.room,
+      mine: {
+        ...s.room.mine,
+        brief: s.room.mine.brief.map((q) =>
+          answered.includes(q.id) ? { ...q, status: "answered" as const } : q,
+        ),
+      },
+    };
+  };
+  const posted = (calls: Call[]) => calls.find((c) => c.name === "brief")?.args;
+
+  it("posts the slots the person picked, through the tree's own Send button", async () => {
     const { calls } = mount("brief");
-    await userEvent.click(screen.getByRole("button", { name: "Next" }));
-    await waitFor(() => expect(calls.find((c) => c.name === "brief")).toBeTruthy());
-    expect(calls.find((c) => c.name === "brief")?.args).toEqual(["q1", { value: ["d1"] }]);
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: /Day 1/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /Day 3/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(posted(calls)).toBeTruthy());
+    expect(posted(calls)).toEqual(["q1", { value: ["s1", "s3"] }]);
+  });
+  it("posts an unmoved slider as its plain value, not the wrapped number", async () => {
+    const { calls } = mount("brief", { room: asking(["q1"]) });
+    await userEvent.click(await screen.findByRole("button", { name: "Send" }));
+    await waitFor(() => expect(posted(calls)).toBeTruthy());
+    expect(posted(calls)).toEqual(["q2", { value: 50 }]);
+  });
+  it("posts a moved slider as a number", async () => {
+    const { calls } = mount("brief", { room: asking(["q1"]) });
+    const slider = await screen.findByRole("slider");
+    fireEvent.change(slider, { target: { value: "75" } });
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(posted(calls)).toBeTruthy());
+    expect(posted(calls)).toEqual(["q2", { value: 75 }]);
+  });
+  it("posts a single choice as its option id", async () => {
+    const { calls } = mount("brief", { room: asking(["q1", "q2"]) });
+    await userEvent.click(await screen.findByRole("button", { name: "A van" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(posted(calls)).toBeTruthy());
+    expect(posted(calls)).toEqual(["q3", { value: "b2" }]);
   });
   it("posts skip", async () => {
     const { calls } = mount("brief");
-    await userEvent.click(screen.getByRole("button", { name: "Skip" }));
-    await waitFor(() => expect(calls.find((c) => c.name === "brief")).toBeTruthy());
-    expect(calls.find((c) => c.name === "brief")?.args).toEqual(["q1", { skip: true }]);
+    await userEvent.click(screen.getByRole("button", { name: "Skip this one" }));
+    await waitFor(() => expect(posted(calls)).toBeTruthy());
+    expect(posted(calls)).toEqual(["q1", { skip: true }]);
     expect(screen.getByText(/Stays in your vault/)).toBeInTheDocument();
   });
 });
@@ -203,6 +242,7 @@ describe("results", () => {
     expect(within(dialog).queryByRole("button", { name: "Export .ics" })).toBeNull();
     await userEvent.click(within(dialog).getByRole("button", { name: "Show the work" }));
     expect(within(dialog).getByText(/seq 12 · offer/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/1 more, outside your view/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Check passed/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Show the result" }));
     expect(within(dialog).queryByText(/Check passed/)).toBeNull();

@@ -475,3 +475,74 @@
 .tb-germ {
   opacity: 0.8;
 }
+
+/* A plate behind small type, so the dots never cut through it. */
+.tb-plate,
+.tb-seatname,
+.tb-seatstate {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+}
+.tb-plate {
+  display: inline-block;
+  padding: 2px 16px 7px;
+  border-radius: 14px;
+}
+.tb-seatname,
+.tb-seatstate {
+  padding: 0 6px;
+}
+.tb-agenttag {
+  background: color-mix(in srgb, var(--ground) 92%, transparent);
+}
+.tb-stoptip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 9;
+  display: none;
+  width: 210px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--bad-line);
+  border-radius: 10px;
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  list-style: none;
+  text-align: left;
+  transform: translateX(-50%);
+}
+.tb-seat:hover .tb-stoptip,
+.tb-seat:focus-within .tb-stoptip {
+  display: block;
+}
+.tb-stoptip code {
+  display: block;
+  font: 600 10.5px var(--font-mono);
+}
+.tb-stoptip span {
+  display: block;
+  font: 400 12px / 1.35 var(--font-ui);
+}
+.tb-stewardbar {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0 14px 10px;
+  padding: 9px 14px;
+  border: 1px solid var(--bad-line);
+  border-radius: 10px;
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font: 400 13px / 1.35 var(--font-ui);
+  animation: rise 0.3s ease-out 1;
+}
+.tb-stewardbar b {
+  font-weight: 600;
+}
+.tb-stewardbar code {
+  font: 600 11px var(--font-mono);
+}

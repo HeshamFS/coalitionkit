@@ -3,7 +3,6 @@
 // of the room (an activity, `common`, a stop, `change`); with none, none of these is on screen.
 import type { Beam } from "./beams";
 import { at, beamBox, type Layout, type Pt } from "./geometry";
-import type { Stop } from "./room";
 
 const SPARKS = [0, 1, 2];
 
@@ -70,18 +69,9 @@ export function Crossing({
   );
 }
 
-/** The red beam, stopped part of the way, and the rule that stopped it. */
-export function StopBeam({
-  stop,
-  from,
-  toward,
-  fresh,
-}: {
-  stop: Stop;
-  from: Pt;
-  toward: Pt;
-  fresh: boolean;
-}) {
+/** The red beam, stopped part of the way. The rule that stopped it is named in the Steward bar and
+ * on the seat's badge, never over the table. */
+export function StopBeam({ from, toward, current }: { from: Pt; toward: Pt; current: boolean }) {
   const stuck = at(from, toward, 0.26);
   const b = beamBox(from, toward, 0.26);
   return (
@@ -89,7 +79,7 @@ export function StopBeam({
       <div
         className="tb-beam"
         data-state="stopped"
-        data-fresh={fresh}
+        data-current={current}
         style={{ left: b.x, top: b.y, width: b.w, transform: `rotate(${b.a}deg)` }}
       >
         <i className="tb-bl" />
@@ -97,18 +87,9 @@ export function StopBeam({
       <i
         className="tb-spark"
         data-bad="true"
-        data-fresh={fresh}
+        data-current={current}
         style={{ left: stuck.x, top: stuck.y }}
       />
-      <div
-        className="tb-steward"
-        data-fresh={fresh}
-        style={{ left: stuck.x - 40, top: stuck.y + 56 }}
-      >
-        Stopped by the Steward
-        <code>{stop.policy}</code>
-        {stop.explain && <span>{stop.explain}</span>}
-      </div>
     </>
   );
 }

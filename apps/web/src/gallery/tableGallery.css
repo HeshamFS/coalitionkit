@@ -29,3 +29,7 @@
   border-color: #7c97ff;
   color: #060a24;
 }
+
+.tbg-wrap .tb {
+  min-height: calc(100vh - 40px);
+}
