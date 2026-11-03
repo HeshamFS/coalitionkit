@@ -27,7 +27,7 @@ from test_room_choices import OFFERS, make_offers, silent_room
 
 SHAPES: dict[str, dict[str, Any]] = {
     "place": {"options": [{"name": "Community hall", "why": "Fits the group"}]},
-    "budget": {"rows": [{"label": "Spare cushion", "note": ""}]},
+    "budget": {"suggested": [{"label": "Spare cushion", "amount": 20, "unit": "EUR"}]},
     "list": {"items": [{"label": "Name tags", "who": ""}]},
     "draft": {"subject": "Please join us", "body": "A short note for everyone."},
     "schedule": {"items": [{"title": "Meet"}]},
@@ -115,7 +115,16 @@ def test_a_signed_plan_gives_results_of_three_kinds(tmp_path: Path) -> None:
         assert budget["currency"] == "minutes" and budget["total"] == sum(
             r["amount"] for r in budget["rows"]
         )
-        assert {r["provenance"] for r in budget["rows"]} == {"signed", "estimate"}
+        assert {r["provenance"] for r in budget["rows"]} == {"signed"}
+        assert budget["suggested"] == [
+            {"label": "Spare cushion", "amount": 20, "unit": "EUR", "provenance": "estimate"}
+        ], "money is in the goal, so suggested cost lines sit apart from the signed total"
+        assert budget["total"] == sum(r["amount"] for r in budget["rows"])
+        cards = [n["title"] for n in content["budget"]["components"] if n["component"] == "Card"]
+        assert cards == [
+            "Time budget in minutes (from the offers)",
+            "Suggested costs (estimates, not in the total)",
+        ]
         assert set(content["draft"]["data"]) == {"subject", "body"}
         assert all(c["source"] == "model" and c["sources"] for c in content.values())
         events_ids = {e["event_id"] for e in server_of(client).store.read(cid)}
@@ -270,3 +279,47 @@ def test_a_helper_signs_its_own_commitment_and_reports_done_itself(tmp_path: Pat
         )
         time.sleep(2)
         assert not [e for e in events(client, cid, "done") if e["on_behalf_of"] != "helper-1"]
+
+
+def test_a_place_with_nothing_to_suggest_says_so_and_a_time_budget_is_called_one(
+    tmp_path: Path,
+) -> None:
+    quiet = {
+        "needs": [
+            {"title": "Find a place", "kind": "place", "detail": "Somewhere we can all reach."},
+            {"title": "Settle the budget", "kind": "budget", "detail": "Who gives what time."},
+            {"title": "Write the invitation", "kind": "draft", "detail": "A short note."},
+        ],
+        "slots": ["Saturday morning"],
+    }
+
+    def echoing(user: str) -> dict[str, Any]:
+        reply = made(user)
+        if json.loads(user)["kind"] == "place":
+            reply["data"] = json.dumps({"options": [{"name": "Find a place", "why": "needed"}]})
+        if json.loads(user)["kind"] == "budget":
+            lines = [{"label": "Cushion", "amount": 5, "unit": "EUR"}]
+            reply["data"] = json.dumps({"suggested": lines})
+        return reply
+
+    with serve(tmp_path, RoomModel(needs=quiet, brief=BRIEF, made=echoing)) as client:
+        cid, _engine, people = to_decided(client)
+        approve_commitments(client, cid, people)
+        until(lambda: len(results_of_events(client, cid)) == 3, 40, "three results")
+        found = {c["kind"]: c for c in results_of_events(client, cid)}
+        place = found["place"]
+        assert place["title"] == "No place has been named yet"
+        assert place["data"] == {"options": [], "chosen": None}
+        text = json.dumps(place["components"])
+        assert "No place has been named yet" in text and "Say box" in text
+        budget = found["budget"]
+        assert budget["title"] == "Time budget" and budget["data"]["currency"] == "minutes"
+        assert budget["data"]["suggested"] == [], "no money in the goal, so no cost lines"
+
+
+def results_of_events(client: TestClient, cid: str) -> list[dict[str, Any]]:
+    return [
+        json.loads(e["payload"]["content"])
+        for e in events(client, cid, "observe")
+        if '"result": 1' in e["payload"]["content"]
+    ]

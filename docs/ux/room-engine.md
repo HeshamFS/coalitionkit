@@ -154,9 +154,9 @@ What the fields mean:
 
 | Kind | `data` | Export |
 |---|---|---|
-| `place` | `{options: [{name, why, provenance}], chosen: name or null}` | none |
+| `place` | `{options: [{name, why, provenance}], chosen: name or null}`; `options` may be empty, and the card then says no place has been named yet | none |
 | `schedule` | `{items: [{title, start, end, where}]}`, with ISO 8601 times | ICS |
-| `budget` | `{currency, rows: [{label, amount, provenance}], total}` | CSV |
+| `budget` | `{currency, rows: [{label, amount, provenance}], suggested: [{label, amount, unit, provenance}], total}` | CSV |
 | `list` | `{items: [{label, who, provenance}]}` | CSV |
 | `draft` | `{subject, body}` | text |
 
@@ -209,3 +209,5 @@ Each opens only when the last passes in a real room with the live model.
 3. **The Table.** The whole walk in Chrome on real events, on desktop and phone, with several real browsers in one room.
 
 Then: spec updated, `FREEZE_TAG` moved to a new tag, `tools/check.py` green, public host next.
+
+`budget` with no money in the goal is a time budget: `currency` is `minutes`, the title is "Time budget", `rows` are the signed minutes from people's offers (provenance `signed`, each number bound to its offer event) and `total` is their sum. When the goal or the need mentions money the model may add `suggested` cost lines; these are always `provenance: "estimate"`, are never part of `total`, and the tree shows them in their own card. `place` options are suggested kinds of place, always `estimate`; a result never repeats the need as an option.

@@ -34,9 +34,12 @@ MAX_ITEMS = 6
 SYSTEM = (
     "You are one person's agent in a small group room, making the thing a need asks for. "
     "Reply with a title (under 60 characters), the data as a JSON text in the shape for the "
-    "kind, and a tree of components. Kinds and data: place {options:[{name, why}]}, budget "
-    "{rows:[{label, note}]}, list {items:[{label, who}]}, draft {subject, body}, schedule "
-    "{items:[{title}]}. Everything you write is a suggestion for the group to judge; use only "
+    "kind, and a tree of components. Kinds and data: place {options:[{name, why}]} with two or "
+    "three suggested kinds of place (a quiet room, an outdoor space), each with a reason, not "
+    "named venues; budget {suggested:[{label, amount, unit}]} with cost lines only when "
+    "facts.money is true, else an empty list; list {items:[{label, who}]}, draft {subject, "
+    "body}, schedule {items:[{title}]}. Everything you write is a suggestion for the group "
+    "to judge; use only "
     "what the goal, the need, the plan and the offers say, never invent a fact, a price, a "
     "person or a place that is not given. Put no numbers in your tree. The tree is a flat list "
     "of nodes {id, component, props} where props is a JSON object text; the root has id "
@@ -127,7 +130,8 @@ def schedule_items(facts: Document, title: str) -> list[Document]:
 
 
 def budget_data(facts: Document, suggested: list[Document]) -> Document:
-    """Rows from signed offers (minutes each person said), then the model's rows as estimates."""
+    """The time people offered is the signed budget; any money lines the model suggests sit
+    apart, as estimates, and are never part of the total."""
     rows: list[Document] = [
         {
             "label": f"{a['who']}: {a['title']}",
@@ -137,14 +141,25 @@ def budget_data(facts: Document, suggested: list[Document]) -> Document:
         }
         for a in facts["plan"]
     ]
-    for row in suggested:
-        label = text(row.get("label"), 60)
-        if label and not echoes(label, facts):
-            rows.append({"label": label, "amount": 0, "provenance": "estimate", "ref": None})
+    lines: list[Document] = []
+    for row in suggested if facts["money"] else []:
+        label, unit = text(row.get("label"), 60), text(row.get("unit"), 12)
+        amount = row.get("amount")
+        if label and not echoes(label, facts) and isinstance(amount, int | float):
+            lines.append(
+                {
+                    "label": label,
+                    "amount": max(0, min(int(amount), 1_000_000)),
+                    "unit": unit,
+                    "provenance": "estimate",
+                }
+            )
+    kept = rows[: MAX_ITEMS * 2]
     return {
         "currency": "minutes",
-        "rows": rows[: MAX_ITEMS * 2],
-        "total": sum(r["amount"] for r in rows[: MAX_ITEMS * 2]),
+        "rows": kept,
+        "suggested": lines[:MAX_ITEMS],
+        "total": sum(r["amount"] for r in kept),
     }
 
 
@@ -176,14 +191,14 @@ def normalise(kind: str, raw: Any, facts: Document) -> Document | None:
             }
             for o in rows_of(raw, "options")
         ]
-        options = [o for o in options if o["name"] and not echoes(o["name"], facts)]
+        options = [o for o in options if o["name"] and not echoes(o["name"], facts)][:3]
         return {"options": options, "chosen": None} if options else None
     if kind == "schedule":
         titles = rows_of(raw, "items")
         title = text(titles[0].get("title"), 60) if titles else ""
         return {"items": schedule_items(facts, title or facts["need"]["title"])}
     if kind == "budget":
-        return budget_data(facts, rows_of(raw, "rows"))
+        return budget_data(facts, rows_of(raw, "suggested"))
     if kind == "list":
         data = list_data(facts, rows_of(raw, "items"))
         return data if data["items"] else None
@@ -205,7 +220,11 @@ def card(index: int, title: str, fields: list[Document], prov: str) -> Document:
 def fixed_body(kind: str, data: Document) -> list[Document]:
     """The cards code builds from the data: the facts, whatever the model's tree says."""
     body: list[Document] = []
-    if kind == "place":
+    if kind == "place" and not data["options"]:
+        hint = "Say a place in the Say box, for example: the hall is free on Saturday."
+        none = [{"label": "To name one", "value": hint}]
+        body.append(card(0, "No place has been named yet", none, "signed"))
+    elif kind == "place":
         for i, o in enumerate(data["options"]):
             why = [{"label": "Why", "value": o["why"], "provenance": "estimate"}]
             body.append(card(i, o["name"], why, "estimate"))
@@ -226,7 +245,21 @@ def fixed_body(kind: str, data: Document) -> list[Document]:
             }
             for r in data["rows"]
         ]
-        body.append(card(0, f"Budget in {data['currency']}", fields, "signed"))
+        body.append(
+            card(0, f"Time budget in {data['currency']} (from the offers)", fields, "signed")
+        )
+        if data["suggested"]:
+            estimates = [
+                {
+                    "label": s["label"],
+                    "value": f"about {s['amount']} {s['unit']}".strip(),
+                    "provenance": "estimate",
+                }
+                for s in data["suggested"]
+            ]
+            body.append(
+                card(1, "Suggested costs (estimates, not in the total)", estimates, "estimate")
+            )
     elif kind == "list":
         fields = [
             {"label": i["label"], "value": i["who"] or "open", "provenance": i["provenance"]}
@@ -344,6 +377,10 @@ async def make(
         if reply is not None and reply.title.strip()
         else facts["need"]["title"]
     )
+    if kind == "budget" and not facts["money"]:
+        title = "Time budget"
+    if kind == "place" and not data["options"]:
+        title = "No place has been named yet"
     if tree is not None:
         tree = with_facts(tree, kind, data)
     return title, data, tree or fixed_tree(kind, title, facts["need"]["detail"], data), source

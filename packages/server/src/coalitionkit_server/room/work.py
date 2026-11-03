@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -24,6 +25,13 @@ from .seats import read_state, sign_asks
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
+
+
+MONEY = re.compile(
+    r"\b(money|costs?|pay|paid|price|prices|euros?|eur|dollars?|usd|afford|spend|fees?|expenses?)\b"
+    r"|[€$£]",
+    re.I,
+)
 
 
 def result_events(state: State) -> list[tuple[Document, Document]]:
@@ -105,6 +113,9 @@ def facts_for(
         "plan": plan,
         "common": [{"id": s, "label": slots.get(s, s)} for s in shared],
         "now": datetime.fromtimestamp(engine.now(), UTC).isoformat(),
+        "money": bool(
+            MONEY.search(f"{state.charter['goal']} {needs[task]['title']} {needs[task]['detail']}")
+        ),
     }
 
 
