@@ -60,6 +60,7 @@ def fresh_doc() -> Document:
         "offers_done": False,
         "gaps_noted": [],  # need ids already announced as having no offer
         "compare": None,  # {state, task_id, queries, answered, took_part, done, slots, compared}
+        "ended": False,  # the room has been dissolved: nothing private may be written again
         "plan_notes": {},  # plan id -> {name, line, source}
         "made": {},  # task -> {commitment, result (event id), held, done}: what has been made
         "successors": {},  # a done need -> the need published to replace it
@@ -258,9 +259,9 @@ class RoomEngine:
 
         def erase(d: Document) -> None:
             d["briefs"], d["offers"], d["held"], d["made"] = {}, {}, {}, {}
-            d["final"] = kept
+            d["final"], d["ended"] = kept, True
 
-        self.update(coalition, erase)
+        self.update(coalition, erase, force=True)
 
     def effort_objective(self, coalition: str) -> Callable[[Mapping[str, str]], float]:
         """Total effort of a plan, from the public offers: low 1, medium 2, high 3 each."""
@@ -401,9 +402,13 @@ class RoomEngine:
         with self.lock:
             return deepcopy(self.doc(coalition))
 
-    def update(self, coalition: str, change: Callable[[Document], None]) -> None:
+    def update(
+        self, coalition: str, change: Callable[[Document], None], *, force: bool = False
+    ) -> None:
         with self.lock:
             doc = self.doc(coalition)
+            if doc["ended"] and not force:
+                return  # a step that was mid-way when the room ended must not write again
             change(doc)
             with self.server.store.transaction(coalition) as tx:
                 tx.execute(
