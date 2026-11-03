@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .engine import RoomEngine
 
 FEED_SHOWN = 30
+STOP_FIELDS = ("id", "at", "seat", "to", "policy", "explain")
 SHOWN = ("id", "at", "seat", "verb", "need", "label", "state", "ms", "source", "event")
 PHASES = {"Decide": "decide", "Act": "commit", "Live": "live"}
 
@@ -64,6 +65,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "phase": phase,
         "lights": "day" if phase in {"gather", "ended"} or waiting else "night",
         "goal": str(state.charter.get("goal", "")),
+        "closes": str(state.charter.get("deadline", "")),
         "seats": seats_of(engine, coalition, viewer, state, doc),
         "needs": needs_of(viewer, state, doc),
         "activity": [
@@ -75,7 +77,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "common": common_of(engine, coalition, viewer, doc),
         "plan_notes": notes_of(viewer, state, doc),
         "results": [],
-        "stops": [],
+        "stops": [{k: s[k] for k in STOP_FIELDS} for s in doc["stops"]],
         "checked": checked_of(engine, coalition, state),
         "change": None,
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
@@ -98,6 +100,7 @@ def seats_of(
     engine: RoomEngine, coalition: str, viewer: str, state: State, doc: Document
 ) -> list[Document]:
     door = engine.doors.door_row("coalition", coalition)
+    given = engine.server.registry.names(coalition)
     labels = {r["id"]: r.get("label", r["id"]) for r in door["roles"]} if door else {}
     counts: dict[str, int] = {}
     seats: list[Document] = []
@@ -110,7 +113,8 @@ def seats_of(
             label, kind, status = f"{helper['label']} (agent)", "helper", "signed"
         else:
             name = str(labels.get(role, role)).capitalize()
-            label, kind, status = f"{name} {counts[role]}", "person", "signed"
+            label = given.get(person) or f"{name} {counts[role]}"
+            kind, status = "person", "signed"
         brief = doc["briefs"].get(person)
         if not signed:
             status = "waiting"

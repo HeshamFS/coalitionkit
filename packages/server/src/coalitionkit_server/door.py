@@ -108,7 +108,7 @@ def knocks_since() -> str:
 def erase_door(tx: Any, coalition: str) -> int:
     """Every door, knock and arrival row of one coalition; returns how many went."""
     total = 0
-    for table in ("server_doors", "server_door_arrivals", "server_door_knocks"):
+    for table in ("server_doors", "server_door_arrivals", "server_door_knocks", "server_names"):
         gone = tx.execute(f"DELETE FROM {table} WHERE coalition = ? RETURNING 1", (coalition,))
         total += len(gone.fetchall())
     return total
@@ -436,6 +436,7 @@ def mount_door(
             except ValueError, KeyError:
                 registry.revoke_invitation(coalition, invitation["id"])
                 raise HTTPException(400, "join refused") from None
+            registry.set_name(coalition, redeemed["participant"], body.display_name)
             store.arrive(coalition, redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},

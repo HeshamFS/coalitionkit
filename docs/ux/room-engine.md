@@ -81,6 +81,8 @@ type Room = {
   // Light means it is your turn. Night while agents work and nothing waits on this viewer.
   lights: "day" | "night";
   goal: string;
+  // The charter deadline as an ISO time: when the room ends by itself.
+  closes: string;
   seats: {
     seat: string; role: string; label: string;
     kind: "person" | "helper" | "open"; you: boolean;

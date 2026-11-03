@@ -15,7 +15,6 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from coalitionkit_contracts import new_ulid, validate_payload
-from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
@@ -55,10 +54,8 @@ SYSTEM = (
 
 async def send_offer(
     engine: RoomEngine, coalition: str, who: str, state: State, item: OfferItem
-) -> str:
-    """One signed offer from this seat's own agent. Closed fields only."""
-    server = engine.server
-    person = server.registry.hosted_for(coalition, who)
+) -> str | None:
+    """One signed offer from this seat's own agent, closed fields only; None if it was held."""
     payload: Document = {
         "offer_id": new_ulid(),
         "target": {"kind": "need", "id": item.need_id},
@@ -67,13 +64,8 @@ async def send_offer(
         "valid_until": state.tasks[item.need_id]["window"]["end"],
     }
     validate_payload("coalition.offer", payload)
-    envelope = build_envelope(
-        person, coalition, "coalition.offer", payload, scope={"audience": "coalition"}
-    )
-    reply = await engine.guard(server.ports[coalition].accept(envelope, person.card_url))
-    if "error" in reply:
-        raise RuntimeError("offer refused: " + str(reply["error"]["code"]))
-    return str(envelope["event_id"])
+    sent = await engine.submit(coalition, who, "offer", payload, {"audience": "coalition"})
+    return str(sent["event_id"]) if sent else None
 
 
 def titles(needs: list[Document]) -> dict[str, str]:
@@ -95,6 +87,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
             SYSTEM,
             {
                 "goal": state.charter["goal"],
+                "person": engine.name_of(coalition, who),
                 "needs": [{k: n[k] for k in ("id", "title", "kind", "detail")} for n in needs],
                 "told_by_the_person": told,
                 "most_minutes_for_any_one_job": lim.cap,

@@ -2,6 +2,7 @@
 """A dedicated async loop bridges the runtime's synchronous audit hook."""
 
 import asyncio
+import time
 from collections.abc import Callable
 from threading import Thread
 
@@ -52,6 +53,8 @@ class StewardAdapter:
         members: MembersOf | None = None,
     ) -> None:
         self.runner = runner
+        # (event type, seconds, action) for each review: how long the Steward takes, per event.
+        self.timings: list[tuple[str, float, str]] = []
         self._members = members
         self._policies = core_policies()
         self._ready = None
@@ -60,6 +63,13 @@ class StewardAdapter:
             self._ready = asyncio.run_coroutine_threadsafe(asyncio.to_thread(steward), runner.loop)
 
     def review(self, envelope: Document, *, context: ReviewContext | None = None) -> Verdict:
+        started = time.monotonic()
+        verdict = self._review(envelope, context)
+        self.timings.append((str(envelope.get("type")), time.monotonic() - started, verdict.action))
+        del self.timings[:-2000]
+        return verdict
+
+    def _review(self, envelope: Document, context: ReviewContext | None) -> Verdict:
         members = self._members(str(envelope.get("coalition_id", ""))) if self._members else None
         facts = StewardContext(
             members=context.recipients if context else members,

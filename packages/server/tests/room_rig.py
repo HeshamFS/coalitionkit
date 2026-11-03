@@ -187,6 +187,7 @@ def start_room(
     seats: int = 3,
     goal: str = "Three members need a shared room, a budget and an invitation tomorrow",
     steward: FakeSteward | None = None,
+    owner_name: str | None = None,
 ) -> Document:
     server = server_of(client)
     draft = client.post("/v1/genesis/draft", json={"goal": goal}).json()["draft"]
@@ -194,7 +195,7 @@ def start_room(
     draft["needs"] = []
     response = client.post(
         "/v1/genesis/start",
-        json={"draft": draft},
+        json={"draft": draft, "owner_name": owner_name} if owner_name else {"draft": draft},
         headers={"Authorization": "Start " + server.registry.issue_start()},
     )
     assert response.status_code == 200, response.text
@@ -203,11 +204,12 @@ def start_room(
     return created
 
 
-def join(client: TestClient, room: Document) -> Document:
+def join(client: TestClient, room: Document, display_name: str | None = None) -> Document:
     owner = {"Authorization": "Bearer " + room["owner"]["token"]}
     invite = client.post("/v1/invitations", json={"kind": "member", "count": 1}, headers=owner)
     secret = invite.json()["invitations"][0]["link"].split("#")[1]
-    response = client.post("/v1/invitations/accept", json={"invitation": secret})
+    body = {"invitation": secret, **({"display_name": display_name} if display_name else {})}
+    response = client.post("/v1/invitations/accept", json=body)
     assert response.status_code == 200, response.text
     return response.json()
 

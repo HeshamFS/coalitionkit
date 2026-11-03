@@ -317,7 +317,12 @@ async def open_brief(engine: RoomEngine, coalition: str, who: str, state: State)
         coalition,
         "hosted_agent",
         SYSTEM,
-        {"goal": state.charter["goal"], "needs": shown, "slots": slots},
+        {
+            "goal": state.charter["goal"],
+            "person": engine.name_of(coalition, who),
+            "needs": shown,
+            "slots": slots,
+        },
         BriefReply,
         verb="asking",
         label="Your agent is choosing what to ask you",

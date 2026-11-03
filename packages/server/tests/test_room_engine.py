@@ -403,3 +403,27 @@ def test_the_hub_sends_a_delta_when_the_room_version_moves(tmp_path: Path) -> No
         deltas = [f for f in frames if isinstance(f, StateDeltaEvent)]
         assert deltas and any(op.path.startswith("/room/activity") for op in deltas[0].delta)
         assert not [f for f in hub._poll(session, sub) if isinstance(f, StateDeltaEvent)]
+
+
+def test_a_name_given_on_sitting_down_is_stored_shown_and_told_to_the_agent(
+    tmp_path: Path,
+) -> None:
+    model = RoomModel(needs=NEEDS, brief=BRIEF)
+    with serve(tmp_path, model) as client:
+        room = start_room(client, seats=3, owner_name="Mira Okafor")
+        cid, engine = room["coalition_id"], engine_of(client)
+        sign(client, cid, room["owner"]["token"], "p1")
+        member = join(client, room, "Jonas")
+        sign(client, cid, member["token"], member["participant"])
+        until(lambda: len(events(client, cid, "need")) >= 3, what="needs")
+        seats = view_of(engine, cid, "p1")["seats"]
+        assert [s["label"] for s in seats if s["kind"] == "person"] == ["Mira Okafor", "Jonas"]
+        client.post(
+            "/v1/room/begin", json={"helpers": False}, headers=bearer(room["owner"]["token"])
+        )
+        until(lambda: engine.read(cid)["briefs"].get("p1"), what="a brief")
+        prompts = [str(c[1][-1]["content"]) for c in model.calls if c[0] == "hosted_agent"]
+        assert any('"person": "Mira Okafor"' in p for p in prompts)
+        unnamed = start_room(client, seats=2)
+        view = view_of(engine, unnamed["coalition_id"], "p1")
+        assert view["seats"][0]["label"].startswith("Member")

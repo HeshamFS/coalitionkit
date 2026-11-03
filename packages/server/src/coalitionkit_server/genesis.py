@@ -204,6 +204,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 await enroll_member(server, redeemed, role)
             except ValueError, KeyError:
                 raise HTTPException(400, "invitation refused") from None
+            registry.set_name(redeemed["coalition_id"], redeemed["participant"], body.display_name)
             doors.arrive(redeemed["coalition_id"], redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
@@ -338,6 +339,7 @@ def mount_start(
             registry.record_owner(
                 created["coalition_id"], redeemed["participant"], redeemed["token"]
             )
+            registry.set_name(created["coalition_id"], redeemed["participant"], body.owner_name)
             with server.store.transaction(created["coalition_id"]) as tx:
                 tx.execute(
                     "INSERT INTO server_genesis VALUES (?, ?, ?)",

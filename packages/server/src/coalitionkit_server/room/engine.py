@@ -16,12 +16,16 @@ import json
 import logging
 import threading
 import time
+from collections import Counter
 from collections.abc import Awaitable, Callable, Mapping
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from coalitionkit_contracts import new_ulid
+from coalitionkit_gardener.plans import PlanCandidate, PlanSet
+from coalitionkit_mcp.gateway import build_envelope
+from coalitionkit_steward.policy import core_policies
 from coalitionkit_surfaces import Catalog, load_catalog
 
 from ..adapter import Document
@@ -57,6 +61,8 @@ def fresh_doc() -> Document:
         "gaps_noted": [],  # need ids already announced as having no offer
         "compare": None,  # {state, task_id, queries, answered, took_part, done, slots, compared}
         "plan_notes": {},  # plan id -> {name, line, source}
+        "stops": [],  # what the Steward held: {id, at, seat, to, policy, explain}
+        "held": {},  # plan-set marker -> policy id, so a held plan set is not retried blindly
         "activity": [],
     }
 
@@ -78,6 +84,7 @@ class RoomEngine:
         with server.store.transaction("") as tx:
             tx.execute(TABLE)
         self.doors = DoorStore(server)
+        self.policies = core_policies()
 
     # --- wiring -----------------------------------------------------------------------------
     def attach(self, coalition: str) -> None:
@@ -147,6 +154,50 @@ class RoomEngine:
                 # A failed step is tried again at the next tick; the loop itself never dies.
                 LOG.exception("Room engine step failed for %s", coalition)
 
+    async def submit(
+        self,
+        coalition: str,
+        who: str,
+        kind: str,
+        payload: Document,
+        scope: Document,
+        *,
+        to: str | None = None,
+    ) -> Document | None:
+        """Send one event as this seat's own agent. None means the Steward or a pack held it.
+
+        A held event is written down as a stop the room can see, and the caller carries on
+        without it; it is never retried with the same words.
+        """
+        server = self.server
+        person = server.registry.hosted_for(coalition, who)
+        envelope = build_envelope(person, coalition, f"coalition.{kind}", payload, scope=scope)
+        reply = await self.guard(server.ports[coalition].accept(envelope, person.card_url))
+        if "error" in reply:
+            code = str(reply["error"]["code"])
+            if code in {"steward_blocked", "pack_violation"}:
+                self.record_stop(
+                    coalition, who, to, str(reply["error"].get("detail", {}).get("policy_id", ""))
+                )
+                return None
+            raise RuntimeError(f"{kind} refused: {code}")
+        return envelope
+
+    def record_stop(self, coalition: str, seat: str | None, to: str | None, policy: str) -> None:
+        known = self.policies.get(policy)
+        explain = known.explain if known else "The Steward held this for a person to look at."
+        entry: Document = {
+            "id": new_ulid(),
+            "at": datetime.fromtimestamp(self.now(), UTC).isoformat(),
+            "seat": seat,
+            "to": to,
+            "policy": policy or "steward",
+            "explain": explain,
+        }
+        self.update(coalition, lambda d: d["stops"].append(entry))
+        label = f"The Steward held a message: {explain}"
+        self.start_activity(coalition, "stopped", label, seat=seat, state="done", source="host")
+
     def lock_for(self, coalition: str) -> asyncio.Lock:
         return self.locks.setdefault(coalition, asyncio.Lock())
 
@@ -188,6 +239,40 @@ class RoomEngine:
             return float(sum(seen.get((who, task), 3) for task, who in assignments.items()))
 
         return effort
+
+    def passable(self, coalition: str, plans: PlanSet) -> PlanSet:
+        """Keep the plans the Steward's fairness rule would not hold, when there are any.
+
+        If every plan would be held, all go to the Steward and its hold is shown as a stop.
+        """
+        policy = self.policies.get("fairness-cap-exceeded")
+        cap = policy.when.plan_share_above if policy else None
+        if cap is None or len(plans.plans) < 2:
+            return plans
+
+        def fine(plan: PlanCandidate) -> bool:
+            counts = Counter(plan.assignments.values())
+            return sum(counts.values()) < 2 or max(counts.values()) / sum(counts.values()) <= cap
+
+        kept = tuple(p for p in plans.plans if fine(p))
+        if not kept or len(kept) == len(plans.plans):
+            return plans
+        self.note(
+            coalition,
+            "planning",
+            f"{len(plans.plans) - len(kept)} plan(s) held back: one person would carry more than "
+            f"{round(cap * 100)} percent of the work",
+        )
+        return PlanSet(kept, plans.unresolved, plans.objective_names)
+
+    def hold(self, coalition: str, marker: str, policy: str) -> None:
+        """A plan set the Steward held: it is not sent again until the offers change."""
+        if marker not in self.read(coalition)["held"]:
+            self.record_stop(coalition, None, None, policy)
+        self.update(coalition, lambda d: d["held"].__setitem__(marker, policy))
+
+    def is_held(self, coalition: str, marker: str) -> bool:
+        return marker in self.read(coalition)["held"]
 
     def needs_ready(self, coalition: str) -> bool:
         with self.lock:
@@ -295,6 +380,10 @@ class RoomEngine:
 
     def note(self, coalition: str, verb: str, label: str, **kw: Any) -> None:
         self.start_activity(coalition, verb, label, state="done", **kw)
+
+    def name_of(self, coalition: str, who: str) -> str | None:
+        """The name this person gave when they sat down, if they gave one."""
+        return self.server.registry.names(coalition).get(who)
 
     def refused_needs(self, coalition: str) -> set[str]:
         """Need ids the host refused when seeding; they will never be events."""

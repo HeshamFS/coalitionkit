@@ -60,8 +60,30 @@ class Registry(CredentialRegistry):
                 "(id TEXT PRIMARY KEY, digest TEXT UNIQUE, coalition TEXT, kind TEXT)",
                 "CREATE TABLE IF NOT EXISTS server_dissolutions "
                 "(coalition TEXT PRIMARY KEY, progress TEXT)",
+                "CREATE TABLE IF NOT EXISTS server_names "
+                "(coalition TEXT, participant TEXT, name TEXT, "
+                "PRIMARY KEY (coalition, participant))",
             ):
                 tx.execute(statement)
+
+    def set_name(self, coalition: str, participant: str, name: str | None) -> None:
+        """The name given on sitting down: shown on the seat and told to the person's agent."""
+        clean = " ".join((name or "").replace("<", "").replace(">", "").split())[:64]
+        if not clean:
+            return
+        with self.store.transaction(coalition) as tx:
+            tx.execute(
+                "INSERT INTO server_names VALUES (?, ?, ?) "
+                "ON CONFLICT (coalition, participant) DO UPDATE SET name = excluded.name",
+                (coalition, participant, clean),
+            )
+
+    def names(self, coalition: str) -> dict[str, str]:
+        with self.store.transaction(coalition) as tx:
+            rows = tx.execute(
+                "SELECT participant, name FROM server_names WHERE coalition = ?", (coalition,)
+            ).fetchall()
+        return {str(p): str(n) for p, n in rows}
 
     def issue_start(self) -> str:
         token = secrets.token_urlsafe(32)

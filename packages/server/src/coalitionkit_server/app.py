@@ -226,6 +226,8 @@ class Server:
         driven = self.room is not None and self.room.drives(coalition)
         third = self.room.effort_objective(coalition) if driven and self.room else None
         plans = plan_for(host, self.packs, third if self.bound_pack(coalition) is None else None)
+        if driven and self.room is not None:
+            plans = self.room.passable(coalition, plans)
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
         payload = build_propose(

@@ -233,6 +233,7 @@ async def for_you(
         "hosted_agent",
         FOR_YOU_SYSTEM,
         {
+            "person": engine.name_of(coalition, who),
             "told_by_the_person": given(engine, coalition, who),
             "plans": [
                 {

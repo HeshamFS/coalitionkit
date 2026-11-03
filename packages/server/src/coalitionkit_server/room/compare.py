@@ -14,8 +14,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_runtime import Acknowledgement, CoalitionHost
+from coalitionkit_runtime.lifecycle import State
 from coalitionkit_vault.psi import Context, Requester, Responder
 from coalitionkit_vault.store import Facts, Vault
 
@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 KEY = "_room_compare"
 SUBJECT = "slots"
 QUERY_MS = 120_000
+
+
+class Stopped(Exception):
+    """The Steward held a message of the comparison; there is nothing honest to publish."""
 
 
 def only(*seats: str) -> Document:
@@ -45,13 +49,10 @@ def task_for(doc: Document) -> str | None:
 async def send(
     engine: RoomEngine, coalition: str, who: str, kind: str, payload: Document, scope: Document
 ) -> Document:
-    server = engine.server
-    person = server.registry.hosted_for(coalition, who)
-    envelope = build_envelope(person, coalition, f"coalition.{kind}", payload, scope=scope)
-    reply = await engine.guard(server.ports[coalition].accept(envelope, person.card_url))
-    if "error" in reply:
-        raise RuntimeError(f"{kind} refused: {reply['error']['code']}")
-    return envelope
+    sent = await engine.submit(coalition, who, kind, payload, scope)
+    if sent is None:
+        raise Stopped(kind)
+    return sent
 
 
 def ask_vault(engine: RoomEngine, coalition: str, who: str, query: Document) -> Document:
@@ -77,6 +78,14 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         engine.update(coalition, lambda d: d.__setitem__("compare", {**start, "compared": 0}))
         engine.note(coalition, "comparing", "Asking each seat whether it holds times")
         doc = engine.read(coalition)
+    try:
+        await run(engine, coalition, state, doc, task)
+    except Stopped:
+        # A held message leaves nothing honest to publish: no crossing, and the room moves on.
+        finish(engine, coalition, [], None)
+
+
+async def run(engine: RoomEngine, coalition: str, state: State, doc: Document, task: str) -> None:
     if doc["compare"]["state"] == "asking":
         seated = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
         took = await ask_everyone(engine, coalition, seated, task)

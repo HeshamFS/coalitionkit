@@ -168,8 +168,15 @@ class GardenerLoop:
         )
         if any(e["payload"].get("proposal_set_id") == marker for e in state.events.values()):
             return
+        if room is not None and room.is_held(coalition, marker):
+            return
         result = self.server.plan(coalition, state.charter["deadline"], proposal_set_id=marker)
         if not isinstance(result, Acknowledgement):
+            code = result.get("payload", {}).get("code")
+            if room is not None and code in {"steward_blocked", "pack_violation"}:
+                room.hold(
+                    coalition, marker, str(result["payload"].get("detail", {}).get("policy_id", ""))
+                )
             LOG.warning(
                 "Genesis plan refused for %s: %s",
                 coalition,
