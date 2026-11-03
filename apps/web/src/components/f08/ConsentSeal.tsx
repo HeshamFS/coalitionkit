@@ -85,7 +85,7 @@ export function TrustedConsentSeal({
         </svg>
         {!receipt && <span>Hold</span>}
       </button>
-      <span className="small">Press and hold to sign with your key</span>
+      <span className="small">Press and hold to say yes. The host signs it for you.</span>
       <button
         type="button"
         className="btn btn-ghost"
@@ -96,7 +96,7 @@ export function TrustedConsentSeal({
       </button>
       {confirm && (
         <fieldset aria-label="Confirm consent">
-          <p>Approve this revision with your owner key?</p>
+          <p>Say yes to this revision? The host signs it for you after your yes.</p>
           <button type="button" className="btn btn-primary" onClick={() => void approve()}>
             Confirm approval
           </button>

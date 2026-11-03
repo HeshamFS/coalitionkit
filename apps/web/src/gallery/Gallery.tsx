@@ -8,6 +8,7 @@ import { Lens } from "./SectionsLens";
 import { Shell } from "./SectionsShell";
 import { Work } from "./SectionsWork";
 import { SHEETS } from "./sheets";
+import { TableGallery } from "./TableGallery";
 
 type Theme = "light" | "dark";
 
@@ -19,12 +20,14 @@ function initialTheme(): Theme | null {
 /** Every implemented component in every state the sheets show, with its name and props. */
 export function Gallery() {
   const [theme, setTheme] = useState<Theme | null>(initialTheme);
-  const Sheet = SHEETS[location.pathname.split("/")[2] ?? ""];
+  const where = location.pathname.split("/")[2] ?? "";
+  const Sheet = SHEETS[where];
   useEffect(() => {
     const root = document.documentElement;
     if (theme) root.dataset.theme = theme;
     else delete root.dataset.theme;
   }, [theme]);
+  if (where === "table") return <TableGallery />;
   return (
     <div className="sheet" data-testid="gallery" data-theme-choice={theme ?? "system"}>
       <div className="sheet-head">
@@ -75,6 +78,7 @@ export function Gallery() {
                 Sheet {nn}
               </a>
             ))}
+            <a href="/gallery/table">The Table</a>
           </nav>
           <Basic />
           <Work />
