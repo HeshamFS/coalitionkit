@@ -44,10 +44,15 @@ def test_rule_offers_follow_the_hours_and_say_what_they_did(tmp_path: Path) -> N
         reply_brief(client, b["token"], {"q1": None, "q2": None, "q3": None})
         offers_done(cid, engine)
         mine = offers_by(client, cid, "p1")
-        assert [o["payload"]["cost"]["minutes"] for o in mine] == [120], "one need fits the choice"
         titles = {n["id"]: n["title"] for n in engine.read(cid)["needs"]}
-        assert titles[mine[0]["payload"]["target"]["id"]] == "Find a venue"
-        assert mine[0]["payload"]["cost"] == {"minutes": 120, "money": 0, "effort": "medium"}
+        by_need = {titles[o["payload"]["target"]["id"]]: o["payload"]["cost"] for o in mine}
+        # What they pointed at gets twice the share; the 120 minutes given are all there is.
+        assert {k: v["minutes"] for k, v in by_need.items()} == {
+            "Find a venue": 60,
+            "Share the costs": 30,
+            "Write the invitation": 30,
+        }
+        assert by_need["Find a venue"] == {"minutes": 60, "money": 0, "effort": "medium"}
         assert offers_by(client, cid, a_id) == [], "0 hours means no offer"
         starter = offers_by(client, cid, b_id)
         assert [o["payload"]["cost"]["minutes"] for o in starter] == [30, 30, 30]
@@ -56,7 +61,7 @@ def test_rule_offers_follow_the_hours_and_say_what_they_did(tmp_path: Path) -> N
         feed_a = " ".join(x["text"] for x in view_of(engine, cid, a_id)["mine"]["feed"])
         assert "made no offer" in feed_a and "no hours" in feed_a
         feed_1 = " ".join(x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"])
-        assert "120 minutes on Find a venue" in feed_1
+        assert "60 minutes on Find a venue" in feed_1
         closed = {"offer_id", "target", "capacity", "cost", "valid_until"}
         assert all(set(o["payload"]) == closed for o in mine + starter)
 
@@ -142,3 +147,30 @@ def test_a_slow_offer_call_does_not_hold_up_a_click(tmp_path: Path) -> None:
         assert begin.status_code == 200 and brief.status_code == 409
         assert took < 2.5, f"clicks waited {took:.1f}s behind a model call"
         assert not engine.read(cid)["offers_done"], "the call was still running"
+
+
+def test_a_need_left_bare_is_covered_inside_the_hours_left(tmp_path: Path) -> None:
+    def offers(user: str) -> dict[str, Any]:
+        ids = [n["id"] for n in json.loads(user)["needs"]]
+        return {
+            "offers": [{"need_id": ids[0], "minutes": 30, "money": 0, "effort": "low"}],
+            "note": "Offered on the first.",
+        }
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, offers=offers)) as client:
+        room, (a, b) = full_room(client)
+        cid, engine = room["coalition_id"], engine_of(client)
+        briefs_open(engine, cid, ["p1", a["participant"], b["participant"]])
+        reply_brief(client, room["owner"]["token"], {"q1": None, "q2": 2, "q3": None})
+        reply_brief(client, a["token"], {"q1": None, "q2": 1, "q3": None})
+        reply_brief(client, b["token"], {"q1": None, "q2": 0, "q3": None})
+        offers_done(cid, engine)
+        titles = {n["id"]: n["title"] for n in engine.read(cid)["needs"]}
+        covered = {titles[e["payload"]["target"]["id"]] for e in events(client, cid, "offer")}
+        assert covered == set(titles.values()), "every need has an offer"
+        assert offers_by(client, cid, b["participant"]) == [], "0 hours is still no offer"
+        for who in ("p1", a["participant"]):
+            spent = sum(o["payload"]["cost"]["minutes"] for o in offers_by(client, cid, who))
+            assert spent <= {"p1": 120, a["participant"]: 60}[who]
+        feed = " ".join(x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"])
+        assert "Nobody had offered on" in feed and "Nothing here binds you" in feed

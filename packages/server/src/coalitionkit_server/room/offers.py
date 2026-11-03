@@ -101,9 +101,18 @@ def rule_offers(needs: list[Document], lim: Limits) -> list[OfferItem]:
     if lim.minutes == 0:
         return []
     chosen = chosen_needs(needs, lim)
+    rest = [n for n in needs if n not in chosen]
     if lim.minutes is None:
         per, count = DEFAULT_MINUTES, len(chosen)
     else:
+        # What they pointed at gets twice the share of the rest, so a need nobody chose is
+        # still covered by a small offer rather than left for the room to wait on.
+        unit = lim.minutes // (2 * len(chosen) + len(rest))
+        if rest and unit >= MIN_MINUTES:
+            return [
+                OfferItem(need_id=n["id"], minutes=m, money=0, effort=effort_of(m))
+                for n, m in [(n, 2 * unit) for n in chosen] + [(n, unit) for n in rest]
+            ]
         count = max(0, min(len(chosen), lim.minutes // MIN_MINUTES))
         per = lim.minutes // count if count else 0
     return [
@@ -276,8 +285,60 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
     late = now - float(doc["offers_open"]) < GRACE_S
     done = all(p in doc["offers"] for p in [*hosted, *doc["helpers"]]) and not (waiting and late)
     if done:
+        await cover(engine, coalition, state, doc)
+        state = await read_state(engine, coalition)
         engine.update(coalition, lambda d: d.__setitem__("offers_done", True))
         note_gaps(engine, coalition, state, doc)
+
+
+def spent_minutes(state: State, who: str) -> int:
+    return sum(int(o["cost"]["minutes"]) for o in state.offers.values() if o["owner"] == who)
+
+
+async def cover(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:
+    """Offer, inside the hours left, on any need nobody offered on, one need per person in turn.
+
+    A plan has to cover every need, so a need with no offer would stall the room. These offers
+    bind no one: the person's own yes on a plan is still what counts, and their feed says so.
+    """
+    offered = {str(o["target"]["id"]) for o in state.offers.values()}
+    gone = engine.refused_needs(coalition)
+    bare = [n for n in doc["needs"] if n["id"] not in offered and n["id"] not in gone]
+    hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
+    if not bare or not hosted:
+        return
+    room: dict[str, int | None] = {}
+    for who in hosted:
+        lim = limits(given(engine, coalition, who))
+        room[who] = None if lim.minutes is None else max(0, lim.minutes - spent_minutes(state, who))
+        if lim.minutes == 0:
+            room[who] = 0
+    taken: dict[str, list[OfferItem]] = {}
+    for turn, need in enumerate(bare):
+        for step in range(len(hosted)):
+            who = hosted[(turn + step) % len(hosted)]
+            left = room[who]
+            minutes = DEFAULT_MINUTES if left is None else min(DEFAULT_MINUTES, left)
+            if minutes < MIN_MINUTES:
+                continue
+            taken.setdefault(who, []).append(
+                OfferItem(need_id=need["id"], minutes=minutes, money=0, effort=effort_of(minutes))
+            )
+            room[who] = None if left is None else left - minutes
+            break
+    names = titles(doc["needs"])
+    for who, items in taken.items():
+        for item in items:
+            await send_offer(engine, coalition, who, state, item)
+        engine.note(coalition, "offering", "Covered a need nobody had offered on", seat=who)
+        parts = "; ".join(f"{i.minutes} minutes on {names[i.need_id]}" for i in items)
+        engine.feed_add(
+            coalition,
+            who,
+            f"Nobody had offered on {', '.join(names[i.need_id] for i in items)}, and a plan "
+            f"needs every need covered, so your agent also offered {parts}, inside the hours "
+            "you gave. Nothing here binds you: only your own yes on a plan does.",
+        )
 
 
 def note_gaps(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:

@@ -129,12 +129,11 @@ def test_a_need_nobody_offered_on_is_said_aloud(tmp_path: Path) -> None:
         room, (a, b) = full_room(client)
         cid, engine = room["coalition_id"], engine_of(client)
         briefs_open(engine, cid, ["p1", a["participant"], b["participant"]])
-        reply_brief(client, room["owner"]["token"], {"q1": "o1", "q2": 1, "q3": None})
-        for who in (a, b):
+        for who in (room["owner"], a, b):
             reply_brief(client, who["token"], {"q1": None, "q2": 0, "q3": None})
         until(lambda: engine.read(cid)["gaps_noted"], 40, "the gap to be named")
         view = view_of(engine, cid, "p1")
-        assert [n["status"] for n in view["needs"]].count("no offers") == 2
+        assert [n["status"] for n in view["needs"]].count("no offers") == 3
         said = [x for x in view["activity"] if x["label"].startswith("Nobody has offered on")]
         assert said and said[-1]["state"] == "failed" and "Share the costs" in said[-1]["label"]
         import time
