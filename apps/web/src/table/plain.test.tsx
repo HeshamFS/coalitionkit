@@ -297,6 +297,24 @@ describe("one ending", () => {
     expect(document.querySelector(".tb-stage")?.getAttribute("data-ended")).toBe("true");
     expect(screen.queryByText("What was erased")).toBeNull();
   });
+  it("shows the measured numbers it has and leaves out any it could not measure", () => {
+    const s = scene("ended");
+    rememberRoom(
+      { ...s.room, measured: { calendars_shared: 5, minutes: 47, cost: null, vendors: 1 } },
+      s.state,
+    );
+    render(<EndedTable event={{ reason: "completed", skills_written: [] }} onLeave={() => {}} />);
+    expect(screen.getByText("5 calendars shared")).toBeInTheDocument();
+    expect(screen.getByText("47 minutes from start to end")).toBeInTheDocument();
+    expect(screen.getByText("1 outside agent")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/spent on the model|\[COST\]|\[MEASURED\]/);
+  });
+  it("shows the cost when the host measured one", () => {
+    const s = scene("ended");
+    rememberRoom(s.room, s.state);
+    render(<EndedTable event={{ reason: "completed", skills_written: [] }} onLeave={() => {}} />);
+    expect(screen.getByText("$0.12 spent on the model")).toBeInTheDocument();
+  });
   it("shows what the host erased, only from the numbers it sent", async () => {
     const s = scene("live");
     rememberRoom(s.room, s.state);

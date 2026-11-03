@@ -60,6 +60,19 @@ describe("readRoom", () => {
     expect(room?.checked).toBe(0);
   });
 
+  it("reads the measured numbers, nulls included, and never invents one", () => {
+    const room = readRoom({
+      room: { measured: { calendars_shared: 5, minutes: null, cost: null, vendors: -2 } },
+    });
+    expect(room?.measured).toEqual({
+      calendars_shared: 5,
+      minutes: null,
+      cost: null,
+      vendors: null,
+    });
+    expect(readRoom({ room: {} })?.measured).toBeNull();
+  });
+
   it("reads every scripted scene back unchanged", () => {
     for (const s of SCENES) expect(readRoom({ room: s.room })).toEqual(s.room);
   });

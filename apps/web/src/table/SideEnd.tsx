@@ -157,6 +157,32 @@ function Erased({ counts }: { counts: CleanupCounts }) {
   );
 }
 
+/** The room's own measured numbers. A number the host could not measure is left out. */
+function Measured() {
+  const { room } = useTable();
+  const m = room.measured;
+  if (!m) return null;
+  const lines = [
+    m.calendars_shared !== null &&
+      `${m.calendars_shared} ${m.calendars_shared === 1 ? "calendar" : "calendars"} shared`,
+    m.minutes !== null &&
+      `${m.minutes} ${m.minutes === 1 ? "minute" : "minutes"} from start to end`,
+    m.cost !== null && `${m.cost} spent on the model`,
+    m.vendors !== null && `${m.vendors} ${m.vendors === 1 ? "outside agent" : "outside agents"}`,
+  ].filter((l): l is string => typeof l === "string");
+  if (lines.length === 0) return null;
+  return (
+    <>
+      <span className="tb-tag">Measured</span>
+      <ul className="tb-list">
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export function SideEnded() {
   const { room, openResult, ending } = useTable();
   const kept = room.results.filter((r) => r.replaced_by === null);
@@ -183,6 +209,7 @@ export function SideEnded() {
         </>
       )}
       {counts && <Erased counts={counts} />}
+      <Measured />
       {skills.length > 0 && (
         <>
           <span className="tb-tag">Lessons kept, with no private data in them</span>

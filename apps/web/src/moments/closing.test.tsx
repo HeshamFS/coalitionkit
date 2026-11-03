@@ -16,13 +16,14 @@ describe("Dissolve", () => {
     expect(screen.queryByText(/closed|revoked|erased|Nothing kept/)).toBeNull();
   });
 
-  it("shows every claim and 'Nothing kept' only when all four counts came back", () => {
+  it("shows every claim under a plain lead-in, and never claims more than the counts prove", () => {
     render(<Dissolve event={event} cleanup={full} />);
     expect(screen.getByText("3 tasks closed")).toBeInTheDocument();
     expect(screen.getByText("4 viewer links revoked")).toBeInTheDocument();
     expect(screen.getByText("1 invitation revoked")).toBeInTheDocument();
     expect(screen.getByText("2 hosted vaults erased")).toBeInTheDocument();
-    expect(screen.getByText("Nothing kept")).toBeInTheDocument();
+    expect(screen.getByText(/What the host reports it closed and erased/)).toBeInTheDocument();
+    expect(screen.queryByText("Nothing kept")).toBeNull();
   });
 
   it("shows a claim only for a count the report has", () => {
@@ -56,7 +57,7 @@ describe("Dissolve", () => {
     expect(screen.queryByText("Nothing kept")).toBeNull();
   });
 
-  it("writes skill cards and shows placeholders for numbers it was not given", () => {
+  it("writes skill cards and leaves out numbers it was not given", () => {
     render(
       <Dissolve
         event={event}
@@ -70,9 +71,23 @@ describe("Dissolve", () => {
     expect(screen.getByText("skill-b")).toBeInTheDocument();
     expect(screen.getByText("First outcome")).toBeInTheDocument();
     expect(screen.getByText("0")).toBeInTheDocument();
-    expect(screen.getByText("[COST]")).toBeInTheDocument();
-    expect(screen.getAllByText("[MEASURED]")).toHaveLength(2);
+    // A number the host did not give is left out, never a placeholder.
+    expect(document.body.textContent).not.toMatch(/\[MEASURED\]|\[COST\]/);
+    expect(screen.queryByText("model spend")).toBeNull();
     expect(screen.getByRole("img", { name: /coalition mark/ })).toBeInTheDocument();
+  });
+
+  it("shows the measured numbers it has and no cost when there is no meter", () => {
+    render(<Dissolve event={event} measured={{ calendarsShared: 5, minutes: 47, vendors: 1 }} />);
+    expect(screen.getByText("calendars shared")).toBeInTheDocument();
+    expect(screen.getByText("47")).toBeInTheDocument();
+    expect(screen.queryByText("model spend")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/\[MEASURED\]|\[COST\]/);
+  });
+
+  it("draws no strip at all when nothing was measured", () => {
+    const { container } = render(<Dissolve event={event} />);
+    expect(container.querySelector(".ck-dis-strip")).toBeNull();
   });
 
   it("headlines the reason the host gave", () => {

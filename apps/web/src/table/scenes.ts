@@ -338,7 +338,13 @@ const RAW: Scene[] = [
   {
     id: "ended",
     name: "Finish",
-    room: base({ phase: "ended", seats: seatsDone, results: RESULTS, checked: 48 }),
+    room: base({
+      phase: "ended",
+      seats: seatsDone,
+      results: RESULTS,
+      checked: 48,
+      measured: { calendars_shared: 5, minutes: 47, cost: "$0.12", vendors: 1 },
+    }),
     state: { events: events(true), viewer: "p5" },
     requests: [],
   },

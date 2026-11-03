@@ -102,6 +102,14 @@ export type MyTask = {
   result: string | null;
   can_mark_done: boolean;
 };
+/** Real numbers for the closing screen. Each is null when the host could not measure it. */
+export type Measured = {
+  calendars_shared: number | null;
+  minutes: number | null;
+  cost: string | null;
+  vendors: number | null;
+};
+
 export type Room = {
   phase: Phase;
   lights: Lights;
@@ -123,6 +131,7 @@ export type Room = {
   checked: number;
   change: Change | null;
   begin: { can: boolean; open_seats: number } | null;
+  measured: Measured | null;
   mine: {
     brief: BriefItem[];
     /** When your agent stops waiting for answers (ISO), or null. */
@@ -264,6 +273,18 @@ function readNotes(v: unknown): Room["plan_notes"] {
   return out;
 }
 
+function readMeasured(v: unknown): Measured | null {
+  if (!isRec(v)) return null;
+  const count = (x: unknown) =>
+    numOrNull(x) !== null && (x as number) >= 0 ? (x as number) : null;
+  return {
+    calendars_shared: count(v.calendars_shared),
+    minutes: count(v.minutes),
+    cost: strOrNull(v.cost),
+    vendors: count(v.vendors),
+  };
+}
+
 function readMine(v: unknown): Room["mine"] {
   const m = isRec(v) ? v : {};
   const forYou: Record<string, string> = {};
@@ -351,6 +372,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     checked: Math.max(0, Math.trunc(num(raw.checked))),
     change: readChange(raw.change),
     begin,
+    measured: readMeasured(raw.measured),
     mine: readMine(raw.mine),
   };
 }

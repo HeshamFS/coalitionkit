@@ -139,9 +139,11 @@ function Closing({ report, onRetry }: Pick<DissolveProps, "onRetry"> & { report?
   const counts = countsOf(report);
   const claims = claimsFrom(counts, word);
   const failed = failedStep(report);
-  const all = claims.length === 4 && failed === null;
   return (
     <div className="ck-dis-closing" role="status" aria-live="polite">
+      {claims.length > 0 ? (
+        <p className="ck-dis-pending">What the host reports it closed and erased:</p>
+      ) : null}
       {claims.length > 0 ? (
         <ul className="ck-dis-claims">
           {claims.map((c) => (
@@ -152,10 +154,9 @@ function Closing({ report, onRetry }: Pick<DissolveProps, "onRetry"> & { report?
       {report === undefined ? (
         <p className="ck-dis-pending">Closing up: waiting for the host</p>
       ) : null}
-      {report !== undefined && failed === null && !all ? (
+      {report !== undefined && failed === null && claims.length < 4 ? (
         <p className="ck-dis-pending">Some steps have not reported yet</p>
       ) : null}
-      {all ? <p className="ck-dis-kept">Nothing kept</p> : null}
       {failed !== null ? (
         <div className="ck-dis-failed">
           <p>Cleanup stopped at: {failed}</p>
@@ -168,14 +169,15 @@ function Closing({ report, onRetry }: Pick<DissolveProps, "onRetry"> & { report?
   );
 }
 
+/** Only numbers the host measured. A number it could not measure is left out, never a placeholder. */
 function Strip({ measured }: { measured?: Measured }) {
   const m = measured ?? {};
-  const cells: [string, string][] = [
-    [isCount(m.calendarsShared) ? String(m.calendarsShared) : "[MEASURED]", "calendars shared"],
-    [m.minutes === undefined ? "[MEASURED]" : String(m.minutes), "minutes"],
-    [m.cost === undefined ? "[COST]" : m.cost, "model spend"],
-    [isCount(m.vendors) ? String(m.vendors) : "[MEASURED]", "vendors' agents"],
-  ];
+  const cells: [string, string][] = [];
+  if (isCount(m.calendarsShared)) cells.push([String(m.calendarsShared), "calendars shared"]);
+  if (m.minutes !== undefined && m.minutes !== "") cells.push([String(m.minutes), "minutes"]);
+  if (m.cost) cells.push([m.cost, "model spend"]);
+  if (isCount(m.vendors)) cells.push([String(m.vendors), "vendors' agents"]);
+  if (cells.length === 0) return null;
   return (
     <div className="ck-dis-strip ck-dis-skill" style={{ animationDelay: "0.8s" }}>
       {cells.map(([value, label]) => (

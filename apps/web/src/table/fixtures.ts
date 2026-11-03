@@ -286,6 +286,7 @@ export const base = (over: Partial<Room>): Room => ({
   checked: 0,
   change: null,
   begin: null,
+  measured: null,
   mine: { brief: [], brief_closes: null, asks: null, feed: [], for_you: {}, tasks: [] },
   ...over,
 });
