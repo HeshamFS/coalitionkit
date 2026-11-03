@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +30,7 @@ OFFERS = {
 }
 
 
-def make_offers(client: TestClient, cid: str, people: dict[str, dict]) -> None:
+def make_offers(client: TestClient, cid: str, people: dict[str, dict[str, Any]]) -> None:
     needs = [e["payload"]["need_id"] for e in events(client, cid, "need")]
     for who, rows in OFFERS.items():
         for need, (minutes, effort) in zip(needs, rows, strict=True):
@@ -87,7 +86,7 @@ def test_differing_offers_give_a_real_choice_and_a_tension(tmp_path: Path) -> No
 
 def test_voting_a_tension_through_decides_the_plan(tmp_path: Path) -> None:
     with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
-        cid, engine, people = silent_room(client)
+        cid, _engine, people = silent_room(client)
         make_offers(client, cid, dict(zip(OFFERS, people.values(), strict=True)))
         until(lambda: events(client, cid, "tension"), 40, "a tension")
         tension = events(client, cid, "tension")[0]["payload"]
