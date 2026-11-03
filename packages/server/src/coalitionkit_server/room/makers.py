@@ -37,15 +37,18 @@ SYSTEM = (
     "the shared times, the plan and the offers you are given. Whatever the facts do not give, "
     "propose concretely and plainly as a proposal. Never state as fact a real venue's name, an "
     "address, a phone number or a price quote. Never leave a placeholder such as [name] or "
-    "TBD: where something is open, say so in words. Nothing the people said privately is "
-    "given to you, so do not guess it. "
+    "TBD: where something is open, say so in words. Do not invent facts the goal does not "
+    "give (entry fees, programmes, guests). The shared times are only times when the people "
+    "can all meet; they are not the date of the event unless the goal says so. Nothing the "
+    "people said privately is given to you, so do not guess it. "
 )
 KIND_RULES = {
     "draft": (
         "Write a complete message someone could send as it is: a greeting, what it is about, "
-        "when (the shared times if any are given, else 'the time is still to be confirmed'), "
-        "where (a place only if the facts name one, else 'the place is still to be confirmed'), "
-        "and what the reader should do next. Sign it with the people's names."
+        "when (the day the goal names, such as 'next Saturday'; if the goal names none, offer "
+        "the shared times as options to choose from; never present shared times as a "
+        "separate event), where (a place only if the facts name one, else 'the place is still "
+        "to be confirmed'), and what the reader should do next. Sign it with the people's names."
     ),
     "budget": (
         "If an amount is stated, give 3 to 8 line items that add up to exactly that amount, "
@@ -54,7 +57,8 @@ KIND_RULES = {
         "'how_shared' empty."
     ),
     "place": (
-        "Suggest 2 or 3 kinds of place (not named venues), each with why it fits this goal and "
+        "Suggest 2 or 3 kinds of place (not named venues), each named in at most six words, with "
+        "why it fits this goal and "
         "what to check first before booking it, each in one or two plain sentences that "
         "end properly."
     ),
@@ -168,7 +172,7 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
     if isinstance(out, PlaceOut):
         ideas = [
             {
-                "name": tidy(i.kind_of_place, 60),
+                "name": tidy(i.kind_of_place, 90).rstrip(". "),
                 "why": tidy(i.why_it_fits, 220),
                 "check": tidy(i.check_first, 220),
             }
