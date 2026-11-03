@@ -404,6 +404,7 @@ async def layout(
             label=f"Laying out {facts['need']['title']}",
             seat=assignee,
             need=task,
+            effort="low",
         )
         if reply is None:
             return None

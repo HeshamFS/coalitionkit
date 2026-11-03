@@ -82,6 +82,7 @@ class RoomEngine:
         self.cache: dict[tuple[str, str], tuple[tuple[int, int], Document]] = {}
         self.tasks: dict[str, asyncio.Task[None]] = {}
         self.pending: set[asyncio.Future[Any]] = set()
+        self.background: dict[tuple[str, str], asyncio.Task[None]] = {}
         self.checking: dict[str, tuple[str, float]] = {}
         self.finished_checks: list[tuple[str, tuple[str, float], float, str]] = []
         self.driven: set[str] = set()
@@ -128,11 +129,34 @@ class RoomEngine:
     def wake_gardener(self, coalition: str) -> None:
         self.server.gardener.wake(coalition)
 
+    def spawn(self, coalition: str, key: str, work: Callable[[], Awaitable[None]]) -> None:
+        """Run slow work (a result being made) beside the step, once per key, so that one slow
+        model call never holds up the rest of the room. A failure is logged; the next step
+        starts it again if its mark is still missing."""
+        slot = (coalition, key)
+        running = self.background.get(slot)
+        if running is not None and not running.done():
+            return
+
+        async def run() -> None:
+            try:
+                await work()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                LOG.exception("Room engine work %s failed for %s", key, coalition)
+            finally:
+                self.wake(coalition)
+
+        self.background[slot] = asyncio.get_running_loop().create_task(run())
+
     async def close(self) -> None:
-        for task in self.tasks.values():
+        everything = [*self.tasks.values(), *self.background.values()]
+        for task in everything:
             task.cancel()
-        await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+        await asyncio.gather(*everything, return_exceptions=True)
         self.tasks.clear()
+        self.background.clear()
         # A cancelled step must not leave a store call running past the store's close.
         await asyncio.gather(*self.pending, return_exceptions=True)
 
