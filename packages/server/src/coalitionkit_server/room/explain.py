@@ -151,13 +151,21 @@ def mark_best(shown: list[Document]) -> None:
                 item["best_at"].append(trade)
 
 
+def who_does(shown: Document) -> str:
+    """ "Mira takes A and B; Jonas takes C": the plan told as who does what."""
+    by: dict[str, list[str]] = {}
+    for a in shown["assignments"]:
+        by.setdefault(a["seat"], []).append(a["need"])
+    return "; ".join(f"{who} takes {', '.join(needs)}" for who, needs in by.items())
+
+
 def rule_note(index: int, shown: Document) -> Document:
     best = [t for t, _ in TRADES if t in shown["best_at"]]
     name = " and ".join(NAMES[t] for t in best[:2]) if best else f"Plan {chr(65 + index)}"
     wins = "; ".join(dict(TRADES)[t] for t in best)
     line = (
-        f"{shown['total_minutes']} minutes in all, the busiest person carries "
-        f"{shown['busiest_minutes']}, effort {shown['effort_points']}."
+        f"{who_does(shown)}. {shown['total_minutes']} minutes in all, the busiest person "
+        f"carries {shown['busiest_minutes']}, effort {shown['effort_points']}."
     )
     return {
         "name": name,
@@ -216,6 +224,13 @@ async def name_plans(
             if name and line
             else rule_note(index, item)
         )
+    # Two plans never share a name: where the model gave the same one twice, code names them.
+    names = [n["name"] for n in notes.values()]
+    for index, item in enumerate(shown):
+        if names.count(notes[item["plan_id"]]["name"]) > 1:
+            notes[item["plan_id"]] = rule_note(index, item)
+            if sum(1 for n in notes.values() if n["name"] == notes[item["plan_id"]]["name"]) > 1:
+                notes[item["plan_id"]]["name"] = f"Plan {chr(65 + index)}"
     engine.update(coalition, lambda d: d["plan_notes"].update(notes))
 
 

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -114,3 +115,17 @@ def test_voting_a_tension_through_decides_the_plan(tmp_path: Path) -> None:
         assert {t: v["assignee"] for t, v in state.tasks.items()} == wanted
         assert {v["status"] for v in state.tasks.values()} == {"decided"}
         assert state.stage == "Act"
+
+
+def test_two_plans_never_share_a_name(tmp_path: Path) -> None:
+    def same(user: str) -> dict[str, Any]:
+        plans = json.loads(user)["plans"]
+        return {"plans": [{"plan_id": p["plan_id"], "name": "A plan", "line": "x"} for p in plans]}
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, names=same)) as client:
+        cid, engine, people = silent_room(client)
+        make_offers(client, cid, dict(zip(OFFERS, people.values(), strict=True)))
+        until(lambda: len(view_of(engine, cid, "p1")["plan_notes"]) == 2, 40, "plan words")
+        notes = view_of(engine, cid, "p1")["plan_notes"].values()
+        assert len({n["name"] for n in notes}) == 2
+        assert all(" takes " in n["line"] and n["source"] == "rules" for n in notes)
