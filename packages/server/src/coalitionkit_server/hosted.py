@@ -17,9 +17,15 @@ from coalitionkit_surfaces.app import Viewer
 
 from .adapter import Document
 from .packs import private_extension, viewer_schema
+from .room.engine import RESERVED
 
 if TYPE_CHECKING:
     from .app import Server
+
+
+def visible_keys(values: Document) -> list[str]:
+    """Vault keys the person's own agent may list; the room engine's records stay hidden."""
+    return sorted(key for key in values if not key.startswith(RESERVED))
 
 
 def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
@@ -91,7 +97,7 @@ def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
         if request.query_params:
             raise HTTPException(403, "vault belongs to the viewer")
         hosted(who)
-        return {"keys": sorted(server.registry.vault_values(coalition, who))}
+        return {"keys": visible_keys(server.registry.vault_values(coalition, who))}
 
     @app.post("/v1/agent/vault")
     def vault_save(body: Document, who: Viewer, request: Request) -> Document:
@@ -100,4 +106,6 @@ def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
         hosted(who)
         if not isinstance(body.get("values"), dict):
             raise HTTPException(422, "values must be an object")
-        return {"keys": sorted(server.registry.vault_values(coalition, who, body["values"]))}
+        if any(str(key).startswith(RESERVED) for key in body["values"]):
+            raise HTTPException(422, "keys starting with _room belong to the room")
+        return {"keys": visible_keys(server.registry.vault_values(coalition, who, body["values"]))}

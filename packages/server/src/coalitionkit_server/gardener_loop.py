@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from datetime import datetime
@@ -27,6 +28,7 @@ class GardenerLoop:
     def __init__(self, server: Server) -> None:
         self.server = server
         self.tasks: dict[str, asyncio.Task[None]] = {}
+        self.wakes: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Event]] = {}
 
     def resume(self) -> None:
         with self.server.store.transaction("") as tx:
@@ -63,6 +65,13 @@ class GardenerLoop:
         with self.server.store.transaction(coalition) as tx:
             tx.execute("DELETE FROM server_genesis WHERE coalition = ?", (coalition,))
 
+    def wake(self, coalition: str) -> None:
+        """Look at this room again now (the room engine calls this when it has made progress)."""
+        pair = self.wakes.get(coalition)
+        if pair is not None:
+            with contextlib.suppress(RuntimeError):  # the loop has closed; nobody is listening
+                pair[0].call_soon_threadsafe(pair[1].set)
+
     async def close(self) -> None:
         for task in self.tasks.values():
             task.cancel()
@@ -72,6 +81,7 @@ class GardenerLoop:
     async def run(self, coalition: str) -> None:
         host = self.server.hosts[coalition]
         loop, wake = asyncio.get_running_loop(), asyncio.Event()
+        self.wakes[coalition] = (loop, wake)
 
         def notify() -> None:
             # This subscriber reads folded state, not a bounded event queue.
@@ -112,11 +122,17 @@ class GardenerLoop:
         host = self.server.hosts[coalition]
         if host.state.stage == "Dissolve":
             return
+        room = self.server.room
+        if room is not None:
+            room.ensure(coalition)
         with self.server.store.transaction(coalition) as tx:
             row = tx.execute(
                 "SELECT participant, needs FROM server_genesis WHERE coalition = ?", (coalition,)
             ).fetchone()
         if not row or not host.state.accepted_charter(row[0]):
+            return
+        # The engine turns the goal into needs first; seeding the draft's would race it.
+        if room is not None and not room.needs_ready(coalition):
             return
         self.seed(coalition, row[0], json.loads(row[1]))
         self.tensions(coalition)
@@ -124,6 +140,9 @@ class GardenerLoop:
         # A proposal moves the coalition to Decide, where nobody can join any more; proposing
         # before every decider has said yes would leave a seat that can never approve.
         if not all(state.accepted_charter(d) for d in state.charter["deciders"]):
+            return
+        # Offers and the rounds that compare them come before any plan.
+        if room is not None and not room.may_plan(coalition):
             return
         open_ids = {k for k, t in state.tasks.items() if t["status"] in {"open", "negotiating"}}
         offers = sorted(

@@ -98,6 +98,7 @@ def run(args: argparse.Namespace) -> int:
             bind_host="127.0.0.1",
             bind_port=port,
             genesis="local",
+            room_engine="on",
             packs=getattr(args, "pack", []),
         )
         app = create_server(

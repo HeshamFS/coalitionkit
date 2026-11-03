@@ -52,7 +52,12 @@ if TYPE_CHECKING:
     from .app import Server
 
 
-async def enroll_member(server: Server, redeemed: Document, role: str = "member") -> None:
+async def enroll_member(
+    server: Server,
+    redeemed: Document,
+    role: str = "member",
+    surfaces: tuple[str, ...] = ("web",),
+) -> None:
     """Join a redeemed hosted member using the same owner proof as the demo."""
     coalition, participant = redeemed["coalition_id"], redeemed["participant"]
     person = server.registry.hosted_for(coalition, participant)
@@ -68,7 +73,7 @@ async def enroll_member(server: Server, redeemed: Document, role: str = "member"
                 coalition, participant, person.card_url, jwk, person.owner_key
             ),
             "roles_requested": [role],
-            "surfaces": ["web"],
+            "surfaces": list(surfaces),
             "vault": "hosted",
         },
         scope={"audience": "coalition"},

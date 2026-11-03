@@ -67,7 +67,9 @@ class FeedSession:
         views: Mapping[str, Mapping[str, tuple[str, ...]]] | None = None,
         roles: Collection[str] = (),
         device: str = "wide",
+        stale: Callable[[], bool] | None = None,
     ) -> None:
+        self.stale = stale
         self.views, self.roles, self.device = views, roles, device
         self.source, self.viewer, self.clock, self.new_id = source, viewer, clock, new_id
         self.catalog, self.keep_alive, self.rotate_after = catalog, keep_alive, rotate_after
@@ -194,6 +196,10 @@ class FeedSession:
             for frame in frames
             if not isinstance(frame, KeepAlive)
         ]
+
+    def is_stale(self) -> bool:
+        """Something outside the log changed this viewer's extra state (the room engine's step)."""
+        return self.stale is not None and self.stale()
 
     def refusals_changed(self, refusals: list[Document]) -> bool:
         return self._extra.get("refusals", []) != refusals

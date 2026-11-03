@@ -1,0 +1,264 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The room engine: makes a hosted room work on its own after the first signature.
+
+One engine per server. ``step`` is level-triggered: it reads where the room stands and does the
+next missing thing, so a call that finds nothing to do changes nothing and a restart simply
+resumes. The public document (needs, seats added by the host, brief timing, activity) is one row
+of ``room_engine``; everything private to a seat lives in that seat's hosted vault under reserved
+``_room*`` keys, which dissolve erases with the vault.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+import logging
+import threading
+import time
+from collections.abc import Callable
+from copy import deepcopy
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
+
+from coalitionkit_contracts import new_ulid
+from coalitionkit_surfaces import Catalog, load_catalog
+
+from ..adapter import Document
+from ..door import DoorStore
+
+if TYPE_CHECKING:
+    from ..app import Server
+
+LOG = logging.getLogger(__name__)
+TICK_S = 2.0  # how often an idle room is looked at again (brief deadlines, retries)
+ACTIVITY_KEEP = 60
+RESERVED = "_room"  # vault keys the engine owns; the agent vault routes never show them
+
+TABLE = "CREATE TABLE IF NOT EXISTS room_engine (coalition TEXT PRIMARY KEY, doc TEXT)"
+
+
+def fresh_doc() -> Document:
+    return {
+        "needs": [],  # [{id, title, kind, detail}] in the order the Gardener seeded them
+        "needs_state": "pending",  # -> "ready" once the Gardener has made them
+        "needs_source": "rules",
+        "slots": [],  # [{id, label}] shared time slots
+        "request": None,  # {helpers, auto, revised, helpers_done} while a begin is under way
+        "begun": False,
+        "helpers": {},  # participant -> {kind, need_id, label}
+        "briefs": {},  # participant -> {opened, closed}; the questions themselves are private
+        "briefs_done": False,
+        "activity": [],
+    }
+
+
+class RoomEngine:
+    def __init__(self, server: Server) -> None:
+        self.server = server
+        self.lock = threading.RLock()
+        self.docs: dict[str, Document] = {}
+        self.versions: dict[str, int] = {}
+        self.ticks: dict[str, int] = {}
+        self.cache: dict[tuple[str, str], tuple[tuple[int, int], Document]] = {}
+        self.tasks: dict[str, asyncio.Task[None]] = {}
+        self.wakes: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Event]] = {}
+        self.locks: dict[str, asyncio.Lock] = {}
+        self.now: Callable[[], float] = time.time
+        self.catalog: Catalog = load_catalog(server.settings.catalog_file)
+        with server.store.transaction("") as tx:
+            tx.execute(TABLE)
+        self.doors = DoorStore(server)
+
+    # --- wiring -----------------------------------------------------------------------------
+    def attach(self, coalition: str) -> None:
+        """Count host events, so a cached room state is dropped the moment the log moves."""
+        host = self.server.hosts[coalition]
+        self.ticks.setdefault(coalition, 0)
+
+        def notify() -> None:
+            sub.cursor += 1  # the bus drops a subscriber that falls 1000 events behind
+            self.ticks[coalition] += 1
+            self.wake(coalition)
+
+        sub = host.bus.subscribe(coalition, since=10**9, notify=notify)
+
+    def ensure(self, coalition: str) -> None:
+        """Start this room's background task once. Called from the Gardener loop's step."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        task = self.tasks.get(coalition)
+        if task is None or task.done():
+            self.wakes[coalition] = (loop, asyncio.Event())
+            self.tasks[coalition] = loop.create_task(self.run(coalition))
+
+    def wake(self, coalition: str) -> None:
+        pair = self.wakes.get(coalition)
+        if pair is not None:
+            with contextlib.suppress(RuntimeError):  # the loop has closed; nobody is listening
+                pair[0].call_soon_threadsafe(pair[1].set)
+
+    def wake_gardener(self, coalition: str) -> None:
+        self.server.gardener.wake(coalition)
+
+    async def close(self) -> None:
+        for task in self.tasks.values():
+            task.cancel()
+        await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+        self.tasks.clear()
+
+    async def run(self, coalition: str) -> None:
+        host = self.server.hosts[coalition]
+        event = self.wakes[coalition][1]
+        event.set()
+        while host.state.stage != "Dissolve":
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(event.wait(), timeout=TICK_S)
+            event.clear()
+            try:
+                async with self.lock_for(coalition):
+                    await self.step(coalition)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # A failed step is tried again at the next tick; the loop itself never dies.
+                LOG.exception("Room engine step failed for %s", coalition)
+
+    def lock_for(self, coalition: str) -> asyncio.Lock:
+        return self.locks.setdefault(coalition, asyncio.Lock())
+
+    # --- the step -----------------------------------------------------------------------------
+    async def step(self, coalition: str) -> None:
+        from . import brief, needs, seats
+
+        host = self.server.hosts[coalition]
+        state = await asyncio.to_thread(lambda: host.state)
+        owner = self.owner(coalition)
+        if state.stage == "Dissolve" or owner is None or not state.accepted_charter(owner):
+            return
+        if self.read(coalition)["needs_state"] != "ready":
+            await needs.make(self, coalition, state)
+            return
+        await seats.advance(self, coalition)
+        await brief.advance(self, coalition)
+
+    def needs_ready(self, coalition: str) -> bool:
+        with self.lock:
+            return bool(self.doc(coalition)["needs_state"] == "ready")
+
+    def may_plan(self, coalition: str) -> bool:
+        """E2 adds its own conditions here. Until then a plan may start once the brief is over."""
+        with self.lock:
+            d = self.doc(coalition)
+            return bool(d["begun"] and d["briefs_done"])
+
+    # --- the public document ------------------------------------------------------------------
+    def doc(self, coalition: str) -> Document:
+        """The live document. Callers that change it go through ``update``."""
+        with self.lock:
+            if coalition not in self.docs:
+                with self.server.store.transaction(coalition) as tx:
+                    row = tx.execute(
+                        "SELECT doc FROM room_engine WHERE coalition = ?", (coalition,)
+                    ).fetchone()
+                self.docs[coalition] = json.loads(row[0]) if row else fresh_doc()
+            return self.docs[coalition]
+
+    def read(self, coalition: str) -> Document:
+        with self.lock:
+            return deepcopy(self.doc(coalition))
+
+    def update(self, coalition: str, change: Callable[[Document], None]) -> None:
+        with self.lock:
+            doc = self.doc(coalition)
+            change(doc)
+            with self.server.store.transaction(coalition) as tx:
+                tx.execute(
+                    "INSERT INTO room_engine VALUES (?, ?) "
+                    "ON CONFLICT (coalition) DO UPDATE SET doc = excluded.doc",
+                    (coalition, json.dumps(doc)),
+                )
+            self.versions[coalition] = self.versions.get(coalition, 0) + 1
+
+    def bump(self, coalition: str) -> None:
+        """Tell the screens something they show has changed, without touching the document."""
+        self.versions[coalition] = self.versions.get(coalition, 0) + 1
+
+    def version(self, coalition: str) -> int:
+        return self.versions.get(coalition, 0)
+
+    def is_hosted(self, coalition: str, who: str) -> bool:
+        with self.server.store.transaction(coalition) as tx:
+            row = tx.execute(
+                "SELECT hosted FROM server_credentials WHERE coalition = ? AND participant = ?",
+                (coalition, who),
+            ).fetchone()
+        return bool(row and row[0])
+
+    def owner(self, coalition: str) -> str | None:
+        with self.server.store.transaction(coalition) as tx:
+            row = tx.execute(
+                "SELECT participant FROM server_genesis WHERE coalition = ?", (coalition,)
+            ).fetchone()
+        return str(row[0]) if row else None
+
+    # --- activity -----------------------------------------------------------------------------
+    def start_activity(
+        self,
+        coalition: str,
+        verb: str,
+        label: str,
+        *,
+        seat: str | None = None,
+        need: str | None = None,
+        only: str | None = None,
+        source: str = "host",
+        state: str = "running",
+        event: str | None = None,
+    ) -> str:
+        """One line of "what is happening". ``only`` limits it to that seat's own screen."""
+        entry: Document = {
+            "id": new_ulid(),
+            "at": datetime.fromtimestamp(self.now(), UTC).isoformat(),
+            "seat": seat,
+            "verb": verb,
+            "need": need,
+            "label": label,
+            "state": state,
+            "ms": None,
+            "source": source,
+            "event": event,
+            "only": only,
+        }
+
+        def add(doc: Document) -> None:
+            doc["activity"] = [*doc["activity"], entry][-ACTIVITY_KEEP:]
+
+        self.update(coalition, add)
+        return str(entry["id"])
+
+    def end_activity(self, coalition: str, entry: str, **fields: Any) -> None:
+        def finish(doc: Document) -> None:
+            for item in doc["activity"]:
+                if item["id"] == entry:
+                    item.update(fields)
+
+        self.update(coalition, finish)
+
+    def note(self, coalition: str, verb: str, label: str, **kw: Any) -> None:
+        self.start_activity(coalition, verb, label, state="done", **kw)
+
+    # --- private seat data ----------------------------------------------------------------------
+    def vault(self, coalition: str, who: str) -> Document:
+        """The seat's reserved record, or {} when it has no hosted vault."""
+        try:
+            return deepcopy(self.server.registry.vault_values(coalition, who))
+        except ValueError:
+            return {}
+
+    def vault_put(self, coalition: str, who: str, key: str, value: Any) -> None:
+        if not key.startswith(RESERVED):
+            raise ValueError("engine keys start with _room")
+        self.server.registry.vault_values(coalition, who, {key: value})

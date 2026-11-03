@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Author key IDs mapped to public Ed25519 JWKs (also configurable through the environment).
     pack_trusted_keys: dict[str, dict[str, str]] = Field(default_factory=dict[str, dict[str, str]])
     genesis: Literal["off", "local", "admin"] = "off"
+    # The room engine drives needs, seats and briefs in hosted rooms. Harnesses that play the
+    # members themselves leave it off; `coalitionkit up` turns it on.
+    room_engine: Literal["on", "off"] = "off"
     # A file of sample rooms for the first screen. The kit ships none.
     sample_rooms: Path | None = None
     admin_token: SecretStr | None = None

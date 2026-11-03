@@ -49,6 +49,9 @@ from .packs import (
     surface_pack,
 )
 from .registry import Registry
+from .room import RoomEngine
+from .room.routes import room_routes
+from .room.view import room_state
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
 from .whatsapp import mount_whatsapp
@@ -84,6 +87,7 @@ class Server:
         self.ports: dict[str, HostPort] = {}
         self.surfaces: dict[str, FastAPI] = {}
         self.registry = Registry(self.store, self.key, settings.public_base_url)
+        self.room = RoomEngine(self) if settings.room_engine == "on" else None
         with self.store.transaction("") as tx:
             rows = tx.execute("SELECT id, host FROM coalitions").fetchall()
         for coalition, card_url in rows:
@@ -92,6 +96,13 @@ class Server:
             self.attach(coalition)
         self.registry.restore(self.ports)
         self.gardener = GardenerLoop(self)
+
+    def cost_meter(self, coalition: str) -> Document | None:
+        """What the model has cost this room so far, from the gateway's real records."""
+        meter = self.gateway.meter
+        if meter is None:
+            return None
+        return {"spent": meter.total(coalition) / 1_000_000, "currency": meter.prices.currency}
 
     def bound_pack(self, coalition: str) -> Pack | None:
         ref = self.hosts[coalition].state.charter.get("pack")
@@ -138,6 +149,7 @@ class Server:
             pack = self.bound_pack(coalition)
             return surface_pack(pack) if pack else None
 
+        room = self.room
         hub = SurfaceHub(
             host,
             ViewerAuth(self.registry, host),
@@ -152,6 +164,10 @@ class Server:
                 else None
             ),
             pack_views=lambda: pack.views.order if (pack := self.bound_pack(coalition)) else {},
+            room_state=(lambda viewer: room_state(room, coalition, viewer)) if room else None,
+            room_version=(lambda: room.version(coalition)) if room else None,
+            stage=(lambda: host.state.stage) if room else None,
+            cost_meter=(lambda: self.cost_meter(coalition)) if room else None,
         )
 
         def policy_escalation(event: Document, policy_id: str, explain: str) -> None:
@@ -171,6 +187,9 @@ class Server:
         host.policy_escalation = policy_escalation
         self.surfaces[coalition] = surfaces_app(hub)
         hosted_routes(self.surfaces[coalition], self, coalition)
+        if room is not None:
+            room.attach(coalition)
+            room_routes(self.surfaces[coalition], self, coalition)
         self.ports[coalition].on_refusal = hub.refused
         return host
 
@@ -363,6 +382,18 @@ def admin_routes(app: FastAPI, server: Server) -> None:
         return json.loads(row[0])
 
 
+AGENT_PATHS = frozenset(
+    {
+        "/v1/agent",
+        "/v1/agent/answers",
+        "/v1/agent/offer",
+        "/v1/agent/vault",
+        "/v1/room/begin",
+        "/v1/room/brief",
+    }
+)
+
+
 class Dispatch:
     def __init__(self, server: Server, mcp: FastAPI) -> None:
         self.server, self.mcp = server, mcp
@@ -374,8 +405,7 @@ class Dispatch:
             await self.mcp(scope, receive, send)
             return
         allowed = (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled) or (
-            path in {"/v1/agent", "/v1/agent/answers", "/v1/agent/offer", "/v1/agent/vault"}
-            and "agent" in enabled
+            path in AGENT_PATHS and "agent" in enabled
         )
         if not allowed:
             await JSONResponse({"detail": "not found"}, 404)(scope, receive, send)
@@ -414,6 +444,8 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
             if whatsapp is not None:
                 await asyncio.to_thread(whatsapp.stop)
             await server.gardener.close()
+            if server.room is not None:
+                await server.room.close()
             await asyncio.to_thread(server.close)
 
     app = create_host_app(server, server.signer, server.registry, settings.public_base_url)

@@ -6,7 +6,13 @@ from collections.abc import Callable
 from threading import Thread
 
 from coalitionkit_contracts import Envelope
-from coalitionkit_models import ModelGateway
+from coalitionkit_models import (
+    CostMeter,
+    CostRecord,
+    ModelGateway,
+    UnpricedModelError,
+    load_price_table,
+)
 from coalitionkit_models.settings import Settings as ModelSettings
 from coalitionkit_runtime.steward import ReviewContext, Verdict
 from coalitionkit_steward import Steward, StewardContext
@@ -81,5 +87,27 @@ class StewardAdapter:
         return Verdict(body.action, body.policy_id, tuple(body.redact))
 
 
+class RoomMeter(CostMeter):
+    """The real price table, but a model missing from it costs nothing instead of failing the
+    call after the provider has already answered."""
+
+    def record(self, coalition_id: str, participant: str, model: str, **usage: int) -> CostRecord:
+        try:
+            return super().record(coalition_id, participant, model, **usage)
+        except UnpricedModelError:
+            return self._add(
+                CostRecord(
+                    coalition_id,
+                    participant,
+                    model,
+                    usage.get("prompt_tokens", 0),
+                    usage.get("completion_tokens", 0),
+                    usage.get("cached_tokens", 0),
+                    0,
+                    reasoning_tokens=usage.get("reasoning_tokens", 0),
+                )
+            )
+
+
 def gateway() -> ModelGateway:
-    return ModelGateway(ModelSettings())
+    return ModelGateway(ModelSettings(), meter=RoomMeter(load_price_table()))

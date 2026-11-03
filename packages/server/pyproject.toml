@@ -8,6 +8,7 @@ dependencies = [
     "coalitionkit-runtime", "coalitionkit-contracts", "coalitionkit-edges",
     "coalitionkit-mcp", "coalitionkit-surfaces", "coalitionkit-steward",
     "coalitionkit-gardener", "coalitionkit-models", "coalitionkit-channels", "coalitionkit-packs",
+    "coalitionkit-vault",
     "pydantic-settings==2.16.2", "fastapi==0.162.0",
     "uvicorn==0.54.0", "httpx", "cryptography==50.0.2",
 ]

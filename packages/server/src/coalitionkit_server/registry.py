@@ -235,6 +235,7 @@ class Registry(CredentialRegistry):
         ports: dict[str, HostPort],
         card_url: str | None,
         card_data: Document | None,
+        agent_label: str | None = None,
     ) -> Document:
         # Serializes local redemption; the unique credential row prevents cross-process reuse.
         with self.lock:
@@ -258,7 +259,16 @@ class Registry(CredentialRegistry):
             if card_url is None and card_data is None:
                 agent, owner = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
                 card_url = f"{self.base}/cards/{coalition}/{quote(participant, safe='')}"
-                card = member_card(self.base, agent)
+                card = (
+                    member_card(
+                        self.base,
+                        agent,
+                        f"{agent_label} (agent)",
+                        "An agent run by the room for an open seat. It is not a person.",
+                    )
+                    if agent_label
+                    else member_card(self.base, agent)
+                )
                 hosted = self.cipher.encrypt(
                     json.dumps(
                         {
