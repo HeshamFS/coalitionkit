@@ -8,15 +8,16 @@ results, stops, changes) is returned empty here, with the contract's shape.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
+from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
-from .brief import chosen_slots
 from .engine import FEED, FOR_YOU
-from .seats import open_seats
+from .seats import open_seats, people
 from .view_results import change_of, latest_by_need, results_of, tasks_of
 
 if TYPE_CHECKING:
@@ -33,6 +34,16 @@ def room_state(engine: RoomEngine, coalition: str, viewer: str) -> Document | No
     cached = engine.cache.get((coalition, viewer))
     if cached is not None and cached[0] == key:
         return cached[1]
+    if cached is not None and coalition in engine.checking:
+        # The host is holding its lock while the Steward audits; show what was last built, plus
+        # the audit that is running, rather than wait for the lock.
+        old = cached[1]
+        running = engine.running_checks(coalition)
+        shown = {a["id"] for a in old["activity"]}
+        return {
+            **old,
+            "activity": [*old["activity"], *[a for a in running if a["id"] not in shown]],
+        }
     if engine.owner(coalition) is None:
         return None  # not a room the engine drives (made by an operator, not by Genesis)
     state = engine.server.hosts[coalition].state
@@ -67,7 +78,7 @@ def phase_of(state: State, doc: Document) -> str:
 def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Document:
     doc = engine.read(coalition)
     phase = phase_of(state, doc)
-    mine = my_side(engine, coalition, viewer, doc)
+    mine = my_side(engine, coalition, viewer, state, doc)
     made = results_of(engine, state, doc, viewer)
     mine["tasks"] = tasks_of(state, doc, viewer, made)
     waiting = (
@@ -85,10 +96,10 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "needs": needs_of(viewer, state, doc, latest_by_need(made)),
         "activity": [
             {k: item[k] for k in SHOWN}
-            for item in doc["activity"]
+            for item in [*doc["activity"], *engine.running_checks(coalition)]
             if item.get("only") in (None, viewer)
         ],
-        "slots": list(doc["slots"]),
+        "slots": [{"start": None, **s} for s in doc["slots"]],
         "common": common_of(engine, coalition, viewer, doc),
         "plan_notes": notes_of(viewer, state, doc),
         "results": made,
@@ -96,7 +107,25 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "checked": checked_of(engine, coalition, state),
         "change": change_of(state, doc),
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
+        "measured": measured_of(engine, coalition, state, doc),
         "mine": mine,
+    }
+
+
+def measured_of(engine: RoomEngine, coalition: str, state: State, doc: Document) -> Document:
+    """Real numbers for the closing screen: what was shared, how long, what it cost."""
+    cmp = doc["compare"]
+    meter = engine.server.cost_meter(coalition)
+    started = doc.get("started")
+    spent = None
+    if meter is not None:
+        unit = "$" if meter["currency"] == "USD" else f"{meter['currency']} "
+        spent = f"{unit}{meter['spent']:.2f}"
+    return {
+        "calendars_shared": len(cmp["took_part"]) if cmp and cmp["state"] == "done" else 0,
+        "minutes": None if started is None else round((engine.now() - float(started)) / 60),
+        "cost": spent,
+        "vendors": sum(1 for p in people(state, doc) if not engine.is_hosted(coalition, p)),
     }
 
 
@@ -204,7 +233,9 @@ def status_of(need: str, task: Document | None, offers: int, doc: Document) -> s
     return str(task["status"])
 
 
-def my_side(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> Document:
+def my_side(
+    engine: RoomEngine, coalition: str, viewer: str, state: State, doc: Document
+) -> Document:
     """The viewer's own questions and tasks. Nothing here is built for anyone else."""
     brief: list[Document] = []
     closed = bool(doc["briefs"].get(viewer, {}).get("closed"))
@@ -226,12 +257,62 @@ def my_side(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> D
         )
     lines: Document = engine.vault(coalition, viewer).get(FOR_YOU, {})
     feed: list[Document] = engine.vault(coalition, viewer).get(FEED, [])
+    mine_brief = doc["briefs"].get(viewer)
+    closes = None
+    if mine_brief is not None and not closed:
+        at = float(mine_brief["opened"]) + BRIEF_SECONDS
+        closes = datetime.fromtimestamp(at, tz=UTC).isoformat()
     return {
         "brief": brief,
+        "asks": asks_of(engine, coalition, viewer, state, doc),
+        "brief_closes": closes,
         "feed": feed[-FEED_SHOWN:],
         "for_you": {pid: item["line"] for pid, item in lines.items()},
         "tasks": [],
     }
+
+
+def asks_of(
+    engine: RoomEngine, coalition: str, viewer: str, state: State, doc: Document
+) -> list[Document]:
+    """What the viewer is asked to decide, in plain words. A task request whose commitment is
+    also pending is left out: the commitment is the one decision, and the answer closes both."""
+    titles = {n["id"]: n["title"] for n in doc["needs"]}
+    rows = engine.server.hosts[coalition].open_consents(viewer)
+    committing = {t for r in rows if r["kind"] == "commitment" for t in subject_tasks(state, r)}
+    out: list[Document] = []
+    for row in rows:
+        tasks = subject_tasks(state, row)
+        named = ", ".join(titles.get(t, "a need") for t in tasks)
+        kind = row["kind"]
+        if kind == "task" and set(tasks) & committing:
+            continue
+        if kind == "charter":
+            helpers = len(doc["helpers"])
+            text = f"The door closed. The {len(people(state, doc))} people here now decide together"
+            text += (
+                f", and {helpers} helper agent{'s' if helpers != 1 else ''} joined."
+                if helpers
+                else "."
+            )
+        elif kind == "commitment":
+            text = f"Commit to doing: {named}."
+        elif kind == "plan":
+            note = doc["plan_notes"].get(row["id"], {})
+            text = f"Choose the plan {note['name']}." if note.get("name") else "Choose a plan."
+        elif kind == "tension_option":
+            text = f"Settle a clash between plans for: {named}."
+        elif kind == "task":
+            text = f"Agree that this needs doing: {named}."
+        else:
+            text = "A decision is needed from you."
+        out.append({"kind": kind, "id": row["id"], "revision": row["revision"], "summary": text})
+    return out
+
+
+def subject_tasks(state: State, row: Document) -> list[str]:
+    subject = state.subjects.get(f"{row['kind']}:{row['id']}")
+    return list(subject["tasks"]) if subject else []
 
 
 def common_of(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> Document | None:

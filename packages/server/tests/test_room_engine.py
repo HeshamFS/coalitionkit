@@ -75,6 +75,7 @@ def test_seed_waits_for_the_needs(tmp_path: Path) -> None:
             assert need["title"] == event["payload"]["description"]
             assert need["kind"] in {"place", "budget", "draft"} and need["detail"]
         assert [s["id"] for s in doc["slots"]] == ["s1", "s2", "s3"]
+        assert all(s["start"] and s["start"].endswith("+00:00") for s in doc["slots"])
 
 
 def test_rules_split_the_goal_without_a_model(tmp_path: Path) -> None:

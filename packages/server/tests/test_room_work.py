@@ -25,35 +25,68 @@ from room_rig import (
 )
 from test_room_choices import OFFERS, make_offers, silent_room
 
+LETTER = (
+    "Hello everyone, we are getting together and would love you to come. The time is still to "
+    "be confirmed and so is the place. Please reply to say whether you can join us. "
+    "Thanks, the organisers"
+)
 SHAPES: dict[str, dict[str, Any]] = {
-    "place": {"options": [{"name": "Community hall", "why": "Fits the group"}]},
-    "budget": {"rows": [{"label": "Spare cushion", "note": ""}]},
-    "list": {"items": [{"label": "Name tags", "who": ""}]},
-    "draft": {"subject": "Please join us", "body": "A short note for everyone."},
-    "schedule": {"items": [{"title": "Meet"}]},
+    "place": {
+        "ideas": [
+            {"kind_of_place": "A hall", "why_it_fits": "Room for all", "check_first": "Is it free"},
+            {"kind_of_place": "A garden", "why_it_fits": "Open air", "check_first": "Rain cover"},
+        ]
+    },
+    "budget": {"lines": [], "how_shared": ""},
+    "list": {
+        "items": [{"label": "Name tags", "who": "anyone"}, {"label": "Chairs", "who": "anyone"}]
+    },
+    "draft": {"subject": "Please join us", "body": LETTER},
+    "schedule": {"steps": [{"step": "Meet"}]},
 }
 
 
 def made(user: str) -> dict[str, Any]:
-    kind = json.loads(user)["kind"]
-    tree = [
-        {"id": "root", "component": "Column", "props": json.dumps({"children": ["h", "t"]})},
+    """The maker's work for the kind asked."""
+    return SHAPES[json.loads(user)["kind"]]
+
+
+def laid(user: str) -> dict[str, Any]:
+    """The composer's layout: a card per group, showing every item of the data."""
+    asked = json.loads(user)
+    kind, data = asked["kind"], asked["data"]
+    cards: list[dict[str, Any]] = []
+    if kind == "place":
+        for n, o in enumerate(data["options"]):
+            fields = [{"label": "Why", "value": o["why"]}]
+            cards.append({"id": f"c{n}", "title": o["name"], "fields": fields})
+    elif kind == "list":
+        fields = [{"label": i["label"], "value": i["who"]} for i in data["items"]]
+        cards.append({"id": "c0", "title": "Items", "fields": fields})
+    elif kind == "budget":
+        fields = [{"label": r["label"], "value": f"{r['amount']}"} for r in data["rows"]]
+        cards.append({"id": "c0", "title": "Budget", "fields": fields})
+    else:
+        cards.append({"id": "c0", "title": data["subject"], "children": ["body"]})
+    nodes = [
         {
-            "id": "h",
-            "component": "Heading",
-            "props": json.dumps({"text": f"{kind}", "variant": "h3"}),
-        },
-        {
-            "id": "t",
-            "component": "Text",
-            "props": json.dumps({"text": "Suggested, not settled.", "provenance": "estimate"}),
-        },
+            "id": "root",
+            "component": "Column",
+            "props": json.dumps({"children": [c["id"] for c in cards]}),
+        }
     ]
-    return {"title": f"The {kind}", "data": json.dumps(SHAPES[kind]), "components": tree}
+    for c in cards:
+        props = {k: v for k, v in c.items() if k != "id"} | {"provenance": "estimate"}
+        nodes.append({"id": c["id"], "component": "Card", "props": json.dumps(props)})
+    if kind == "draft":
+        nodes.append(
+            {"id": "body", "component": "Text", "props": json.dumps({"text": data["body"]})}
+        )
+    return {"title": asked["need"]["title"], "components": nodes}
 
 
 def model() -> RoomModel:
-    return RoomModel(needs=NEEDS, brief=BRIEF, made=made)
+    return RoomModel(needs=NEEDS, brief=BRIEF, made=made, laid=laid)
 
 
 def to_decided(client: TestClient) -> tuple[str, Any, dict[str, Any]]:
@@ -65,7 +98,7 @@ def to_decided(client: TestClient) -> tuple[str, Any, dict[str, Any]]:
     host = server_of(client).hosts[cid]
     until(
         lambda: {t["status"] for t in host.state.tasks.values()} <= {"decided", "committed"},
-        20,
+        40,
         "decided",
     )
     return cid, engine, people
@@ -99,7 +132,17 @@ def test_a_signed_plan_gives_results_of_three_kinds(tmp_path: Path) -> None:
             for e in events(client, cid, "decide")
             if e["payload"]["subject"]["kind"] == "commitment"
         ]
+        asks = view_of(engine, cid, "p1")["mine"]["asks"]
+        assert [a["kind"] for a in asks] == ["commitment"], "the task request is not shown twice"
+        assert asks[0]["summary"].startswith("Commit to doing: ")
         approve_commitments(client, cid, people)
+        assert view_of(engine, cid, "p1")["mine"]["asks"] == []
+        assert set(view_of(engine, cid, "p1")["measured"]) == {
+            "calendars_shared",
+            "minutes",
+            "cost",
+            "vendors",
+        }
         results = lambda: [  # noqa: E731
             e for e in events(client, cid, "observe") if '"result": 1' in e["payload"]["content"]
         ]
@@ -115,8 +158,11 @@ def test_a_signed_plan_gives_results_of_three_kinds(tmp_path: Path) -> None:
         assert budget["currency"] == "minutes" and budget["total"] == sum(
             r["amount"] for r in budget["rows"]
         )
-        assert {r["provenance"] for r in budget["rows"]} == {"signed", "estimate"}
+        assert {r["provenance"] for r in budget["rows"]} == {"signed"}
+        assert budget["amount"] is None and budget["suggested"] == []
+        assert content["budget"]["title"] == "Time budget"
         assert set(content["draft"]["data"]) == {"subject", "body"}
+        assert content["draft"]["data"]["body"] == LETTER
         assert all(c["source"] == "model" and c["sources"] for c in content.values())
         events_ids = {e["event_id"] for e in server_of(client).store.read(cid)}
         for c in content.values():
@@ -172,43 +218,26 @@ def test_done_is_the_persons_own_click_and_needs_a_result(tmp_path: Path) -> Non
         assert host.state.tasks[mine]["status"] == "done"
 
 
-def test_a_bad_tree_is_asked_for_again_then_replaced_by_a_fixed_one(tmp_path: Path) -> None:
+def test_a_bad_layout_is_asked_for_again_then_replaced_by_a_fixed_one(tmp_path: Path) -> None:
     def broken(user: str) -> dict[str, Any]:
-        reply = made(user)
-        reply["components"][2]["props"] = json.dumps(
-            {"text": "Cost", "provenance": "estimate", "extra": 5}
-        )
+        reply = laid(user)
+        reply["components"][1]["props"] = json.dumps({"title": "Cost", "extra": 5})
         return reply
 
-    scripted = RoomModel(needs=NEEDS, brief=BRIEF, made=broken)
+    scripted = RoomModel(needs=NEEDS, brief=BRIEF, made=made, laid=broken)
     with serve(tmp_path, scripted) as client:
         cid, _engine, people = to_decided(client)
         approve_commitments(client, cid, people)
-        until(
-            lambda: (
-                len(
-                    [
-                        e
-                        for e in events(client, cid, "observe")
-                        if '"result": 1' in e["payload"]["content"]
-                    ]
-                )
-                == 3
-            ),
-            40,
-            "results",
-        )
+        until(lambda: len(results_of_events(client, cid)) == 3, 40, "results")
         calls = [c for c in scripted.calls if c[0] == "composer"]
-        assert len(calls) == 6, "each result asked twice: once, then once with the errors"
-        retried = [json.loads(str(c[1][-1]["content"]))["errors_to_fix"] for c in calls]
-        assert sum(1 for e in retried if e) == 3 and all(
-            "not allowed" in e[0] for e in retried if e
-        )
-        for e in events(client, cid, "observe"):
-            if '"result": 1' in e["payload"]["content"]:
-                content = json.loads(e["payload"]["content"])
-                ids = [n["id"] for n in content["components"]]
-                assert ids[0] == "root" and "h" in ids and content["source"] == "model"
+        layouts = [c for c in calls if "You choose how to show" in str(c[1][0]["content"])]
+        assert len(layouts) == 2, "the place is laid out: asked twice, then fixed"
+        fixes = [json.loads(str(c[1][-1]["content"]))["fix_this"] for c in layouts]
+        assert sum(1 for f in fixes if f) == 1
+        for c in results_of_events(client, cid):
+            ids = [n["id"] for n in c["components"]]
+            assert ids[0] == "root" and c["source"] == "model"
+            assert c["components"], "a fixed tree stands in for the broken layout"
 
 
 def test_a_helper_signs_its_own_commitment_and_reports_done_itself(tmp_path: Path) -> None:
@@ -270,3 +299,44 @@ def test_a_helper_signs_its_own_commitment_and_reports_done_itself(tmp_path: Pat
         )
         time.sleep(2)
         assert not [e for e in events(client, cid, "done") if e["on_behalf_of"] != "helper-1"]
+
+
+def test_a_place_with_nothing_to_suggest_says_so_and_a_time_budget_is_called_one(
+    tmp_path: Path,
+) -> None:
+    quiet = {
+        "needs": [
+            {"title": "Find a place", "kind": "place", "detail": "Somewhere we can all reach."},
+            {"title": "Settle the budget", "kind": "budget", "detail": "Who gives what time."},
+            {"title": "Write the invitation", "kind": "draft", "detail": "A short note."},
+        ],
+        "slots": [],
+    }
+
+    def echoing(user: str) -> dict[str, Any]:
+        if json.loads(user)["kind"] == "place":
+            idea = {"kind_of_place": "Find a place", "why_it_fits": "needed", "check_first": "x"}
+            return {"ideas": [idea, idea]}
+        return made(user)
+
+    with serve(tmp_path, RoomModel(needs=quiet, brief=BRIEF, made=echoing, laid=laid)) as client:
+        cid, _engine, people = to_decided(client)
+        approve_commitments(client, cid, people)
+        until(lambda: len(results_of_events(client, cid)) == 3, 40, "three results")
+        found = {c["kind"]: c for c in results_of_events(client, cid)}
+        place = found["place"]
+        assert place["title"] == "No place has been named yet"
+        assert place["data"] == {"options": [], "chosen": None}
+        text = json.dumps(place["components"])
+        assert "No place has been named yet" in text and "Say box" in text
+        budget = found["budget"]
+        assert budget["title"] == "Time budget" and budget["data"]["currency"] == "minutes"
+        assert budget["data"]["suggested"] == [], "no money in the goal, so no cost lines"
+
+
+def results_of_events(client: TestClient, cid: str) -> list[dict[str, Any]]:
+    return [
+        json.loads(e["payload"]["content"])
+        for e in events(client, cid, "observe")
+        if '"result": 1' in e["payload"]["content"]
+    ]

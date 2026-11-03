@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -19,11 +20,18 @@ from coalitionkit_contracts import new_ulid
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from . import results
+from . import makers, results
 from .seats import read_state, sign_asks
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
+
+
+MONEY = re.compile(
+    r"\b(money|costs?|pay|paid|price|prices|euros?|eur|dollars?|usd|afford|spend|fees?|expenses?)\b"
+    r"|[€$£]",
+    re.I,
+)
 
 
 def result_events(state: State) -> list[tuple[Document, Document]]:
@@ -103,8 +111,15 @@ def facts_for(
         "goal": state.charter["goal"],
         "need": {k: needs[task][k] for k in ("id", "title", "kind", "detail")},
         "plan": plan,
+        "people": [
+            s["label"] for s in seats_of(engine, coalition, "", state, doc) if s["kind"] == "person"
+        ],
+        "amount": makers.stated_amount(str(state.charter["goal"])),
         "common": [{"id": s, "label": slots.get(s, s)} for s in shared],
         "now": datetime.fromtimestamp(engine.now(), UTC).isoformat(),
+        "money": bool(
+            MONEY.search(f"{state.charter['goal']} {needs[task]['title']} {needs[task]['detail']}")
+        ),
     }
 
 

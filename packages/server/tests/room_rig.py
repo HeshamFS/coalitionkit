@@ -8,6 +8,7 @@ import json
 import time
 from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,7 +33,9 @@ NEEDS: Document = {
         {"title": "Share the costs", "kind": "budget", "detail": "Who pays what."},
         {"title": "Write the invitation", "kind": "draft", "detail": "A short note to send."},
     ],
-    "slots": ["Saturday morning", "Saturday afternoon", "Sunday morning"],
+    "slots": [
+        (datetime.now(UTC) + timedelta(hours=h)).strftime("%a %d %b, %H:00 UTC") for h in (3, 5, 7)
+    ],
 }
 BRIEF: Document = {
     "questions": [
@@ -101,11 +104,15 @@ class RoomModel:
         made: Document | Callable[[str], Document] | None = None,
         say: Document | Callable[[str], Document] | None = None,
         made_delay: float = 0.0,
+        steward_delay: float | None = None,
+        laid: Document | Callable[[str], Document] | None = None,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
         self.offers, self.names, self.foryou = offers, names, foryou
         self.offers_delay = offers_delay
         self.made, self.say, self.made_delay = made, say, made_delay
+        self.steward_delay = steward_delay
+        self.laid = laid
         self.calls: list[tuple[str, list[ChatMessage]]] = []
 
     @staticmethod
@@ -125,7 +132,8 @@ class RoomModel:
             if self.gardener_delay and "public name" not in system:
                 await asyncio.sleep(self.gardener_delay)
         elif route.role == "composer":
-            reply = self.pick(self.made, user)
+            wants = self.laid if "You choose how to show" in system else self.made
+            reply = self.pick(wants, user)
             if self.made_delay:
                 await asyncio.sleep(self.made_delay)
         elif route.role == "hosted_agent":
@@ -139,6 +147,9 @@ class RoomModel:
                 reply = self.pick(self.say, user)
             else:
                 reply = self.brief
+        elif route.role == "steward" and self.steward_delay is not None:
+            await asyncio.sleep(self.steward_delay)
+            reply = {"action": "allow", "policy_id": None, "reason": "fine", "redact": []}
         else:
             reply = None
         if reply is None:

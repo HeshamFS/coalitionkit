@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
+from . import plan_words as words
 from .brief import given
 from .engine import FOR_YOU
 from .model import ask
@@ -28,16 +29,17 @@ from .seats import people, read_state
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
-NAME_MAX = 40
-LINE_MAX = 260
+NAME_MAX = words.NAME_MAX
+LINE_MAX = words.LINE_MAX
 
 NAMES_SYSTEM = (
     "You are the Gardener of a small group room. For each plan, write a short public name "
-    "(under 30 characters, no quotes) and one plain line of under 160 characters saying what "
-    "the plan trades, from the numbers given: total_minutes (time in all), busiest_minutes "
-    "(how evenly the work is shared) and effort_points (how well it fits what people "
-    "prefer; lower is better). best_at lists what each plan is best at among these plans. "
-    "Name a plan by what it favours, and do not add facts that are not in the data."
+    "(under 30 characters, no quotes) and one plain line of under 200 characters. Use the "
+    "people's names exactly as given. Name a plan for what it favours (the 'favours' facts). "
+    "The line says who does what, then what the plan gives up against the other plan (the "
+    "'gives_up_against_the_others' facts). If there is only one plan, name it by who does "
+    "what and do not compare. Say only what the facts hold; never mention points, scores, "
+    "measures or what a plan is 'best at'."
 )
 FOR_YOU_SYSTEM = (
     "You are one person's agent in a small group room. For each plan, write one plain line "
@@ -85,12 +87,6 @@ def minutes_of(state: State, who: str, need: str) -> int:
 
 
 LEVEL = {"low": 1, "medium": 2, "high": 3}
-TRADES = (
-    ("minutes", "the least time in all"),
-    ("busiest", "the most even load"),
-    ("effort", "the most people on what they prefer"),
-)
-NAMES = {"minutes": "Fastest", "busiest": "Most even", "effort": "Most preferred"}
 
 
 def effort_of(state: State, who: str, need: str) -> int:
@@ -137,43 +133,6 @@ def public_plan(
     }
 
 
-def mark_best(shown: list[Document]) -> None:
-    """Say, on each plan, what it is best at among these plans (nothing when all are equal)."""
-    keys = {"minutes": "total_minutes", "busiest": "busiest_minutes", "effort": "effort_points"}
-    for item in shown:
-        item["best_at"] = []
-    for trade, key in keys.items():
-        values = [item[key] for item in shown]
-        if len(set(values)) < 2:
-            continue
-        for item in shown:
-            if item[key] == min(values):
-                item["best_at"].append(trade)
-
-
-def who_does(shown: Document) -> str:
-    """ "Mira takes A and B; Jonas takes C": the plan told as who does what."""
-    by: dict[str, list[str]] = {}
-    for a in shown["assignments"]:
-        by.setdefault(a["seat"], []).append(a["need"])
-    return "; ".join(f"{who} takes {', '.join(needs)}" for who, needs in by.items())
-
-
-def rule_note(index: int, shown: Document) -> Document:
-    best = [t for t, _ in TRADES if t in shown["best_at"]]
-    name = " and ".join(NAMES[t] for t in best[:2]) if best else f"Plan {chr(65 + index)}"
-    wins = "; ".join(dict(TRADES)[t] for t in best)
-    line = (
-        f"{who_does(shown)}. {shown['total_minutes']} minutes in all, the busiest person "
-        f"carries {shown['busiest_minutes']}, effort {shown['effort_points']}."
-    )
-    return {
-        "name": name,
-        "line": f"{line} Gives {wins}." if wins else line,
-        "source": "rules",
-    }
-
-
 def over_limit(who: str, plan: Document, state: State, cap: int | None) -> str:
     """Said by code, not the model: the plan asks more of them than the hours they gave."""
     asked = sum(
@@ -184,10 +143,13 @@ def over_limit(who: str, plan: Document, state: State, cap: int | None) -> str:
     return f" This asks {span(asked)} of your {span(cap)}."
 
 
+NO_PART = "You have no part in this plan."
+
+
 def rule_for_you(who: str, plan: Document, titles: dict[str, str], state: State) -> str:
     mine = [a for a in plan["assignments"] if a["assignee"] == who]
     if not mine:
-        return "In this plan you take nothing on; others carry the work."
+        return NO_PART
     parts = "; ".join(
         f"{titles.get(a['task_id'], 'a need')} ({minutes_of(state, who, a['task_id'])} minutes)"
         for a in mine
@@ -203,13 +165,12 @@ async def name_plans(
     labels = {s["seat"]: s["label"] for s in seats_of(engine, coalition, "", state, doc)}
     titles = {n["id"]: n["title"] for n in doc["needs"]}
     shown = [public_plan(state, p, titles, labels) for p in fresh]
-    mark_best(shown)
     reply = await ask(
         engine,
         coalition,
         "gardener",
         NAMES_SYSTEM,
-        {"goal": state.charter["goal"], "plans": shown},
+        {"goal": state.charter["goal"], "plans": words.facts(shown)},
         NamesReply,
         verb="explaining",
         label="Naming the plans",
@@ -221,17 +182,20 @@ async def name_plans(
         name, line = (tidy(said.name, NAME_MAX), tidy(said.line, LINE_MAX)) if said else ("", "")
         notes[item["plan_id"]] = (
             {"name": name, "line": line, "source": "model"}
-            if name and line
-            else rule_note(index, item)
+            if words.plain(name, line)
+            else words.rule_note(index, item, shown)
         )
     # Two plans never share a name: where the model gave the same one twice, code names them.
     names = [n["name"] for n in notes.values()]
     for index, item in enumerate(shown):
         if names.count(notes[item["plan_id"]]["name"]) > 1:
-            notes[item["plan_id"]] = rule_note(index, item)
+            notes[item["plan_id"]] = words.rule_note(index, item, shown)
             if sum(1 for n in notes.values() if n["name"] == notes[item["plan_id"]]["name"]) > 1:
                 notes[item["plan_id"]]["name"] = f"Plan {chr(65 + index)}"
-    engine.update(coalition, lambda d: d["plan_notes"].update(notes))
+    engine.update(
+        coalition,
+        lambda d: d["plan_notes"].update(notes),
+    )
 
 
 async def for_you(
@@ -276,10 +240,11 @@ async def for_you(
     cap = limits(given(engine, coalition, who)).cap
     lines: Document = {}
     for plan in todo:
-        said = wording.get(plan["plan_id"])
+        taking = any(a["assignee"] == who for a in plan["assignments"])
+        said = wording.get(plan["plan_id"]) if taking else None
         line = said or rule_for_you(who, plan, titles, state)
         lines[plan["plan_id"]] = {
-            "line": line + over_limit(who, plan, state, cap),
+            "line": line + (over_limit(who, plan, state, cap) if taking else ""),
             "source": "model" if said else "rules",
         }
     with engine.lock:

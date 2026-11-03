@@ -139,11 +139,27 @@ def checked(reply: NeedsReply | None) -> list[NeedItem] | None:
     return out[:MAX_NEEDS] if len(out) >= 2 else None
 
 
-def checked_slots(labels: list[str]) -> list[str]:
+def slot_start(label: str, now: datetime) -> datetime | None:
+    """The start time a slot label names ("Wed 5 Nov, 10:00 UTC"), in the year of ``now``."""
+    found = re.search(r"(\d{1,2}) (\w{3}),? (\d{1,2}):(\d{2})", label)
+    if not found:
+        return None
+    try:
+        parsed = datetime.strptime(
+            f"{found[1]} {found[2]} {now.year} {found[3]}:{found[4]}", "%d %b %Y %H:%M"
+        ).replace(tzinfo=UTC)
+    except ValueError:
+        return None
+    return parsed if parsed >= now - timedelta(days=200) else parsed.replace(year=now.year + 1)
+
+
+def checked_slots(labels: list[str], now: datetime, deadline: datetime) -> list[str]:
+    """Slot labels whose start code can read, inside the time left, each once."""
     out: list[str] = []
     for label in labels:
         line = tidy(label, 40)
-        if line and line not in out:
+        at = slot_start(line, now) if line else None
+        if line and at is not None and now < at < deadline and line not in out:
             out.append(line)
     return out[:MAX_SLOTS]
 
@@ -176,7 +192,7 @@ async def make(engine: RoomEngine, coalition: str, state: State) -> None:
         items = checked(reply)
     source = "model" if items else "rules"
     if items and reply is not None:
-        slots = checked_slots(reply.slots)
+        slots = checked_slots(reply.slots, now, deadline)
     else:
         items = rule_needs(goal, drafted)
     if not slots:
@@ -198,7 +214,12 @@ async def make(engine: RoomEngine, coalition: str, state: State) -> None:
 
     def set_needs(doc: Document) -> None:
         doc["needs"] = made
-        doc["slots"] = [{"id": f"s{i + 1}", "label": s} for i, s in enumerate(slots)]
+        starts = [slot_start(s, now) for s in slots]
+        doc["slots"] = [
+            {"id": f"s{i + 1}", "label": s, "start": at.isoformat() if at else None}
+            for i, (s, at) in enumerate(zip(slots, starts, strict=True))
+        ]
+        doc["started"] = engine.now()
         doc["needs_source"] = source
         doc["needs_state"] = "ready"
 

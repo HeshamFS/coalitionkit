@@ -21,7 +21,6 @@ from coalitionkit_runtime.lifecycle import State
 from ..adapter import Document
 from .brief import given
 from .model import ask
-from .needs import tidy
 from .offer_rules import (
     HELPER_MINUTES,
     OfferItem,
@@ -31,7 +30,6 @@ from .offer_rules import (
     feed_text,
     limits,
     rule_offers,
-    span,
 )
 from .seats import people, read_state
 
@@ -48,8 +46,10 @@ OFFER_SYSTEM = (
     "honest estimate in minutes for each one, different from need to need and never above "
     "the most they said they would give to any one job. Set the effort from fit: low for "
     "what they prefer, medium for the rest, high for what they would rather not do. Money is "
-    "a whole number inside any limit they gave, else 0. Then write one short note to the "
-    "person saying what you offered and why, in plain words."
+    "the amount this person would pay out of their own pocket for the job, a whole number "
+    "no larger than the most they would pay, and usually 0. Money in the goal is the "
+    "group's shared budget; it is not a cost of any one offer. Write the note in plain "
+    "words, never quote a limit or its value, and never say a cost is zero because of a limit."
 )
 
 
@@ -99,7 +99,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
                 "needs": [{k: n[k] for k in ("id", "title", "kind", "detail")} for n in needs],
                 "told_by_the_person": told,
                 "most_minutes_for_any_one_job": lim.cap,
-                "limit_money": lim.money,
+                "most_money_they_would_pay_themselves": lim.money,
             },
             OffersReply,
             verb="offering",
@@ -122,8 +122,6 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
         label=f"Offered on {len(items)} of {len(needs)} needs" if items else "Made no offer",
     )
     engine.feed_add(coalition, who, feed_text(items, names, lim, source))
-    if source == "model" and reply is not None and reply.note.strip():
-        engine.feed_add(coalition, who, tidy(reply.note, NOTE_MAX))
     engine.update(coalition, lambda d: d["offers"].__setitem__(who, {"count": len(items)}))
 
 
@@ -223,15 +221,11 @@ async def cover(
         for item in items:
             await send_offer(engine, coalition, who, state, item)
         engine.note(coalition, "offering", "Covered a need nobody had offered on", seat=who)
-        parts = "; ".join(
-            f"{names[i.need_id]}, about {span(i.minutes)} ({i.effort} effort)" for i in items
-        )
         engine.feed_add(
             coalition,
             who,
-            f"Nobody had offered on {', '.join(names[i.need_id] for i in items)}, and a plan "
-            f"needs every need covered, so your agent also said you could do {parts}. That is "
-            "an offer, not a promise: nothing binds you until you say yes to a plan.",
+            f"Nobody had offered on {', '.join(names[i.need_id] for i in items)}, so your agent "
+            "also offered on it. Nothing binds you until you say yes to a plan.",
         )
 
 

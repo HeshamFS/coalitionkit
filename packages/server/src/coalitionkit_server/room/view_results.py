@@ -91,9 +91,7 @@ def change_of(state: State, doc: Document) -> Document | None:
         {
             d
             for s in state.subjects.values()
-            if s["kind"] in {"plan", "tension_option"}
-            and s.get("status") == "pending"
-            and set(s["tasks"]) & moved
+            if s.get("status") == "pending" and set(s["tasks"]) & moved
             for d in s["deciders"]
         }
     )

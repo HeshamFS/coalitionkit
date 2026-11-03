@@ -101,7 +101,7 @@ type Room = {
     state: "running" | "done" | "failed"; ms: number | null;
     source: "model" | "rules" | "host"; event: string | null;
   }[];
-  slots: { id: string; label: string }[];
+  slots: { id: string; label: string; start: string | null }[]; // start is ISO, read by code
   common: { slots: string[]; count_private: number | null; compared: number } | null;
   plan_notes: Record<string, { name: string; line: string; source: "model" | "rules" }>;
   results: {
@@ -126,6 +126,8 @@ type Room = {
     }[];
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
+    brief_closes: string | null; // ISO; the brief closes then (300 s after it opens) or when all is answered
+    asks: { kind: string; id: string; revision: number; summary: string }[]; // plain words
     tasks: {
       task_id: string; title: string; status: string;
       result: string | null; can_mark_done: boolean;
@@ -137,7 +139,9 @@ type Room = {
 What the fields mean:
 
 - `results[].id` is the id of the `observe` event, and `needs[].result` and `mine.tasks[].result` hold that id. `by` is a seat id. `seqs` holds the log positions of those `sources` this viewer may see, so it can be shorter than `sources`.
-- `plan_notes` and `mine.for_you` are keyed by plan id.
+- `plan_notes` and `mine.for_you` are keyed by plan id. A seat with no task in a plan reads "You have no part in this plan." (by code).
+- `asks` is what the viewer is asked to decide; a task request whose commitment is also pending is left out, and one yes on the commitment closes both (nothing else stays open for that task).
+- `measured` is `{calendars_shared, minutes, cost, vendors}`, real numbers for the closing screen (`cost` is null without a meter).
 - `stops[].to` is the seat a stopped message was aimed at, or `null` when it was aimed at the room.
 - `change.from` is the seat that caused the change, or `null` when the host did.
 - `checked` counts the events the Steward has reviewed in this room, including the ones it stopped.
@@ -154,9 +158,9 @@ What the fields mean:
 
 | Kind | `data` | Export |
 |---|---|---|
-| `place` | `{options: [{name, why, provenance}], chosen: name or null}` | none |
+| `place` | `{options: [{name, why, check, provenance}], chosen: name or null}`; `options` may be empty, and the card then says no place has been named yet | none |
 | `schedule` | `{items: [{title, start, end, where}]}`, with ISO 8601 times | ICS |
-| `budget` | `{currency, rows: [{label, amount, provenance}], total}` | CSV |
+| `budget` | `{currency, amount, rows: [{label, amount, who, provenance}], how_shared, time: [{label, amount, provenance, ref}], time_total, suggested: [], total}` | CSV |
 | `list` | `{items: [{label, who, provenance}]}` | CSV |
 | `draft` | `{subject, body}` | text |
 
@@ -209,3 +213,5 @@ Each opens only when the last passes in a real room with the live model.
 3. **The Table.** The whole walk in Chrome on real events, on desktop and phone, with several real browsers in one room.
 
 Then: spec updated, `FREEZE_TAG` moved to a new tag, `tools/check.py` green, public host next.
+
+Results are made in two steps. The maker step writes the real thing for the kind (a complete message, 3 to 8 budget lines that add up to exactly the amount the goal states, 2 or 3 kinds of place with what to check first, steps, a list that names who brings what) on the `composer` role with room to think; code checks it (no placeholders, exact sums, names from the room) and builds what it honestly can when the model fails (`source` is then `rules`). The layout step then shows that data as cards; it must show every item, and a fixed tree stands in when its two attempts fail. A `budget` with money in the goal is in that currency (`amount`, `rows` with `who`, `how_shared`); the signed minutes from people's offers sit in their own `time` section (each number bound to its offer event) and `time_total`. With no money in the goal it is a time budget: `currency` is `minutes`, the title is "Time budget", `rows` are the signed minutes and `total` their sum. `place` options are suggested kinds of place, always `estimate`; a result never repeats the need as an option; a schedule has `steps` beside its timed `items`.
