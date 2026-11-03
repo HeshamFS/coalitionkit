@@ -290,7 +290,10 @@ class State:
                     self.set_status(subject["tasks"], "committed")
                     self.stage = "Live"
             else:
-                self.set_status(subject["tasks"], "decided")
+                # The chosen plan is decided with all its tasks (rule 5), not only the tasks the
+                # tension held: those the plans agreed on would otherwise stay proposed for ever.
+                covered = chosen_plan["tasks"] if chosen_plan else subject["tasks"]
+                self.set_status(sorted({*subject["tasks"], *covered}), "decided")
                 for assignment in assignments:
                     task = self.tasks[assignment["task_id"]]
                     task["assignee"] = assignment["assignee"]

@@ -221,7 +221,11 @@ class Server:
         self, coalition: str, deadline: str, *, proposal_set_id: str | None = None
     ) -> Acknowledgement | Document:
         host = self.hosts[coalition]
-        plans = plan_for(host, self.packs)
+        # A room the engine drives, with no pack, trades cost and evenness against how much
+        # effort the chosen people said the work would be; a pack brings its own strategy.
+        driven = self.room is not None and self.room.drives(coalition)
+        third = self.room.effort_objective(coalition) if driven and self.room else None
+        plans = plan_for(host, self.packs, third if self.bound_pack(coalition) is None else None)
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
         payload = build_propose(

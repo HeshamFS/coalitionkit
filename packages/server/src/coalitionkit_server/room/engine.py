@@ -16,7 +16,7 @@ import json
 import logging
 import threading
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -170,6 +170,24 @@ class RoomEngine:
         await offers.advance(self, coalition)
         await compare.advance(self, coalition)
         await explain.advance(self, coalition)
+
+    def drives(self, coalition: str) -> bool:
+        """Only rooms made through Genesis are driven; others belong to whoever plays them."""
+        return self.owner(coalition) is not None
+
+    def effort_objective(self, coalition: str) -> Callable[[Mapping[str, str]], float]:
+        """Total effort of a plan, from the public offers: low 1, medium 2, high 3 each."""
+        level = {"low": 1, "medium": 2, "high": 3}
+        host = self.server.hosts[coalition]
+        seen: dict[tuple[str, str], int] = {}
+        for offer in host.state.offers.values():
+            key = (str(offer["owner"]), str(offer["target"]["id"]))
+            seen[key] = min(seen.get(key, 9), level[str(offer["cost"]["effort"])])
+
+        def effort(assignments: Mapping[str, str]) -> float:
+            return float(sum(seen.get((who, task), 3) for task, who in assignments.items()))
+
+        return effort
 
     def needs_ready(self, coalition: str) -> bool:
         with self.lock:

@@ -34,8 +34,10 @@ LINE_MAX = 260
 NAMES_SYSTEM = (
     "You are the Gardener of a small group room. For each plan, write a short public name "
     "(under 30 characters, no quotes) and one plain line of under 160 characters saying what "
-    "the plan does, from the numbers and assignments given. Do not say which plan is best, "
-    "and do not add facts that are not in the data."
+    "the plan trades, from the numbers given: total_minutes (time in all), busiest_minutes "
+    "(how evenly the work is shared) and effort_points (how well it fits what people "
+    "prefer; lower is better). best_at lists what each plan is best at among these plans. "
+    "Name a plan by what it favours, and do not add facts that are not in the data."
 )
 FOR_YOU_SYSTEM = (
     "You are one person's agent in a small group room. For each plan, write one plain line "
@@ -82,9 +84,35 @@ def minutes_of(state: State, who: str, need: str) -> int:
     return min(costs) if costs else 0
 
 
+LEVEL = {"low": 1, "medium": 2, "high": 3}
+TRADES = (
+    ("minutes", "the least time in all"),
+    ("busiest", "the most even load"),
+    ("effort", "the most people on what they prefer"),
+)
+NAMES = {"minutes": "Fastest", "busiest": "Most even", "effort": "Most preferred"}
+
+
+def effort_of(state: State, who: str, need: str) -> int:
+    found = [
+        LEVEL[str(o["cost"]["effort"])]
+        for o in state.offers.values()
+        if o["owner"] == who and o["target"]["id"] == need
+    ]
+    return min(found) if found else 3
+
+
 def public_plan(
     state: State, plan: Document, titles: dict[str, str], labels: dict[str, str]
 ) -> Document:
+    """A plan in public terms: who does what, and the three numbers the plans trade."""
+    load: dict[str, int] = {}
+    effort = 0
+    for a in plan["assignments"]:
+        load[a["assignee"]] = load.get(a["assignee"], 0) + minutes_of(
+            state, a["assignee"], a["task_id"]
+        )
+        effort += effort_of(state, a["assignee"], a["task_id"])
     return {
         "plan_id": plan["plan_id"],
         "assignments": [
@@ -92,20 +120,48 @@ def public_plan(
                 "need": titles.get(a["task_id"], "a need"),
                 "seat": labels.get(a["assignee"], a["assignee"]),
                 "minutes": minutes_of(state, a["assignee"], a["task_id"]),
+                "effort": next(
+                    (
+                        k
+                        for k, v in LEVEL.items()
+                        if v == effort_of(state, a["assignee"], a["task_id"])
+                    ),
+                    "high",
+                ),
             }
             for a in plan["assignments"]
         ],
+        "total_minutes": sum(load.values()),
+        "busiest_minutes": max(load.values(), default=0),
+        "effort_points": effort,
     }
 
 
+def mark_best(shown: list[Document]) -> None:
+    """Say, on each plan, what it is best at among these plans (nothing when all are equal)."""
+    keys = {"minutes": "total_minutes", "busiest": "busiest_minutes", "effort": "effort_points"}
+    for item in shown:
+        item["best_at"] = []
+    for trade, key in keys.items():
+        values = [item[key] for item in shown]
+        if len(set(values)) < 2:
+            continue
+        for item in shown:
+            if item[key] == min(values):
+                item["best_at"].append(trade)
+
+
 def rule_note(index: int, shown: Document) -> Document:
-    mins: dict[str, int] = {}
-    for a in shown["assignments"]:
-        mins[a["seat"]] = mins.get(a["seat"], 0) + a["minutes"]
+    best = [t for t, _ in TRADES if t in shown["best_at"]]
+    name = " and ".join(NAMES[t] for t in best[:2]) if best else f"Plan {chr(65 + index)}"
+    wins = "; ".join(dict(TRADES)[t] for t in best)
+    line = (
+        f"{shown['total_minutes']} minutes in all, the busiest person carries "
+        f"{shown['busiest_minutes']}, effort {shown['effort_points']}."
+    )
     return {
-        "name": f"Plan {chr(65 + index)}",
-        "line": f"{len(mins)} seat(s) take part; {sum(mins.values())} minutes in all; "
-        f"the busiest carries {max(mins.values(), default=0)}.",
+        "name": name,
+        "line": f"{line} Gives {wins}." if wins else line,
         "source": "rules",
     }
 
@@ -139,6 +195,7 @@ async def name_plans(
     labels = {s["seat"]: s["label"] for s in seats_of(engine, coalition, "", state, doc)}
     titles = {n["id"]: n["title"] for n in doc["needs"]}
     shown = [public_plan(state, p, titles, labels) for p in fresh]
+    mark_best(shown)
     reply = await ask(
         engine,
         coalition,
