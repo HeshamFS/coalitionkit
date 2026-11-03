@@ -93,7 +93,12 @@ def walk(value: Any, path: str = "payload") -> Iterator[tuple[str, Any]]:
 
 
 def subject_text(subject: Subject) -> str:
-    texts: list[str] = [leaf for _, leaf in walk(subject.payload) if isinstance(leaf, str)]
+    # A private field (a phone, an email) is the redact policy's to mask, not text to judge.
+    texts: list[str] = [
+        leaf
+        for path, leaf in walk(subject.payload)
+        if isinstance(leaf, str) and path.rsplit(".", 1)[-1] not in PRIVATE_KEYS
+    ]
     return "\n".join(texts)[:MAX_TEXT_CHARS]
 
 

@@ -61,6 +61,10 @@ def fresh_doc() -> Document:
         "gaps_noted": [],  # need ids already announced as having no offer
         "compare": None,  # {state, task_id, queries, answered, took_part, done, slots, compared}
         "plan_notes": {},  # plan id -> {name, line, source}
+        "made": {},  # task -> {commitment, result (event id), held, done}: what has been made
+        "successors": {},  # a done need -> the need published to replace it
+        "change": None,  # {from, text, moved, asked, untouched} for the latest change
+        "change_pending": False,  # agents are still re-offering on what a change touched
         "stops": [],  # what the Steward held: {id, at, seat, to, policy, explain}
         "held": {},  # plan-set marker -> policy id, so a held plan set is not retried blindly
         "activity": [],
@@ -181,7 +185,8 @@ class RoomEngine:
                 )
                 return None
             raise RuntimeError(f"{kind} refused: {code}")
-        return envelope
+        accepted = reply["receipt"]["payload"]
+        return {"event_id": envelope["event_id"], "seq": accepted["seq"]}
 
     def record_stop(self, coalition: str, seat: str | None, to: str | None, policy: str) -> None:
         known = self.policies.get(policy)
@@ -203,7 +208,7 @@ class RoomEngine:
 
     # --- the step -----------------------------------------------------------------------------
     async def step(self, coalition: str) -> None:
-        from . import brief, compare, explain, needs, offers, seats
+        from . import brief, compare, explain, needs, offers, say, seats, work
 
         host = self.server.hosts[coalition]
         state = await self.thread(lambda: host.state)
@@ -221,10 +226,36 @@ class RoomEngine:
         await offers.advance(self, coalition)
         await compare.advance(self, coalition)
         await explain.advance(self, coalition)
+        await work.advance(self, coalition)
+        await say.advance(self, coalition)
 
     def drives(self, coalition: str) -> bool:
         """Only rooms made through Genesis are driven; others belong to whoever plays them."""
         return self.owner(coalition) is not None
+
+    def on_dissolved(self, coalition: str) -> None:
+        """The room has ended: what was private to a seat is gone, what was made stays."""
+        state = self.server.hosts[coalition].state
+        from .work import result_events
+
+        kept = [
+            {
+                "id": e["event_id"],
+                "need_id": c["need_id"],
+                "kind": c["kind"],
+                "title": c["title"],
+                "by": e["on_behalf_of"],
+                "source": c["source"],
+                "data": c["data"],
+            }
+            for e, c in result_events(state)
+        ]
+
+        def erase(d: Document) -> None:
+            d["briefs"], d["offers"], d["held"], d["made"] = {}, {}, {}, {}
+            d["final"] = kept
+
+        self.update(coalition, erase)
 
     def effort_objective(self, coalition: str) -> Callable[[Mapping[str, str]], float]:
         """Total effort of a plan, from the public offers: low 1, medium 2, high 3 each."""
@@ -274,6 +305,20 @@ class RoomEngine:
     def is_held(self, coalition: str, marker: str) -> bool:
         return marker in self.read(coalition)["held"]
 
+    def tension_deciders(self, coalition: str, tasks: set[str]) -> list[str]:
+        """Who a tension asks. A whole plan asks every decider; a re-plan of a few needs asks
+        only the people whose offers or earlier work touch them, and whoever asked for it."""
+        state = self.server.hosts[coalition].state
+        deciders: list[str] = list(state.charter["deciders"])
+        doc = self.read(coalition)
+        if tasks >= {n["id"] for n in doc["needs"] if n["id"] in state.tasks} or not doc["change"]:
+            return deciders
+        touched = {str(o["owner"]) for o in state.offers.values() if o["target"]["id"] in tasks}
+        touched |= {str(state.tasks[t].get("assignee")) for t in tasks if t in state.tasks}
+        touched.add(str(doc["change"]["from"]))
+        asked = [d for d in deciders if d in touched]
+        return asked or deciders
+
     def needs_ready(self, coalition: str) -> bool:
         with self.lock:
             return bool(self.doc(coalition)["needs_state"] == "ready")
@@ -283,7 +328,13 @@ class RoomEngine:
         with self.lock:
             d = self.doc(coalition)
             done = d["compare"] is not None and d["compare"]["state"] == "done"
-            return bool(d["begun"] and d["briefs_done"] and d["offers_done"] and done)
+            return bool(
+                d["begun"]
+                and d["briefs_done"]
+                and d["offers_done"]
+                and done
+                and not d["change_pending"]
+            )
 
     # --- the public document ------------------------------------------------------------------
     def doc(self, coalition: str) -> Document:
@@ -294,7 +345,8 @@ class RoomEngine:
                     row = tx.execute(
                         "SELECT doc FROM room_engine WHERE coalition = ?", (coalition,)
                     ).fetchone()
-                self.docs[coalition] = json.loads(row[0]) if row else fresh_doc()
+                loaded: Document = json.loads(row[0]) if row else {}
+                self.docs[coalition] = {**fresh_doc(), **loaded}
             return self.docs[coalition]
 
     def read(self, coalition: str) -> Document:

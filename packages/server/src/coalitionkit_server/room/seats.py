@@ -57,6 +57,11 @@ def open_seats(engine: RoomEngine, coalition: str, state: State, doc: Document) 
 
 async def sign_charter(engine: RoomEngine, coalition: str, who: str) -> int:
     """Answer ``who``'s open charter asks yes with their own owner key; how many were signed."""
+    return await sign_asks(engine, coalition, who, {"charter"})
+
+
+async def sign_asks(engine: RoomEngine, coalition: str, who: str, kinds: set[str]) -> int:
+    """Answer yes, with ``who``'s own owner key, to their open asks of these kinds (agents only)."""
     host = engine.server.hosts[coalition]
 
     def run() -> int:
@@ -68,13 +73,13 @@ async def sign_charter(engine: RoomEngine, coalition: str, who: str) -> int:
         )
         signed = 0
         for request in open_requests(host, who):
-            if request.kind != "charter":
+            if request.kind not in kinds:
                 continue
             try:
                 session.answer(request.interrupt_id, True)
                 signed += 1
             except ConsentError as exc:
-                LOG.warning("Charter acceptance for %s refused: %s", who, exc.code)
+                LOG.warning("Consent for %s refused: %s", who, exc.code)
         return signed
 
     return await engine.thread(run)

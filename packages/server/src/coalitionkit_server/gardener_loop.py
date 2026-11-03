@@ -262,8 +262,16 @@ class GardenerLoop:
                     for p in body["plans"]
                 )
             )
+            room = self.server.room
+            tasks = {a["task_id"] for p in body["plans"] for a in p["assignments"]}
             tension = tension_from_plans(
-                plans, deciders=host.state.charter["deciders"], deadline=body["decision_deadline"]
+                plans,
+                deciders=(
+                    room.tension_deciders(coalition, tasks)
+                    if room is not None and room.drives(coalition)
+                    else host.state.charter["deciders"]
+                ),
+                deadline=body["decision_deadline"],
             )
             if tension:
                 host.host_emit(

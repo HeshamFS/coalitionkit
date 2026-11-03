@@ -466,6 +466,8 @@ def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document 
                         (json.dumps(progress), coalition),
                     )
                 done = progress
+        if server.room is not None:
+            server.room.on_dissolved(coalition)
         return done
     except Exception:
         return JSONResponse({"failed": step, "done": done}, status_code=500)

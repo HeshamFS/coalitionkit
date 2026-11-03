@@ -23,6 +23,17 @@ CATEGORIES: dict[str, tuple[re.Pattern[str], ...]] = {
             _FLAGS,
         ),
     ),
+    "contact_details": (
+        # An international number: +49 170 1234567, +1 (555) 010-9999.
+        re.compile(r"\+\d{1,3}[\s.-]?\(?\d{1,4}\)?(?:[\s.-]?\d{2,4}){2,4}"),
+        # A national number written with a leading zero: 0170 1234567, 030/1234567.
+        re.compile(r"(?<![\w.-])0\d{2,4}[\s/.-]?\d{5,9}(?![\w.-])"),
+        # A bracketed area code, or groups of 3-3-4 digits.
+        re.compile(r"\(\d{2,4}\)\s?\d{3,4}[\s.-]?\d{3,4}"),
+        re.compile(r"(?<![\w.-])\d{3}[\s.-]\d{3}[\s.-]\d{4}(?![\w.-])"),
+        # An email address.
+        re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+", _FLAGS),
+    ),
     "investment_advice": (
         re.compile(
             r"\b(?:buy|sell|short)\s+(?:the\s+)?(?:shares|stocks?|crypto|bitcoin)\b", _FLAGS

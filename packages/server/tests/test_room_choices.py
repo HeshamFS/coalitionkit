@@ -24,9 +24,9 @@ from room_rig import (
 
 #: (minutes, effort) each person would take for each of the three needs.
 OFFERS = {
-    "p1": [(30, "low"), (90, "high"), (60, "medium")],
-    "p2": [(90, "high"), (30, "low"), (80, "low")],
-    "p3": [(100, "medium"), (100, "medium"), (20, "high")],
+    "p1": [(20, "high"), (100, "low"), (60, "high")],
+    "p2": [(100, "low"), (20, "high"), (60, "high")],
+    "p3": [(60, "high"), (60, "high"), (30, "medium")],
 }
 
 

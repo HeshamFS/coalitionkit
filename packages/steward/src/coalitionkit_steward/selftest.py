@@ -69,6 +69,20 @@ EXAMPLES: tuple[Example, ...] = (
         "default",
     ),
     Example(
+        "contact-details-positive",
+        "coalition.observe",
+        {"source": "chat", "content": "Call me on +49 170 1234567 after six."},
+        "block",
+        "no-contact-details-in-room",
+    ),
+    Example(
+        "contact-details-negative",
+        "coalition.observe",
+        {"source": "chat", "content": "Meet on 2026-11-05 at 10:00, about 120 minutes, 90 for me."},
+        "allow",
+        "default",
+    ),
+    Example(
         "contact-positive",
         "coalition.offer",
         {"note": "hello"},

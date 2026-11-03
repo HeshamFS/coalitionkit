@@ -12,6 +12,7 @@ the room gives it a short grace and moves on.
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from coalitionkit_contracts import new_ulid, validate_payload
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
 GRACE_S = 60.0  # how long a person's own (not hosted) agent has to offer
 NOTE_MAX = 300
 
-SYSTEM = (
+OFFER_SYSTEM = (
     "You are one person's agent in a small group room. An offer says: I could do this need, "
     "and it would take me about this long. Offers are alternatives, not a bill; the room "
     "picks among everyone's offers. Offer on every need this person could do, with your own "
@@ -53,15 +54,22 @@ SYSTEM = (
 
 
 async def send_offer(
-    engine: RoomEngine, coalition: str, who: str, state: State, item: OfferItem
+    engine: RoomEngine,
+    coalition: str,
+    who: str,
+    state: State,
+    item: OfferItem,
+    *,
+    offer_id: str | None = None,
+    valid_until: str | None = None,
 ) -> str | None:
     """One signed offer from this seat's own agent, closed fields only; None if it was held."""
     payload: Document = {
-        "offer_id": new_ulid(),
+        "offer_id": offer_id or new_ulid(),
         "target": {"kind": "need", "id": item.need_id},
         "capacity": 1,
         "cost": {"minutes": item.minutes, "money": item.money, "effort": item.effort},
-        "valid_until": state.tasks[item.need_id]["window"]["end"],
+        "valid_until": valid_until or state.tasks[item.need_id]["window"]["end"],
     }
     validate_payload("coalition.offer", payload)
     sent = await engine.submit(coalition, who, "offer", payload, {"audience": "coalition"})
@@ -84,7 +92,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
             engine,
             coalition,
             "hosted_agent",
-            SYSTEM,
+            OFFER_SYSTEM,
             {
                 "goal": state.charter["goal"],
                 "person": engine.name_of(coalition, who),
@@ -177,18 +185,35 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         note_gaps(engine, coalition, state, doc)
 
 
-async def cover(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:
+def live_targets(state: State, now: str) -> set[str]:
+    """Needs that have an offer still open (an offer ended on purpose does not count)."""
+    at = datetime.fromisoformat(now)
+    return {
+        str(o["target"]["id"])
+        for o in state.offers.values()
+        if datetime.fromisoformat(o["valid_until"]) > at
+    }
+
+
+async def cover(
+    engine: RoomEngine,
+    coalition: str,
+    state: State,
+    doc: Document,
+    avoid: frozenset[str] = frozenset(),
+) -> None:
     """Make sure no need is left without an offer, unless every hosted person said 0 hours.
 
     A plan has to cover every need, and an offer only says "I could do this, about this long",
     so anyone who gave any hours can cover a bare need. These offers bind no one: the person's
     own yes on a plan is what counts, and their feed says so.
     """
-    offered = {str(o["target"]["id"]) for o in state.offers.values()}
+    offered = live_targets(state, datetime.fromtimestamp(engine.now(), UTC).isoformat())
     gone = engine.refused_needs(coalition)
-    needs = [n for n in doc["needs"] if n["id"] not in gone]
+    done = {k for k, t in state.tasks.items() if t["status"] in {"done", "withdrawn"}}
+    needs = [n for n in doc["needs"] if n["id"] not in gone and n["id"] not in done]
     bare = [n for n in needs if n["id"] not in offered]
-    hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
+    hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p) and p not in avoid]
     if not bare or not hosted:
         return
     mine = {who: limits(given(engine, coalition, who)) for who in hosted}

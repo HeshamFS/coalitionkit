@@ -98,10 +98,13 @@ class RoomModel:
         names: Document | Callable[[str], Document] | None = None,
         foryou: Document | Callable[[str], Document] | None = None,
         offers_delay: float = 0.0,
+        made: Document | Callable[[str], Document] | None = None,
+        say: Document | Callable[[str], Document] | None = None,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
         self.offers, self.names, self.foryou = offers, names, foryou
         self.offers_delay = offers_delay
+        self.made, self.say = made, say
         self.calls: list[tuple[str, list[ChatMessage]]] = []
 
     @staticmethod
@@ -120,6 +123,8 @@ class RoomModel:
             reply = self.pick(self.names, user) if "public name" in system else self.needs
             if self.gardener_delay and "public name" not in system:
                 await asyncio.sleep(self.gardener_delay)
+        elif route.role == "composer":
+            reply = self.pick(self.made, user)
         elif route.role == "hosted_agent":
             if "An offer says" in system:
                 reply = self.pick(self.offers, user)
@@ -127,6 +132,8 @@ class RoomModel:
                     await asyncio.sleep(self.offers_delay)
             elif "means for them" in system:
                 reply = self.pick(self.foryou, user)
+            elif "where it goes" in system:
+                reply = self.pick(self.say, user)
             else:
                 reply = self.brief
         else:
@@ -188,6 +195,7 @@ def start_room(
     goal: str = "Three members need a shared room, a budget and an invitation tomorrow",
     steward: FakeSteward | None = None,
     owner_name: str | None = None,
+    real_steward: bool = False,
 ) -> Document:
     server = server_of(client)
     draft = client.post("/v1/genesis/draft", json={"goal": goal}).json()["draft"]
@@ -200,7 +208,8 @@ def start_room(
     )
     assert response.status_code == 200, response.text
     created = response.json()
-    server.hosts[created["coalition_id"]].steward = steward or FakeSteward()
+    if not real_steward:
+        server.hosts[created["coalition_id"]].steward = steward or FakeSteward()
     return created
 
 

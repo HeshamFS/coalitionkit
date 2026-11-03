@@ -17,6 +17,7 @@ from .brief import KEY as BRIEF_KEY
 from .brief import chosen_slots
 from .engine import FEED, FOR_YOU
 from .seats import open_seats
+from .view_results import change_of, latest_by_need, results_of, tasks_of
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -24,7 +25,6 @@ if TYPE_CHECKING:
 FEED_SHOWN = 30
 STOP_FIELDS = ("id", "at", "seat", "to", "policy", "explain")
 SHOWN = ("id", "at", "seat", "verb", "need", "label", "state", "ms", "source", "event")
-PHASES = {"Decide": "decide", "Act": "commit", "Live": "live"}
 
 
 def room_state(engine: RoomEngine, coalition: str, viewer: str) -> Document | None:
@@ -50,15 +50,30 @@ def phase_of(state: State, doc: Document) -> str:
         return "gather"
     if not doc["briefs_done"]:
         return "brief"
-    return PHASES.get(state.stage, "work")
+    statuses = {t["status"] for t in state.tasks.values()}
+    if statuses & {"open", "negotiating"} or not statuses:
+        return "work"
+    if "proposed" in statuses:
+        return "decide"
+    if "decided" in statuses:
+        return "commit"
+    unmade = any(
+        t["status"] == "committed" and not doc["made"].get(k, {}).get("result")
+        for k, t in state.tasks.items()
+    )
+    return "make" if unmade else "live"
 
 
 def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Document:
     doc = engine.read(coalition)
     phase = phase_of(state, doc)
     mine = my_side(engine, coalition, viewer, doc)
-    waiting = bool(engine.server.hosts[coalition].open_consents(viewer)) or any(
-        q["status"] == "open" for q in mine["brief"]
+    made = results_of(engine, state, doc, viewer)
+    mine["tasks"] = tasks_of(state, doc, viewer, made)
+    waiting = (
+        bool(engine.server.hosts[coalition].open_consents(viewer))
+        or any(q["status"] == "open" for q in mine["brief"])
+        or any(t["can_mark_done"] for t in mine["tasks"])
     )
     owner = engine.owner(coalition)
     return {
@@ -67,7 +82,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "goal": str(state.charter.get("goal", "")),
         "closes": str(state.charter.get("deadline", "")),
         "seats": seats_of(engine, coalition, viewer, state, doc),
-        "needs": needs_of(viewer, state, doc),
+        "needs": needs_of(viewer, state, doc, latest_by_need(made)),
         "activity": [
             {k: item[k] for k in SHOWN}
             for item in doc["activity"]
@@ -76,10 +91,10 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "slots": list(doc["slots"]),
         "common": common_of(engine, coalition, viewer, doc),
         "plan_notes": notes_of(viewer, state, doc),
-        "results": [],
+        "results": made,
         "stops": [{k: s[k] for k in STOP_FIELDS} for s in doc["stops"]],
         "checked": checked_of(engine, coalition, state),
-        "change": None,
+        "change": change_of(state, doc),
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "mine": mine,
     }
@@ -149,7 +164,7 @@ def seats_of(
     return seats
 
 
-def needs_of(viewer: str, state: State, doc: Document) -> list[Document]:
+def needs_of(viewer: str, state: State, doc: Document, latest: dict[str, str]) -> list[Document]:
     seen_offers = {
         e["payload"]["offer_id"]
         for e in state.events.values()
@@ -174,7 +189,7 @@ def needs_of(viewer: str, state: State, doc: Document) -> list[Document]:
                 "status": status_of(need["id"], task, offers, doc),
                 "offers": offers,
                 "assignee": task["assignee"] if task else None,
-                "result": None,
+                "result": latest.get(need["id"]),
                 "source": doc["needs_source"],
             }
         )

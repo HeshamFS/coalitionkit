@@ -401,6 +401,8 @@ AGENT_PATHS = frozenset(
         "/v1/agent/vault",
         "/v1/room/begin",
         "/v1/room/brief",
+        "/v1/room/say",
+        "/v1/room/done",
     }
 )
 
