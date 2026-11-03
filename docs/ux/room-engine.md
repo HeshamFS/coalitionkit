@@ -154,9 +154,9 @@ What the fields mean:
 
 | Kind | `data` | Export |
 |---|---|---|
-| `place` | `{options: [{name, why, provenance}], chosen: name or null}`; `options` may be empty, and the card then says no place has been named yet | none |
+| `place` | `{options: [{name, why, check, provenance}], chosen: name or null}`; `options` may be empty, and the card then says no place has been named yet | none |
 | `schedule` | `{items: [{title, start, end, where}]}`, with ISO 8601 times | ICS |
-| `budget` | `{currency, rows: [{label, amount, provenance}], suggested: [{label, amount, unit, provenance}], total}` | CSV |
+| `budget` | `{currency, amount, rows: [{label, amount, who, provenance}], how_shared, time: [{label, amount, provenance, ref}], time_total, suggested: [], total}` | CSV |
 | `list` | `{items: [{label, who, provenance}]}` | CSV |
 | `draft` | `{subject, body}` | text |
 
@@ -210,4 +210,4 @@ Each opens only when the last passes in a real room with the live model.
 
 Then: spec updated, `FREEZE_TAG` moved to a new tag, `tools/check.py` green, public host next.
 
-`budget` with no money in the goal is a time budget: `currency` is `minutes`, the title is "Time budget", `rows` are the signed minutes from people's offers (provenance `signed`, each number bound to its offer event) and `total` is their sum. When the goal or the need mentions money the model may add `suggested` cost lines; these are always `provenance: "estimate"`, are never part of `total`, and the tree shows them in their own card. `place` options are suggested kinds of place, always `estimate`; a result never repeats the need as an option.
+Results are made in two steps. The maker step writes the real thing for the kind (a complete message, 3 to 8 budget lines that add up to exactly the amount the goal states, 2 or 3 kinds of place with what to check first, steps, a list that names who brings what) on the `composer` role with room to think; code checks it (no placeholders, exact sums, names from the room) and builds what it honestly can when the model fails (`source` is then `rules`). The layout step then shows that data as cards; it must show every item, and a fixed tree stands in when its two attempts fail. A `budget` with money in the goal is in that currency (`amount`, `rows` with `who`, `how_shared`); the signed minutes from people's offers sit in their own `time` section (each number bound to its offer event) and `time_total`. With no money in the goal it is a time budget: `currency` is `minutes`, the title is "Time budget", `rows` are the signed minutes and `total` their sum. `place` options are suggested kinds of place, always `estimate`; a result never repeats the need as an option; a schedule has `steps` beside its timed `items`.

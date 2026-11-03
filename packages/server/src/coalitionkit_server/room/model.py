@@ -36,6 +36,7 @@ async def complete[M: BaseModel](
     coalition: str,
     participant: str | None,
     schema: type[M],
+    opts: dict[str, Any] | None = None,
 ) -> Completion:
     """One gateway call; a reply that does not fit the schema is asked for once more."""
     reply: Completion | None = None
@@ -47,6 +48,7 @@ async def complete[M: BaseModel](
                 coalition_id=coalition,
                 participant=participant or "_room",
                 response_schema=schema,
+                **(opts or {}),
             )
             break
         except SchemaValidationError:
@@ -71,19 +73,28 @@ async def ask[M: BaseModel](
     only: str | None = None,
     participant: str | None = None,
     timeout: float = ASK_TIMEOUT_S,
+    budget: int | None = None,
+    effort: str | None = None,
 ) -> M | None:
     """One schema-checked model call; ``None`` means the caller must use its rules."""
     entry = engine.start_activity(
         coalition, verb, label, seat=seat, need=need, only=only, source="model"
     )
     started = time.monotonic()
+    opts: dict[str, Any] = {}
+    if budget is not None:
+        opts["max_completion_tokens"] = budget  # enough room to think and to write the thing
+    if effort is not None:
+        opts["reasoning_effort"] = effort
     messages: Any = [
         {"role": "system", "content": f"{system}\n\n{GUARD}"},
         {"role": "user", "content": json.dumps(data, ensure_ascii=False)},
     ]
     try:
         async with asyncio.timeout(timeout):
-            reply = await complete(engine, role, messages, coalition, participant or seat, schema)
+            reply = await complete(
+                engine, role, messages, coalition, participant or seat, schema, opts
+            )
         parsed = reply.parsed
         if not isinstance(parsed, schema):
             raise ValueError("reply is not the requested shape")

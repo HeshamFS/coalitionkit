@@ -102,12 +102,14 @@ class RoomModel:
         say: Document | Callable[[str], Document] | None = None,
         made_delay: float = 0.0,
         steward_delay: float | None = None,
+        laid: Document | Callable[[str], Document] | None = None,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
         self.offers, self.names, self.foryou = offers, names, foryou
         self.offers_delay = offers_delay
         self.made, self.say, self.made_delay = made, say, made_delay
         self.steward_delay = steward_delay
+        self.laid = laid
         self.calls: list[tuple[str, list[ChatMessage]]] = []
 
     @staticmethod
@@ -127,7 +129,8 @@ class RoomModel:
             if self.gardener_delay and "public name" not in system:
                 await asyncio.sleep(self.gardener_delay)
         elif route.role == "composer":
-            reply = self.pick(self.made, user)
+            wants = self.laid if "You choose how to show" in system else self.made
+            reply = self.pick(wants, user)
             if self.made_delay:
                 await asyncio.sleep(self.made_delay)
         elif route.role == "hosted_agent":

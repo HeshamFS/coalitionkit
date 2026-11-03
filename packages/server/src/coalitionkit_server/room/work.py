@@ -20,7 +20,7 @@ from coalitionkit_contracts import new_ulid
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from . import results
+from . import makers, results
 from .seats import read_state, sign_asks
 
 if TYPE_CHECKING:
@@ -111,6 +111,10 @@ def facts_for(
         "goal": state.charter["goal"],
         "need": {k: needs[task][k] for k in ("id", "title", "kind", "detail")},
         "plan": plan,
+        "people": [
+            s["label"] for s in seats_of(engine, coalition, "", state, doc) if s["kind"] == "person"
+        ],
+        "amount": makers.stated_amount(str(state.charter["goal"])),
         "common": [{"id": s, "label": slots.get(s, s)} for s in shared],
         "now": datetime.fromtimestamp(engine.now(), UTC).isoformat(),
         "money": bool(
