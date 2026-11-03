@@ -33,6 +33,9 @@ OFFERS = {
 
 def make_offers(client: TestClient, cid: str, people: dict[str, dict[str, Any]]) -> None:
     needs = [e["payload"]["need_id"] for e in events(client, cid, "need")]
+    engine = engine_of(client)
+    # Hold planning while the offers go in, or a slow machine lets a plan start half-way.
+    engine.update(cid, lambda d: d.__setitem__("change_pending", True))
     for who, rows in OFFERS.items():
         for need, (minutes, effort) in zip(needs, rows, strict=True):
             cost = {"minutes": minutes, "money": 0, "effort": effort}
@@ -42,6 +45,8 @@ def make_offers(client: TestClient, cid: str, people: dict[str, dict[str, Any]])
                 headers=bearer(people[who]["token"]),
             )
             assert reply.status_code == 200, reply.text
+    engine.update(cid, lambda d: d.__setitem__("change_pending", False))
+    engine.wake_gardener(cid)
 
 
 def silent_room(client: TestClient):
