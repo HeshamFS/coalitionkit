@@ -101,11 +101,13 @@ class RoomModel:
         made: Document | Callable[[str], Document] | None = None,
         say: Document | Callable[[str], Document] | None = None,
         made_delay: float = 0.0,
+        steward_delay: float | None = None,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
         self.offers, self.names, self.foryou = offers, names, foryou
         self.offers_delay = offers_delay
         self.made, self.say, self.made_delay = made, say, made_delay
+        self.steward_delay = steward_delay
         self.calls: list[tuple[str, list[ChatMessage]]] = []
 
     @staticmethod
@@ -139,6 +141,9 @@ class RoomModel:
                 reply = self.pick(self.say, user)
             else:
                 reply = self.brief
+        elif route.role == "steward" and self.steward_delay is not None:
+            await asyncio.sleep(self.steward_delay)
+            reply = {"action": "allow", "policy_id": None, "reason": "fine", "redact": []}
         else:
             reply = None
         if reply is None:

@@ -733,3 +733,40 @@ async def test_redactions_from_every_projection_verdict_are_kept() -> None:
     assert sorted(signed.body.redact) == ["payload.a", "payload.b"]
     assert "r-payload" not in signed.model_dump_json()
     assert (steward.audit_reason(COALITION, EVENT) or "").startswith("r-payload.")
+
+
+class Slow(FakeModel):
+    """A transport that takes a moment per call and answers by the order it was asked in."""
+
+    def __init__(self, script: list[ScriptedResponse | BaseException], delay: float) -> None:
+        super().__init__(script)
+        self.delay = delay
+
+    async def create(self, route: Any, messages: Any, opts: Any) -> Any:
+        import asyncio
+
+        await asyncio.sleep(self.delay)
+        return await super().create(route, messages, opts)
+
+
+async def test_the_recipient_views_are_audited_together_and_the_verdict_is_unchanged() -> None:
+    """Three views, 0.4 s each: together they take about 0.4 s, not 1.2 s, and the strictest
+    answer wins exactly as it did when they were asked one by one."""
+    block = json.dumps({"action": "block", "policy_id": None, "reason": "host-only", "redact": []})
+    scope = Scope(audience="participants", participants=["p1", "p2", "p3"])
+    payload = plan_payload("p1", "p2", "p3")
+    answers = [reply(ALLOW), reply(block), reply(ALLOW)]
+    timed = {}
+    for delay in (0.0, 0.4):
+        meter = CostMeter(load_price_table())
+        fake = Slow(list(answers), delay)
+        gateway = ModelGateway(Settings(_env_file=None), transport=fake, meter=meter)  # pyright: ignore[reportCallIssue]
+        steward = Steward(gateway, signing_key=KEY, kid="steward-1")
+        started = time.monotonic()
+        signed = await steward.review(
+            envelope("coalition.propose", payload, scope), context=MEMBERS
+        )
+        timed[delay] = time.monotonic() - started
+        assert signed.body.action == "block" and len(fake.calls) == 3
+        assert steward.audit_reason(COALITION, EVENT) == "host-only"
+    assert timed[0.4] < 0.9, f"audited one by one: {timed[0.4]:.2f}s"

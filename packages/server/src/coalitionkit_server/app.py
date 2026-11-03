@@ -88,6 +88,8 @@ class Server:
         self.surfaces: dict[str, FastAPI] = {}
         self.registry = Registry(self.store, self.key, settings.public_base_url)
         self.room = RoomEngine(self) if settings.room_engine == "on" else None
+        if self.room is not None:
+            self.steward.on_plan_review = self.room.steward_checking
         with self.store.transaction("") as tx:
             rows = tx.execute("SELECT id, host FROM coalitions").fetchall()
         for coalition, card_url in rows:
@@ -173,6 +175,7 @@ class Server:
             room_version=(lambda: room.version(coalition)) if room else None,
             stage=(lambda: host.state.stage) if room else None,
             cost_meter=(lambda: self.cost_meter(coalition)) if room else None,
+            busy=(lambda: coalition in room.checking) if room else None,
         )
 
         def policy_escalation(event: Document, policy_id: str, explain: str) -> None:
@@ -225,9 +228,13 @@ class Server:
         # effort the chosen people said the work would be; a pack brings its own strategy.
         driven = self.room is not None and self.room.drives(coalition)
         third = self.room.effort_objective(coalition) if driven and self.room else None
-        plans = plan_for(host, self.packs, third if self.bound_pack(coalition) is None else None)
-        if driven and self.room is not None:
-            plans = self.room.passable(coalition, plans)
+        engine_rules = driven and self.room is not None and self.bound_pack(coalition) is None
+        plans = plan_for(
+            host,
+            self.packs,
+            third if engine_rules else None,
+            self.room.task_share() if engine_rules and self.room else None,
+        )
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
         payload = build_propose(

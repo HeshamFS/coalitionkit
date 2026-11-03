@@ -61,12 +61,15 @@ class SurfaceHub:
         room_version: Callable[[], int] | None = None,
         stage: Callable[[], str] | None = None,
         cost_meter: Callable[[], Document | None] | None = None,
+        busy: Callable[[], bool] | None = None,
     ) -> None:
         self.pack_state, self.pack_catalog, self.pack_views = pack_state, pack_catalog, pack_views
         # The room engine's steps are not log events: its version counter tells a session that
         # its per-viewer ``room`` key moved, so the screen follows within one poll.
         self.room_state, self.room_version = room_state, room_version
         self.stage, self.cost_meter = stage, cost_meter
+        # True while the host holds its own lock for a slow review: nothing may wait on it then.
+        self.busy = busy
         self.host, self.auth, self.signer_for, self.catalog = host, auth, signer_for, catalog
         self.clock, self.new_id, self.sleep = clock, new_id, sleep
         self.poll_interval, self.max_ticks = poll_interval, max_ticks
@@ -243,7 +246,7 @@ class SurfaceHub:
             clock=self.clock,
             new_id=self.new_id,
         )
-        return FeedSession(
+        session = FeedSession(
             self.host,
             viewer,
             clock=self.clock,
@@ -260,6 +263,16 @@ class SurfaceHub:
                 else None
             ),
         )
+
+        def quick() -> list[Frame]:
+            """Only the room moved and the host is busy: tell the screen without asking it."""
+            if self.room_version is not None:
+                seen["room"] = self.room_version()
+            room = self.room_state(viewer) if self.room_state else None
+            return session.room_delta(room) if room is not None else []
+
+        session.quick = quick
+        return session
 
     def _room_keys(self, viewer: str, state: Document, seen: dict[str, int]) -> None:
         if self.room_version is not None:
@@ -344,6 +357,10 @@ class SurfaceHub:
 
     def _poll(self, session: Session, sub: Subscription) -> list[Frame]:
         frames: list[Frame] = []
+        if isinstance(session, FeedSession) and self.busy is not None and self.busy():
+            if session.quick is not None and session.is_stale():
+                frames += session.quick()
+            return frames + session.tick()
         if sub.wake.is_set():
             sub.read(self.host.store)  # advances the cursor and clears the wake
             frames += session.changed()

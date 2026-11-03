@@ -130,7 +130,44 @@ def test_two_plans_never_share_a_name(tmp_path: Path) -> None:
     with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, names=same)) as client:
         cid, engine, people = silent_room(client)
         make_offers(client, cid, dict(zip(OFFERS, people.values(), strict=True)))
-        until(lambda: len(view_of(engine, cid, "p1")["plan_notes"]) == 2, 40, "plan words")
-        notes = view_of(engine, cid, "p1")["plan_notes"].values()
-        assert len({n["name"] for n in notes}) == 2
+        until(lambda: len(view_of(engine, cid, "p1")["plan_notes"]) >= 2, 40, "plan words")
+        notes = list(view_of(engine, cid, "p1")["plan_notes"].values())
+        assert len({n["name"] for n in notes}) == len(notes) >= 2
         assert all(" takes " in n["line"] and n["source"] == "rules" for n in notes)
+
+
+def test_the_front_is_computed_only_among_plans_inside_the_share_cap() -> None:
+    """The offers of a live run: the front used to hold an unfair plan that dominated the fair
+    ones, and removing it afterwards left one plan or none. Now unfair plans never enter."""
+    from fractions import Fraction
+
+    from coalitionkit_contracts.payloads import Cost, Window
+    from coalitionkit_gardener import Offer, PlanConfig, Problem, Task, generate_plans
+
+    window = Window(start="2026-11-03T00:00:00Z", end="2026-11-10T00:00:00Z")
+    tasks = tuple(Task(t, (), window) for t in ("plan", "budget", "review"))
+    rows = {
+        ("helper", "budget"): (15, "low"),
+        ("p2", "plan"): (85, "low"),
+        ("p2", "budget"): (100, "medium"),
+        ("p2", "review"): (70, "medium"),
+        ("p1", "plan"): (90, "low"),
+        ("p1", "budget"): (60, "medium"),
+        ("p1", "review"): (75, "medium"),
+    }
+    offers = tuple(
+        Offer(who, task, Cost(minutes=m, money=0, effort=e))  # pyright: ignore[reportArgumentType]
+        for (who, task), (m, e) in rows.items()
+    )
+    level = {"low": 1, "medium": 2, "high": 3}
+
+    def effort(assign: Any) -> float:
+        return float(sum(level[rows[(who, task)][1]] for task, who in assign.items()))
+
+    problem = Problem(tasks, offers, {"p1": 1, "p2": 1, "helper": 1})
+    loose = generate_plans(problem, effort, config=PlanConfig())
+    tight = generate_plans(problem, effort, config=PlanConfig(max_task_share=Fraction(3, 5)))
+    assert any(len(set(p.assignments.values())) < 3 for p in loose.plans), "the old front"
+    assert [dict(p.assignments) for p in tight.plans] == [
+        {"budget": "helper", "plan": "p2", "review": "p1"}
+    ], "the only other fair permutation is dominated, and a dominated plan is never added"

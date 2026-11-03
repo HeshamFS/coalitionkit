@@ -16,14 +16,13 @@ import json
 import logging
 import threading
 import time
-from collections import Counter
 from collections.abc import Awaitable, Callable, Mapping
 from copy import deepcopy
 from datetime import UTC, datetime
+from fractions import Fraction
 from typing import TYPE_CHECKING, Any
 
 from coalitionkit_contracts import new_ulid
-from coalitionkit_gardener.plans import PlanCandidate, PlanSet
 from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_steward.policy import core_policies
 from coalitionkit_surfaces import Catalog, load_catalog
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 TICK_S = 2.0  # how often an idle room is looked at again (brief deadlines, retries)
 ACTIVITY_KEEP = 60
+CHECKING = "The Steward is checking the plans"
 FEED = "_room_feed"
 FOR_YOU = "_room_foryou"
 RESERVED = "_room"  # vault keys the engine owns; the agent vault routes never show them
@@ -81,6 +81,9 @@ class RoomEngine:
         self.cache: dict[tuple[str, str], tuple[tuple[int, int], Document]] = {}
         self.tasks: dict[str, asyncio.Task[None]] = {}
         self.pending: set[asyncio.Future[Any]] = set()
+        self.checking: dict[str, tuple[str, float]] = {}
+        self.finished_checks: list[tuple[str, tuple[str, float], float, str]] = []
+        self.driven: set[str] = set()
         self.wakes: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Event]] = {}
         self.locks: dict[str, asyncio.Lock] = {}
         self.now: Callable[[], float] = time.time
@@ -109,6 +112,7 @@ class RoomEngine:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+        self.driven.add(coalition)
         task = self.tasks.get(coalition)
         if task is None or task.done():
             self.wakes[coalition] = (loop, asyncio.Event())
@@ -211,6 +215,7 @@ class RoomEngine:
         from . import brief, compare, explain, needs, offers, say, seats, work
 
         host = self.server.hosts[coalition]
+        self.flush_checks(coalition)
         state = await self.thread(lambda: host.state)
         owner = self.owner(coalition)
         if state.stage == "Dissolve" or owner is None or not state.accepted_charter(owner):
@@ -271,30 +276,73 @@ class RoomEngine:
 
         return effort
 
-    def passable(self, coalition: str, plans: PlanSet) -> PlanSet:
-        """Keep the plans the Steward's fairness rule would not hold, when there are any.
-
-        If every plan would be held, all go to the Steward and its hold is shown as a stop.
-        """
+    def task_share(self) -> Fraction | None:
+        """The most of a plan's tasks one person may hold: the Steward's own fairness cap, so the
+        plans compared are the plans it would let through."""
         policy = self.policies.get("fairness-cap-exceeded")
         cap = policy.when.plan_share_above if policy else None
-        if cap is None or len(plans.plans) < 2:
-            return plans
+        return Fraction(str(cap)) if cap is not None else None
 
-        def fine(plan: PlanCandidate) -> bool:
-            counts = Counter(plan.assignments.values())
-            return sum(counts.values()) < 2 or max(counts.values()) / sum(counts.values()) <= cap
+    def steward_checking(self, phase: str, coalition: str, seconds: float, action: str) -> None:
+        """The Steward is auditing a plan set: show the quiet time while it lasts.
 
-        kept = tuple(p for p in plans.plans if fine(p))
-        if not kept or len(kept) == len(plans.plans):
-            return plans
-        self.note(
-            coalition,
-            "planning",
-            f"{len(plans.plans) - len(kept)} plan(s) held back: one person would carry more than "
-            f"{round(cap * 100)} percent of the work",
-        )
-        return PlanSet(kept, plans.unresolved, plans.objective_names)
+        This runs inside the host's own transaction, so it touches no store and takes no lock:
+        it only notes the start and the end in memory and wakes the engine, which writes the
+        finished line to the document on its next step.
+        """
+        if coalition not in self.driven:
+            return
+        if phase == "start":
+            self.checking[coalition] = (new_ulid(), self.now())
+        elif coalition in self.checking:
+            entry = self.checking.pop(coalition)
+            self.finished_checks.append((coalition, entry, seconds, action))
+        self.versions[coalition] = self.versions.get(coalition, 0) + 1
+        self.wake(coalition)
+
+    def flush_checks(self, coalition: str) -> None:
+        """Write the audits that have ended into the activity, once."""
+        mine = [c for c in self.finished_checks if c[0] == coalition]
+        for item in mine:
+            self.finished_checks.remove(item)
+            _, (ident, started), seconds, action = item
+            entry: Document = {
+                "id": ident,
+                "at": datetime.fromtimestamp(started, UTC).isoformat(),
+                "seat": None,
+                "verb": "planning",
+                "need": None,
+                "label": CHECKING,
+                "state": "done" if action in {"allow", "redact"} else "failed",
+                "ms": round(seconds * 1000),
+                "source": "host",
+                "event": None,
+                "only": None,
+            }
+            self.update(
+                coalition,
+                lambda d, e=entry: d.__setitem__("activity", [*d["activity"], e][-ACTIVITY_KEEP:]),
+            )
+
+    def running_checks(self, coalition: str) -> list[Document]:
+        """The audit that is going on now, as an activity line that is still running."""
+        if coalition not in self.checking:
+            return []
+        ident, started = self.checking[coalition]
+        return [
+            {
+                "id": ident,
+                "at": datetime.fromtimestamp(started, UTC).isoformat(),
+                "seat": None,
+                "verb": "planning",
+                "need": None,
+                "label": CHECKING,
+                "state": "running",
+                "ms": None,
+                "source": "host",
+                "event": None,
+            }
+        ]
 
     def hold(self, coalition: str, marker: str, policy: str) -> None:
         """A plan set the Steward held: it is not sent again until the offers change."""

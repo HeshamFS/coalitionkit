@@ -33,6 +33,16 @@ def room_state(engine: RoomEngine, coalition: str, viewer: str) -> Document | No
     cached = engine.cache.get((coalition, viewer))
     if cached is not None and cached[0] == key:
         return cached[1]
+    if cached is not None and coalition in engine.checking:
+        # The host is holding its lock while the Steward audits; show what was last built, plus
+        # the audit that is running, rather than wait for the lock.
+        old = cached[1]
+        running = engine.running_checks(coalition)
+        shown = {a["id"] for a in old["activity"]}
+        return {
+            **old,
+            "activity": [*old["activity"], *[a for a in running if a["id"] not in shown]],
+        }
     if engine.owner(coalition) is None:
         return None  # not a room the engine drives (made by an operator, not by Genesis)
     state = engine.server.hosts[coalition].state
@@ -85,7 +95,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "needs": needs_of(viewer, state, doc, latest_by_need(made)),
         "activity": [
             {k: item[k] for k in SHOWN}
-            for item in doc["activity"]
+            for item in [*doc["activity"], *engine.running_checks(coalition)]
             if item.get("only") in (None, viewer)
         ],
         "slots": list(doc["slots"]),

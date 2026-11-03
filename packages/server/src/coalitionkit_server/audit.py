@@ -55,6 +55,8 @@ class StewardAdapter:
         self.runner = runner
         # (event type, seconds, action) for each review: how long the Steward takes, per event.
         self.timings: list[tuple[str, float, str]] = []
+        # Told when a plan set enters and leaves review: (phase, coalition, seconds, action).
+        self.on_plan_review: Callable[[str, str, float, str], None] | None = None
         self._members = members
         self._policies = core_policies()
         self._ready = None
@@ -64,7 +66,13 @@ class StewardAdapter:
 
     def review(self, envelope: Document, *, context: ReviewContext | None = None) -> Verdict:
         started = time.monotonic()
+        watching = envelope.get("type") == "coalition.propose" and self.on_plan_review is not None
+        coalition = str(envelope.get("coalition_id", ""))
+        if watching and self.on_plan_review is not None:
+            self.on_plan_review("start", coalition, 0.0, "")
         verdict = self._review(envelope, context)
+        if watching and self.on_plan_review is not None:
+            self.on_plan_review("end", coalition, time.monotonic() - started, verdict.action)
         self.timings.append((str(envelope.get("type")), time.monotonic() - started, verdict.action))
         del self.timings[:-2000]
         return verdict
