@@ -83,6 +83,13 @@ def rows_of(raw: Any, key: str) -> list[Document]:
     return [cast(Document, r) for r in cast(list[Any], value) if isinstance(r, dict)][:MAX_ITEMS]
 
 
+def echoes(label: str, facts: Document) -> bool:
+    """The label only repeats the need or the goal, so it says nothing the room did not know."""
+    said = set(re.findall(r"[a-z]{3,}", label.lower()))
+    known = set(re.findall(r"[a-z]{3,}", f"{facts['need']['title']} {facts['goal']}".lower()))
+    return not said or said <= known
+
+
 def rule_data(kind: str, facts: Document) -> Document:
     """What code can say with no model: only what the room itself holds."""
     need = facts["need"]
@@ -132,7 +139,7 @@ def budget_data(facts: Document, suggested: list[Document]) -> Document:
     ]
     for row in suggested:
         label = text(row.get("label"), 60)
-        if label:
+        if label and not echoes(label, facts):
             rows.append({"label": label, "amount": 0, "provenance": "estimate", "ref": None})
     return {
         "currency": "minutes",
@@ -149,7 +156,7 @@ def list_data(facts: Document, suggested: list[Document]) -> Document:
     for row in suggested:
         label = text(row.get("label"), 60)
         who = text(row.get("who"), 40)
-        if label:
+        if label and not echoes(label, facts):
             items.append(
                 {"label": label, "who": who if who in people else "", "provenance": "estimate"}
             )
@@ -169,7 +176,7 @@ def normalise(kind: str, raw: Any, facts: Document) -> Document | None:
             }
             for o in rows_of(raw, "options")
         ]
-        options = [o for o in options if o["name"]]
+        options = [o for o in options if o["name"] and not echoes(o["name"], facts)]
         return {"options": options, "chosen": None} if options else None
     if kind == "schedule":
         titles = rows_of(raw, "items")

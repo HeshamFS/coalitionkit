@@ -40,12 +40,18 @@ CHANGE_WORDS = re.compile(
     r"move it|moved|late|delay|sick|away|swap)\b",
     re.I,
 )
+ADDRESSED = re.compile(
+    r"\b(everyone|everybody|all of you|the group|the room|let (everyone|them|the others) know|"
+    r"tell (everyone|them|the others|the room))\b",
+    re.I,
+)
 ROOM_WORDS = re.compile(r"^(@?room|everyone|all|tell (everyone|the room))\b[:,]?\s*", re.I)
 
 SYSTEM = (
     "You are one person's agent in a small group room. The person typed one sentence; decide "
-    "where it goes. route 'private': a note or question for you only, nothing leaves the "
-    "person. route 'room': something they want to say to everyone in the room. route "
+    "where it goes. route 'private': a note, a thought or a question for you only, nothing "
+    "leaves the person; this is the default. route 'room': only when the person is plainly "
+    "speaking to the others (tell everyone, let them know, a message for the group). route "
     "'change': it changes what the room planned (someone cannot do a job, a job changed or "
     "moved). For a change list the ids of the needs it touches in 'affects' (only ids from "
     "the list given, and only what the sentence actually touches) and set 'withdraw' true if "
@@ -109,6 +115,8 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
         only=who,
     )
     route, withdraw = (reply.route, reply.withdraw) if reply else rule_route(text)
+    if route == "room" and not ADDRESSED.search(text):
+        route = "private"  # a question to your agent is never sent to the room by a guess
     affected: list[str] = []
     sentence = tidy(reply.reply, 200) if reply and reply.reply.strip() else ""
     if route == "change":

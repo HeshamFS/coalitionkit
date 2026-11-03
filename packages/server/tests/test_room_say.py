@@ -316,3 +316,18 @@ def test_a_restart_resumes_at_commit_and_at_make(tmp_path: Path) -> None:
         assert len(results_of(client, cid)) == 3, "no result is made twice"
         assert len(events(client, cid, "commit")) == 3
         assert engine_of(client).read(cid)["made"]
+
+
+def test_a_model_cannot_send_a_question_to_the_room_by_a_guess(tmp_path: Path) -> None:
+    def guess(user: str) -> dict[str, Any]:
+        return {"route": "room", "reply": "Shared it.", "affects": [], "withdraw": False}
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF, made=made, say=guess)) as client:
+        cid, _engine, people = to_decided(client)
+        token = people["p1"]["token"]
+        asked = say(client, token, "Is it far to walk there?")
+        assert asked["route"] == "private" and "event_id" not in asked
+        told = say(client, token, "Tell everyone the door code is on the fridge")
+        assert told["route"] == "room" and told["event_id"]
+        chat = [e for e in events(client, cid, "observe") if e["payload"]["source"] == "chat"]
+        assert len(chat) == 1

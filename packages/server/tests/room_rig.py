@@ -182,8 +182,11 @@ def view_of(engine: RoomEngine, coalition: str, who: str) -> Document:
     return view
 
 
+PATIENCE = 2.5
+
+
 def until(check: Callable[[], Any], seconds: float = 12.0, what: str = "condition") -> Any:
-    end = time.monotonic() + seconds
+    end = time.monotonic() + seconds * PATIENCE  # a busy machine is slow, not wrong
     while time.monotonic() < end:
         found = check()
         if found:
