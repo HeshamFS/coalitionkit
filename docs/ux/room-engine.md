@@ -105,11 +105,17 @@ type Room = {
   results: {
     id: string; need_id: string; kind: string; title: string;
     by: string; seq: number; source: "model" | "rules"; sources: string[];
-    tree: unknown[]; data: unknown; messages: unknown[]; replaced_by: string | null;
+    seqs: number[]; tree: unknown[]; data: unknown; messages: unknown[];
+    replaced_by: string | null;
   }[];
-  stops: { id: string; at: string; seat: string | null; policy: string; explain: string }[];
+  stops: {
+    id: string; at: string; seat: string | null; to: string | null;
+    policy: string; explain: string;
+  }[];
   checked: number;
-  change: { text: string; moved: string[]; asked: string[]; untouched: number } | null;
+  change: {
+    from: string | null; text: string; moved: string[]; asked: string[]; untouched: number;
+  } | null;
   begin: { can: boolean; open_seats: number } | null;
   mine: {
     brief: {
@@ -125,6 +131,27 @@ type Room = {
   };
 };
 ```
+
+What the fields mean:
+
+- `results[].id` is the id of the `observe` event, and `needs[].result` and `mine.tasks[].result` hold that id. `by` is a seat id. `seqs` holds the log positions of those `sources` this viewer may see, so it can be shorter than `sources`.
+- `plan_notes` and `mine.for_you` are keyed by plan id.
+- `stops[].to` is the seat a stopped message was aimed at, or `null` when it was aimed at the room.
+- `change.from` is the seat that caused the change, or `null` when the host did.
+- `checked` counts the events the Steward has reviewed in this room, including the ones it stopped.
+- `state.cost_meter` is `{spent, currency, calls}`, measured from real model calls.
+
+`results[].data` has one shape per kind, so the screen can offer real exports:
+
+| Kind | `data` | Export |
+|---|---|---|
+| `place` | `{options: [{name, why, provenance}], chosen: name or null}` | none |
+| `schedule` | `{items: [{title, start, end, where}]}`, with ISO 8601 times | ICS |
+| `budget` | `{currency, rows: [{label, amount, provenance}], total}` | CSV |
+| `list` | `{items: [{label, who, provenance}]}` | CSV |
+| `draft` | `{subject, body}` | text |
+
+A brief question's tree keeps its input at the data path `/answer`, and its Send button carries the action `room.brief` with `{question_id, value}`. The screen posts that context to `/v1/room/brief`. The value is a plain option id for `choice`, a list of slot ids for `slots`, a number for `amount` and a string for `text`. A number in a data model may be wrapped as `{value, event_ref}`, so both sides unwrap it: the screen before it posts, and the host before it checks the shape.
 
 The hub takes a `room_state(viewer)` callable and a version counter. `_poll` sends a delta when the version changed, so steps reach the screen within half a second without a log event.
 
