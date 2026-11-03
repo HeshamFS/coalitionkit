@@ -102,7 +102,12 @@ class Server:
         meter = self.gateway.meter
         if meter is None:
             return None
-        return {"spent": meter.total(coalition) / 1_000_000, "currency": meter.prices.currency}
+        calls = sum(1 for r in meter.records if r.coalition_id == coalition)
+        return {
+            "spent": meter.total(coalition) / 1_000_000,
+            "currency": meter.prices.currency,
+            "calls": calls,
+        }
 
     def bound_pack(self, coalition: str) -> Pack | None:
         ref = self.hosts[coalition].state.charter.get("pack")

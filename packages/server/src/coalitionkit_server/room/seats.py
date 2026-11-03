@@ -11,7 +11,6 @@ own keys, signs only its own charter acceptance, and is never a decider.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from typing import TYPE_CHECKING, Any
@@ -78,7 +77,7 @@ async def sign_charter(engine: RoomEngine, coalition: str, who: str) -> int:
                 LOG.warning("Charter acceptance for %s refused: %s", who, exc.code)
         return signed
 
-    return await asyncio.to_thread(run)
+    return await engine.thread(run)
 
 
 def revision_payload(state: State, deciders: list[str]) -> Document:
@@ -93,7 +92,7 @@ def revision_payload(state: State, deciders: list[str]) -> Document:
 
 async def read_state(engine: RoomEngine, coalition: str) -> State:
     host = engine.server.hosts[coalition]
-    return await asyncio.to_thread(lambda: host.state)
+    return await engine.thread(lambda: host.state)
 
 
 async def request_begin(engine: RoomEngine, coalition: str, *, helpers: bool, auto: bool) -> None:
@@ -147,7 +146,7 @@ async def carry_begin(engine: RoomEngine, coalition: str, owner: str) -> None:
         if total_seats(engine, coalition, state) > len(seated) and set(
             state.charter["deciders"]
         ) != set(seated):
-            result = await asyncio.to_thread(
+            result = await engine.thread(
                 host.host_emit,
                 "charter",
                 revision_payload(state, seated),
@@ -211,12 +210,12 @@ async def make_helper(
     server = engine.server
     redeemed: Document
     try:
-        await asyncio.to_thread(server.registry.hosted_for, coalition, pid)
+        await engine.thread(server.registry.hosted_for, coalition, pid)
         redeemed = {"coalition_id": coalition, "participant": pid}
     except ValueError:
-        token = await asyncio.to_thread(server.registry.issue, coalition, pid)
-        redeemed = await asyncio.to_thread(
+        token = await engine.thread(server.registry.issue, coalition, pid)
+        redeemed = await engine.thread(
             server.registry.redeem, token, server.ports, None, None, label
         )
     role: Any = state.charter["roles"][0]["id"]
-    await enroll_member(server, redeemed, role, surfaces=())
+    await engine.guard(enroll_member(server, redeemed, role, surfaces=()))

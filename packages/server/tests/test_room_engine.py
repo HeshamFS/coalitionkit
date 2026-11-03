@@ -274,6 +274,11 @@ def test_slots_and_text_shapes() -> None:
             brief.check_answer(text, bad)
     amount = {"kind": "amount", "options": [], "low": 2, "high": 8}
     assert brief.check_answer(amount, 2) == 2
+    # Send without moving the slider posts the data model's wrapped default.
+    assert brief.check_answer(amount, {"value": 5, "event_ref": "e1"}) == 5
+    for bad in ({"value": 9, "event_ref": "e1"}, {"value": 5}, {"value": "5", "event_ref": "e1"}):
+        with pytest.raises(ValueError):
+            brief.check_answer(amount, bad)
     for bad in (1, 9, True, "3"):
         with pytest.raises(ValueError):
             brief.check_answer(amount, bad)
@@ -285,7 +290,7 @@ def test_brief_closes_after_its_time(tmp_path: Path, monkeypatch: pytest.MonkeyP
         room, (member,) = seated_room(tmp_path, client)
         cid, engine = open_brief(client, room, member)
         until(lambda: engine.read(cid)["briefs_done"], what="the briefs to time out")
-        assert engine.may_plan(cid)
+        until(lambda: engine.may_plan(cid), 40, "offers and the comparison")
         mine = view_of(engine, cid, member["participant"])["mine"]
         assert {q["status"] for q in mine["brief"]} == {"skipped"}
 

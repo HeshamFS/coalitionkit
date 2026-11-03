@@ -38,7 +38,9 @@ SYSTEM = (
     "needs the group must meet. Give each need a short title that starts with a capital "
     "letter and names the thing to get done (under 70 characters, in the goal's own words), "
     "a kind that says what sort of result it needs (place, schedule, budget, list or draft) "
-    "and one line of detail. Then give up to six candidate time slots, each a short label "
+    "and one line of detail that says what done looks like for that need, so the group can "
+    "tell when it is met (never a repeat of the goal). Then give up to six candidate time "
+    "slots, each a short label "
     'with the weekday, day, month and hour in UTC, such as "Wed 5 Nov, 10:00 UTC", all '
     "after the time given and before the deadline, spread over different days and parts of "
     "the day. Titles and details come from the goal only; do not add facts it does not hold."

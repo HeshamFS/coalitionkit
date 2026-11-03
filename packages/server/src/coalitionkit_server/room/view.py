@@ -14,11 +14,14 @@ from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
 from .brief import KEY as BRIEF_KEY
+from .brief import chosen_slots
+from .engine import FEED, FOR_YOU
 from .seats import open_seats
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
+FEED_SHOWN = 30
 SHOWN = ("id", "at", "seat", "verb", "need", "label", "state", "ms", "source", "event")
 PHASES = {"Decide": "decide", "Act": "commit", "Live": "live"}
 
@@ -69,11 +72,11 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
             if item.get("only") in (None, viewer)
         ],
         "slots": list(doc["slots"]),
-        "common": None,
-        "plan_notes": {},
+        "common": common_of(engine, coalition, viewer, doc),
+        "plan_notes": notes_of(viewer, state, doc),
         "results": [],
         "stops": [],
-        "checked": 0,
+        "checked": checked_of(engine, coalition, state),
         "change": None,
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "mine": mine,
@@ -164,7 +167,7 @@ def needs_of(viewer: str, state: State, doc: Document) -> list[Document]:
                 "title": need["title"],
                 "kind": need["kind"],
                 "detail": need["detail"],
-                "status": task["status"] if task else "pending",
+                "status": status_of(need["id"], task, offers, doc),
                 "offers": offers,
                 "assignee": task["assignee"] if task else None,
                 "result": None,
@@ -172,6 +175,14 @@ def needs_of(viewer: str, state: State, doc: Document) -> list[Document]:
             }
         )
     return shown
+
+
+def status_of(need: str, task: Document | None, offers: int, doc: Document) -> str:
+    if task is None:
+        return "pending"
+    if doc["offers_done"] and offers == 0 and task["status"] in {"open", "negotiating"}:
+        return "no offers"
+    return str(task["status"])
 
 
 def my_side(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> Document:
@@ -194,4 +205,42 @@ def my_side(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> D
                 "status": status,
             }
         )
-    return {"brief": brief, "feed": [], "for_you": {}, "tasks": []}
+    lines: Document = engine.vault(coalition, viewer).get(FOR_YOU, {})
+    feed: list[Document] = engine.vault(coalition, viewer).get(FEED, [])
+    return {
+        "brief": brief,
+        "feed": feed[-FEED_SHOWN:],
+        "for_you": {pid: item["line"] for pid, item in lines.items()},
+        "tasks": [],
+    }
+
+
+def common_of(engine: RoomEngine, coalition: str, viewer: str, doc: Document) -> Document | None:
+    """The times that fit everyone who compared. ``count_private`` is this viewer's own number."""
+    cmp = doc["compare"]
+    if cmp is None or cmp["state"] != "done" or cmp["slots"] is None:
+        return None
+    own = set(chosen_slots(engine, coalition, viewer)) if viewer in cmp["took_part"] else None
+    return {
+        "slots": list(cmp["slots"]),
+        "count_private": None if own is None else len(own - set(cmp["slots"])),
+        "compared": cmp["compared"],
+    }
+
+
+def notes_of(viewer: str, state: State, doc: Document) -> Document:
+    """Names and lines of the plans this viewer can see."""
+    seen = {
+        p["plan_id"]
+        for e in state.events.values()
+        if e["type"] == "coalition.propose" and state.visible(e, viewer)
+        for p in e["payload"]["plans"]
+    }
+    return {pid: note for pid, note in doc["plan_notes"].items() if pid in seen}
+
+
+def checked_of(engine: RoomEngine, coalition: str, state: State) -> int:
+    """Events the Steward has reviewed: every accepted event, and the ones it stopped."""
+    hub = engine.server.surfaces[coalition].state.hub
+    stopped = sum(len(items) for items in hub.refusals.values())
+    return len(state.events) + stopped

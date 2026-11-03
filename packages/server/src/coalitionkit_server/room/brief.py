@@ -262,6 +262,10 @@ def check_answer(q: Document, value: Any) -> Any:
         ):
             return sorted(value)  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
     elif kind == "amount":
+        # The slider's default sits in the data model as {value, event_ref}; Send without moving
+        # it posts that wrapper, so unwrap it before the check.
+        if isinstance(value, dict) and set(value) == {"value", "event_ref"}:  # pyright: ignore[reportUnknownArgumentType]
+            value = value["value"]  # pyright: ignore[reportUnknownVariableType]
         if (
             isinstance(value, int | float)
             and not isinstance(value, bool)
@@ -394,7 +398,7 @@ def close_if_due(engine: RoomEngine, coalition: str, who: str) -> None:
 
 async def advance(engine: RoomEngine, coalition: str) -> None:
     """Open the brief of each seated person, close the ones that are over, then say when done."""
-    state = await asyncio.to_thread(lambda: engine.server.hosts[coalition].state)
+    state = await engine.thread(lambda: engine.server.hosts[coalition].state)
     doc = engine.read(coalition)
     if not doc["begun"]:
         return
@@ -420,3 +424,34 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
 
 def none_for(doc: Document, who: str, now: float) -> None:
     doc["briefs"][who] = {"opened": now, "closed": True, "source": "none"}
+
+
+def given(engine: RoomEngine, coalition: str, who: str) -> list[Document]:
+    """What the person told their agent, with option ids turned back into words.
+
+    For the agent's own use: it may go to the model in a prompt and into that seat's feed, and
+    nowhere else.
+    """
+    record: Document = engine.vault(coalition, who).get(KEY, {})
+    out: list[Document] = []
+    for q in record.get("questions", []):
+        if q["status"] != "answered":
+            continue
+        labels = {o["id"]: o["label"] for o in q["options"]}
+        answer = q["answer"]
+        if q["kind"] == "choice":
+            answer = labels.get(answer, answer)
+        elif q["kind"] == "slots":
+            answer = [labels.get(a, a) for a in answer]
+        out.append({"ask": q["ask"], "kind": q["kind"], "unit": q["unit"], "answer": answer})
+    return out
+
+
+def chosen_slots(engine: RoomEngine, coalition: str, who: str) -> list[str]:
+    """Slot ids this person said they can do (empty if they skipped the question)."""
+    record: Document = engine.vault(coalition, who).get(KEY, {})
+    found: list[str] = []
+    for q in record.get("questions", []):
+        if q["kind"] == "slots" and q["status"] == "answered":
+            found.extend(q["answer"])
+    return sorted(set(found))

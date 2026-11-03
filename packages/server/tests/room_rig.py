@@ -94,9 +94,19 @@ class RoomModel:
         needs: Document | None = None,
         brief: Document | None = None,
         gardener_delay: float = 0.0,
+        offers: Document | Callable[[str], Document] | None = None,
+        names: Document | Callable[[str], Document] | None = None,
+        foryou: Document | Callable[[str], Document] | None = None,
+        offers_delay: float = 0.0,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
+        self.offers, self.names, self.foryou = offers, names, foryou
+        self.offers_delay = offers_delay
         self.calls: list[tuple[str, list[ChatMessage]]] = []
+
+    @staticmethod
+    def pick(reply: Document | Callable[[str], Document] | None, user: str) -> Document | None:
+        return reply(user) if callable(reply) else reply
 
     async def create(
         self, route: Route, messages: Sequence[ChatMessage], opts: Mapping[str, Any]
@@ -104,9 +114,23 @@ class RoomModel:
         import asyncio
 
         self.calls.append((route.role, list(messages)))
-        reply = {"gardener": self.needs, "hosted_agent": self.brief}.get(route.role)
-        if route.role == "gardener" and self.gardener_delay:
-            await asyncio.sleep(self.gardener_delay)
+        system, user = str(messages[0]["content"]), str(messages[-1]["content"])
+        reply: Document | None
+        if route.role == "gardener":
+            reply = self.pick(self.names, user) if "public name" in system else self.needs
+            if self.gardener_delay and "public name" not in system:
+                await asyncio.sleep(self.gardener_delay)
+        elif route.role == "hosted_agent":
+            if "Decide what to offer" in system:
+                reply = self.pick(self.offers, user)
+                if self.offers_delay:
+                    await asyncio.sleep(self.offers_delay)
+            elif "means for them" in system:
+                reply = self.pick(self.foryou, user)
+            else:
+                reply = self.brief
+        else:
+            reply = None
         if reply is None:
             raise MissingKeyError("no key in this test")
         return RawCompletion(json.dumps(reply), Usage(120, 60), "stop")
@@ -162,6 +186,7 @@ def start_room(
     client: TestClient,
     seats: int = 3,
     goal: str = "Three members need a shared room, a budget and an invitation tomorrow",
+    steward: FakeSteward | None = None,
 ) -> Document:
     server = server_of(client)
     draft = client.post("/v1/genesis/draft", json={"goal": goal}).json()["draft"]
@@ -174,7 +199,7 @@ def start_room(
     )
     assert response.status_code == 200, response.text
     created = response.json()
-    server.hosts[created["coalition_id"]].steward = FakeSteward()
+    server.hosts[created["coalition_id"]].steward = steward or FakeSteward()
     return created
 
 

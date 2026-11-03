@@ -16,7 +16,7 @@ import json
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 TICK_S = 2.0  # how often an idle room is looked at again (brief deadlines, retries)
 ACTIVITY_KEEP = 60
+FEED = "_room_feed"
+FOR_YOU = "_room_foryou"
 RESERVED = "_room"  # vault keys the engine owns; the agent vault routes never show them
 
 TABLE = "CREATE TABLE IF NOT EXISTS room_engine (coalition TEXT PRIMARY KEY, doc TEXT)"
@@ -49,6 +51,12 @@ def fresh_doc() -> Document:
         "helpers": {},  # participant -> {kind, need_id, label}
         "briefs": {},  # participant -> {opened, closed}; the questions themselves are private
         "briefs_done": False,
+        "offers": {},  # participant -> {count}; what was offered is in the log, not here
+        "offers_open": None,  # when the offer round began (a person's own agent gets a grace)
+        "offers_done": False,
+        "gaps_noted": [],  # need ids already announced as having no offer
+        "compare": None,  # {state, task_id, queries, answered, took_part, done, slots, compared}
+        "plan_notes": {},  # plan id -> {name, line, source}
         "activity": [],
     }
 
@@ -62,6 +70,7 @@ class RoomEngine:
         self.ticks: dict[str, int] = {}
         self.cache: dict[tuple[str, str], tuple[tuple[int, int], Document]] = {}
         self.tasks: dict[str, asyncio.Task[None]] = {}
+        self.pending: set[asyncio.Future[Any]] = set()
         self.wakes: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Event]] = {}
         self.locks: dict[str, asyncio.Lock] = {}
         self.now: Callable[[], float] = time.time
@@ -108,6 +117,19 @@ class RoomEngine:
             task.cancel()
         await asyncio.gather(*self.tasks.values(), return_exceptions=True)
         self.tasks.clear()
+        # A cancelled step must not leave a store call running past the store's close.
+        await asyncio.gather(*self.pending, return_exceptions=True)
+
+    def guard[T](self, work: Awaitable[T]) -> Awaitable[T]:
+        """Run store and host work to its end even if the step that awaits it is cancelled."""
+        future = asyncio.ensure_future(work)
+        self.pending.add(future)
+        future.add_done_callback(self.pending.discard)
+        future.add_done_callback(lambda f: f.cancelled() or f.exception())
+        return asyncio.shield(future)
+
+    def thread[T](self, call: Callable[..., T], *args: Any) -> Awaitable[T]:
+        return self.guard(asyncio.to_thread(call, *args))
 
     async def run(self, coalition: str) -> None:
         host = self.server.hosts[coalition]
@@ -118,8 +140,7 @@ class RoomEngine:
                 await asyncio.wait_for(event.wait(), timeout=TICK_S)
             event.clear()
             try:
-                async with self.lock_for(coalition):
-                    await self.step(coalition)
+                await self.step(coalition)
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -131,28 +152,35 @@ class RoomEngine:
 
     # --- the step -----------------------------------------------------------------------------
     async def step(self, coalition: str) -> None:
-        from . import brief, needs, seats
+        from . import brief, compare, explain, needs, offers, seats
 
         host = self.server.hosts[coalition]
-        state = await asyncio.to_thread(lambda: host.state)
+        state = await self.thread(lambda: host.state)
         owner = self.owner(coalition)
         if state.stage == "Dissolve" or owner is None or not state.accepted_charter(owner):
             return
         if self.read(coalition)["needs_state"] != "ready":
             await needs.make(self, coalition, state)
             return
-        await seats.advance(self, coalition)
+        # Only the seat work holds the room lock, so a slow model call never holds up a click
+        # on begin; the model steps below run one after another in this task.
+        async with self.lock_for(coalition):
+            await seats.advance(self, coalition)
         await brief.advance(self, coalition)
+        await offers.advance(self, coalition)
+        await compare.advance(self, coalition)
+        await explain.advance(self, coalition)
 
     def needs_ready(self, coalition: str) -> bool:
         with self.lock:
             return bool(self.doc(coalition)["needs_state"] == "ready")
 
     def may_plan(self, coalition: str) -> bool:
-        """E2 adds its own conditions here. Until then a plan may start once the brief is over."""
+        """A plan waits for the brief, every seat's offers and the time comparison."""
         with self.lock:
             d = self.doc(coalition)
-            return bool(d["begun"] and d["briefs_done"])
+            done = d["compare"] is not None and d["compare"]["state"] == "done"
+            return bool(d["begun"] and d["briefs_done"] and d["offers_done"] and done)
 
     # --- the public document ------------------------------------------------------------------
     def doc(self, coalition: str) -> Document:
@@ -250,6 +278,14 @@ class RoomEngine:
     def note(self, coalition: str, verb: str, label: str, **kw: Any) -> None:
         self.start_activity(coalition, verb, label, state="done", **kw)
 
+    def refused_needs(self, coalition: str) -> set[str]:
+        """Need ids the host refused when seeding; they will never be events."""
+        with self.server.store.transaction(coalition) as tx:
+            rows = tx.execute(
+                "SELECT id FROM server_genesis_refusals WHERE coalition = ?", (coalition,)
+            ).fetchall()
+        return {str(r[0]) for r in rows}
+
     # --- private seat data ----------------------------------------------------------------------
     def vault(self, coalition: str, who: str) -> Document:
         """The seat's reserved record, or {} when it has no hosted vault."""
@@ -257,6 +293,14 @@ class RoomEngine:
             return deepcopy(self.server.registry.vault_values(coalition, who))
         except ValueError:
             return {}
+
+    def feed_add(self, coalition: str, who: str, text: str) -> None:
+        """A line in the seat's own feed (what its agent did and said). Never leaves the vault."""
+        with self.lock:
+            lines = list(self.vault(coalition, who).get(FEED, []))
+            at = datetime.fromtimestamp(self.now(), UTC).isoformat()
+            self.vault_put(coalition, who, FEED, [*lines, {"at": at, "text": text}][-40:])
+        self.bump(coalition)
 
     def vault_put(self, coalition: str, who: str, key: str, value: Any) -> None:
         if not key.startswith(RESERVED):
