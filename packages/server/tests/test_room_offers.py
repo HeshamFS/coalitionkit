@@ -88,7 +88,8 @@ def test_model_offers_are_clamped_to_the_persons_limits(tmp_path: Path) -> None:
             reply_brief(client, who["token"], {"q1": None, "q2": 0, "q3": None})
         offers_done(cid, engine)
         made = [o["payload"]["cost"] for o in offers_by(client, cid, "p1")]
-        assert [c["minutes"] for c in made] == [60], "9999 is cut to the hour given, none is left"
+        # 9999 is cut so some of the hour stays for the other needs; the hour is never exceeded.
+        assert [c["minutes"] for c in made] == [40, 20]
         assert made[0]["money"] == 0, "no money was given, so none is offered"
         assert offers_by(client, cid, a["participant"]) == []
         feed = [x["text"] for x in view_of(engine, cid, "p1")["mine"]["feed"]]

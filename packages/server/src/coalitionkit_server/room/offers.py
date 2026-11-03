@@ -35,13 +35,16 @@ GRACE_S = 60.0  # how long a person's own (not hosted) agent has to offer
 DEFAULT_MINUTES = 30  # a starting offer for someone who gave no limit
 MIN_MINUTES = 5
 HELPER_MINUTES = 15
+RESERVE_MINUTES = 15  # held back per other need from a model's first offer
 NOTE_MAX = 300
 
 SYSTEM = (
     "You are one person's agent in a small group room. Decide what to offer on the room's "
     "needs for that person, from what they told you. Offer only on needs you list by id, "
     "give minutes and money as whole numbers inside the limits they set, and set the effort "
-    "(low, medium or high). Offer on no need they did not point at or cannot afford. Then "
+    "(low, medium or high). A plan can only be made when every need has an offer from "
+    "somebody, so spread the minutes they gave over more than one need whenever you can, "
+    "most on what they prefer. Offer on no need they cannot afford. Then "
     "write one short note to the person saying what you offered and why, in plain words."
 )
 
@@ -129,13 +132,15 @@ def checked(
         return None
     known = {n["id"] for n in needs}
     left = lim.minutes
+    # Keep a little back for the needs not yet offered on, so the room can still cover them.
+    keep = 0 if left is None else min(RESERVE_MINUTES, left // (2 * len(known))) * (len(known) - 1)
     out: list[OfferItem] = []
     for item in reply.offers:
         if item.need_id not in known or any(o.need_id == item.need_id for o in out):
             continue
         minutes = max(MIN_MINUTES, item.minutes)
         if left is not None:
-            minutes = min(minutes, left)
+            minutes = min(minutes, left - (keep if not out else 0))
             if minutes < MIN_MINUTES:
                 break
             left -= minutes
@@ -318,7 +323,10 @@ async def cover(engine: RoomEngine, coalition: str, state: State, doc: Document)
         for step in range(len(hosted)):
             who = hosted[(turn + step) % len(hosted)]
             left = room[who]
-            minutes = DEFAULT_MINUTES if left is None else min(DEFAULT_MINUTES, left)
+            share = len(bare) - turn  # needs still to cover, this one included
+            minutes = DEFAULT_MINUTES
+            if left is not None:
+                minutes = min(DEFAULT_MINUTES, max(MIN_MINUTES, left // share), left)
             if minutes < MIN_MINUTES:
                 continue
             taken.setdefault(who, []).append(
