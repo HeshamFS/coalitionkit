@@ -283,3 +283,66 @@
 .tb-brief .f01-choice-control {
   min-height: 44px;
 }
+
+.tb-brief .f01-options {
+  gap: 8px;
+}
+.tb-brief .f01-options button {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+.tb-countdown {
+  color: var(--warn-fg);
+  font: 500 13px var(--font-mono);
+}
+.tb-saynote {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+.tb-saynote p {
+  margin: 0;
+}
+.tb-said {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.tb-saynote b {
+  color: var(--blue-text);
+}
+.tb-saynote b[data-stopped="true"],
+.tb-bad {
+  color: var(--bad-fg);
+}
+.tb-saynote .tb-linky {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0;
+  font-size: 13px;
+}
+.tb-receipt {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 500 11.5px var(--font-mono);
+}
+.tb-receipts {
+  color: var(--ink-3);
+  font: 500 11.5px var(--font-mono);
+}
+.tb-receipts summary {
+  min-height: 36px;
+  cursor: pointer;
+}
+.tb-receipts ul {
+  margin: 0 0 8px;
+  padding-left: 16px;
+}

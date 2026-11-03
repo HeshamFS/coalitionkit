@@ -55,7 +55,13 @@ export const SCENES: Scene[] = [
           ms: null,
         }),
       ],
-      mine: { brief: BRIEF, feed: [], for_you: {}, tasks: [] },
+      mine: {
+        brief: BRIEF,
+        brief_closes: "2026-11-03T10:04:00Z",
+        feed: [],
+        for_you: {},
+        tasks: [],
+      },
     }),
     state: { events: events(false), viewer: "p5" },
     requests: [],
@@ -96,6 +102,7 @@ export const SCENES: Scene[] = [
         }),
       ],
       mine: {
+        brief_closes: null,
         brief: BRIEF.map((b) => ({ ...b, status: "answered" as const })),
         feed: [
           { at: "10:00", text: "I read the five needs." },
@@ -138,6 +145,7 @@ export const SCENES: Scene[] = [
         },
       ],
       mine: {
+        brief_closes: null,
         brief: [],
         feed: [{ at: "10:02", text: "Day 1 fits you. I shared nothing else." }],
         for_you: {},
@@ -166,6 +174,7 @@ export const SCENES: Scene[] = [
         p3: { name: "Smaller, closer", line: "Two days, nearer to everyone.", source: "model" },
       },
       mine: {
+        brief_closes: null,
         brief: [],
         feed: [],
         for_you: {
@@ -243,6 +252,7 @@ export const SCENES: Scene[] = [
       results: RESULTS.slice(0, 3),
       checked: 36,
       mine: {
+        brief_closes: null,
         brief: [],
         feed: [{ at: "10:09", text: "I am laying out the days." }],
         for_you: {},
@@ -266,6 +276,7 @@ export const SCENES: Scene[] = [
       results: RESULTS,
       checked: 42,
       mine: {
+        brief_closes: null,
         brief: [],
         feed: [{ at: "10:12", text: "I need two things from you." }],
         for_you: {},
@@ -284,7 +295,7 @@ export const SCENES: Scene[] = [
       needs: NEEDS.map((n, i) => ({
         ...n,
         status: i === 1 || i === 3 ? "re-planning" : "done",
-        result: i < 3 ? `r${i + 1}` : null,
+        result: i === 0 || i === 2 ? `r${i + 1}` : null,
       })),
       activity: [
         act({
@@ -306,7 +317,7 @@ export const SCENES: Scene[] = [
         untouched: 3,
       },
       checked: 46,
-      mine: { brief: [], feed: [], for_you: {}, tasks: TASKS(false) },
+      mine: { brief: [], brief_closes: null, feed: [], for_you: {}, tasks: TASKS(false) },
     }),
     state: { events: events(true), viewer: "p5" },
     requests: [ask("commitment", "c2", "Take the Day 3 stand instead")],

@@ -12,6 +12,25 @@ const nameOf = (p: Plan, room: Room) => {
   return after || `Plan ${p.short ?? ""}`.trim();
 };
 
+const trim = (n: number) => String(Math.round(n * 10) / 10);
+
+/**
+ * Plain facts from a plan's measured objectives. Only the ones that mean something to a person are
+ * shown; the rest stay in the record. The host's `total_cost` counts minutes of work and
+ * `max_share_ratio` is the busiest person's load against an even share.
+ */
+export function planFacts(p: Plan): string[] {
+  const out: string[] = [];
+  for (const o of p.objectives) {
+    const v = o.value.value;
+    if (o.name === "total_cost") out.push(`${trim(v)} minutes of work in all`);
+    if (o.name === "max_share_ratio") {
+      out.push(v <= 1.05 ? "Shared out evenly" : `Busiest person does ${trim(v)}x an even share`);
+    }
+  }
+  return out;
+}
+
 export function PlanCards({
   plans,
   room,
@@ -26,7 +45,7 @@ export function PlanCards({
   /** Plan ids the viewer already said yes to. */
   signed: ReadonlySet<string>;
   onPick: (id: string) => void;
-  placement: "stage" | "side";
+  placement: "strip" | "side";
 }) {
   if (plans.length === 0) {
     return (
@@ -41,7 +60,7 @@ export function PlanCards({
       {plans.map((p) => {
         const note = room.plan_notes[p.id];
         const mine = room.mine.for_you[p.id];
-        const numbers = (p.note ?? "").split(" · ").filter(Boolean);
+        const facts = planFacts(p);
         return (
           <button
             key={p.id}
@@ -57,14 +76,13 @@ export function PlanCards({
             </span>
             <span className="tb-plan-h">{nameOf(p, room)}</span>
             {note?.line && <span className="tb-plan-line">{note.line}</span>}
-            {numbers.length > 0 && (
+            {facts.length > 0 && (
               <ul>
-                {numbers.map((n) => (
+                {facts.map((n) => (
                   <li key={n}>{n}</li>
                 ))}
               </ul>
             )}
-            {p.strength && <span className="tb-plan-strength">{p.strength}</span>}
             {note && (
               <span className="tb-plan-src">
                 named by the {note.source === "model" ? "model" : "rules"}

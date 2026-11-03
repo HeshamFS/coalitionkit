@@ -37,6 +37,7 @@ export function readEnded(): DissolveEvent | null {
 export function clearEnded(): void {
   store()?.removeItem(KEY);
   store()?.removeItem("ck.ended.results");
+  store()?.removeItem("ck.ended.room");
 }
 
 /** The owner's own end in progress. It lives outside the room because the room goes away with the token. */

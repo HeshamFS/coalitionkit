@@ -2,6 +2,7 @@
 // The things that stand on the sheet: seats with their agent dots, needs, and the goal disc.
 import type { CSSProperties } from "react";
 import type { Pt } from "./geometry";
+import { needStatus } from "./needWords";
 import { humanStatus } from "./phase";
 import type { RoomNeed, RoomSeat, Stop } from "./room";
 
@@ -126,8 +127,7 @@ export function NeedNode({
   offers: number;
 }) {
   const done = need.result !== null;
-  const count = offers > 0 ? ` · ${offers} ${offers === 1 ? "offer" : "offers"}` : "";
-  const sub = `${humanStatus(need.status) || need.kind}${count}`;
+  const sub = needStatus(need.status, offers, need.kind);
   const state = hit ? "hit" : done ? "done" : "idle";
   return (
     <div

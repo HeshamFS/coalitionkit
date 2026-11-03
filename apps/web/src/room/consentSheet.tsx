@@ -95,7 +95,7 @@ export function ConsentSheet({
         <button type="button" className="btn" disabled={declined} onClick={onDecline}>
           Not this one
         </button>
-        {onSeePlans && (
+        {onSeePlans && request.kind === "plan" && (
           <button type="button" className="btn" onClick={onSeePlans}>
             See the other plans
           </button>

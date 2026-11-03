@@ -17,11 +17,18 @@ import { type Fetch, openStream, postAnswer } from "./connection";
 import { fixedFields } from "./derive";
 import { type FeedEvent, FeedStore } from "./store";
 
+/** The host's answer to a consent, with its code, for flows that answer several in a row. */
+export type AnswerOutcome =
+  | { ok: true; ack: ConsentAcknowledgement }
+  | { ok: false; error: string; detail: string };
+
 export type FeedApi = {
   feed: FeedStore;
   agent: AgentStore;
   /** For trusted UI only: built from a host OpenRequest. */
   answer: (a: Answer) => Promise<ConsentAcknowledgement | undefined>;
+  /** Like `answer`, but says why it failed. `quiet` keeps a closed request (`not_open`) off the banner. */
+  outcome: (a: Answer, quiet?: boolean) => Promise<AnswerOutcome>;
   signOut: () => void;
 };
 
@@ -85,19 +92,34 @@ export function FeedProvider({
     };
   }, []);
 
-  answerRef.current = async (a) => {
+  const outcomeRef = useRef<(a: Answer, quiet?: boolean) => Promise<AnswerOutcome>>(async () => ({
+    ok: false,
+    error: "unavailable",
+    detail: "",
+  }));
+  outcomeRef.current = async (a, quiet = false) => {
     const session = config;
     const result = await postAnswer(session, a, fetchFn);
-    if (!live.current.mounted || live.current.config !== session) return undefined;
+    if (!live.current.mounted || live.current.config !== session) {
+      return { ok: false, error: "stale", detail: "" };
+    }
     if (!result.ok && result.auth) {
       expired();
-      return undefined;
+      return { ok: false, error: "unauthorized", detail: "" };
     }
-    agent.setRefusal(
-      result.ok ? null : `${result.error}${result.detail ? `: ${result.detail}` : ""}`,
-    );
+    if (!(quiet && !result.ok && result.error === "not_open")) {
+      agent.setRefusal(
+        result.ok ? null : `${result.error}${result.detail ? `: ${result.detail}` : ""}`,
+      );
+    }
     // The host's acknowledgement: the seal shows the sequence and the owner's signature.
-    return result.ok ? { seq: result.seq, signature: result.signature } : undefined;
+    return result.ok
+      ? { ok: true, ack: { seq: result.seq, signature: result.signature } }
+      : { ok: false, error: result.error, detail: result.detail };
+  };
+  answerRef.current = async (a) => {
+    const done = await outcomeRef.current(a);
+    return done.ok ? done.ack : undefined;
   };
 
   useEffect(() => {
@@ -128,6 +150,7 @@ export function FeedProvider({
       feed,
       agent,
       answer: (a) => answerRef.current(a),
+      outcome: (a, quiet) => outcomeRef.current(a, quiet),
       signOut: () => signedOut.current?.("signout"),
     }),
     [feed, agent],

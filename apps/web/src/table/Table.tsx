@@ -8,13 +8,15 @@ import { rememberEnded } from "../room/ended";
 import { usePhoneRoom } from "../room/media";
 import { dissolvedEvent } from "../room/moments";
 import { liveIo } from "./api";
+import { rememberResults, rememberRoom } from "./keep";
+import { shownFor } from "./ResultDialog";
 import { readRoom } from "./room";
 import { TableView } from "./TableView";
 
 export function Table() {
   const feed = useFeedSnapshot();
   const agent = useAgentSnapshot();
-  const { answer, agent: store, signOut } = useFeedApi();
+  const { answer, outcome, agent: store, signOut } = useFeedApi();
   const phone = usePhoneRoom();
   const io = useMemo(() => liveIo(), []);
   const room = readRoom(feed.state);
@@ -24,6 +26,16 @@ export function Table() {
   useEffect(() => {
     if (dissolved) rememberEnded(dissolved);
   }, [key]);
+  // What the agents made, and the shape of the room, outlive it: the feed closes at the end.
+  const resultsKey = room
+    ? JSON.stringify([room.phase, room.results.map((r) => [r.id, r.replaced_by])])
+    : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the results and phase
+  useEffect(() => {
+    if (!room) return;
+    rememberResults(room.results.map((r) => shownFor(room, feed.state, r)));
+    rememberRoom(room, feed.state);
+  }, [resultsKey]);
   if (!room) return null;
   return (
     <TableView
@@ -33,6 +45,7 @@ export function Table() {
       focus={agent.focus}
       setFocus={(id) => store.setFocus(id)}
       answer={answer}
+      outcome={outcome}
       io={io}
       phone={phone}
       owner={isOwner()}

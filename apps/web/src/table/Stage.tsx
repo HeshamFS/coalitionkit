@@ -7,21 +7,22 @@ import { Logo } from "../landing/marks";
 import { changeLine, commonLine } from "./beams";
 import { captionFor } from "./caption";
 import { fitScale, type Layout } from "./geometry";
-import { humanStatus } from "./phase";
+import { needStatus } from "./needWords";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
 import { useCurrentStop, useStageFx } from "./useStageFx";
 
-function useFit(layout: Layout, reserve: number) {
+/** The scale that fits the stage into the room the sheet has left, measured on the sheet itself. */
+function useFit(layout: Layout) {
   const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(layout.compact ? 0.85 : 0.8);
+  const [scale, setScale] = useState(layout.compact ? 0.85 : 0.7);
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
       const width = el.clientWidth || layout.W;
-      const height = layout.compact ? 9999 : Math.max(380, window.innerHeight - reserve);
+      const height = layout.compact ? 9999 : el.clientHeight || layout.H;
       setScale(fitScale(width, height, layout));
     };
     measure();
@@ -32,7 +33,7 @@ function useFit(layout: Layout, reserve: number) {
       watch?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [layout, reserve]);
+  }, [layout]);
   return { ref, scale };
 }
 
@@ -47,7 +48,7 @@ export function NeedList({ room }: { room: Room }) {
         <li key={n.id} data-done={n.result !== null}>
           <span>{i + 1}</span>
           <b>{n.title}</b>
-          <small>{humanStatus(n.status) || n.kind}</small>
+          <small>{needStatus(n.status, n.offers, n.kind)}</small>
         </li>
       ))}
     </ol>
@@ -59,17 +60,12 @@ function StageContents({
   layout,
   viewing,
   onSeat,
-  plans,
-  plansCount,
 }: {
   room: Room;
   layout: Layout;
   viewing: string | null;
   onSeat: (seat: string) => void;
-  plans: ReactNode;
-  plansCount: number;
 }) {
-  const decide = room.phase === "decide";
   const ended = room.phase === "ended";
   const fx = useStageFx(room, layout);
   const {
@@ -77,7 +73,6 @@ function StageContents({
     home,
     needPts,
     list,
-    where,
     busy,
     making,
     beams,
@@ -86,37 +81,30 @@ function StageContents({
     wave,
     waveFrom,
     stops,
-    finished,
     initialNeeds,
     initialSeats,
   } = fx;
 
-  const caption = captionFor(room, plansCount, finished);
   const lit = ["commit", "make", "live", "ended"].includes(room.phase);
   const commonText = commonLine(room);
   const counter = changeLine(room);
 
   return (
     <>
-      <div className="tb-caption" role="status" aria-live="polite">
-        {caption.text}
-        <small>{caption.sub}</small>
-      </div>
-      <Beams beams={decide || ended ? [] : beams} />
-      {crossing && !decide && !ended && (
+      <Beams beams={ended ? [] : beams} />
+      {crossing && !ended && (
         <Crossing
           seats={list.filter((s) => s.kind !== "open").map((s) => home.get(s.seat) ?? centre)}
           centre={centre}
           loop={crossing === "forever" ? "forever" : "once"}
         />
       )}
-      {wave && !decide && !ended && <Waves origin={waveFrom} loop={wave} layout={layout} />}
-      {!decide &&
-        !ended &&
+      {wave && !ended && <Waves origin={waveFrom} loop={wave} layout={layout} />}
+      {!ended &&
         stops.map((x) => (
           <StopBeam key={x.stop.id} from={x.from} toward={x.toward} current={x.current} />
         ))}
-      {!decide && !ended && <GoalDisc at={centre} text={lit ? "plan signed" : "goal"} lit={lit} />}
+      {!ended && <GoalDisc at={centre} text={lit ? "plan signed" : "goal"} lit={lit} />}
       {ended && (
         <div className="tb-mark" style={{ left: centre.x, top: centre.y }}>
           <Logo size={layout.compact ? 84 : 120} />
@@ -133,7 +121,7 @@ function StageContents({
           hit={moved.has(n.id)}
           making={making.has(n.id)}
           fresh={!initialNeeds.has(n.id)}
-          hidden={decide || ended}
+          hidden={ended}
           offers={n.offers}
         />
       ))}
@@ -141,7 +129,7 @@ function StageContents({
         <SeatNode
           key={s.seat}
           seat={s}
-          at={where(s.seat, i)}
+          at={ended ? centre : (home.get(s.seat) ?? centre)}
           color={seatColor(s, i)}
           viewing={viewing === s.seat}
           stops={room.stops.filter((x) => x.seat === s.seat)}
@@ -151,17 +139,16 @@ function StageContents({
           onPick={() => onSeat(s.seat)}
         />
       ))}
-      {commonText && !decide && !ended && (
+      {commonText && !ended && (
         <div className="tb-chipnote" style={{ left: layout.W * 0.6, top: layout.H - 40 }}>
           {commonText}
         </div>
       )}
-      {counter && !decide && !ended && (
+      {counter && !ended && (
         <div className="tb-counter" style={{ left: layout.W * 0.6, top: layout.H - 12 }}>
           {counter}
         </div>
       )}
-      {decide && !layout.compact && plans}
     </>
   );
 }
@@ -173,40 +160,52 @@ export function Stage({
   onSeat,
   plans,
   plansCount,
+  waiting,
   tray,
 }: {
   room: Room;
   layout: Layout;
   viewing: string | null;
   onSeat: (seat: string) => void;
-  /** Plan cards drawn over the stage while people decide (wide layout only). */
+  /** Plan cards laid under the stage while people decide (wide layout only). */
   plans: ReactNode;
   plansCount: number;
+  /** Something is waiting for this viewer's yes or answer. */
+  waiting: boolean;
   tray: ReactNode;
 }) {
   const decide = room.phase === "decide";
-  const { ref, scale } = useFit(layout, 190 + (tray ? 92 : 0) + 56);
+  const { ref, scale } = useFit(layout);
   const steward = useCurrentStop(room);
+  const caption = captionFor(room, { plans: plansCount, waiting });
   return (
     <main className="tb-sheet" aria-label="The table">
       <div className="tb-dots" />
       <div className="tb-heat" style={{ "--reach": `${reachOf(room, decide)}px` } as never} />
-      <div className="tb-stagewrap" ref={ref} style={{ minHeight: Math.round(layout.H * scale) }}>
+      <div className="tb-caption" role="status" aria-live="polite">
+        <span className="tb-plate">
+          {caption.text}
+          <small>{caption.sub}</small>
+        </span>
+      </div>
+      <div
+        className="tb-stagewrap"
+        ref={ref}
+        style={layout.compact ? { height: Math.round(layout.H * scale) } : undefined}
+      >
         <div
           className="tb-stage"
           data-ended={room.phase === "ended"}
-          style={{ width: layout.W, height: layout.H, transform: `scale(${scale})` }}
+          style={{
+            width: layout.W,
+            height: layout.H,
+            transform: `translateX(-50%) scale(${scale})`,
+          }}
         >
-          <StageContents
-            room={room}
-            layout={layout}
-            viewing={viewing}
-            onSeat={onSeat}
-            plans={plans}
-            plansCount={plansCount}
-          />
+          <StageContents room={room} layout={layout} viewing={viewing} onSeat={onSeat} />
         </div>
       </div>
+      {decide && !layout.compact && <div className="tb-planstrip">{plans}</div>}
       {steward && room.phase !== "ended" && (
         <p className="tb-stewardbar" role="status">
           <b>Stopped by the Steward</b>
@@ -214,7 +213,7 @@ export function Stage({
           {steward.explain && <span>{steward.explain}</span>}
         </p>
       )}
-      {layout.compact && !decide && <NeedList room={room} />}
+      {layout.compact && <NeedList room={room} />}
       {tray}
       {room.checked > 0 && <div className="tb-stamp">{room.checked} events checked</div>}
     </main>

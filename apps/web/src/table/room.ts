@@ -106,10 +106,16 @@ export type Room = {
   phase: Phase;
   lights: Lights;
   goal: string;
+  /** When the room ends by itself (ISO), or null when the host did not say. */
+  closes: string | null;
   seats: RoomSeat[];
   needs: RoomNeed[];
   activity: Activity[];
-  slots: { id: string; label: string }[];
+  slots: {
+    id: string;
+    label: string /** ISO start, when the host gave one */;
+    start: string | null;
+  }[];
   common: Common | null;
   plan_notes: Record<string, { name: string; line: string; source: Source }>;
   results: RoomResult[];
@@ -119,6 +125,8 @@ export type Room = {
   begin: { can: boolean; open_seats: number } | null;
   mine: {
     brief: BriefItem[];
+    /** When your agent stops waiting for answers (ISO), or null. */
+    brief_closes: string | null;
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
     tasks: MyTask[];
@@ -272,6 +280,7 @@ function readMine(v: unknown): Room["mine"] {
         messages: Array.isArray(b.messages) ? b.messages : [],
         status: oneOf(b.status, ["open", "answered", "skipped"] as const, "open"),
       })),
+    brief_closes: strOrNull(m.brief_closes),
     feed: list(m.feed).map((f) => ({ at: str(f.at), text: str(f.text) })),
     for_you: forYou,
     tasks: list(m.tasks)
@@ -303,12 +312,17 @@ export function readRoom(state: ViewerState | null): Room | null {
     phase: oneOf(raw.phase, PHASES, "gather"),
     lights: raw.lights === "night" ? "night" : "day",
     goal: str(raw.goal),
+    closes: strOrNull(raw.closes),
     seats: readSeats(raw.seats),
     needs: readNeeds(raw.needs),
     activity: readActivity(raw.activity),
     slots: list(raw.slots)
       .filter((s) => str(s.id) !== "")
-      .map((s) => ({ id: str(s.id), label: str(s.label) || str(s.id) })),
+      .map((s) => ({
+        id: str(s.id),
+        label: str(s.label) || str(s.id),
+        start: strOrNull(s.start),
+      })),
     common: readCommon(raw.common),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),

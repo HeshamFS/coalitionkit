@@ -173,9 +173,12 @@ export const BRIEF: BriefItem[] = [
       "Your agent compares this with the others without showing them.",
       chips(
         [
-          ["s1", "Day 1"],
-          ["s2", "Day 2"],
-          ["s3", "Day 3"],
+          ["s1", "Day 1 morning"],
+          ["s2", "Day 1 afternoon"],
+          ["s3", "Day 2 morning"],
+          ["s4", "Day 2 afternoon"],
+          ["s5", "Day 3 morning"],
+          ["s6", "Day 3 afternoon"],
         ],
         true,
       ),
@@ -312,6 +315,7 @@ export const RESULTS: RoomResult[] = [
         { label: "Snacks", amount: { value: 60, event_ref: "e4" }, provenance: "estimate" },
       ],
       total: { value: 180, event_ref: "e4" },
+      suggested: [{ label: "Table hire", amount: 40, unit: "EUR", provenance: "estimate" }],
     },
     messages: view(
       "r3",
@@ -383,13 +387,17 @@ export const base = (over: Partial<Room>): Room => ({
   phase: "gather",
   lights: "day",
   goal: "Get one shared piece of work done by Friday, with four members and a shared budget",
+  closes: "2026-11-06T22:59:00Z",
   seats: people({ signed: true }),
   needs: NEEDS,
   activity: [],
   slots: [
-    { id: "s1", label: "Day 1" },
-    { id: "s2", label: "Day 2" },
-    { id: "s3", label: "Day 3" },
+    { id: "s1", label: "Day 1 morning", start: "2026-11-07T09:00:00Z" },
+    { id: "s2", label: "Day 1 afternoon", start: "2026-11-07T14:00:00Z" },
+    { id: "s3", label: "Day 2 morning", start: "2026-11-08T09:00:00Z" },
+    { id: "s4", label: "Day 2 afternoon", start: "2026-11-08T14:00:00Z" },
+    { id: "s5", label: "Day 3 morning", start: "2026-11-09T09:00:00Z" },
+    { id: "s6", label: "Day 3 afternoon", start: "2026-11-09T14:00:00Z" },
   ],
   common: null,
   plan_notes: {},
@@ -398,7 +406,7 @@ export const base = (over: Partial<Room>): Room => ({
   checked: 0,
   change: null,
   begin: null,
-  mine: { brief: [], feed: [], for_you: {}, tasks: [] },
+  mine: { brief: [], brief_closes: null, feed: [], for_you: {}, tasks: [] },
   ...over,
 });
 

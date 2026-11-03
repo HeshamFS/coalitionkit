@@ -34,6 +34,15 @@ export function budgetCsv(r: RoomResult): string | null {
   const cur = cell(d.currency);
   const lines = rows.map((x) => [cell(x.label), cell(x.amount), cur, cell(x.provenance)]);
   if (d.total !== undefined) lines.push(["Total", cell(d.total), cur, ""]);
+  // What the host only suggests is kept apart from what people offered, and marked so.
+  for (const x of list(d.suggested)) {
+    lines.push([
+      `${cell(x.label)} (suggested)`,
+      cell(x.amount),
+      cell(x.unit) || cur,
+      cell(x.provenance),
+    ]);
+  }
   return csv(["label", "amount", "currency", "provenance"], lines);
 }
 

@@ -95,10 +95,31 @@ export function TableGallery() {
           setGone((x) => [...x, a.interrupt_id]);
           return { seq: 99, signature: "fixturesignaturevalue" };
         }}
+        outcome={async (a) => {
+          await new Promise((r) => setTimeout(r, 120));
+          setGone((x) => [...x, a.interrupt_id]);
+          return { ok: true, ack: { seq: 99, signature: "fixturesignaturevalue" } };
+        }}
         io={io}
         phone={phone}
         owner
         status="live"
+        ending={
+          scene.id === "ended"
+            ? {
+                report: {
+                  vaults_erased: 5,
+                  tokens_revoked: 5,
+                  tasks_closed: 2,
+                  skills_written: ["l1"],
+                  lessons: { l1: { title: "Ask for free times before offers" } },
+                },
+                event: { reason: "completed", skills_written: ["l1"] },
+                pending: false,
+                onLeave: () => go(0),
+              }
+            : undefined
+        }
       />
     </div>
   );

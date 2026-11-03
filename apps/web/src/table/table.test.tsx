@@ -8,6 +8,7 @@ import { liveIo } from "./api";
 import { type Call, mockIo } from "./fixtureIo";
 import type { BriefItem } from "./room";
 import { SCENES } from "./scenes";
+import { slotLabel } from "./slots";
 import { TableView, type TableViewProps } from "./TableView";
 
 const scene = (id: string) => {
@@ -29,6 +30,10 @@ function mount(id: string, over: Partial<TableViewProps> = {}) {
     answer: async (a) => {
       answers.push(a);
       return { seq: answers.length + 40, signature: "abcdefghijklmnop" };
+    },
+    outcome: async (a) => {
+      answers.push(a);
+      return { ok: true, ack: { seq: answers.length + 40, signature: "abcdefghijklmnop" } };
     },
     io: mockIo(calls),
     phone: false,
@@ -86,7 +91,10 @@ describe("the Table", () => {
     // The Steward's stop arrives after the screen opened, so it is drawn as news.
     const s = scene("compare");
     a.view.rerender(<TableView {...a.props} room={s.room} state={s.state} requests={s.requests} />);
-    expect(screen.getByText("Day 1 fits all 5. Your other 2 stayed private.")).toBeInTheDocument();
+    const first = s.room.slots[0];
+    expect(
+      screen.getByText(`${slotLabel(first as never)} fits all 5. Your other 2 stayed private.`),
+    ).toBeInTheDocument();
     const bar = screen.getByText("Stopped by the Steward").closest("p");
     expect(bar?.textContent).toContain("no-contact-before-consent");
     a.view.unmount();
@@ -121,9 +129,14 @@ describe("brief", () => {
 
   it("posts the slots the person picked, through the tree's own Send button", async () => {
     const { calls } = mount("brief");
-    await userEvent.click(screen.getByRole("combobox"));
-    await userEvent.click(await screen.findByRole("option", { name: /Day 1/ }));
-    await userEvent.click(await screen.findByRole("option", { name: /Day 3/ }));
+    // Slots are visible, pressable options in their own time, not a dropdown.
+    expect(screen.queryByRole("combobox")).toBeNull();
+    const chips = [...document.querySelectorAll<HTMLElement>(".tb-brief .f01-options button")];
+    expect(chips).toHaveLength(6);
+    expect(chips[0]?.textContent).toBe(slotLabel(scene("brief").room.slots[0] as never));
+    await userEvent.click(chips[0] as HTMLElement);
+    await userEvent.click(chips[2] as HTMLElement);
+    expect(chips[0]?.getAttribute("aria-pressed")).toBe("true");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(posted(calls)).toBeTruthy());
     expect(posted(calls)).toEqual(["q1", { value: ["s1", "s3"] }]);
@@ -251,7 +264,7 @@ describe("results", () => {
   });
   it("shows a skeleton while one is being made and marks a replaced one", () => {
     mount("make");
-    expect(screen.getByText("being made")).toBeInTheDocument();
+    expect(screen.getAllByText("being made").length).toBeGreaterThan(0);
     const s = scene("live");
     const results = s.room.results.map((r, i) => (i === 0 ? { ...r, replaced_by: "r9" } : r));
     const again = mount("live", { room: { ...s.room, results } });

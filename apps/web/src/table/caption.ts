@@ -28,61 +28,81 @@ export function newest(list: Activity[]): Activity[] {
     .map((x) => x.a);
 }
 
-function standing(room: Room, plans: number): Caption {
+/** "Making Find a place" reads badly; say what is being worked on. */
+export const plainLabel = (a: Activity): string =>
+  a.verb === "making" ? a.label.replace(/^making\s+/i, "Working on: ") : a.label;
+
+/** What the room is doing when nothing is running: where it stands and what it waits for. */
+function resting(room: Room, ctx: { plans: number; waiting: boolean }): Caption {
   const open = room.seats.filter((s) => s.kind === "open").length;
   const people = room.seats.filter((s) => s.kind !== "open");
-  const seated = people.filter((s) => s.signed).length;
+  const unsigned = people.filter((s) => !s.signed).length;
+  const mineOpen = room.mine.brief.some((b) => b.status === "open");
+  const undone = room.needs.some((n) => n.result === null);
   switch (room.phase) {
     case "gather":
       return {
         text:
-          open > 0
-            ? `The table is set. ${open} seat${open === 1 ? " is" : "s are"} still open.`
-            : "Everyone is here.",
-        sub: `${seated} of ${people.length} seated`,
+          unsigned + open === 0
+            ? "Everyone is seated."
+            : unsigned > 0
+              ? `Waiting for ${unsigned} ${unsigned === 1 ? "person" : "people"} to take a seat.`
+              : `${open} ${open === 1 ? "seat is" : "seats are"} still open.`,
+        sub: `${people.length - unsigned} of ${people.length} seated`,
       };
     case "brief":
       return {
-        text: "Each agent asks its own person. Answers stay hidden.",
-        sub: "Private to each seat",
+        text: mineOpen
+          ? "Your agent has questions for you."
+          : "Waiting for the others to answer their agents.",
+        sub: "Answers stay private",
       };
     case "work":
       return {
-        text: "The agents work from what each person said.",
-        sub: "Waiting for the host's next step",
+        text: "The agents are comparing what each person can offer.",
+        sub: "Nothing is asked of you now",
       };
     case "decide":
       return {
         text:
-          plans > 0
-            ? `${plans} plan${plans === 1 ? "" : "s"}. None is best at everything.`
-            : "The plans are not ready yet.",
+          ctx.plans === 0
+            ? "The plans are not ready yet."
+            : ctx.waiting
+              ? `${ctx.plans} ${ctx.plans === 1 ? "plan" : "plans"} to choose from. It is your call.`
+              : "Waiting for the others to choose.",
         sub: "Each person sees what a plan means for them",
       };
     case "commit":
-      return { text: "Each person says yes to their own part.", sub: "Agents never commit anyone" };
+      return {
+        text: ctx.waiting ? "Your yes is waiting." : "Waiting for the others to say yes.",
+        sub: "Agents never commit anyone",
+      };
     case "ended":
-      return { text: "The room is gone. What it made stays.", sub: "dissolved" };
+      return { text: "The room is gone. What it made stays.", sub: "Results live in this tab" };
     default:
       return {
-        text: "The plan is signed. Now the agents do the work.",
+        text: undone
+          ? "The agents are making things."
+          : "Everything is made. Your part is on your side.",
         sub: "Each result is checked before it reaches you",
       };
   }
 }
 
-/** `freshDone`: ids that finished since this screen opened, so an old finish is not shown as news. */
-export function captionFor(room: Room, plans: number, freshDone: ReadonlySet<string>): Caption {
-  const sorted = newest(room.activity);
-  const running = sorted.find((a) => a.state === "running" && a.label);
-  if (running) return { text: running.label, sub: subOf(running) };
-  if (room.change && room.phase !== "ended") {
+/** A change shows only while what it moved is still being re-planned. */
+const changeOpen = (room: Room) =>
+  room.change !== null &&
+  room.phase !== "ended" &&
+  room.needs.some((n) => room.change?.moved.includes(n.id) && n.result === null);
+
+export function captionFor(room: Room, ctx: { plans: number; waiting: boolean }): Caption {
+  const running = newest(room.activity).find((a) => a.state === "running" && a.label);
+  if (running) return { text: plainLabel(running), sub: subOf(running) };
+  if (room.change && changeOpen(room)) {
     return {
       text: room.change.text || "Something changed.",
-      sub: "ripple · only what it touches moves",
+      sub: "Only what it touches moves",
     };
   }
-  const recent = sorted.find((a) => freshDone.has(a.id) && a.label);
-  if (recent) return { text: recent.label, sub: subOf(recent) };
-  return standing(room, plans);
+  return resting(room, ctx);
 }
