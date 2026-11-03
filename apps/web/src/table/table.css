@@ -374,7 +374,7 @@
 
 /* ---------- Phone: your side first, the table one swipe away ---------- */
 .tb--phone .tb-band {
-  padding: 12px 16px 40px;
+  padding: 10px 16px 34px;
 }
 .tb--phone .tb-eyebrow {
   flex-basis: 100%;
@@ -382,7 +382,7 @@
   margin: 0;
 }
 .tb--phone .tb-sentence {
-  font-size: 24px;
+  font-size: 21px;
 }
 .tb-switch {
   display: flex;

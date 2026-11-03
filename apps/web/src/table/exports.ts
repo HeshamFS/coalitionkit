@@ -26,24 +26,44 @@ const quote = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` 
 const csv = (head: string[], rows: string[][]) =>
   `${[head, ...rows].map((r) => r.map(quote).join(",")).join("\r\n")}\r\n`;
 
-/** The budget as a .csv: its rows, then the total if the host gave one. Null with no rows. */
+/**
+ * The budget as a .csv: what people put in, the total, the time they offered (in minutes) and what
+ * the host only suggests, each marked as such. Null when there is nothing to list.
+ */
 export function budgetCsv(r: RoomResult): string | null {
   const d = data(r);
-  const rows = list(d.rows);
-  if (rows.length === 0) return null;
   const cur = cell(d.currency);
-  const lines = rows.map((x) => [cell(x.label), cell(x.amount), cur, cell(x.provenance)]);
-  if (d.total !== undefined) lines.push(["Total", cell(d.total), cur, ""]);
-  // What the host only suggests is kept apart from what people offered, and marked so.
+  const lines = list(d.rows).map((x) => [
+    cell(x.label),
+    cell(x.amount),
+    cur,
+    cell(x.who),
+    cell(x.provenance),
+  ]);
+  if (lines.length > 0 && d.total !== undefined) lines.push(["Total", cell(d.total), cur, "", ""]);
+  for (const x of list(d.time)) {
+    lines.push([
+      `${cell(x.label)} (time offered)`,
+      cell(x.amount),
+      "minutes",
+      "",
+      cell(x.provenance),
+    ]);
+  }
+  if (d.time_total !== undefined && list(d.time).length > 0) {
+    lines.push(["Time offered in all", cell(d.time_total), "minutes", "", ""]);
+  }
   for (const x of list(d.suggested)) {
     lines.push([
       `${cell(x.label)} (suggested)`,
       cell(x.amount),
       cell(x.unit) || cur,
+      "",
       cell(x.provenance),
     ]);
   }
-  return csv(["label", "amount", "currency", "provenance"], lines);
+  if (lines.length === 0) return null;
+  return csv(["label", "amount", "unit", "who", "provenance"], lines);
 }
 
 export function listCsv(r: RoomResult): string | null {
@@ -104,7 +124,10 @@ export function toText(r: RoomResult): string {
   if (r.kind === "place" && list(d.options).length) {
     const chosen = cell(d.chosen);
     return list(d.options)
-      .map((o) => `${cell(o.name)}${cell(o.name) === chosen ? " (chosen)" : ""}: ${cell(o.why)}`)
+      .map(
+        (o) =>
+          `${cell(o.name)}${cell(o.name) === chosen ? " (chosen)" : ""}: ${cell(o.why)}${cell(o.check) ? ` Check first: ${cell(o.check)}` : ""}`,
+      )
       .join("\n");
   }
   if (r.kind === "schedule" && list(d.items).length) {

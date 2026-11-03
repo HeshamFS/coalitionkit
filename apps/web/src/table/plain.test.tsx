@@ -8,7 +8,6 @@ import { EndedTable } from "./EndedTable";
 import { type Call, mockIo } from "./fixtureIo";
 import { rememberRoom } from "./keep";
 import { needStatus } from "./needWords";
-import { planFacts } from "./PlanCards";
 import type { Room } from "./room";
 import { SCENES } from "./scenes";
 import { TableView, type TableViewProps } from "./TableView";
@@ -48,21 +47,13 @@ function mount(id: string, over: Partial<TableViewProps> & { room?: Room } = {})
 }
 
 describe("plain words", () => {
-  it("shows plan facts a person can read, not the planner's objective names", () => {
-    expect(
-      planFacts({
-        id: "p",
-        label: "A",
-        objectives: [
-          { name: "total_cost", value: { value: 145, event_ref: "e" } },
-          { name: "max_share_ratio", value: { value: 1.5, event_ref: "e" } },
-          { name: "third", value: { value: 4, event_ref: "e" } },
-        ],
-      }),
-    ).toEqual(["145 minutes of work in all", "Busiest person does 1.5x an even share"]);
+  it("shows the plan's name, the engine's plain line and the for-you line, and no raw numbers", () => {
     mount("plans");
-    expect(screen.getAllByText(/minutes of work in all/).length).toBe(3);
-    expect(document.body.textContent).not.toMatch(/largest share|third goal|cost 36/);
+    expect(screen.getByText("Lowest cost, one day missed.")).toBeInTheDocument();
+    expect(screen.getAllByText("FOR YOU ONLY")).toHaveLength(3);
+    expect(document.body.textContent).not.toMatch(
+      /minutes of work in all|largest share|third goal|total cost|cost 36|even share/i,
+    );
   });
 
   it("lays plans side by side and keeps every need on the table while people decide", () => {
@@ -210,7 +201,27 @@ describe("signing", () => {
 
   it("treats a request the first yes already closed as handled, with no alert", async () => {
     let n = 0;
+    const s = scene("commit");
+    const second = {
+      id: "commitment:c2:1:p5",
+      kind: "commitment",
+      subjectId: "c2",
+      revision: 1,
+      message: "",
+    };
+    const room = {
+      ...s.room,
+      mine: {
+        ...s.room.mine,
+        asks: [
+          ...(s.room.mine.asks ?? []),
+          { kind: "commitment", id: "c2", revision: 1, summary: "Take the second part." },
+        ],
+      },
+    };
     mount("commit", {
+      room,
+      requests: [...s.requests, second],
       outcome: async () =>
         n++ === 0
           ? { ok: true, ack: { seq: 41, signature: "abcdefghijklmnop" } }

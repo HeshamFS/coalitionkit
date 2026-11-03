@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { Plan } from "../components/f06/plans";
 import { TrustedConsentSeal } from "../components/f08/ConsentSeal";
 import { askForPlan, requestLabel, visibleRequests } from "../feed/derive";
-import { AskCard, Asks } from "./Asks";
+import { AskCard, Asks, summaryOf } from "./Asks";
 import { answerAll, partRequests } from "./commit";
 import { useTable } from "./context";
 import { PlanCards } from "./PlanCards";
@@ -102,7 +102,7 @@ export function SideCommit() {
           </p>
           <ul className="tb-list" aria-label="What you would say yes to">
             {mine.map((r) => (
-              <li key={r.id}>{requestLabel(state, r)}</li>
+              <li key={r.id}>{summaryOf(room, r) ?? requestLabel(state, r)}</li>
             ))}
           </ul>
           <div className="tb-seal">

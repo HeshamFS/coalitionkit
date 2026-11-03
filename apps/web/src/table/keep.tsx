@@ -49,7 +49,7 @@ export function rememberRoom(room: Room, state: ViewerState | null): void {
     common: null,
     change: null,
     begin: null,
-    mine: { brief: [], brief_closes: null, feed: [], for_you: {}, tasks: [] },
+    mine: { brief: [], brief_closes: null, asks: null, feed: [], for_you: {}, tasks: [] },
   };
   try {
     store()?.setItem(

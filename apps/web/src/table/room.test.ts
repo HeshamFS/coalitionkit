@@ -169,9 +169,19 @@ describe("exports", () => {
     expect(exportsFor(draft)).toEqual([]);
     expect(exportsFor({ ...of("budget"), data: { rows: [] } })).toEqual([]);
   });
-  it("makes the budget csv with unwrapped amounts and the total", () => {
+  it("makes the budget csv: rows, total, time offered in minutes, then what is only suggested", () => {
     expect(budgetCsv(of("budget"))).toBe(
-      "label,amount,currency,provenance\r\nMaterials,120,EUR,vault\r\nSnacks,60,EUR,estimate\r\nTotal,180,EUR,\r\nTable hire (suggested),40,EUR,estimate\r\n",
+      [
+        "label,amount,unit,who,provenance",
+        "Materials,120,EUR,Shared,estimate",
+        "Snacks,60,EUR,Member 2,estimate",
+        "Total,180,EUR,,",
+        "Member 1 (time offered),90,minutes,,signed",
+        "Member 2 (time offered),45,minutes,,signed",
+        "Time offered in all,135,minutes,,",
+        "Table hire (suggested),40,EUR,,estimate",
+        "",
+      ].join("\r\n"),
     );
   });
   it("makes a list csv and quotes what needs it", () => {
@@ -190,6 +200,8 @@ describe("exports", () => {
   });
   it("copies text by kind", () => {
     expect(toText(draft)).toBe("Hello\n\nCome along.");
-    expect(toText(of("place"))).toContain("Venue 1 (chosen): Free on all three days");
+    expect(toText(of("place"))).toContain(
+      "Venue 1: Free on all three days Check first: Ask about step-free access",
+    );
   });
 });

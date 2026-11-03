@@ -60,11 +60,13 @@ export function SideGather() {
   if (me && !me.signed) {
     return (
       <>
-        <h2>Take your seat</h2>
         {charter ? (
           <AskCard request={charter} />
         ) : (
-          <p role="status">The host has not asked you yet. Your seat opens as soon as it does.</p>
+          <>
+            <h2>Take your seat</h2>
+            <p role="status">The host has not asked you yet. Your seat opens as soon as it does.</p>
+          </>
         )}
       </>
     );

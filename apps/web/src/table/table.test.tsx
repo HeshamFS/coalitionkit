@@ -172,16 +172,21 @@ describe("brief", () => {
 });
 
 describe("consent stays trusted", () => {
-  it("one hold-free gesture answers every commitment and task once, and says how many", async () => {
+  it("one gesture answers what the host asks, once, and says how many", async () => {
     const { answers } = mount("commit");
-    expect(screen.getByText(/2 things wait for your yes/)).toBeInTheDocument();
+    // The host's asks leave out the task whose commitment is also waiting: one yes closes both.
+    expect(screen.getByText(/1 thing waits for your yes/)).toBeInTheDocument();
+    expect(screen.queryByText(/Bring the tables$/)).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Review and approve" }));
     await userEvent.click(screen.getByRole("button", { name: "Confirm approval" }));
-    await waitFor(() => expect(answers).toHaveLength(2));
-    expect(answers).toEqual([
-      { interrupt_id: "commitment:c1:1:p5", consent: true },
-      { interrupt_id: "task:t1:1:p5", consent: true },
-    ]);
+    await waitFor(() => expect(answers).toHaveLength(1));
+    expect(answers).toEqual([{ interrupt_id: "commitment:c1:1:p5", consent: true }]);
+  });
+
+  it("shows the host's plain words, not a second consent for the task", () => {
+    mount("commit");
+    expect(screen.getByText("Take your part: bring the tables on Day 1.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /task/i })).toBeNull();
   });
 
   it("never writes that the key is on the device", () => {

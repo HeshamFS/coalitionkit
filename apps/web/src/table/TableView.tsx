@@ -145,7 +145,7 @@ function Panes({
 }
 
 export function TableView(props: TableViewProps) {
-  const { room, state, requests, answer, phone, status } = props;
+  const { room, state, answer, phone, status } = props;
   const [viewing, setViewing] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
@@ -153,6 +153,12 @@ export function TableView(props: TableViewProps) {
   const [banner, setBanner] = useState(true);
   const [said, setSaid] = useState<Said | null>(null);
   const [hidden, setHidden] = useState("");
+  // The host leaves out a task whose commitment is also waiting: one yes closes both, so a second
+  // consent for it must not be shown.
+  const theirs = room.mine.asks;
+  const requests = theirs
+    ? props.requests.filter((r) => r.kind !== "task" || theirs.some((a) => a.id === r.subjectId))
+    : props.requests;
   const asks = visibleRequests(state, requests);
   const plans = derivePlans(state);
   const looking = room.seats.find((s) => s.seat === viewing) ?? null;

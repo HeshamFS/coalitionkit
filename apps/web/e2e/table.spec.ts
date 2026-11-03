@@ -59,3 +59,24 @@ test("six selected time slots wrap and never scroll the page sideways", async ({
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText(/Your agent asks · 2 of 3/i)).toBeVisible();
 });
+
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 1568, height: 726 },
+  { width: 390, height: 844 },
+]) {
+  test(`the hold button is on the first screen at ${size.width}x${size.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size);
+    await page.goto("/gallery/table?scene=arrive&lights=day");
+    const hold = page.locator(".trusted-seal-control");
+    await expect(hold).toBeVisible();
+    const box = await hold.boundingBox();
+    expect(box).not.toBeNull();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(size.height);
+    // The non-hold way to the same yes is on the first screen too.
+    const review = await page.getByRole("button", { name: "Review and approve" }).boundingBox();
+    expect((review?.y ?? 0) + (review?.height ?? 0)).toBeLessThanOrEqual(size.height);
+  });
+}
