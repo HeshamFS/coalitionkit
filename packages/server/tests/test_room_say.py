@@ -230,6 +230,8 @@ def test_a_change_re_plans_only_what_it_touches(
 
 
 def test_a_change_to_a_finished_need_publishes_a_successor(tmp_path: Path) -> None:
+    from coalitionkit_server.room.say import pause_planning
+
     with serve(tmp_path, model()) as client:
         cid, engine, people = finished_work(client)
         host = server_of(client).hosts[cid]
@@ -243,27 +245,29 @@ def test_a_change_to_a_finished_need_publishes_a_successor(tmp_path: Path) -> No
         )
         old = next(r for r in results_of(client, cid) if r["content"]["need_id"] == task)
         word = titles[task].split()[-1]
-        reply = say(client, people["p1"]["token"], f"Change the {word}: it needs another look")
-        assert reply["route"] == "change" and "event_id" not in reply, (
-            "a finished task cannot ripple"
-        )
-        assert not [r for r in events(client, cid, "ripple") if task in r["payload"]["invalidates"]]
-        successor = engine.read(cid)["successors"][task]
-        assert successor in host.state.tasks and host.state.tasks[task]["status"] == "done"
-        view = view_of(engine, cid, "p1")
-        replaced = next(r for r in view["results"] if r["id"] == old["event_id"])
-        assert replaced["replaced_by"] == successor, "marked replaced at once, by the new need"
-        # These people said 0 hours, so their agents make no offers; they offer by hand.
-        engine.update(cid, lambda d: d.__setitem__("change_pending", True))  # hold planning
-        for who, person in people.items():
-            cost = {"minutes": 40, "money": 0, "effort": "low" if who == "p3" else "medium"}
-            reply = client.post(
-                "/v1/agent/offer",
-                json={"need_id": successor, "cost": cost},
-                headers=bearer(person["token"]),
+        # Keep the manual offer batch together without changing the engine-owned flag.
+        with pause_planning(engine, cid):
+            reply = say(client, people["p1"]["token"], f"Change the {word}: it needs another look")
+            assert reply["route"] == "change" and "event_id" not in reply, (
+                "a finished task cannot ripple"
             )
-            assert reply.status_code == 200, reply.text
-        engine.update(cid, lambda d: d.__setitem__("change_pending", False))
+            assert not [
+                r for r in events(client, cid, "ripple") if task in r["payload"]["invalidates"]
+            ]
+            successor = engine.read(cid)["successors"][task]
+            assert successor in host.state.tasks and host.state.tasks[task]["status"] == "done"
+            view = view_of(engine, cid, "p1")
+            replaced = next(r for r in view["results"] if r["id"] == old["event_id"])
+            assert replaced["replaced_by"] == successor, "marked replaced at once, by the new need"
+            # These people said 0 hours, so their agents make no offers; they offer by hand.
+            for who, person in people.items():
+                cost = {"minutes": 40, "money": 0, "effort": "low" if who == "p3" else "medium"}
+                reply = client.post(
+                    "/v1/agent/offer",
+                    json={"need_id": successor, "cost": cost},
+                    headers=bearer(person["token"]),
+                )
+                assert reply.status_code == 200, reply.text
         engine.wake_gardener(cid)
         until(lambda: len(events(client, cid, "propose")) >= 2, 40, "a plan for the successor")
         decide_plan(client, cid, people)
