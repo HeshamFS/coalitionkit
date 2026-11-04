@@ -170,6 +170,10 @@ def separation() -> None:
 
 
 def generated_docs() -> None:
+    # The pages hold command help, and argparse words it differently between Python versions.
+    if sys.version_info[:2] != (3, 12):
+        print("skipped: the pages are written on Python 3.12")
+        return
     run([sys.executable, "tools/gen_docs.py", "--check"])
 
 
