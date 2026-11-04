@@ -303,7 +303,7 @@ def asks_of(
         if kind == "task" and set(tasks) & committing:
             continue
         if kind == "charter":
-            helpers = len(doc["helpers"])
+            helpers = sum(1 for h in doc["helpers"].values() if h.get("kind") != "device")
             here = len(people(state, doc))
             text = (
                 "You are the only person here so far"

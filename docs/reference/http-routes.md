@@ -32,6 +32,9 @@ A tree in the room can never answer a consent. Consent only goes through `/v1/ag
 | `POST /v1/room/brief` | `{question_id, value}` or `{question_id, skip: true}` | `{status}`. 422 if the value does not fit the question |
 | `POST /v1/room/say` | `{text}`, up to 500 characters | `{route, reply, event_id?, stopped?}` |
 | `POST /v1/room/done` | `{task_id}` | `{seq}`. 409 unless the viewer's approved commitment has a result |
+| `POST /v1/room/mint` | Multipart: `video`, `voice` (WAV), optional `template` (`resource`, `device` or a pack template), `label`, `needs` (comma-separated need ids) | 202 `{device, state: "minting"}`. 403 unless the viewer is a seated person. Video up to 64 MB, voice up to 4 MB |
+| `POST /v1/room/mint/approve` | `{device}` | `{device, state: "seated"}`. Sent by the owner's press-and-hold; the host signs the approval with the owner's own key. 403 unless the viewer owns the device, 409 unless it waits for approval |
+| `POST /v1/room/mint/frame` | Multipart: `device`, `frame` (an image of the display, up to 8 MB) | `{accepted, reading, rippled}`. 403 unless the viewer owns the device, 409 unless it is a seated display |
 
 All four need a viewer token.
 
