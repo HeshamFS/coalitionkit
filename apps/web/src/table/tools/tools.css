@@ -26,6 +26,7 @@
 }
 .tk-count {
   flex: 1;
+  white-space: nowrap;
   color: var(--ink-3);
   font: 500 11px var(--font-mono);
 }
@@ -106,6 +107,26 @@
 }
 .tb--phone .tk-strip {
   margin: 4px 10px;
+}
+/* On a phone the strip sits right under the caption, where it is seen without scrolling. */
+.tb--phone .tb-sheet > * {
+  order: 2;
+}
+.tb--phone .tb-sheet > .tb-dots,
+.tb--phone .tb-sheet > .tb-heat,
+.tb--phone .tb-sheet > .tb-caption {
+  order: 0;
+}
+.tb--phone .tb-sheet > .tk-strip {
+  order: 1;
+}
+.tb--phone .tk-title {
+  letter-spacing: 0.04em;
+}
+.tb--phone .tk-sparktag {
+  left: 0;
+  top: -62px;
+  transform: translateX(-50%);
 }
 .tb--phone .tk-line {
   grid-template-columns: 14px auto minmax(0, 1fr) auto;

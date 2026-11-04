@@ -24,3 +24,4 @@ Every message is a signed envelope in the log. The full rules are in [the protoc
 | `coalition.ripple` | `change`, `invalidates` | [`ripple.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/ripple.json) |
 | `coalition.scope` | `audience` | [`scope.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/scope.json) |
 | `coalition.tension` | `tension_id`, `revision`, `task_ids`, `options`, `tradeoffs`, `deciders`, `decision_deadline` | [`tension.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/tension.json) |
+| `coalition.tool` | `seat`, `agent`, `tool`, `args`, `result`, `status`, `ms`, `refs` | [`tool.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/tool.json) |

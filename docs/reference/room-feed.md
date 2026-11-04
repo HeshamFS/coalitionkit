@@ -35,6 +35,7 @@ type Room = {
     seat: string; role: string; label: string;
     kind: "person" | "helper" | "open"; you: boolean;
     signed: boolean; state: string;
+    busy: { tool: string; args: string; since: string } | null;
   }[];
   needs: {
     id: string; title: string; kind: "place" | "schedule" | "budget" | "list" | "draft";
@@ -48,6 +49,11 @@ type Room = {
     need: string | null; label: string;
     state: "running" | "done" | "failed"; ms: number | null;
     source: "model" | "rules" | "host"; event: string | null;
+  }[];
+  tools: {
+    id: string; at: string; seq: number; seat: string; agent: string; tool: string;
+    args: string; result: string; status: "started" | "done" | "failed";
+    ms: number; refs: string[]; ended: string | null;
   }[];
   slots: { id: string; label: string; start: string | null }[];
   common: { slots: string[]; count_private: number | null; compared: number } | null;
@@ -91,6 +97,9 @@ type Room = {
 
 ## What the fields mean
 
+- `tools` holds the last 50 tool calls the viewer may see, newest last, read from the `coalition.tool` events. A call's start and its finish (the finish names the start as its `causation_id`) are one entry: `id` and `at` are the start's, `status`, `result` and `ms` are the finish's, and `ended` is when it finished, or null while it runs. `seat` is a participant id or `host`. `refs` are the event ids the call produced or read.
+- `seats[].busy` is the newest call of that seat that has started and not finished, for at most two minutes, or null. The Table puts a spark on that seat.
+- `activity` is the room's own step lines and is separate from `tools`.
 - `results[].id` is the id of the `observe` event. `needs[].result` and `mine.tasks[].result` hold that id. `by` is a seat id. `seqs` holds the log positions of those `sources` this viewer may see, so it can be shorter than `sources`.
 - `plan_notes` and `mine.for_you` are keyed by plan id.
 - `asks` is what the viewer is asked to decide. A task request whose commitment is also pending is left out, because one yes on the commitment closes both.

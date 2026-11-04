@@ -117,7 +117,10 @@ def clean(engine: RoomEngine, activity: Document) -> Document | None:
 
 def records(engine: RoomEngine, coalition: str) -> bool:
     """Only rooms the engine drives are traced; an operator's own Coalition log is left alone."""
-    return coalition in engine.driven and coalition in engine.server.hosts
+    if coalition not in engine.server.hosts:
+        return False
+    # A room is driven from its first engine step; before that, Genesis has already made it.
+    return coalition in engine.driven or engine.owner(coalition) is not None
 
 
 async def record_activity(

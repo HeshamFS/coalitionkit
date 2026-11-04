@@ -13,7 +13,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from ..adapter import Document
-from .activity import record_activity
+from .activity import record_activity, records
 
 if TYPE_CHECKING:
     from ..app import Server
@@ -45,7 +45,7 @@ class A2aActivity:
         reply = await self.server.accept(envelope_json, authenticated_sender)
         engine = self.server.room
         coalition = str(envelope_json.get("coalition_id", ""))
-        if engine is None or coalition not in engine.driven:
+        if engine is None or not records(engine, coalition):
             return reply
         kind = str(envelope_json.get("type", "")).removeprefix("coalition.")
         error: Document | None = reply.get("error")
