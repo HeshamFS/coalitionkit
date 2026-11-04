@@ -1,6 +1,6 @@
 site_name: CoalitionKit
 site_description: Open source kit for groups whose AI agents work toward one goal together, with every decision signed by a person.
-site_url: https://heshamfs.github.io/coalitionkit/
+site_url: https://coalitionkit.dev/
 repo_url: https://github.com/HeshamFS/coalitionkit
 repo_name: HeshamFS/coalitionkit
 edit_uri: edit/main/docs/

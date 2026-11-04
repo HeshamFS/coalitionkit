@@ -55,7 +55,7 @@ jobs:
     if: inputs.publish && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment:
       name: pypi
       url: https://pypi.org/project/coalitionkit/
@@ -66,5 +66,11 @@ jobs:
         with:
           name: python-distributions
           path: dist
-      - name: Publish using PyPI trusted publishing
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # PyPI allows 3 pending trusted publishers at a time, so the first upload of these 19
+          # projects uses a token. Remove this line once each project has its trusted publisher.
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          # A re-run after a partial failure uploads only what is still missing.
+          skip-existing: true

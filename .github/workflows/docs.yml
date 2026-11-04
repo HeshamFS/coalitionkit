@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Publish docs
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - spec/**
+      - mkdocs.yml
+      - packages/**/src/**
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.6'
+          python-version: '3.12'
+      - run: uv sync --locked --group docs
+      - run: uv run --group docs mkdocs build --strict
+      - name: Serve the schemas and the extension at the addresses the protocol names
+        run: |
+          mkdir -p site/schemas site/ext/coalition/v0
+          cp -r spec/schemas/coalition site/schemas/
+          cat > site/ext/coalition/v0/index.html <<'HTML'
+          <!doctype html><meta charset="utf-8"><title>Coalition Protocol extension</title>
+          <meta http-equiv="refresh" content="0; url=/reference/protocol/">
+          <a href="/reference/protocol/">The Coalition Protocol</a>
+          HTML
+          echo coalitionkit.dev > site/CNAME
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
