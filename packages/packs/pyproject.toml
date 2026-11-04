@@ -16,7 +16,7 @@ dependencies = [
     "coalitionkit-surfaces==0.1.0",
     "cryptography==50.0.2",
     "jsonschema==4.26.0",
-    "pydantic==2.14.1",
+    "pydantic==2.14.2",
     "ruamel.yaml==0.19.1",
 ]
 
