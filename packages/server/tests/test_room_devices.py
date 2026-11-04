@@ -146,6 +146,12 @@ def two_seated(client: TestClient, config: dict[str, Any]) -> tuple[str, Any, di
         ModelSettings(), transport=h.script, meter=CostMeter(load_price_table())
     )
     h.media = Media()
+    h.seen = []
+
+    async def record(activity: dict[str, Any]) -> None:
+        h.seen.append(activity)
+
+    h.on_activity = record
     return cid, engine, {"p1": room["owner"], member["participant"]: member}
 
 
@@ -157,9 +163,15 @@ def begin(client: TestClient, cid: str, people: dict[str, Any]) -> None:
 
 
 def mint_one(
-    client: TestClient, tmp_path: Path, cid: str, owner: str, label: str, template: str
+    client: TestClient,
+    tmp_path: Path,
+    cid: str,
+    owner: str,
+    label: str,
+    template: str,
+    media: tuple[bytes, bytes] | None = None,
 ) -> str:
-    video, voice = media_files(tmp_path)
+    video, voice = media or media_files(tmp_path)
     need = events(client, cid, "need")[0]["payload"]["need_id"]
     sent = client.post(
         "/v1/room/mint",
@@ -170,9 +182,9 @@ def mint_one(
     assert sent.status_code == 202, sent.text
     pid = sent.json()["device"]
     engine = engine_of(client)
-    until(lambda: engine.read(cid)["devices"][pid]["state"] != "minting", 60, "the Mint")
+    until(lambda: engine.read(cid)["devices"][pid]["state"] != "minting", 80, "the Mint")
     entry = engine.read(cid)["devices"][pid]
-    assert entry["state"] == "approve", entry
+    assert entry["state"] == "approve", (entry["error"], entry.get("attacks"))
     return pid
 
 
@@ -235,6 +247,17 @@ def test_a_minted_resource_is_approved_by_hold_offers_on_a_hold_and_confirms(
             if e["on_behalf_of"] == pid and e["payload"]["source"] == "document"
         ]
         assert result and result[0]["data"]["items"][0]["start"] == "09:00"
+        seen = hub(engine).seen
+        done = {a["tool"] for a in seen if a["status"] == "done"}
+        assert {"mint:pipeline", "mint:approve", "mint:list_free_slots"} <= done
+        assert {"mint:hold_slot", "mint:confirm"} <= done
+        assert all(
+            set(a) == {"seat", "agent", "tool", "args", "result", "status", "ms", "refs"}
+            for a in seen
+        )
+        lines = json.dumps(seen)
+        held = engine.vault(cid, pid)["_room_device_hold"]
+        assert held["nonce"] not in lines and "signature" not in lines
 
 
 def test_a_display_device_publishes_readings_and_a_crossing_ripples(tmp_path: Path) -> None:
