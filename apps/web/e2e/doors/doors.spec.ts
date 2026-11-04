@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Acceptance test 3, the parts the doors lane owns: one state, four roles, and the room, the lens
+// Acceptance test 3, the parts the doors own: one state, four roles, and the room, the lens
 // and the MCP App view drawing it for each role from a real coalitionkit-server.
 //
 // Change to paint: the host accepts one observation (the rig answers with the wall-clock time it
@@ -314,7 +314,7 @@ test("one state, four roles: the room, the lens and the MCP App view agree and s
     await expect.poll(() => snapshot(control)).toEqual(EXPECTED.p2); // counts alone would pass
     await control.page.context().close();
 
-    // Pictures of the three surfaces for the owner to compare with the sheets.
+    // Pictures of the three surfaces for visual comparison.
     const shots = resolve(import.meta.dirname, "../../test-results/doors");
     mkdirSync(shots, { recursive: true });
     await seats.p1.lens.page.locator(".lens-frame").screenshot({ path: `${shots}/lens-p1.png` });

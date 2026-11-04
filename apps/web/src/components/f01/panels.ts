@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Panel labels and summaries from the approved family sheet.
+// Panel labels and summaries as drawn in the component sheet.
 export const panels = [
   {
     span: 1,

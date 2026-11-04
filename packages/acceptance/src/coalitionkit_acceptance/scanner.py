@@ -108,7 +108,7 @@ def judge(canary: Canary, item: Outbound) -> Judgement:
         if item.agent_owner == STEWARD and STEWARD in canary.legit:
             # A recipient other than the owner may see it, so the audit prompt carried a
             # projection that recipient gets. With no such recipient, the prompt carried
-            # content nobody was to receive: the PRIV-4 defect.
+            # content nobody was to receive.
             others = canary.legit - {HOST, STEWARD, canary.owner}
             return "steward_projection" if others else "steward_model"
         if item.agent_owner in canary.legit and item.agent_owner not in (HOST, STEWARD):

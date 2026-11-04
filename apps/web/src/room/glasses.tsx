@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// `/glasses` (story J-14): the viewer's current step only, one card, one step.
+// `/glasses`: the viewer's current step only, one card, one step.
 import { deriveSchedule } from "../feed/derive";
 import { useAgentSnapshot, useFeedSnapshot } from "../feed/useFeed";
 import { GlassesPage } from "../moments/GlassesPage";

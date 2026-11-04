@@ -1,18 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
 """Live tests run only with COALITIONKIT_LIVE=1 and COALITIONKIT_META_API_KEY in the environment.
 
-A live run also writes the measured results to ``packages/models/LIVE-RESULTS.md``.
+A live run also writes the measured results as a Markdown table. The path is
+``COALITIONKIT_LIVE_RESULTS`` when set, else a file in the system temp folder; the table and the
+path are printed at the end of the run. Nothing is written into the repository tree.
 """
 
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
 
 ROWS_KEY: pytest.StashKey[list[dict[str, object]]] = pytest.StashKey()
-RESULTS = Path(__file__).resolve().parent.parent / "LIVE-RESULTS.md"
+RESULTS = Path(
+    os.environ.get("COALITIONKIT_LIVE_RESULTS")
+    or Path(tempfile.gettempdir()) / "coalitionkit-models-live-results.md"
+)
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -56,4 +62,9 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
             f" | {r['reasoning']} | {r['cost']} | {r['note']} |"
         )
     lines += ["", f"Total live cost: {total} micro-USD (${total / 1_000_000:.6f})", ""]
-    RESULTS.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+    text = "\n".join(lines)
+    RESULTS.write_text(text, encoding="utf-8", newline="\n")
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None:
+        reporter.write_line(f"live results written to {RESULTS}")
+        reporter.write_line(text)

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Regression tests for PRIV-1 through PRIV-3 in NOTES-privacy.md."""
+"""Regression tests for the steward verdict text, the MCP write report and PSI round order."""
 
 from __future__ import annotations
 

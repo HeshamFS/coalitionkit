@@ -1,5 +1,5 @@
-/* CoalitionKit design tokens: Big Blue. Light values are the owner's kit (ck.css :root).
-   Dark values are derived from the kit's dark-door tokens; the sheets define no full dark theme. */
+/* CoalitionKit design tokens: Big Blue. Light values come from the Coalition Blue kit.
+   Dark values are derived from the kit's dark-door tokens; the kit defines no full dark theme. */
 :root {
   color-scheme: light;
   --bg: #ffffff;

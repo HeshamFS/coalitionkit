@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Taking a result with you. Each kind of result has one data shape (room-engine.md, "What the
-// fields mean") and one export: `schedule` gives a .ics, `budget` and `list` give a .csv, `draft`
-// gives its text, `place` gives none. All of it is made in the browser from the result's `data`;
+// Taking a result with you. Each kind of result has one data shape and one export:
+// `schedule` gives a .ics, `budget` and `list` give a .csv, `draft` gives its text, `place` gives none. All of it is made in the browser from the result's `data`;
 // a result whose data does not hold what a format needs is not offered that format.
 import type { RoomResult } from "./room";
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// The `Room` the host builds per viewer (docs/ux/room-engine.md, "What the feed adds") and a reader
+// The `Room` the host builds per viewer and a reader
 // that never throws: a missing or malformed value becomes an empty one, so the screen still draws.
 import type { ViewerState } from "../feed/delta";
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Round 3: plain words, one-screen behaviour, honest errors, one ending.
+// Plain words, one-screen behaviour, honest errors, one ending.
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";

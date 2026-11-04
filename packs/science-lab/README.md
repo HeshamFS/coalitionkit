@@ -35,11 +35,11 @@ The Mint template is a read-only temperature display with a 450 C alarm threshol
 Its tests reject writes, deletes and arguments that attempt to overwrite readings.
 A person approves the signed agent and reviews its reading before changing a run.
 
-## Frozen-kit limits
+## Limits
 
 - The bare validate command does not load a catalog and refuses packs with bound
   views. Custom ordering is cut from the manifest; views.yaml retains the proposed
-  catalog-only ordering for a future kit. Runtime uses default component ordering.
+  catalog-only ordering. Runtime uses default component ordering.
 
 - The eval format supports slot decisions, not offers, auction objectives or Mint
   events. Those stronger assertions live in acceptance; the second eval alone
@@ -65,6 +65,4 @@ A person approves the signed agent and reviews its reading before changing a run
 
 This pack never controls an instrument, authorizes hazardous transport, supplies
 dosing or clinical advice, promises scientific validity, publishes a vault ceiling,
-or commits on an owner's behalf. The frozen kit is unchanged. Required domain
-terms already present in the kit are reported by the separation scan for the
-integrator; this pack does not remove or conceal those conflicts.
+or commits on an owner's behalf. This pack changes nothing in the core kit.

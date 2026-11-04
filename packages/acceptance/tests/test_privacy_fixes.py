@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Review fixes for the privacy lane: prompt judging, slot endpoints, live-action validation."""
+"""Privacy scanner fixes: prompt judging, slot endpoints, live-action validation."""
 
 from __future__ import annotations
 

@@ -549,7 +549,7 @@ async def test_live_audit_keeps_reason_out_of_signed_verdict() -> None:
     verify_verdict(signed, KEY.public_key(), event_id=EVENT, revision=1)
 
 
-# -- PRIV-4: the model audit sees only what recipients are shown ------------------------------
+# -- the model audit sees only what recipients are shown ------------------------------
 
 CANARY = "zq7canary-9f3"
 

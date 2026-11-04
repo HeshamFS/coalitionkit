@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Owner-signed consent: ``consent_sig`` on ``coalition.decide`` (ADR 018).
+"""Owner-signed consent: ``consent_sig`` on ``coalition.decide``.
 
 The signature is a compact JWS (detached payload) by the OWNER key over the JCS form of
 ``{coalition_id, participant, subject, choice, consent, decided_at}``. The agent's envelope

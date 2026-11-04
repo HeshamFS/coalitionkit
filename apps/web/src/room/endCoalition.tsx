@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Ending a coalition (story J-13): the owner's confirm step, and the closing screen both for the
+// Ending a coalition: the owner's confirm step, and the closing screen both for the
 // owner (with the host's report) and for anyone whose session ended after a dissolve event.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clearToken } from "../feed/config";

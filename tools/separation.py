@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Keep Discipline Packs out of the kit (docs/packs/plan.md, section 7).
+"""Keep Discipline Packs out of the kit.
 
 1. Domain words: no word from the denylist and no pack name under ``packages/``, ``apps/`` or
    ``spec/``. Packs add their own domain words to the denylist, so the scan covers them.
