@@ -12,10 +12,10 @@ import { needStatus } from "./needWords";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
-import { ToolSparks } from "./tools/ToolSparks";
-import { ToolStrip } from "./tools/ToolStrip";
 import { TalkLayer } from "./talk/TalkLayer";
 import { EMPTY_TALK } from "./talk/talk";
+import { ToolSparks } from "./tools/ToolSparks";
+import { ToolStrip } from "./tools/ToolStrip";
 import { useCurrentStop, useStageFx } from "./useStageFx";
 
 /** The scale that fits the stage into the room the sheet has left, measured on the sheet itself. */
