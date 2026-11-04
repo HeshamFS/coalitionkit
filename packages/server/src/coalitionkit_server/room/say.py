@@ -104,8 +104,11 @@ def touched(text: str, needs: list[Document], mine: list[str]) -> list[str]:
     return named or mine
 
 
-async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Document:
-    """Route one sentence. Returns {route, reply, event_id?, stopped?}."""
+async def say(
+    engine: RoomEngine, coalition: str, who: str, text: str, *, source: str = "chat"
+) -> Document:
+    """Route one sentence. Returns {route, reply, event_id?, stopped?}. ``source`` is "voice" for
+    a sentence the person said aloud and confirmed; it marks the observe and the activity."""
     state = await read_state(engine, coalition)
     doc = engine.read(coalition)
     needs = [n for n in doc["needs"] if n["id"] in state.tasks]
@@ -150,12 +153,12 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
         if not affected:
             route = "private"
     if route == "room":
-        return await to_room(engine, coalition, who, text, sentence)
+        return await to_room(engine, coalition, who, text, sentence, source)
     if route == "change":
         # Block the planner before publishing a ripple or successor need.
         with pause_planning(engine, coalition):
             return await to_change(
-                engine, coalition, who, text, affected, withdraw, sentence, state
+                engine, coalition, who, text, affected, withdraw, sentence, state, source
             )
     return keep_private(engine, coalition, who, text, sentence)
 
@@ -195,14 +198,14 @@ def keep_private(
 
 
 async def to_room(
-    engine: RoomEngine, coalition: str, who: str, text: str, sentence: str
+    engine: RoomEngine, coalition: str, who: str, text: str, sentence: str, source: str = "chat"
 ) -> Document:
     body = ROOM_WORDS.sub("", text.strip()).strip() or text.strip()
     sent = await engine.submit(
         coalition,
         who,
         "observe",
-        {"source": "chat", "content": body},
+        {"source": "voice" if source == "voice" else "chat", "content": body},
         {"audience": "coalition"},
     )
     if sent is None:
@@ -221,6 +224,7 @@ async def to_room(
         seat=who,
         state="done",
         event=str(sent["event_id"]),
+        **({"source": "voice"} if source == "voice" else {}),
     )
     engine.feed_add(coalition, who, f"Sent to the room: {tidy(body, 200)}")
     return {
@@ -239,6 +243,7 @@ async def to_change(
     withdraw: bool,
     sentence: str,
     state: State,
+    source: str = "chat",
 ) -> Document:
     """A ripple on the live needs it touches; a successor need for any that are already done."""
     done = [i for i in affected if state.tasks[i]["status"] == "done"]
@@ -283,6 +288,7 @@ async def to_change(
         seat=who,
         state="done",
         event=event_id,
+        **({"source": "voice"} if source == "voice" else {}),
     )
     engine.feed_add(
         coalition, who, f"Sent as a change to: {names}. Everything else stays as it is."

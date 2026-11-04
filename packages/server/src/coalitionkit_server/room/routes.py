@@ -7,7 +7,7 @@ the ``agent`` surface. Each acts only for the authenticated viewer.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict
@@ -31,6 +31,7 @@ class Begin(BaseModel):
 class Say(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str
+    via: Literal["typed", "voice"] = "typed"
 
 
 class Done(BaseModel):
@@ -71,7 +72,8 @@ def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
         text = body.text.strip()
         if not text or len(text) > say.MAX_SAY:
             raise HTTPException(422, f"say something, up to {say.MAX_SAY} characters")
-        return JSONResponse(await say.say(engine, coalition, who, text))
+        source = "voice" if body.via == "voice" else "chat"
+        return JSONResponse(await say.say(engine, coalition, who, text, source=source))
 
     @app.post("/v1/room/done")
     async def done_route(body: Done, who: Viewer) -> JSONResponse:
