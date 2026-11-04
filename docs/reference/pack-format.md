@@ -45,7 +45,7 @@ compare:
 
 `question.kind` is one of the closed brief kinds. `choice` needs two to twelve distinct options and lets a person pick any number of them; `slots` offers the room's time slots; `text` takes a short list separated by commas or new lines, and each value is trimmed, its spaces collapsed and lowercased before it is compared. `slots` and `text` take no options. `amount` is refused, because a set is matched value by value. Ids are distinct. The loader refuses any other shape and says which rule it broke.
 
-**Public questions.** `public` lists at most two questions whose answers are not private. The room asks every seated person each one beside the agent's own questions; when a person answers, the host publishes the answer to the whole room as a `coalition.observe` from that person's seat with `source: "chat"` and the content `"<label>: <answer>"`. A question marked `search: true` adds the person's answer to the words of that seat's web searches on `place` needs: each seat whose answer differs searches once with its own answer, and the hits of every seat are kept together for the need's result.
+**Public questions.** `public` lists at most two questions whose answers are not private. The room asks every seated person each one beside the agent's own questions; when a person answers, the host publishes the answer to the whole room as a `coalition.observe` from that person's seat with `source: "chat"` and the content `"<label>: <answer>"`. A question marked `search: true` adds the person's answer to the words of that seat's web searches on `place` needs: each seat whose answer differs searches once with the need's title and its own answer only, and the hits of every seat are kept together for the need's result.
 
 ```yaml
 public:

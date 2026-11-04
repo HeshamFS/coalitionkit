@@ -39,6 +39,7 @@ compare:
       options: [vegetarian, vegan, no gluten, no nuts, no dairy]
       why: "Your answer stays with your agent. The table sees only what every cook picked."
     mode: overlap
+    min_seats: 3
   - id: gear
     label: What every kitchen can do
     question:
@@ -47,6 +48,7 @@ compare:
       options: [oven, hob, grill, blender, microwave]
       why: "Only what every kitchen can do is shown, so nobody is handed a dish they cannot cook."
     mode: overlap
+    min_seats: 3
 policies:
   - policies/supper-redact-diet.yaml
   - policies/supper-no-medical.yaml
