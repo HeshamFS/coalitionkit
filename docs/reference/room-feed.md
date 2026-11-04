@@ -128,8 +128,11 @@ A change to a task that is already `done` cannot ripple, because `done` is termi
 | `budget` | `{currency, amount, rows: [{label, amount, who, provenance}], how_shared, time: [{label, amount, provenance, ref}], time_total, suggested: [], total}` | CSV |
 | `list` | `{items: [{label, who, provenance}]}` | CSV |
 | `draft` | `{subject, body}` | text |
+| `image` | `{hash, alt, prompt, width, height}`. Without a picture: `{hash: null, alt, prompt, why}` | the picture file |
 
 With no money in the goal, a budget is a time budget: `currency` is `minutes`, `rows` are the signed minutes from offers, and `total` is their sum.
+
+`results[].messages` ends with `updateDataModel`. Its value is the result's `data` with every number written as a string, so a tree may bind to it, for example a `Table` with `rows: {"path": "/rows"}`. For an `image` result it also holds `image.src`, the host path of the picture (`/v1/room/media/<hash>`), which the result's `Image` binds as `src: {"path": "/image/src"}`. The picture itself is fetched from [`GET /v1/room/media/{hash}`](http-routes.md) with the viewer token.
 
 ## Brief questions
 

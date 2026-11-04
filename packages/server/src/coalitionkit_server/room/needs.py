@@ -26,8 +26,13 @@ from .model import ask
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
-Kind = Literal["place", "schedule", "budget", "list", "draft"]
-KINDS: tuple[str, ...] = ("place", "schedule", "budget", "list", "draft")
+Kind = Literal["place", "schedule", "budget", "list", "draft", "image"]
+KINDS: tuple[str, ...] = ("place", "schedule", "budget", "list", "draft", "image")
+# A picture costs a call to the image model: a need is one only when the goal asks for one.
+PICTURE = re.compile(
+    r"\b(?:poster|flyer|card|invitation|menu|banner|sign|picture|image|illustration|drawing)s?\b",
+    re.I,
+)
 MAX_NEEDS = 6
 MAX_SLOTS = 6
 TITLE_MAX = 80
@@ -37,7 +42,9 @@ SYSTEM = (
     "You are the Gardener of a small group room. Read the goal and split it into two to six "
     "needs the group must meet. Give each need a short title that starts with a capital "
     "letter and names the thing to get done (under 70 characters, in the goal's own words), "
-    "a kind that says what sort of result it needs (place, schedule, budget, list or draft) "
+    "a kind that says what sort of result it needs (place, schedule, budget, list, draft, or "
+    "image for a picture to print or share, such as a poster, card, invitation or menu, "
+    "only when the goal asks for one) "
     "and one line of detail that says what done looks like for that need, so the group can "
     "tell when it is met (never a repeat of the goal). Then give up to six candidate time "
     "slots, each a short label "
@@ -47,6 +54,7 @@ SYSTEM = (
 )
 
 KEYWORDS: tuple[tuple[Kind, tuple[str, ...]], ...] = (
+    ("image", ("poster", "posters", "flyer", "banner", "menu", "picture", "illustration")),
     ("budget", ("budget", "cost", "costs", "money", "pay", "price", "fund", "afford")),
     ("schedule", ("when", "time", "schedule", "date", "day", "meet", "meeting", "agenda")),
     ("place", ("where", "place", "room", "venue", "location", "space", "site", "route")),
@@ -123,8 +131,9 @@ def rule_needs(goal: str, drafted: list[str]) -> list[NeedItem]:
     return [NeedItem(title=t, kind=kind_of(t), detail="Taken from the goal.") for t in titles]
 
 
-def checked(reply: NeedsReply | None) -> list[NeedItem] | None:
-    """The model's needs if they are usable: two to six, each with a plain title."""
+def checked(reply: NeedsReply | None, goal: str = "") -> list[NeedItem] | None:
+    """The model's needs if they are usable: two to six, each with a plain title. A picture
+    the goal did not ask for becomes a draft, so no image is drawn unasked."""
     if reply is None:
         return None
     seen: set[str] = set()
@@ -135,7 +144,10 @@ def checked(reply: NeedsReply | None) -> list[NeedItem] | None:
         if not title or title.lower() in seen:
             continue
         seen.add(title.lower())
-        out.append(NeedItem(title=title, kind=item.kind, detail=tidy(item.detail, DETAIL_MAX)))
+        kind = item.kind
+        if kind == "image" and not PICTURE.search(f"{goal} {title}"):
+            kind = "draft"
+        out.append(NeedItem(title=title, kind=kind, detail=tidy(item.detail, DETAIL_MAX)))
     return out[:MAX_NEEDS] if len(out) >= 2 else None
 
 
@@ -189,7 +201,7 @@ async def make(engine: RoomEngine, coalition: str, state: State) -> None:
             verb="reading",
             label="Reading the goal into needs",
         )
-        items = checked(reply)
+        items = checked(reply, goal)
     source = "model" if items else "rules"
     if items and reply is not None:
         slots = checked_slots(reply.slots, now, deadline)
