@@ -92,8 +92,14 @@ def schemas() -> None:
     print(f"{len(files)} schema files are valid JSON Schema 2020-12", flush=True)
 
 
+def scratch(name: str) -> str:
+    """A throwaway folder for one pytest run; pytest makes the folder but not its parent."""
+    (ROOT / ".cache").mkdir(exist_ok=True)
+    return str(ROOT / ".cache" / name)
+
+
 def pytest() -> None:
-    run(py("pytest", "-q", "--basetemp", str(ROOT / ".cache" / "pytest-check")))
+    run(py("pytest", "-q", "--basetemp", scratch("pytest-check")))
 
 
 def denylist_words() -> list[str]:
@@ -148,7 +154,7 @@ def separation() -> None:
             "pytest",
             "-q",
             "--basetemp",
-            str(ROOT / ".cache" / "pytest-separation"),
+            scratch("pytest-separation"),
             "-p",
             "no:cacheprovider",
             "-o",
