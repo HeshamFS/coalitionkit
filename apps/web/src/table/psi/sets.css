@@ -1,13 +1,14 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* The privately compared sets, in the stage's lower left; on a phone, under the stage. */
+/* The privately compared sets, in the stage's upper left under the event count (the lower edge
+   holds the plan strip and the made results); on a phone, under the stage. */
 .ps-sets {
   position: absolute;
   left: 14px;
-  bottom: 14px;
+  top: 36px;
   z-index: 7;
   display: grid;
   gap: 8px;
-  width: min(300px, calc(100% - 28px));
+  width: min(256px, calc(100% - 28px));
   padding: 10px 12px 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
