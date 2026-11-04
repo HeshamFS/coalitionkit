@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# pyright: reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownLambdaType=false, reportMissingParameterType=false
+# pyright: reportAttributeAccessIssue=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnknownLambdaType=false, reportMissingParameterType=false
 """A minted device takes a seat: the Mint on the host, the owner's hold, offers, readings."""
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ def two_seated(client: TestClient, config: dict[str, Any]) -> tuple[str, Any, di
     sign(client, cid, member["token"], member["participant"])
     until(lambda: len(events(client, cid, "need")) >= 3, what="needs")
     h = hub(engine)
-    h.script = MintModel(config)  # type: ignore[attr-defined]
+    h.script = MintModel(config)
     h.gateway = ModelGateway(
         ModelSettings(), transport=h.script, meter=CostMeter(load_price_table())
     )
@@ -267,7 +267,7 @@ def test_a_display_device_publishes_readings_and_a_crossing_ripples(tmp_path: Pa
         observed = [e for e in events(client, cid, "observe") if e["payload"]["source"] == "device"]
         assert len(observed) == 1 and observed[0]["on_behalf_of"] == pid
 
-        hub(engine).script.shown = "61"  # type: ignore[attr-defined]
+        hub(engine).script.shown = "61"
         over = {"frame": ("f.png", frame_png("61"), "image/png")}
         read = client.post(
             "/v1/room/mint/frame", files=over, data={"device": pid}, headers=bearer(owner)
