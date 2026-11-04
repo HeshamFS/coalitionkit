@@ -5,6 +5,7 @@ from .compare import CompareQuestion, CompareSet
 from .errors import PackError, Problem
 from .loader import Pack, inspect_pack, load_pack
 from .manifest import Manifest
+from .public import PublicQuestion
 from .scopes import ScopeWidenError, check_not_wider, narrow
 from .sections import EvalOutcome, EvalScenario, TaskTemplate
 from .signing import (
@@ -25,6 +26,7 @@ __all__ = [
     "PackError",
     "PackSignature",
     "Problem",
+    "PublicQuestion",
     "ScopeWidenError",
     "TaskTemplate",
     "Views",

@@ -15,6 +15,7 @@ from pydantic import (
 )
 
 from .compare import CompareSet, check_sets
+from .public import PublicQuestion, check_public
 from .version import SEMVER, parse_range
 
 Name = Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")]
@@ -115,6 +116,7 @@ class Manifest(_Strict):
     strategy: Strategy | None = None
     suggest: Suggest | None = None
     compare: list[CompareSet] | None = None
+    public: list[PublicQuestion] | None = None
     evals: Annotated[list[RelPath], Field(min_length=1)]
     acceptance: RelPath | None = None
 
@@ -131,6 +133,11 @@ class Manifest(_Strict):
     @classmethod
     def _sets(cls, value: list[CompareSet] | None) -> list[CompareSet] | None:
         return None if value is None else check_sets(value)
+
+    @field_validator("public")
+    @classmethod
+    def _public(cls, value: list[PublicQuestion] | None) -> list[PublicQuestion] | None:
+        return None if value is None else check_public(value)
 
     @field_validator("version")
     @classmethod

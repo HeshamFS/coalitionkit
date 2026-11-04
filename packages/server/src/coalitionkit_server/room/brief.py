@@ -21,7 +21,7 @@ from coalitionkit_runtime.lifecycle import State
 from coalitionkit_surfaces import compose_surface
 
 from ..adapter import Document
-from . import sets
+from . import public, sets
 from .model import ask
 from .needs import tidy
 from .seats import people
@@ -337,6 +337,7 @@ async def open_brief(engine: RoomEngine, coalition: str, who: str, state: State)
     if not questions:
         questions = questions_from(engine, fallback_items(needs, slots), slots, ref)
     questions += sets.questions(engine, coalition, slots, ref)  # the pack's compared sets
+    questions += public.questions(engine, coalition, ref)  # answers the room sees
     now = engine.now()
 
     def opened(d: Document) -> None:
