@@ -21,6 +21,11 @@ from coalitionkit_server.room.inputs_read import rule_answer
 HEARD = "I cannot do the second one on Saturday"
 
 
+def spoken(client: TestClient, cid: str) -> int:
+    """How many events the room holds apart from the tool record a reading leaves."""
+    return sum(1 for e in server_of(client).store.read(cid) if e["type"] != "coalition.tool")
+
+
 def brief_room(client: TestClient, heard: str = HEARD, sent: list[bytes] | None = None):
     server_of(client).media = media(heard, sent)
     room, (member,) = full_room(client, seats=2)
@@ -54,14 +59,14 @@ def test_a_clip_becomes_words_for_the_speaker_only_and_the_audio_is_not_kept(
     sent: list[bytes] = []
     with serve(tmp_path, ReadingModel(no_reader, needs=NEEDS, brief=BRIEF)) as client:
         cid, engine, owner, member = brief_room(client, sent=sent)
-        before = len(server_of(client).store.read(cid))
+        before = spoken(client, cid)
         audio = wav(1.5)
         reply = post_voice(client, owner["token"], audio)
         assert reply.status_code == 200, reply.text
         body = reply.json()
         assert body["text"] == HEARD and body["source"] == "model" and body["ms"] >= 0
         assert audio in sent[0], "the clip went to the transcriber as it was"
-        assert len(server_of(client).store.read(cid)) == before, "hearing words is no event"
+        assert spoken(client, cid) == before, "hearing words is no event beyond the tool record"
         mine = view_of(engine, cid, "p1")["mine"]["inputs"]
         assert mine == [{"kind": "voice", "text": HEARD, "ms": body["ms"]}]
         other = view_of(engine, cid, member["participant"])
@@ -140,7 +145,7 @@ def test_a_photo_answers_a_question_and_the_image_is_not_kept(tmp_path: Path) ->
     model = ReadingModel(reader, needs=NEEDS, brief=BRIEF)
     with serve(tmp_path, model) as client:
         cid, engine, owner, member = brief_room(client)
-        before = len(server_of(client).store.read(cid))
+        before = spoken(client, cid)
         reply = client.post(
             "/v1/room/photo",
             files={"image": ("shelf.png", PNG, "image/png")},
@@ -152,7 +157,7 @@ def test_a_photo_answers_a_question_and_the_image_is_not_kept(tmp_path: Path) ->
         assert body["answer"] == "o2" and body["words"] == "The costs"
         assert body["description"] == "A shelf with three labelled boxes."
         assert model.images[0].startswith("data:image/png;base64,")
-        assert len(server_of(client).store.read(cid)) == before
+        assert spoken(client, cid) == before
         assert b"PHOTO-BYTES-MARKER" not in stored(tmp_path)
         assert view_of(engine, cid, "p1")["mine"]["inputs"][-1]["kind"] == "photo"
         assert "three labelled" not in json.dumps(view_of(engine, cid, member["participant"]))

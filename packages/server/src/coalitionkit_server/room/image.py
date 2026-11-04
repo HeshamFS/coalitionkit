@@ -16,7 +16,7 @@ import contextlib
 import re
 import time
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from coalitionkit_contracts import Scope, new_ulid
 from coalitionkit_models import MissingKeyError
@@ -96,7 +96,10 @@ def media_client(engine: RoomEngine) -> Any:
 
 
 def activity_sink(engine: RoomEngine, coalition: str) -> Activity | None:
-    """The room's tool-activity recorder, bound to this room; None for a room that is not traced."""
+    """The room's tool-activity recorder for this room; a test may set ``engine.activity_sink``."""
+    make = getattr(engine, "activity_sink", None)
+    if callable(make):
+        return cast(Activity, make(coalition))
     from .activity import records, reporter
 
     return reporter(engine, coalition) if records(engine, coalition) else None
