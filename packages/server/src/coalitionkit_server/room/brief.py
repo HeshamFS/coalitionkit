@@ -419,7 +419,11 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
     if hosted:
         engine.note(coalition, "asking", "Agents are asking their people a few questions")
         await asyncio.gather(*(open_brief(engine, coalition, who, state) for who in hosted))
+    offered = {str(o["owner"]) for o in state.offers.values()}
     for who in seated:
+        # An agent the person brought over MCP offers by itself and has no way to these questions.
+        if who in offered and not engine.read(coalition)["briefs"][who]["closed"]:
+            close(engine, coalition, who)
         close_if_due(engine, coalition, who)
     current = engine.read(coalition)
     done = all(current["briefs"].get(p, {}).get("closed") for p in seated)

@@ -22,6 +22,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from coalitionkit_contracts import new_ulid, public_key_to_jwk
+from coalitionkit_edges.a2a.identity import CardError
 
 from .adapter import Document
 from .rooms import Box
@@ -331,6 +332,10 @@ class JoinCode(BaseModel):
     code: str = Field(max_length=32)
     display_name: str | None = Field(default=None, min_length=1, max_length=64)
     role: str | None = Field(default=None, max_length=64)
+    # An agent from outside brings its own signed card and holds its own keys; it then joins over
+    # A2A itself. Without a card the host holds the seat's keys and joins for the person.
+    card_url: str | None = Field(default=None, max_length=2048)
+    card: Document | None = None
 
 
 class Answer(BaseModel):
@@ -430,9 +435,13 @@ def mount_door(
             invitation = registry.issue_invitation(coalition, "member")
             try:
                 redeemed = registry.redeem(
-                    invitation["link"].split("#")[1], server.ports, None, None
+                    invitation["link"].split("#")[1], server.ports, body.card_url, body.card
                 )
-                await enroll(server, redeemed, role)
+                if body.card is None:
+                    await enroll(server, redeemed, role)
+            except CardError as exc:
+                registry.revoke_invitation(coalition, invitation["id"])
+                raise HTTPException(400, "card refused: " + exc.reason) from None
             except ValueError, KeyError:
                 registry.revoke_invitation(coalition, invitation["id"])
                 raise HTTPException(400, "join refused") from None
@@ -440,6 +449,7 @@ def mount_door(
             store.arrive(coalition, redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
+                "role": role,
                 "host_key": public_key_to_jwk(server.key.public_key(), "host"),
             }
 

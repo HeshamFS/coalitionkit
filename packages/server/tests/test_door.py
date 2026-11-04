@@ -154,7 +154,7 @@ def test_join_by_code_twice_gives_two_seats(client: TestClient) -> None:
     first, second = join(client, code), join(client, code.lower())
     for reply in (first, second):
         assert reply.status_code == 200, reply.text
-        assert set(reply.json()) == {"coalition_id", "participant", "token", "host_key"}
+        assert set(reply.json()) == {"coalition_id", "participant", "token", "role", "host_key"}
     ids = {first.json()["participant"], second.json()["participant"]}
     assert len(ids) == 2 and "p1" not in ids
     assert first.json()["token"] != second.json()["token"]
