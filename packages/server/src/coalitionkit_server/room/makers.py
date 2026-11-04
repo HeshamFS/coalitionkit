@@ -50,7 +50,8 @@ KIND_RULES = {
         "Write a complete message someone could send as it is: a greeting, what it is about, "
         "when (the day the goal names, such as 'next Saturday'; if the goal names none, offer "
         "the shared times as options to choose from; never present shared times as a "
-        "separate event), where (a place only if the facts name one, else 'the place is still "
+        "separate event; do not invent a start time or part of the day), where (a place only "
+        "if the facts name one, else 'the place is still "
         "to be confirmed'), and what the reader should do next. Sign it with the people's names."
     ),
     "budget": (
@@ -176,7 +177,7 @@ def shows_free_slot(body: str, facts: Document) -> bool:
 
 
 SENTENCE_HEDGE = re.compile(
-    r"(^|(?<=[.!?]) )(?:as an? (?:proposal|suggestion)|proposal|suggestion) ?[:,] ?(.)", re.I
+    r"(?m)(^|(?<=[.!?]) )(?:as an? (?:proposal|suggestion)|proposal|suggestion) ?[:,] ?(.)", re.I
 )
 SAYS_PROPOSAL = re.compile(r" ?This is an? (?:proposal|suggestion)(?: for the group)?\.", re.I)
 
@@ -199,6 +200,8 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
         body = out.body.strip()
         if len(body) < 80 or PLACEHOLDER.search(body) or PLACEHOLDER.search(out.subject):
             return "write the whole message with no placeholders"
+        if re.search(r"proposal|we suggest|we propose", body, re.I):
+            return "an invitation reads as an invitation: do not call it or its parts a proposal"
         if shows_free_slot(body, facts):
             return (
                 "do not write the shared free times or any clock time: they are when the "

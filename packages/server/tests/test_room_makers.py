@@ -119,6 +119,8 @@ def test_place_ideas_lose_the_hedge_in_front() -> None:
 def test_hedges_and_invented_clock_times_are_caught() -> None:
     said = makers.unhedged("We run a fair. As a proposal, we suggest a start. This is a proposal.")
     assert said == "We run a fair. We suggest a start."
+    lines = makers.unhedged("Hello.\n\nAs a proposal, we meet late.")
+    assert lines == "Hello.\n\nWe meet late."
     facts: dict[str, object] = {"amount": None, "goal": "A fair", "common": []}
     body = "Hello neighbours, we run a small fair next Saturday and we would love you to come. "
     out = makers.clean(
