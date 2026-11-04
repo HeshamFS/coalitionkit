@@ -132,3 +132,12 @@ def test_hedges_and_invented_clock_times_are_caught() -> None:
     )
     placed = makers.clean("place", makers.PlaceOut(ideas=[idea, idea]), facts, set())
     assert isinstance(placed, str)
+
+
+def test_sentences_that_only_talk_about_being_a_proposal_are_dropped() -> None:
+    assert makers.unhedged("It fits the fair. This set is a proposal.") == "It fits the fair."
+    nl = chr(10)
+    body = (
+        "We run a fair." + nl + nl + "Please treat this invitation as a proposal while we finish."
+    )
+    assert makers.unhedged(body) == "We run a fair."

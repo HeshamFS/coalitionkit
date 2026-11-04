@@ -179,13 +179,21 @@ def shows_free_slot(body: str, facts: Document) -> bool:
 SENTENCE_HEDGE = re.compile(
     r"(?m)(^|(?<=[.!?]) )(?:as an? (?:proposal|suggestion)|proposal|suggestion) ?[:,] ?(.)", re.I
 )
+TALKS_ABOUT = re.compile(
+    r"\b(?:a|this|the) (?:proposal|set is a proposal)\b|\bas a proposal\b", re.I
+)
 SAYS_PROPOSAL = re.compile(r" ?This is an? (?:proposal|suggestion)(?: for the group)?\.", re.I)
 
 
 def unhedged(text: str) -> str:
-    """No 'As a proposal,' opening a sentence and no 'This is a proposal.' sentence."""
+    """No 'As a proposal,' opening a sentence, and no sentence that only says it is a proposal."""
     text = SAYS_PROPOSAL.sub("", text)
-    return SENTENCE_HEDGE.sub(lambda m: m[1] + m[2].upper(), text).strip()
+    text = SENTENCE_HEDGE.sub(lambda m: m[1] + m[2].upper(), text)
+    kept = [
+        " ".join(s for s in re.split(r"(?<=[.!?]) +", line) if not TALKS_ABOUT.search(s))
+        for line in text.split(chr(10))
+    ]
+    return chr(10).join(kept).strip()
 
 
 def plain(text: str, limit: int) -> str:
@@ -200,8 +208,6 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
         body = out.body.strip()
         if len(body) < 80 or PLACEHOLDER.search(body) or PLACEHOLDER.search(out.subject):
             return "write the whole message with no placeholders"
-        if re.search(r"proposal|we suggest|we propose", body, re.I):
-            return "an invitation reads as an invitation: do not call it or its parts a proposal"
         if shows_free_slot(body, facts):
             return (
                 "do not write the shared free times or any clock time: they are when the "

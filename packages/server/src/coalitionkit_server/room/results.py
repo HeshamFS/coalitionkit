@@ -140,10 +140,9 @@ def draft_by_rules(facts: Document) -> Document:
 
     The shared free times are when the people can meet, never when the event is, so the
     message does not give them as the time."""
-    goal = facts["goal"].rstrip(".")
     names = " and ".join(facts["people"][:3]) or "the organisers"
     body = (
-        f"Hello,\n\nWe are getting together to do this: {goal}.\n\n"
+        "Hello,\n\nWe would love you to join us.\n\n"
         "When: the time is still to be confirmed.\nWhere: the place is still to be confirmed.\n\n"
         "Please reply to say whether you can come, and tell us if you have ideas or can help.\n\n"
         f"Thanks,\n{names}"
