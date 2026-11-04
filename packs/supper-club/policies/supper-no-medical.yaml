@@ -4,9 +4,9 @@ applies_to: [coalition.say, coalition.observe, coalition.offer]
 when:
   any_text_matches:
     - '\b\d+(?:\.\d+)?\s?(?:mg|mcg)\b'
-    - '\b(?:cure|cures|treat|treats|heal|heals|fix|fixes)\s+(?:your|his|her|their|the|an?)?\s*(?:allerg\w*|intoleran\w*|diabetes|coeliac\w*|celiac\w*|reflux|gut)\b'
+    - '\b(?:cure|cures|cured|treat|treats|heal|heals|fix|fixes)\s+(?:\w+\s+){0,3}(?:allerg\w*|intoleran\w*|diabetes|coeliac\w*|celiac\w*|reflux)\b'
     - '\bsafe\s+(?:for|to\s+eat\s+for)\s+(?:someone|anyone|people|a\s+person)\s+with\b'
     - '\b(?:diagnos(?:is|e|ed)|prescri(?:be|bed|ption))\b'
-    - '\b(?:outgrow|cured)\s+(?:the|an?|your|her|his)?\s*allerg\w*\b'
+    - '\boutgr(?:ow|own|ew)\s+(?:\w+\s+){0,2}allerg\w*\b'
 then: escalate
 explain: "Plan the dinner and leave medical diet advice to a doctor or dietitian."

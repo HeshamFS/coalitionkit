@@ -6,7 +6,7 @@ roles:
   cook: { may: [charter, offer, decide, commit], label: Cook }
   guest: { may: [offer, decide, commit], label: Guest }
   absent-cook: { may: [offer, decide, commit], label: Absent cook }
-  grocer: { may: [offer, commit], label: Grocer }
+  grocer: { may: [offer, decide, commit], label: Grocer }
 suggest:
   keywords:
     - dinner
