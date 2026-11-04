@@ -21,7 +21,16 @@ describe("web sources", () => {
 
   it("shows the links and the screened queries", () => {
     const searches = readSearches([
-      { id: "s1", seat: "p1", need: "n1", query: "a hall", provider: "meta", count: 2, ms: 9200 },
+      {
+        id: "s1",
+        seat: "p1",
+        need: "n1",
+        query: "a hall for us",
+        ran: ["a hall"],
+        provider: "meta",
+        count: 2,
+        ms: 9200,
+      },
       {
         id: "s2",
         seat: "p1",

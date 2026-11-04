@@ -8,6 +8,8 @@ export type RoomSearch = {
   seat: string;
   need: string | null;
   query: string;
+  /** The words the provider actually searched (the Meta tool may shorten the query). */
+  ran: string[];
   provider: string;
   count: number;
   first: string;
@@ -51,6 +53,7 @@ export function readSearches(v: unknown): RoomSearch[] {
       seat: text(r.seat),
       need: text(r.need) || null,
       query: text(r.query),
+      ran: Array.isArray(r.ran) ? r.ran.filter((q): q is string => typeof q === "string") : [],
       provider: text(r.provider),
       count: typeof r.count === "number" ? r.count : 0,
       first: text(r.first),

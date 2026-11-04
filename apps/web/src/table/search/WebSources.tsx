@@ -15,7 +15,8 @@ const host = (url: string) => {
 function searchLine(s: RoomSearch): string {
   if (s.stopped) return `A search was refused: ${s.stopped}.`;
   const took = s.ms === null ? "" : `, ${(s.ms / 1000).toFixed(1)} s`;
-  return `Searched "${s.query}" (${s.provider}): ${s.count} found${took}.`;
+  const words = s.ran.length > 0 ? s.ran.join('", "') : s.query;
+  return `Searched "${words}" (${s.provider}): ${s.count} found${took}.`;
 }
 
 export function WebSources({
@@ -37,8 +38,8 @@ export function WebSources({
             <li key={l.url}>
               <a href={l.url} target="_blank" rel="noopener noreferrer">
                 {l.title}
-              </a>{" "}
-              <span className="tb-quiet">{host(l.url)}</span>
+              </a>
+              {l.title !== host(l.url) && <span className="tb-quiet"> {host(l.url)}</span>}
             </li>
           ))}
         </ol>

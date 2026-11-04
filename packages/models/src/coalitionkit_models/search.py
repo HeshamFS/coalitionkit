@@ -21,7 +21,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol, cast
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx2
 
@@ -94,8 +94,8 @@ def page_key(url: str) -> str:
     """One key per page: no scheme, no "www.", no trailing slash, case folded."""
     parts = urlsplit(url)
     host = parts.netloc.lower().removeprefix("www.")
-    query = f"?{parts.query}" if parts.query else ""
-    return f"{host}{parts.path.rstrip('/')}{query}".lower()
+    query = f"?{unquote(parts.query)}" if parts.query else ""
+    return f"{host}{unquote(parts.path).rstrip('/')}{query}".lower()
 
 
 def dedupe(hits: Sequence[SearchHit | None], limit: int) -> tuple[SearchHit, ...]:

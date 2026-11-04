@@ -159,3 +159,9 @@ def test_search_is_off_unless_a_provider_is_named() -> None:
     assert make_search(settings()) is None
     for name, kind in (("meta", MetaSearch), ("ddg", DdgSearch), ("brave", BraveSearch)):
         assert isinstance(make_search(settings(search_provider=name)), kind)
+
+
+def test_a_page_is_the_same_page_however_its_path_is_encoded() -> None:
+    told = [{"title": "Cafe", "url": "https://example.org/café-one", "snippet": "Quiet."}]
+    hits, _ = read_meta_response(body(told, ["https://example.org/caf%C3%A9-one"]), 5)
+    assert (hits[0].title, hits[0].url) == ("Cafe", "https://example.org/café-one")
