@@ -251,7 +251,7 @@ class RoomEngine:
 
     # --- the step -----------------------------------------------------------------------------
     async def step(self, coalition: str) -> None:
-        from . import activity, brief, compare, explain, needs, offers, say, seats, work
+        from . import activity, brief, compare, explain, needs, offers, say, seats, talk, work
 
         host = self.server.hosts[coalition]
         self.flush_checks(coalition)
@@ -272,6 +272,7 @@ class RoomEngine:
         await brief.advance(self, coalition)
         await offers.advance(self, coalition)
         await compare.advance(self, coalition)
+        await talk.advance(self, coalition)
         await explain.advance(self, coalition)
         await work.advance(self, coalition)
         await say.advance(self, coalition)
@@ -437,7 +438,9 @@ class RoomEngine:
             return bool(self.doc(coalition)["needs_state"] == "ready")
 
     def may_plan(self, coalition: str) -> bool:
-        """A plan waits for the brief, every seat's offers and the time comparison."""
+        """A plan waits for the brief, every seat's offers, the time comparison and the talk."""
+        from .talk import settled
+
         with self.lock:
             d = self.doc(coalition)
             done = d["compare"] is not None and d["compare"]["state"] == "done"
@@ -448,6 +451,7 @@ class RoomEngine:
                 and done
                 and not d["change_pending"]
                 and not self.publishing_changes.get(coalition)
+                and settled(self, d)
             )
 
     # --- the public document ------------------------------------------------------------------

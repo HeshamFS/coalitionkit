@@ -18,6 +18,7 @@ from .resources import CHARTER_URI, LOG_URI, TASKS_URI, charter, log, my_tasks
 from .tools_consent import accept_charter, approve_commitment, decide
 from .tools_read import VIEW_URI, list_coalitions, my_view, open_asks, pending_questions
 from .tools_search import web_search
+from .tools_talk import read_talk, say
 from .tools_write import (
     answer_question,
     commit,
@@ -42,12 +43,15 @@ PLAIN_WRITES = (
     report_ripple,
     report_done,
     leave_coalition,
+    say,
 )
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
 #: Tools that reach outside the Coalition through the host, under its outbound policy.
 WEB_READS = (web_search,)
 #: The read tools whose results the view can draw; each links to it through its UI metadata.
 VIEW_READS = (list_coalitions, pending_questions, open_asks)
+#: Read tools with no view of their own.
+PLAIN_READS = (read_talk,)
 
 
 class PortTokenVerifier:
@@ -120,6 +124,8 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
         server.add_tool(fn, annotations=WRITE)
     for fn in WEB_READS:
         server.add_tool(fn, annotations=WEB)
+    for read in PLAIN_READS:
+        server.add_tool(read, annotations=READ)
     server.resource(CHARTER_URI, name="charter", mime_type="application/json")(charter)
     server.resource(TASKS_URI, name="my-tasks", mime_type="application/json")(my_tasks)
     server.resource(LOG_URI, name="log", mime_type="application/json")(log)

@@ -20,6 +20,9 @@ Every tool call the host sees is on the Table, for everyone in the room. The hos
 - **A spark on the ring** marks each seat whose agent has a call running, with the tool's name beside it. It goes out when the call finishes.
 
 The lines hold only what the whole room may see: tool names, need titles, counts, timings and event ids. Answers, vault values, contact details, keys and tokens are never recorded, so they cannot appear here. A line that matches one of the Steward's outbound policies is recorded as `withheld`.
+## When the agents talk
+
+Before the plans, the agents [talk to each other](agents-talk.md). A bubble by each speaking seat holds its newest line, and a beam runs from the speaker to the seat the line is for, or to the goal when it is for everyone. The thread panel on your side lists every line in order. On a phone the thread is on your side, and the table shows the newest bubble.
 
 ## Light and night
 

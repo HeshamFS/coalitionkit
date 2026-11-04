@@ -503,7 +503,7 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     mcp = mcp_app(
         Deps(
             MCPPort(server),
-            ViewPort(server.hosts, server.registry),
+            ViewPort(server.hosts, server.registry, server.room),
             server.registry,
             skills=server,
             activity=McpActivity(server),

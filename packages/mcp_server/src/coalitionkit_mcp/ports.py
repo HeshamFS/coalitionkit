@@ -75,6 +75,11 @@ class ViewPort(Protocol):
         """The data of the participant's live surface for the MCP App view."""
         ...
 
+    async def talk(self, participant: str, coalition_id: str) -> dict[str, Any] | None:
+        """The agents' talk as this participant may see it: ``open``, ``round``, ``rounds`` and
+        ``thread``. Optional: a view without it reports the talk as closed."""
+        ...
+
     async def subject_revision(
         self, participant: str, coalition_id: str, kind: str, subject_id: str
     ) -> int | None:

@@ -17,7 +17,7 @@ TOOLS = {
     "list_coalitions", "join_coalition", "my_view", "open_asks", "pending_questions",
     "answer_question",
     "make_offer", "decide", "approve_commitment", "report_done", "leave_coalition", "commit",
-    "report_ripple", "accept_charter", "web_search",
+    "report_ripple", "accept_charter", "web_search", "say", "read_talk",
 }  # fmt: skip
 
 
@@ -170,6 +170,8 @@ async def test_every_tool_refuses_a_foreign_coalition(rig: Rig) -> None:
         "report_ripple": {"change": "x", "invalidates": []},
         "report_done": {"task_id": TASK, "evidence": []},
         "leave_coalition": {},
+        "say": {"text": "hello", "intent": "ask"},
+        "read_talk": {},
     }
     async with rig.connect("p2") as client:
         for name, args in calls.items():
@@ -178,3 +180,42 @@ async def test_every_tool_refuses_a_foreign_coalition(rig: Rig) -> None:
             assert (result.structured_content or {})["code"] == "unknown_participant", name
     assert rig.host.calls == []
     assert COMMITMENT  # imported for the consent tests' sibling module
+
+
+async def test_say_signs_one_line_as_the_token_participant(rig: Rig) -> None:
+    async with rig.connect("p1") as client:
+        result = await client.call_tool(
+            "say", {"coalition_id": C1, "text": "Who takes the costs?", "intent": "ask"}
+        )
+        too_long = await client.call_tool(
+            "say", {"coalition_id": C1, "text": "x" * 281, "intent": "ask"}
+        )
+    assert not result.is_error and (result.structured_content or {})["to"] == "room"
+    sent = last(rig)
+    assert sent["type"] == "coalition.say" and sent["on_behalf_of"] == "p1"
+    assert sent["scope"] == {"audience": "coalition"}
+    assert sent["payload"] == {"to": "room", "text": "Who takes the costs?", "intent": "ask"}
+    assert too_long.is_error and (too_long.structured_content or {})["code"] == "schema_invalid"
+
+
+async def test_read_talk_and_open_asks_say_when_the_room_is_talking(rig: Rig) -> None:
+    line = {
+        "id": "e1",
+        "seq": 9,
+        "from": "p2",
+        "to": "room",
+        "intent": "trade",
+        "text": "I take the venue.",
+        "re": None,
+        "stage": "start",
+        "secret_note": "no",
+    }
+    rig.view.by_id[C1].talk = {"open": True, "round": 1, "rounds": 2, "thread": [line]}
+    async with rig.connect("p1") as client:
+        talk = await client.call_tool("read_talk", {"coalition_id": C1})
+        asks = await client.call_tool("open_asks", {"coalition_id": C1})
+    got = talk.structured_content or {}
+    assert got["open"] is True and got["thread"][0]["text"] == "I take the venue."
+    assert "secret_note" not in str(talk)
+    assert (asks.structured_content or {})["talk"]["next_call"] == {"tool": "say"}
+    assert "The room is talking" in str(asks.content[0])

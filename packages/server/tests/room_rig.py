@@ -106,6 +106,7 @@ class RoomModel:
         made_delay: float = 0.0,
         steward_delay: float | None = None,
         laid: Document | Callable[[str], Document] | None = None,
+        talk: Document | Callable[[str], Document] | None = None,
     ) -> None:
         self.needs, self.brief, self.gardener_delay = needs, brief, gardener_delay
         self.offers, self.names, self.foryou = offers, names, foryou
@@ -113,6 +114,7 @@ class RoomModel:
         self.made, self.say, self.made_delay = made, say, made_delay
         self.steward_delay = steward_delay
         self.laid = laid
+        self.talk = talk
         self.calls: list[tuple[str, list[ChatMessage]]] = []
 
     @staticmethod
@@ -143,6 +145,8 @@ class RoomModel:
                     await asyncio.sleep(self.offers_delay)
             elif "means for them" in system:
                 reply = self.pick(self.foryou, user)
+            elif "the agents are talking" in system:
+                reply = self.pick(self.talk, user)
             elif "where it goes" in system:
                 reply = self.pick(self.say, user)
             else:

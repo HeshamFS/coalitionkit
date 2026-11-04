@@ -42,6 +42,7 @@ class FakeCoalition:
     tasks: dict[str, list[dict[str, Any]]] = field(default_factory=lambda: {})
     questions: dict[str, list[dict[str, Any]]] = field(default_factory=lambda: {})
     events: list[dict[str, Any]] = field(default_factory=lambda: [])
+    talk: dict[str, Any] = field(default_factory=lambda: {})
 
 
 def _drop(payload: dict[str, Any], paths: list[str]) -> dict[str, Any]:
@@ -103,6 +104,10 @@ class FakeViewPort:
 
     async def open_asks(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
         return []
+
+    async def talk(self, participant: str, coalition_id: str) -> dict[str, Any] | None:
+        found = self._member(participant, coalition_id)
+        return None if found is None else dict(found.talk) if found.talk else None
 
     async def pending_questions(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
         found = self._member(participant, coalition_id)

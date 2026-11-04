@@ -133,6 +133,11 @@ def test_optional_fields_may_be_omitted(message_type: str) -> None:
 
 
 BAD_VALUES: list[tuple[str, dict[str, Any]]] = [
+    ("coalition.say", {"text": ""}),
+    ("coalition.say", {"text": "x" * 281}),
+    ("coalition.say", {"intent": "shout"}),
+    ("coalition.say", {"to": ""}),
+    ("coalition.say", {"re": "not-an-event-id"}),
     ("coalition.offer", {"capacity": 0}),
     ("coalition.offer", {"capacity": 1.5}),
     ("coalition.offer", {"capacity": True}),

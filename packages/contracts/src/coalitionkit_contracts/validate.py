@@ -35,6 +35,7 @@ SCHEMA_FILES: Mapping[str, str] = {
     "coalition.decide": "decide",
     "coalition.commit": "commit",
     "coalition.ripple": "ripple",
+    "coalition.say": "say",
     "coalition.done": "done",
     "coalition.dissolve": "dissolve",
     "coalition.projection": "projection",

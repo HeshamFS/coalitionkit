@@ -14,6 +14,8 @@ import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
 import { ToolSparks } from "./tools/ToolSparks";
 import { ToolStrip } from "./tools/ToolStrip";
+import { TalkLayer } from "./talk/TalkLayer";
+import { EMPTY_TALK } from "./talk/talk";
 import { useCurrentStop, useStageFx } from "./useStageFx";
 
 /** The scale that fits the stage into the room the sheet has left, measured on the sheet itself. */
@@ -108,6 +110,14 @@ function StageContents({
           <StopBeam key={x.stop.id} from={x.from} toward={x.toward} current={x.current} />
         ))}
       {!ended && <GoalDisc at={centre} text={lit ? "plan signed" : "goal"} lit={lit} />}
+      {!ended && (
+        <TalkLayer
+          talk={room.talk ?? EMPTY_TALK}
+          home={home}
+          centre={centre}
+          compact={layout.compact}
+        />
+      )}
       {ended && (
         <div className="tb-mark" style={{ left: centre.x, top: centre.y }}>
           <Logo size={layout.compact ? 84 : 120} />

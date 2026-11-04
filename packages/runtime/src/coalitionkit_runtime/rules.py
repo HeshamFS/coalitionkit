@@ -47,7 +47,7 @@ def stage_check(state: State, event: Document, host: bool) -> None:
     if not host and event["type"] in HOST_ONLY_TYPES | {"coalition.error"}:
         return
     require(state.stage != "Germinate", "stage_mismatch")
-    if kind in {"observe", "need"}:
+    if kind in {"observe", "need", "say"}:
         return
     ids = state.task_ids(event)
     # Unknown targets are authorization failures, not invented task states.
@@ -103,6 +103,14 @@ def authorize(state: State, event: Document, host: bool, now: str) -> None:
         if kind == "offer":
             old = state.offers.get(body["offer_id"])
             require(old is None or old["owner"] == owner)
+    elif kind == "say":
+        # A line is for the room or for one other seated member, and answers only what its
+        # speaker could see.
+        require(state.accepted_charter(owner))
+        require(body["to"] == "room" or (body["to"] in state.members and body["to"] != owner))
+        if "re" in body:
+            cited = state.events.get(body["re"])
+            require(cited is not None and state.visible(cited, owner))
     elif kind == "answer":
         query = state.queries.get(body["query_id"])
         require(query is not None)

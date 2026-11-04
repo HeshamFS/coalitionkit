@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 id: no-contact-details-in-room
-applies_to: [coalition.observe, coalition.ripple, coalition.offer]
+applies_to: [coalition.observe, coalition.ripple, coalition.offer, coalition.say]
 when:
   any_text_matches_category: [contact_details]
 then: block

@@ -25,7 +25,7 @@ from coalitionkit_runtime import Acknowledgement
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from . import say_words
+from . import say_words, talk
 from .brief import given
 from .model import ask
 from .needs import tidy
@@ -154,6 +154,8 @@ async def say(
         affected = picked or touched(text, live, mine)
         if not affected:
             route = "private"
+    if route in {"room", "private"} and ADDRESSED.search(text) and talk.listening(engine, doc):
+        return talk.whisper(engine, coalition, who, text)  # the agent says it in the talk
     if route == "room":
         return await to_room(engine, coalition, who, text, sentence, source)
     if route == "change":

@@ -190,12 +190,23 @@ async def open_asks(coalition_id: str, ctx: Context) -> CallToolResult:
     data: dict[str, Any] = {"coalition_id": coalition_id, "asks": asks}
     if asks and not can_ask(ctx):
         data["note"] = CANNOT_ASK
+    from .tools_talk import ROOM_IS_TALKING, talk_of
+
+    talk = await talk_of(hosted.participant, coalition_id, ctx)
+    if talk.get("open"):
+        data["talk"] = {
+            "open": True,
+            "round": talk.get("round", 0),
+            "note": ROOM_IS_TALKING,
+            "next_call": {"tool": "say"},
+        }
     return ok(
         "open_asks",
         data,
         lambda d: (
             f"{len(d['asks'])} open ask(s) in Coalition {coalition_id}."
             + (f" {d['note']}" if "note" in d else "")
+            + (f" {d['talk']['note']}" if "talk" in d else "")
         ),
     )
 

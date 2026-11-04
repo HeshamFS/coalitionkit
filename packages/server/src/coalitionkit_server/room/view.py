@@ -19,6 +19,7 @@ from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
 from .inputs import inputs_of
 from .seats import open_seats, people
+from .talk_view import talk_of
 from .view_results import change_of, latest_by_need, results_of, tasks_of
 from .view_tools import add_busy, tools_of
 from .websearch import search_feed
@@ -114,6 +115,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "change": change_of(state, doc),
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "measured": measured_of(engine, coalition, state, doc),
+        "talk": talk_of(engine, coalition, viewer, state, doc),
         "mine": mine,
         "tools": tools,
     }
