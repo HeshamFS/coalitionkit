@@ -14,7 +14,8 @@ from coalitionkit_contracts import (
 from coalitionkit_mcp.testing_rig import C1, C2, COMMITMENT, COST, OFFER_TARGET, TASK, Rig
 
 TOOLS = {
-    "list_coalitions", "join_coalition", "my_view", "open_asks", "pending_questions", "answer_question",
+    "list_coalitions", "join_coalition", "my_view", "open_asks", "pending_questions",
+    "answer_question",
     "make_offer", "decide", "approve_commitment", "report_done", "leave_coalition", "commit",
     "report_ripple", "accept_charter",
 }  # fmt: skip
