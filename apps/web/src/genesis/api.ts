@@ -37,6 +37,9 @@ export type Card = {
 };
 export type DraftReply = {
   composition?: { source: "reader" | "model"; cards: Card[] };
+  /** Whether the model answered and, if not, why, in words the screen can show as they are. */
+  model_status?: "answered" | "no_key" | "timed_out" | "failed";
+  model_note?: string;
   draft: Draft;
   source: "reader" | "model";
   reading: Reading[];
