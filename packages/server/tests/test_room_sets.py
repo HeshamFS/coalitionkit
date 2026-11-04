@@ -11,7 +11,17 @@ from typing import Any
 
 import pytest
 from room_flow import briefs_open, reply_brief
-from room_rig import BRIEF, NEEDS, RoomModel, bearer, engine_of, server_of, until, view_of
+from room_rig import (
+    BRIEF,
+    NEEDS,
+    RoomModel,
+    bearer,
+    engine_of,
+    events,
+    server_of,
+    until,
+    view_of,
+)
 from sets_rig import pack_room, serve_pack
 from test_room_compare import Recording
 
@@ -170,6 +180,13 @@ def test_a_set_waits_for_its_seats_and_publishes_nothing_without_them(tmp_path: 
         assert state["colours"]["state"] == "done" and state["colours"]["values"] is None
         assert view_of(engine, cid, "p1")["mine"]["sets"] == {}
         until(lambda: engine.may_plan(cid), what="the room to move on")
+        # A pack-bound room plans inside the Steward's share cap like any room the engine drives.
+        proposed = until(lambda: events(client, cid, "propose"), 60, "plans")
+        cap = engine.task_share()
+        assert cap is not None
+        for plan in proposed[0]["payload"]["plans"]:
+            held = [a["assignee"] for a in plan["assignments"]]
+            assert max(held.count(w) for w in held) <= cap * len(held), held
 
 
 def test_a_seat_whose_agent_acts_over_mcp_gives_values_through_its_vault(tmp_path: Path) -> None:

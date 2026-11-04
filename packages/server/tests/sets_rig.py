@@ -53,7 +53,6 @@ def write_pack(root: Path, compare: str = COMPARE) -> tuple[Path, Ed25519Private
     manifest = (
         f"name: {PACK}\nversion: 1.0.0\ncore: '>=0.1,<0.2'\n"
         "roles:\n  member: { may: [charter, offer, decide, commit], label: Member }\n"
-        "strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }\n"
         "evals: [evals/one.yaml]\n" + compare
     )
     (folder / "pack.yaml").write_text(manifest, encoding="utf-8", newline="\n")
