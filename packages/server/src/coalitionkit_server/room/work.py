@@ -34,26 +34,37 @@ MONEY = re.compile(
 
 
 def result_events(state: State) -> list[tuple[Document, Document]]:
-    """(event, content) for every result in the log, oldest first."""
+    """(event, content) for every result in the log, oldest first.
+
+    A result counts only if its sender held the need's approved commitment when it was sent, so
+    nobody can publish over another seat's work, and a former assignee cannot publish over the
+    current one. Results from when they did hold it stay in the record.
+    """
     found: list[tuple[Document, Document]] = []
+    tasks: dict[str, str] = {}
+    holders: dict[str, str] = {}
     for event in sorted(state.events.values(), key=lambda e: e["seq"]):
-        if event["type"] != "coalition.observe" or event["payload"].get("source") != "document":
-            continue
-        try:
-            content: Any = json.loads(event["payload"]["content"])
-        except ValueError:
-            continue
-        if well_formed(content) and committed_to(state, event["on_behalf_of"], content["need_id"]):
-            found.append((event, cast(Document, content)))
+        kind, body = event["type"], event["payload"]
+        if kind == "coalition.commit":
+            tasks[str(body["commitment_id"])] = str(body["task_id"])
+            if body["status"] == "withdrawn":
+                holders.pop(str(body["task_id"]), None)
+        elif kind == "coalition.decide":
+            subject = body["subject"]
+            task = tasks.get(str(subject["id"]))
+            if subject["kind"] == "commitment" and task and body["consent"]:
+                holders[task] = str(event["on_behalf_of"])
+        elif kind == "coalition.ripple":
+            for task in body.get("invalidates", []):
+                holders.pop(str(task), None)
+        elif kind == "coalition.observe" and body.get("source") == "document":
+            try:
+                content: Any = json.loads(body["content"])
+            except ValueError:
+                continue
+            if well_formed(content) and holders.get(content["need_id"]) == event["on_behalf_of"]:
+                found.append((event, cast(Document, content)))
     return found
-
-
-def committed_to(state: State, who: str, need: str) -> bool:
-    """Only a seat that committed to a need can publish its work, so nobody replaces another's."""
-    return any(
-        s["kind"] == "commitment" and s.get("owner") == who and need in s["tasks"]
-        for s in state.subjects.values()
-    )
 
 
 def well_formed(content: Any) -> bool:

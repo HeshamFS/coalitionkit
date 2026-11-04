@@ -20,7 +20,7 @@ from test_room_work import model as work_model
 from coalitionkit_mcp.gateway import build_envelope, default_scope
 from coalitionkit_server.cards import member_card
 from coalitionkit_server.mcp_port import MCPPort
-from coalitionkit_server.room.work import well_formed
+from coalitionkit_server.room.work import active_commitment, well_formed
 
 
 def card_body() -> dict[str, object]:
@@ -196,3 +196,20 @@ def test_only_the_seat_that_committed_can_publish_a_need(tmp_path: Path) -> None
         shown = next(r for r in results if r["title"] == "Lunch stop")
         assert "The bakery by the lake" in json.dumps(shown["messages"])
         assert next(r for r in results if r["title"] == "Odd shape")["messages"]
+        # Once it no longer holds the need, the same seat cannot publish over whoever does.
+        commitment = active_commitment(host.state, need)
+        assert commitment is not None
+        person = server.registry.hosted_for(cid, owner)
+        body = {
+            "commitment_id": commitment["id"],
+            "task_id": need,
+            "status": "withdrawn",
+            "revision": commitment["revision"],
+        }
+        sent = build_envelope(person, cid, "coalition.commit", body)
+        reply = client.portal.call(server.accept, sent, person.card_url)  # type: ignore[union-attr]
+        assert "error" not in reply, reply
+        publish(owner, "After leaving", "draft", words)
+        later = [r["title"] for r in view_of(engine_of(client), cid, "p1")["results"]]
+        assert "After leaving" not in later
+        assert "Lunch stop" in later, "what it made while it held the need stays"
