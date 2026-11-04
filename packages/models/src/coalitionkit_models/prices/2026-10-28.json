@@ -60,6 +60,13 @@
       "source": "dev.meta.ai/docs/pricing-rate-limits, 2026-10-28: $0.18 per audio hour",
       "verified": true
     },
+    "meta-models/muse-spark-open": {
+      "input": 1250000,
+      "output": 4250000,
+      "cached_input": 150000,
+      "source": "baseten.co/library/muse-spark-open, 2026-10-29: $1.25 input, $0.15 cache input, $4.25 output per 1M tokens (reasoning tokens count as output)",
+      "verified": true
+    },
     "meta-models/muse-spark-open-1026": {
       "input": 1250000,
       "output": 4250000,

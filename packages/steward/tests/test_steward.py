@@ -659,7 +659,7 @@ async def test_live_baseten_audits_a_clean_and_an_unsafe_projection() -> None:
     if os.environ.get("COALITIONKIT_LIVE") != "1" or not key:
         pytest.skip("no key")
     settings = Settings(_env_file=None, baseten_api_key=key)  # pyright: ignore[reportCallIssue]
-    assert settings.route("steward").model == "meta-models/muse-spark-open-1026"
+    assert settings.route("steward").model == "meta-models/muse-spark-open"
     meter = CostMeter(load_price_table())
     transport = OpenAITransport(settings)
     steward = Steward(
