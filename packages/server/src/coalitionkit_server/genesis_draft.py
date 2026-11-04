@@ -197,7 +197,7 @@ def read_goal(
                 )
             spans.append(Reading(span=match.span(), kind="deadline"))
             deadline = deadline.astimezone(UTC)
-        except ValueError, OverflowError:
+        except (ValueError, OverflowError):
             deadline = None
     roles: dict[str, Role] = {}
     # Counts tied to people/roles, never durations or quantities of requested objects.

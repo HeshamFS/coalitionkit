@@ -6,7 +6,7 @@ the private channel described in [SECURITY.md](https://github.com/HeshamFS/coali
 
 ## Development
 
-Use Python 3.15.2, uv 0.13.6, Node 22.15.0 and npm 11.10.0. Dependency versions are
+Use Python 3.12 or newer, uv 0.13.6, Node 22.15.0 and npm 11.10.0. Dependency versions are
 recorded in `uv.lock` and `apps/web/package-lock.json`. PSI tests additionally need
 libsodium 1.0.18 or newer; on Ubuntu install `libsodium23`.
 

@@ -43,8 +43,8 @@ Every setting comes from an environment variable with the prefix `COALITIONKIT_`
 | `COALITIONKIT_COMPOSER_MODEL` | `str` | `muse-spark-1.3` |
 | `COALITIONKIT_HOSTED_AGENT_MODEL` | `str` | `muse-spark-1.3` |
 | `COALITIONKIT_STEWARD_MODEL` | `str` | `muse-spark-1.3` |
-| `COALITIONKIT_STEWARD_PROVIDER` | `Literal['meta', 'baseten'] \| None` | `none` |
-| `COALITIONKIT_STEWARD_BASETEN_MODEL` | `str` | `meta-models/muse-spark-open` |
+| `COALITIONKIT_STEWARD_PROVIDER` | `Optional[Literal['meta', 'baseten']]` | `none` |
+| `COALITIONKIT_STEWARD_BASETEN_MODEL` | `str` | `meta-models/muse-spark-open-1026` |
 | `COALITIONKIT_IMAGE_MODEL` | `str` | `muse-image-1.0` |
 | `COALITIONKIT_SEGMENT_MODEL` | `str` | `sam-3.1` |
 | `COALITIONKIT_TRANSCRIBE_MODEL` | `str` | `muse-voice-transcribe-1.0` |

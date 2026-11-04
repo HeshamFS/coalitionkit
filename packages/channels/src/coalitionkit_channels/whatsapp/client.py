@@ -105,7 +105,7 @@ class WhatsAppClient:
     def _accepted(self, kind: Kind, response: httpx.Response, attempts: int) -> str:
         try:
             message_id = str(response.json()["messages"][0]["id"])
-        except ValueError, KeyError, IndexError, TypeError:
+        except (ValueError, KeyError, IndexError, TypeError):
             self.usage.failures += 1
             raise WhatsAppError("unexpected response shape", response.status_code) from None
         if kind == "text":

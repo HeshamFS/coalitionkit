@@ -67,7 +67,7 @@ class ConnectionPool:
             if connection is not None:
                 try:
                     connection.execute("SELECT 1")
-                except psycopg.OperationalError, psycopg.InterfaceError:
+                except (psycopg.OperationalError, psycopg.InterfaceError):
                     connection.close()
                     connection = None
             if connection is None:

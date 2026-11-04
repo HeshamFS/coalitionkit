@@ -66,7 +66,7 @@ def test_steward_route_switch() -> None:
     assert (meta.model, meta.key_name) == ("muse-spark-1.3", "meta")
     baseten = _settings(steward_provider="baseten").route("steward")
     assert baseten.key_name == "baseten"
-    assert baseten.model == "meta-models/muse-spark-open"
+    assert baseten.model == "meta-models/muse-spark-open-1026"
     assert baseten.base_url == "https://inference.baseten.co/v1"
 
 

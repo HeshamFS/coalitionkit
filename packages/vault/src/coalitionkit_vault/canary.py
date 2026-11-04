@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Private-note canaries and recursive JSON/byte scanning."""
 
+from __future__ import annotations
+
 import json
 import secrets
 from dataclasses import dataclass
@@ -30,7 +32,7 @@ class Canaries:
             text = json.dumps(value, ensure_ascii=False)
         try:
             decoded: object = json.loads(text)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             decoded = None
         if decoded is not None:
             text += json.dumps(decoded, ensure_ascii=False)

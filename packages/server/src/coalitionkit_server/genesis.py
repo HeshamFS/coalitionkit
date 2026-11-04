@@ -202,7 +202,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 # A person let in from the map takes a seat that is free, not always the first.
                 role = (doors.choose_role(door, None) if door else None) or roles[0]["id"]
                 await enroll_member(server, redeemed, role)
-            except ValueError, KeyError:
+            except (ValueError, KeyError):
                 raise HTTPException(400, "invitation refused") from None
             registry.set_name(redeemed["coalition_id"], redeemed["participant"], body.display_name)
             doors.arrive(redeemed["coalition_id"], redeemed["participant"], role)

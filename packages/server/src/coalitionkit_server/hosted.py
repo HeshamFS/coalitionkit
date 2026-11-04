@@ -67,7 +67,7 @@ def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
             if "ext" in body:
                 payload["ext"] = body["ext"]
             validate_payload("coalition.offer", payload)
-        except SchemaValidationError, ValueError:
+        except (SchemaValidationError, ValueError):
             return JSONResponse({"error": "schema_invalid"}, 422)
         pack = server.bound_pack(coalition)
         if "ext" in body:
@@ -77,7 +77,7 @@ def hosted_routes(app: FastAPI, server: Server, coalition: str) -> None:
                 return JSONResponse({"error": "private_extension"}, 422)
             try:
                 pack.validate_schema("offer", body["ext"])
-            except ValidationError, Unresolvable:
+            except (ValidationError, Unresolvable):
                 return JSONResponse({"error": "schema_invalid"}, 422)
         # An offer from the room is what the member chose to share (private ext fields are
         # refused above), so the coalition sees it; host-only offers would scope every plan

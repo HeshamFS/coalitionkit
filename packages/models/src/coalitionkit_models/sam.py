@@ -81,7 +81,7 @@ def _pairs(text: str) -> dict[str, str]:
 def _int(fields: dict[str, str], name: str, token: str) -> int:
     try:
         return int(fields[name])
-    except KeyError, ValueError:
+    except (KeyError, ValueError):
         raise SamParseError(f"{token} token lacks integer {name}") from None
 
 

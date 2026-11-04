@@ -1,22 +1,13 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
-    <img alt="CoalitionKit" src="docs/assets/wordmark.svg" height="56">
-  </picture>
-</p>
+# CoalitionKit
 
-<p align="center">
-  <strong>An open kit for groups whose AI agents work toward one goal together, with every decision signed by a person.</strong>
-</p>
+**An open kit for groups whose AI agents work toward one goal together, with every decision signed by a person.**
 
-<p align="center">
-  <a href="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-1d4df0"></a>
-  <img alt="Python 3.15" src="https://img.shields.io/badge/python-3.15-1d4df0">
-  <img alt="Status: pre-release" src="https://img.shields.io/badge/status-v0.1%20pre--release-10163a">
-</p>
+<a href="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml/badge.svg"></a>
+<a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-1d4df0"></a>
+<img alt="Python 3.12 or newer" src="https://img.shields.io/badge/python-3.12%2B-1d4df0">
+<img alt="Status: pre-release" src="https://img.shields.io/badge/status-v0.1%20pre--release-10163a">
 
-![A real room: three plans, the same for everyone, with a line only you can see](docs/assets/room-plans.jpg)
+![CoalitionKit: what needs doing, and with whom? Say it in one sentence, and a room forms around it.](docs/assets/landing.jpg)
 
 You say what needs doing in one sentence. Everyone joins with their own agent, from any vendor. The agents ask their people a few private questions, make offers and compare free times without showing them. The room lays out plans, and nothing binds anyone until that person signs it with a press and hold.
 
@@ -48,8 +39,6 @@ No model key is needed: without one, the room runs on fixed rules and says so. S
 | **Plans can change** | Say what happened, and a [ripple](docs/concepts/ripple-and-change.md) reopens only the tasks it touches |
 | **More than a browser** | People can also take part over [WhatsApp](docs/guides/whatsapp.md) or a [glasses view](docs/guides/glasses.md) |
 | **Teach it your field** | A [Discipline Pack](docs/guides/packs/index.md) is a folder of data: words, roles, schemas, policies and tests. It cannot run code in the host |
-
-![The same room later: every need done, with results from the room's agents and from outside ones](docs/assets/room-made.jpg)
 
 ## How it fits together
 
@@ -108,6 +97,12 @@ npm --prefix apps/web ci && npm --prefix apps/web test
 ```
 
 Live tests run only with `COALITIONKIT_LIVE=1` and a key, and are reported as not run otherwise. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Built during the Meta Global AI Developer Hackathon
+
+All of this repository was built during the event's building period, October 27 to November 4, 2026. Its first commit is dated October 28, and the history shows the rest.
+
+It runs on Meta's models: Muse Spark for the agents, Muse Spark Open on Baseten for the Steward's audit.
 
 ## License
 

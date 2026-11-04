@@ -3,7 +3,7 @@
 name = "coalitionkit-workspace"
 version = "0.0.0"
 description = "CoalitionKit Core workspace root (not published)"
-requires-python = ">=3.15"
+requires-python = ">=3.12"
 dependencies = []
 
 [dependency-groups]
@@ -64,7 +64,7 @@ coalitionkit-channels = { workspace = true }
 
 [tool.ruff]
 line-length = 100
-target-version = "py315"
+target-version = "py312"
 extend-exclude = [".venv", ".cache"]
 
 [tool.ruff.lint]
@@ -79,7 +79,7 @@ known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionk
 [tool.pyright]
 include = ["packages/cli", "packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools", "packages/conformance"]
 exclude = ["**/.venv", "**/__pycache__"]
-pythonVersion = "3.15"
+pythonVersion = "3.12"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 typeCheckingMode = "strict"
 

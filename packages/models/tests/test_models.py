@@ -100,7 +100,7 @@ def test_routing_per_role() -> None:
     assert settings.route("gardener").model == "muse-wonder-1.0"
     assert settings.route("composer").model == "muse-spark-1.3"
     assert settings.route("hosted_agent").model == "muse-spark-1.3"
-    assert settings.route("steward").model == "meta-models/muse-spark-open"
+    assert settings.route("steward").model == "meta-models/muse-spark-open-1026"
     assert settings.route("steward").base_url == settings.baseten_base_url
     assert settings.route("vault").model == "muse-glimmer"
     assert "11434" in settings.route("vault").base_url
@@ -134,7 +134,7 @@ def test_price_table_fixed_usage_to_the_micro_dollar() -> None:
 
 def test_baseten_price_is_the_published_one() -> None:
     table = load_price_table()
-    spark_open = table.price("meta-models/muse-spark-open")
+    spark_open = table.price("meta-models/muse-spark-open-1026")
     assert spark_open.verified
     assert "baseten.co/library/muse-spark-open" in spark_open.source
     assert spark_open.input == table.price("muse-spark-1.3").input
@@ -285,7 +285,7 @@ def test_steward_defaults_to_muse_spark_open_on_baseten_when_its_key_is_set(
     settings = load_settings()
     route = settings.route("steward")
     assert settings.steward_host == "baseten"
-    assert (route.model, route.key_name) == ("meta-models/muse-spark-open", "baseten")
+    assert (route.model, route.key_name) == ("meta-models/muse-spark-open-1026", "baseten")
     assert route.base_url == "https://inference.baseten.co/v1"
 
 
@@ -295,7 +295,7 @@ def test_steward_requires_baseten_key_without_silent_fallback(
     _env(monkeypatch, META_API_KEY=FAKE_KEY)
     settings = load_settings()
     assert settings.steward_host == "baseten"
-    assert settings.route("steward").model == "meta-models/muse-spark-open"
+    assert settings.route("steward").model == "meta-models/muse-spark-open-1026"
     with pytest.raises(MissingKeyError, match="COALITIONKIT_BASETEN_API_KEY"):
         settings.api_key(settings.route("steward"))
 
