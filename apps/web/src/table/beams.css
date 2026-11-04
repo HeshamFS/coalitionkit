@@ -112,3 +112,9 @@
   color: var(--ink-3);
   font: 500 10.5px var(--font-mono);
 }
+/* On a phone the caption fills the top of the sheet, so the count sits under the stage. */
+.tb--phone .tb-stamp {
+  position: static;
+  padding: 6px 14px 10px;
+  text-align: center;
+}

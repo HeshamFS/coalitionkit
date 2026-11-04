@@ -817,6 +817,16 @@
   .fm-door-goal {
     font-size: 22px;
   }
+  /* The code is the point of this screen; the way in stays on it without scrolling. */
+  .fm-door-qr {
+    width: min(100%, 36vh);
+    margin-inline: auto;
+  }
+  .fm-door-side > .fm-door-actions:last-child {
+    position: sticky;
+    bottom: 12px;
+    z-index: 2;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .fm-sat,

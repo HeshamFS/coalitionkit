@@ -442,8 +442,24 @@
   width: 100%;
   flex: none;
 }
+/* The Say box stays in reach however long your side gets. */
 .tb--phone .tb-rail {
-  padding: 8px 16px 16px;
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+/* The mark is enough up here: the cost and Sign out share its one row. */
+.tb--phone .tb-brand {
+  font-size: 0;
+}
+.tb--phone .tb-bandtop {
+  gap: 8px 10px;
+}
+.tb--phone .tb-cost {
+  margin-left: auto;
 }
 .tb--phone .tb-bead {
   display: none;
