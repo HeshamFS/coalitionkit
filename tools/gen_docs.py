@@ -218,6 +218,60 @@ def events_page() -> dict[Path, str]:
     return {DOCS / "events.md": body + table(["Type", "Required payload fields", "Schema"], rows)}
 
 
+def schemas_page() -> dict[Path, str]:
+    folder = ROOT / "spec/schemas/coalition/v0"
+    rows: list[list[object]] = []
+    for path in sorted(folder.glob("*.json")):
+        schema = json.loads(path.read_text(encoding="utf-8"))
+        link = f"[`{path.name}`]({BLOB}/spec/schemas/coalition/v0/{path.name})"
+        rows.append([link, f"`{schema['$id']}`", schema.get("description", "")])
+    body = (
+        f"# Schemas\n\n{NOTE}"
+        "Every message is checked against a JSON Schema (2020-12). A pack adds fields only inside "
+        "`ext`, and never changes these. A message that fails is refused as `schema_invalid`.\n\n"
+    )
+    return {DOCS / "schemas.md": body + table(["File", "Id", "What it describes"], rows)}
+
+
+def spec_section(heading: str) -> str:
+    """One level-two section of the protocol, so a page can never drift from it."""
+    spec = (ROOT / "spec/coalition-protocol-v0.1.md").read_text(encoding="utf-8")
+    start = spec.index(f"\n## {heading}\n") + 1
+    end = spec.find("\n## ", start)
+    return spec[start:] if end == -1 else spec[start:end]
+
+
+def spec_pages() -> dict[Path, str]:
+    pack = (
+        f"# Pack format\n\n{NOTE}"
+        "This is the section of [the protocol](protocol.md) that defines Discipline Packs. For a "
+        "walk through it, see [Write a Discipline Pack](../guides/packs/index.md).\n\n"
+    )
+    conformance = (
+        f"# Conformance levels\n\n{NOTE}"
+        "The conformance runner tests any implementation from the outside, using signed protocol "
+        "messages. It never imports the server or the runtime, so it can test a host or a member "
+        "written by someone else. A report says `pass`, `fail` or `not run` for each test, and "
+        "incomplete coverage never exits 0.\n\n"
+        "## Run it\n\n"
+        "Test a host that uses the reference admin routes:\n\n"
+        "```sh\ncoalitionkit conform --target CARD_URL --level host --operator reference "
+        "--admin-token-file TOKEN_FILE\n```\n\n"
+        "Test a host using invitations its operator gave you:\n\n"
+        "```sh\ncoalitionkit conform --target CARD_URL --level host --invite CODE1 --invite CODE2 "
+        "--redeem-url REDEMPTION_URL\n```\n\n"
+        "The token file holds only the admin token. It is sent only to admin routes on the "
+        "target's own origin, and never appears in a report. The levels are `member`, `vault`, "
+        "`host` and `surface`.\n\n"
+        "Other implementations can provide their own operator adapter. See the "
+        f"[package's README]({BLOB.replace('/blob/', '/tree/')}/packages/conformance).\n\n"
+    )
+    return {
+        DOCS / "pack-format.md": pack + spec_section("Discipline Pack format"),
+        DOCS / "conformance.md": conformance + spec_section("Conformance tests"),
+    }
+
+
 def python_pages() -> dict[Path, str]:
     pages: dict[Path, str] = {}
     rows: list[list[object]] = []
@@ -245,6 +299,8 @@ def main() -> int:
         **cli_page(),
         **mcp_page(),
         **events_page(),
+        **schemas_page(),
+        **spec_pages(),
         **python_pages(),
     }
     stale: list[str] = []

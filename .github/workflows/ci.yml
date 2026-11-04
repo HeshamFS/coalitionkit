@@ -36,6 +36,8 @@ jobs:
       - run: uv run python tools/build_web.py
       - name: Python lint, formatting, types, boundaries, schemas, tests and packs
         run: uv run python tools/check.py
+      - name: Docs build
+        run: uv run --group docs mkdocs build --strict
       - name: Web lint
         run: npm --prefix apps/web run lint
       - name: Web tests (two workers)

@@ -1,0 +1,1 @@
+--8<-- "spec/coalition-protocol-v0.1.md"

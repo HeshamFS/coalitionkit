@@ -2,7 +2,7 @@
 
 Open an issue describing the behavior you want to change, then send a focused pull
 request with a reproducible example and relevant tests. Security reports belong in
-the private channel described in [SECURITY.md](SECURITY.md).
+the private channel described in [SECURITY.md](https://github.com/HeshamFS/coalitionkit/blob/main/SECURITY.md).
 
 ## Development
 

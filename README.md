@@ -1,14 +1,28 @@
-# CoalitionKit Core
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg">
+    <img alt="CoalitionKit" src="docs/assets/wordmark.svg" height="56">
+  </picture>
+</p>
 
-An open protocol and a Python runtime for groups of people whose AI agents, from any vendor, work toward one goal together. Each person keeps their own data private, sees their own live screen, and signs every decision that binds them.
+<p align="center">
+  <strong>An open kit for groups whose AI agents work toward one goal together, with every decision signed by a person.</strong>
+</p>
 
-The protocol is an extension to [A2A 1.0](https://a2a-protocol.org). The reference host keeps one signed, append-only log per Coalition and gives each member a live view of only what their scope allows. Members can take part from a web room, a phone message thread, a glasses lens or any MCP host.
+<p align="center">
+  <a href="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HeshamFS/coalitionkit/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-1d4df0"></a>
+  <img alt="Python 3.15" src="https://img.shields.io/badge/python-3.15-1d4df0">
+  <img alt="Status: pre-release" src="https://img.shields.io/badge/status-v0.1%20pre--release-10163a">
+</p>
 
-Status: v0.1, pre-release. The spec is a draft and will change in response to implementers until v1.0 freezes it.
+![A real room: three plans, the same for everyone, with a line only you can see](docs/assets/room-plans.jpg)
 
-## Start it
+You say what needs doing in one sentence. Everyone joins with their own agent, from any vendor. The agents ask their people a few private questions, make offers and compare free times without showing them. The room lays out plans, and nothing binds anyone until that person signs it with a press and hold.
 
-You need [uv](https://docs.astral.sh/uv/), the libsodium library (`apt install libsodium23` on Debian or Ubuntu, `brew install libsodium` on macOS), and, for the web room, Node 22.
+## Try it
+
+You need [uv](https://docs.astral.sh/uv/) and Node 22 for the web room. To compare free times privately, also install libsodium (`apt install libsodium23` on Debian or Ubuntu, `brew install libsodium` on macOS).
 
 ```sh
 git clone https://github.com/HeshamFS/coalitionkit
@@ -16,52 +30,74 @@ cd coalitionkit
 uv run coalitionkit up
 ```
 
-The first run builds the web room, which takes a minute or two. `up` then starts a local host on 127.0.0.1 and prints its address. Open it and say what needs doing in one sentence: you check the draft, open the room, share its code with the others, and enter.
+The first run builds the web room, which takes a minute or two. Then open the address it prints, and say what needs doing in one sentence.
 
-No model key is needed. Without one the room runs on built-in rules and says so; set `COALITIONKIT_META_API_KEY` to use real models. Details: [packages/cli/README.md](packages/cli/README.md).
+No model key is needed: without one, the room runs on fixed rules and says so. Set `COALITIONKIT_META_API_KEY` for real models. In our test runs, a room of two or three people cost about $0.10 to $0.25 in model calls. See [Your first room](docs/get-started/first-room.md).
 
-To reach the same Coalition from Claude Code, Claude Desktop, Codex, Grok or Antigravity, see [docs/mcp-hosts.md](docs/mcp-hosts.md).
+## What is in it
 
-## What has been measured
+| | |
+|---|---|
+| **Any agent can join** | Over [MCP](docs/guides/mcp-agents.md) from a tool you already use, or over [A2A](docs/guides/a2a-business-agent.md) with its own signed card. There are [example members on Google ADK and LangGraph](docs/guides/adk-member.md) |
+| **People decide** | An agent can never commit you. [Consent](docs/concepts/consent.md) is signed with your own key, on a screen no model can draw |
+| **Private by design** | Your [vault](docs/concepts/vault-and-psi.md) answers narrow questions only, and free times are compared with private set intersection |
+| **An independent checker** | The [Steward](docs/concepts/steward.md) runs fixed policies, then a model audit on a different model, before a message reaches anyone |
+| **A record you can check** | One [signed, hash-linked log](docs/concepts/signed-chain-and-receipts.md) per room, with receipts, which [your own browser can verify](docs/concepts/browser-verification.md) |
+| **Screens from a closed catalog** | Models compose from [201 checked components](docs/reference/catalog/index.md), never HTML, and [every number points at a real event](docs/concepts/generative-ui.md) |
+| **Fair plans from fixed rules** | [Plans](docs/concepts/plans-and-fairness.md) come from code. The model only explains them |
+| **Plans can change** | Say what happened, and a [ripple](docs/concepts/ripple-and-change.md) reopens only the tasks it touches |
+| **More than a browser** | People can also take part over [WhatsApp](docs/guides/whatsapp.md) or a [glasses view](docs/guides/glasses.md) |
+| **Teach it your field** | A [Discipline Pack](docs/guides/packs/index.md) is a folder of data: words, roles, schemas, policies and tests. It cannot run code in the host |
 
-Eight acceptance tests cover interop, privacy, generative UI, ripple, scale, the Mint, chaos and cost. All eight pass; the latest results are in [docs/scorecard/2026-10-30.md](docs/scorecard/2026-10-30.md). A few headline numbers from that run:
+![The same room later: every need done, with results from the room's agents and from outside ones](docs/assets/room-made.jpg)
 
-- 0 of 2,000 planted canaries found outside the vault
-- 700 agents in 51 Coalitions with 0 lost events; send p95 0.62 s into a 200-agent Coalition
-- a dropped database connection heals in 0.11 s without a restart, with 0 lost or duplicated events
+## How it fits together
 
-## The pieces
+```mermaid
+flowchart LR
+    P1[Person and<br/>hosted agent] -- browser --> H
+    P2[Person and<br/>their own MCP agent] -- MCP --> H
+    B[Outside agent<br/>with a signed card] -- A2A --> H
+    H[Host<br/>signed log, scopes, consent]
+    H <--> G[Gardener<br/>plans by fixed rules]
+    H <--> S[Steward<br/>policies, then a model audit]
+    P1 -. private set intersection .- B
+    H -- a live view per viewer --> V[The Table]
+```
+
+The host orders one log per room and gives each viewer only what their scope allows. The protocol is an extension of [A2A 1.0](https://a2a-protocol.org).
+
+## Docs
+
+- [Get started](docs/get-started/index.md): install, a first room, model keys
+- [Concepts](docs/concepts/index.md): how a room works
+- [Guides](docs/guides/index.md): connect agents, run a host, write a pack
+- [Reference](docs/reference/index.md): commands, settings, routes, MCP tools and the [protocol](spec/coalition-protocol-v0.1.md)
+- [Security and privacy](docs/security/index.md): what it protects, and what it does not
+
+Version 0.1 is a pre-release. The protocol is a draft and will change, and the kit has had no outside security audit.
+
+## Packages
 
 | Package | What it does |
 |---|---|
-| `contracts` | Envelope, receipt and consent types, JSON Schema validation, JWS signing, scope resolution |
-| `runtime` | `CoalitionHost`: the signed log, lifecycle rules, projections per viewer, SQLite or PostgreSQL |
-| `edges` | A2A transport: agent cards, the member client, the coalition extension on the wire |
-| `vault` | Each member's private data, answered only by typed queries and private set intersection |
-| `steward` | The independent checker: fixed policies first, then a model audit of what each recipient would see |
-| `server` | The reference host: A2A, MCP, the live feed, admin routes, WhatsApp |
-| `mcp_server` | The MCP tools and the MCP App view a member's host uses |
-| `surfaces` | The view catalog and its renderers for the room, the lens and the message door |
-| `channels` | Message channels, starting with WhatsApp |
-| `mint` | Turns a short video and voice note into a policy-checked MCP server for a shared resource or device |
-| `gardener` | Deterministic planning: turns needs and offers into plans the deciders sign |
-| `models` | The model gateway, media client, price table and cost meter |
-| `packs` | Discipline packs: loaded, validated and signed as data, never code in the core |
-| `conformance` | The black-box conformance runner: `coalitionkit conform --target <card-url> --level <level>` |
-| `cli` | `coalitionkit up`, `conform` and `server` |
-| `acceptance` | The eight acceptance tests and the scorecard |
-| `apps/web` | The web room and the lens |
-
-The core holds no scenario or discipline data; that lives in packs and examples. `tools/check.py` enforces it.
-
-## Spec and conformance
-
-- Protocol: [spec/coalition-protocol-v0.1.md](spec/coalition-protocol-v0.1.md)
-- JSON Schemas: [spec/schemas/coalition/v0/](spec/schemas/coalition/v0/)
-- Shared test vectors: [spec/vectors/](spec/vectors/)
-- Design decisions: [docs/adr/](docs/adr/)
-
-An implementation claims conformance at the member, vault, host or surface level by passing that level's tests with the published runner, which prints a signed report.
+| [`contracts`](packages/contracts) | Envelope, receipt and consent types, schema validation, signing, scope resolution |
+| [`runtime`](packages/runtime) | `CoalitionHost`: the signed log, lifecycle rules, a view per viewer, SQLite or PostgreSQL |
+| [`edges`](packages/edges) | A2A transport: agent cards, the member client, the extension on the wire |
+| [`vault`](packages/vault) | Each member's private data, answered only by typed queries and private set intersection |
+| [`steward`](packages/steward) | The independent checker |
+| [`gardener`](packages/gardener) | Deterministic planning from needs and offers |
+| [`server`](packages/server) | The reference host: the room engine, A2A, MCP, the live feed, admin routes, WhatsApp |
+| [`mcp_server`](packages/mcp_server) | The MCP tools and the MCP App view |
+| [`surfaces`](packages/surfaces) | The live feed, the agent stream and validated A2UI screens |
+| [`channels`](packages/channels) | Message channels, starting with WhatsApp |
+| [`mint`](packages/mint) | Turns a short video and a voice note into a policy-checked MCP server for a shared resource or device |
+| [`models`](packages/models) | The model gateway, media client, price table and cost meter |
+| [`packs`](packages/packs) | Discipline Packs: loaded, validated and signed as data |
+| [`conformance`](packages/conformance) | The black-box conformance runner |
+| [`acceptance`](packages/acceptance) | Whole-journey acceptance tests |
+| [`cli`](packages/cli) | The `coalitionkit` command |
+| [`apps/web`](apps/web) | The web room and the glasses view |
 
 ## Develop
 
@@ -71,7 +107,7 @@ uv run python tools/check.py          # lint, types, import boundaries, tests, t
 npm --prefix apps/web ci && npm --prefix apps/web test
 ```
 
-Live tests run only with `COALITIONKIT_LIVE=1` and a key, and are reported as not run otherwise.
+Live tests run only with `COALITIONKIT_LIVE=1` and a key, and are reported as not run otherwise. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

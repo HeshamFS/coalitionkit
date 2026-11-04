@@ -10,7 +10,7 @@ strict: true
 
 theme:
   name: material
-  logo: assets/logo.svg
+  logo: assets/logo-dark.svg
   favicon: assets/logo-blue.svg
   font:
     text: Geist
@@ -131,10 +131,8 @@ nav:
       - Run and configure a host: guides/run-a-host.md
       - Deploy a host: guides/deploy.md
       - Bring your own agent over MCP: guides/mcp-agents.md
-      - Connect a business agent over A2A: guides/a2a-business-agent.md
-      - Google ADK member: guides/adk-member.md
-      - LangGraph: guides/langgraph.md
-      - LangChain: guides/langchain.md
+      - Bring your own agent over A2A: guides/a2a-business-agent.md
+      - Google ADK and LangGraph members: guides/adk-member.md
       - WhatsApp channel: guides/whatsapp.md
       - Glasses view: guides/glasses.md
       - The Mint: guides/mint.md
@@ -161,9 +159,36 @@ nav:
       - Pack format: reference/pack-format.md
       - Catalog:
           - reference/catalog/index.md
+          - Foundations: reference/catalog/family-01.md
+          - Shell, doors and templates: reference/catalog/family-02.md
+          - Conversation and calls: reference/catalog/family-03.md
+          - Forms and flows: reference/catalog/family-04.md
+          - Coalition and people: reference/catalog/family-05.md
+          - Needs, offers, tasks and plans: reference/catalog/family-06.md
+          - Places and time: reference/catalog/family-07.md
+          - Privacy and consent: reference/catalog/family-08.md
+          - Live and proof: reference/catalog/family-09.md
+          - Mint and machines: reference/catalog/family-10.md
+          - Channels, ending and memory: reference/catalog/family-11.md
       - Conformance levels: reference/conformance.md
       - Python API:
           - reference/python/index.md
+          - acceptance: reference/python/acceptance.md
+          - channels: reference/python/channels.md
+          - cli: reference/python/cli.md
+          - conformance: reference/python/conformance.md
+          - contracts: reference/python/contracts.md
+          - edges: reference/python/edges.md
+          - gardener: reference/python/gardener.md
+          - mcp_server: reference/python/mcp_server.md
+          - mint: reference/python/mint.md
+          - models: reference/python/models.md
+          - packs: reference/python/packs.md
+          - runtime: reference/python/runtime.md
+          - server: reference/python/server.md
+          - steward: reference/python/steward.md
+          - surfaces: reference/python/surfaces.md
+          - vault: reference/python/vault.md
   - Security and privacy:
       - security/index.md
       - Threat model: security/threat-model.md

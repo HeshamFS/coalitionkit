@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+id: tool-safety-sign-off
+applies_to: [coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\bcertified\s+safe\b'
+    - '\bsafe\s+without\s+(?:training|a\s+licence|a\s+license)\b'
+then: escalate
+explain: "Leave safety sign-off to the tool's owner or a qualified person."

@@ -21,6 +21,8 @@ When `coalitionkit up` cannot start, it prints `Could not start:` and the reason
 
 **Everyone said yes to different plans.** A plan needs a yes from every person it asks. If the plans have a real trade-off, the room asks everyone to vote. Otherwise someone has to choose another plan.
 
+**It says it cannot compare free times.** Comparing needs the `coalitionkit[psi]` extra and the libsodium library. Without them, the room moves on to plans. See [Install](install.md).
+
 **A seat stays on "briefing".** That person has not answered their questions. The brief closes by itself after five minutes, and the room goes on.
 
 **I went back to the first page and see a sign-in form.** The tab still holds a token from an ended room. Open a new tab.

@@ -1,0 +1,8 @@
+{
+  "template": "resource",
+  "name": "Workshop bench",
+  "windows": [{ "start": 540, "end": 720 }],
+  "duration": 60,
+  "limit": 2,
+  "prerequisites": []
+}

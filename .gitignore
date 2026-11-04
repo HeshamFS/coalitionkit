@@ -40,3 +40,4 @@ packages/contracts/src/coalitionkit_contracts/data/spec/
 
 !.python-version
 /scorecard-*.json
+site/

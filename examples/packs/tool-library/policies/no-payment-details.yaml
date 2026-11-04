@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+id: tool-no-payment-details
+applies_to: [coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\biban\b'
+    - '\b[a-z]{2}\d{2}(?:\s?[a-z0-9]{4}){3,7}\b'
+then: block
+explain: "Loans are free. Leave bank details out of the room."
