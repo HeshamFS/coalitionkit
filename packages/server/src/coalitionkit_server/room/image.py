@@ -96,9 +96,13 @@ def media_client(engine: RoomEngine) -> Any:
 
 
 def activity_sink(engine: RoomEngine, coalition: str) -> Activity | None:
-    """The room's tool-activity callback, when the host wires one as ``engine.activity_sink``."""
+    """The room's tool-activity recorder for this room; a test may set ``engine.activity_sink``."""
     make = getattr(engine, "activity_sink", None)
-    return cast(Activity, make(coalition)) if callable(make) else None
+    if callable(make):
+        return cast(Activity, make(coalition))
+    from .activity import records, reporter
+
+    return reporter(engine, coalition) if records(engine, coalition) else None
 
 
 def spent(engine: RoomEngine, coalition: str) -> int:

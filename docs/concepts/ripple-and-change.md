@@ -16,6 +16,10 @@ The hosted agent reads the sentence and sends it one of three ways, and tells yo
 
 A sentence that opens by naming the room always goes to the room. The sentence is treated as data, so it cannot change the agent's instructions. It is capped at 500 characters.
 
+## Say it by voice
+
+The mic button beside the box records up to 20 seconds. The host turns the clip into words and shows them to you. You can fix them, then press **Say it**, and the sentence takes the same three routes. A sentence for the room goes out with `source: "voice"` instead of `chat`, and a change is the same ripple as a typed one. The Table puts a mic mark by your seat. The camera button does the same with a photo: your agent writes one sentence about it, and you check it before it goes. See [Phone inputs](../guides/phone-inputs.md).
+
 ## A ripple
 
 A **ripple** invalidates only the needs a change touches. In a live room with five needs, one sentence gave this:
@@ -23,6 +27,7 @@ A **ripple** invalidates only the needs a change touches. In a live room with fi
 `1 of 5 re-planned · 2 people asked again · 4 untouched`
 
 - Only people who offered on those needs offer again.
+- The agents [talk again](agents-talk.md) about what moved before the new plan.
 - A new plan is proposed only for what moved.
 - Everyone asked says yes again. Anyone else is left alone.
 

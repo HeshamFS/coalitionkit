@@ -18,5 +18,21 @@ Sign `artifact.consent_payload(hash, "approve", {})` with `coalitionkit_contract
 
 The package's [README](https://github.com/HeshamFS/coalitionkit/blob/main/packages/mint/README.md) has the details of holds and proofs.
 
+## In a room
+
+A seated person can mint a device from inside a room. On the Table, open **Bring a device** under *Devices at the table*, then give it a name, say what it is, pick the need it serves, and attach the video and the voice note. The host runs the Mint in the background, and everyone sees its stages.
+
+1. **Mint.** `POST /v1/room/mint` takes the video, the WAV and an optional template: `resource` for something people take turns using, `device` for a display with readings, or a template from the room's [pack](packs/mint-and-connectors.md). The uploads are removed when the pipeline ends.
+2. **Approve.** When every attack is refused, the device waits for its owner. Their press-and-hold calls `POST /v1/room/mint/approve`, and the host signs `consent_payload(hash, "approve", {})` with that person's own owner key. Nobody else can approve it.
+3. **Seat.** The host seats the device through a one-use invitation, as it seats a helper. Its card shows on the ring with a *device* tag, and the owner's signed card stays with the artifact.
+4. **Offer and confirm.** A resource offers on the needs it serves, each offer standing on a hold it has already taken. When the plan gives it the need and its commitment is approved, the host confirms the hold with the owner's signature, once. The owner's yes on that plan is the consent. The device then publishes the booking as its result and reports done.
+5. **Read and ripple.** The owner points a phone at a display and sends a frame with `POST /v1/room/mint/frame`. The device reads it with the same SAM and vision steps as the Mint, publishes the reading as an `observe` with source `device`, and sends a ripple on the needs that name it when a reading crosses its threshold.
+
+A device serves the needs you pick. If you pick none, it serves the needs whose title or detail shares a word of four letters or more with its name.
+
+Each minted tool call is reported as an activity with tool `mint:<tool>`. Its arguments are a time window at most, never a nonce or a signature.
+
+The minted processes live in the host's memory. If the host restarts, its devices show as offline until they are minted again.
+
 !!! note
-    A live run calls the Meta media models and spends credit. The Mint runs on its own. It is not yet part of the room's flow.
+    A live run calls the Meta media models and spends credit. A mint in a room took 50 to 71 seconds and cost 4 to 5 US cents in the runs we measured.

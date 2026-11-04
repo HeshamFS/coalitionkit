@@ -7,7 +7,7 @@ the ``agent`` surface. Each acts only for the authenticated viewer.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict
@@ -17,6 +17,7 @@ from coalitionkit_surfaces.app import Viewer
 
 from ..adapter import Document
 from . import brief, say, seats, work
+from .device_routes import device_routes
 from .media_store import media_routes
 from .view import phase_of
 
@@ -32,6 +33,7 @@ class Begin(BaseModel):
 class Say(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str
+    via: Literal["typed", "voice", "photo"] = "typed"
 
 
 class Done(BaseModel):
@@ -73,7 +75,8 @@ def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
         text = body.text.strip()
         if not text or len(text) > say.MAX_SAY:
             raise HTTPException(422, f"say something, up to {say.MAX_SAY} characters")
-        return JSONResponse(await say.say(engine, coalition, who, text))
+        source = {"voice": "voice", "photo": "camera"}.get(body.via, "chat")
+        return JSONResponse(await say.say(engine, coalition, who, text, source=source))
 
     @app.post("/v1/room/done")
     async def done_route(body: Done, who: Viewer) -> JSONResponse:
@@ -100,3 +103,5 @@ def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
             raise HTTPException(422, "the answer does not fit the question") from None
         result: Document = {"status": status}
         return JSONResponse(result)
+
+    device_routes(app, server, coalition)

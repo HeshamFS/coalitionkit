@@ -12,6 +12,7 @@ from coalitionkit_surfaces.catalog import validate_data_model
 
 from ..adapter import Document
 from .needs import tidy
+from .websearch import shown_links
 from .work import can_mark_done, result_events
 
 if TYPE_CHECKING:
@@ -62,6 +63,7 @@ def results_of(engine: RoomEngine, state: State, doc: Document, viewer: str) -> 
                 ],
                 "tree": tree,
                 "data": content["data"],
+                "links": shown_links(content["data"]),
                 "messages": messages,
                 "replaced_by": replaced,
             }

@@ -121,6 +121,16 @@ LOG_ENTRY: Final[dict[str, Spec]] = {
     "form": LEAF,
 }
 
+TALK_LINE: Final[dict[str, Spec]] = {
+    "id": LEAF,
+    "seq": LEAF,
+    "from": LEAF,
+    "to": LEAF,
+    "intent": LEAF,
+    "text": LEAF,
+    "re": LEAF,
+    "stage": LEAF,
+}
 STUB: Final[dict[str, Spec]] = {"seq": LEAF, "prev_hash": LEAF, "hash": LEAF}
 
 RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
@@ -146,6 +156,7 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
     },
     "open_asks": {
         "coalition_id": LEAF,
+        "talk": {"open": LEAF, "round": LEAF, "note": LEAF, "next_call": {"tool": LEAF}},
         "asks": (
             {
                 "kind": LEAF,
@@ -165,6 +176,15 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
         ),
     },
     "pending_questions": {"coalition_id": LEAF, "questions": (QUESTION,)},
+    "say": {**ACK, "to": LEAF, "intent": LEAF},
+    "read_talk": {
+        "coalition_id": LEAF,
+        "open": LEAF,
+        "round": LEAF,
+        "rounds": LEAF,
+        "note": LEAF,
+        "thread": (TALK_LINE,),
+    },
     "answer_question": {**ACK, "query_id": LEAF},
     "make_offer": {**ACK, "offer_id": LEAF},
     "commit": {**ACK, "commitment_id": LEAF, "status": LEAF},
@@ -174,6 +194,11 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
     "decide": {**ACK, "subject": SUBJECT, "choice": LEAF, "consent": LEAF},
     "approve_commitment": {**ACK, "commitment_id": LEAF, "revision": LEAF, "consent": LEAF},
     "accept_charter": {**ACK, "coalition_id": LEAF, "revision": LEAF, "consent": LEAF},
+    "web_search": {
+        "coalition_id": LEAF,
+        "query": LEAF,
+        "results": ({"title": LEAF, "url": LEAF, "snippet": LEAF},),
+    },
 }
 
 

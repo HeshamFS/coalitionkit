@@ -7,10 +7,14 @@ import { Logo } from "../landing/marks";
 import { changeLine, commonLine } from "./beams";
 import { captionFor } from "./caption";
 import { fitScale, type Layout } from "./geometry";
+import { VoiceMarks } from "./inputs/VoiceMarks";
 import { needStatus } from "./needWords";
+import { SharedSets } from "./psi/SharedSets";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
+import { TalkLayer } from "./talk/TalkLayer";
+import { EMPTY_TALK } from "./talk/talk";
 import { ToolSparks } from "./tools/ToolSparks";
 import { ToolStrip } from "./tools/ToolStrip";
 import { useCurrentStop, useStageFx } from "./useStageFx";
@@ -107,6 +111,14 @@ function StageContents({
           <StopBeam key={x.stop.id} from={x.from} toward={x.toward} current={x.current} />
         ))}
       {!ended && <GoalDisc at={centre} text={lit ? "plan signed" : "goal"} lit={lit} />}
+      {!ended && (
+        <TalkLayer
+          talk={room.talk ?? EMPTY_TALK}
+          home={home}
+          centre={centre}
+          compact={layout.compact}
+        />
+      )}
       {ended && (
         <div className="tb-mark" style={{ left: centre.x, top: centre.y }}>
           <Logo size={layout.compact ? 84 : 120} />
@@ -142,6 +154,7 @@ function StageContents({
         />
       ))}
       {!ended && <ToolSparks seats={list} home={home} />}
+      {!ended && <VoiceMarks room={room} home={home} />}
       {commonText && !ended && (
         <div className="tb-chipnote" style={{ left: layout.W * 0.6, top: layout.H - 40 }}>
           {commonText}
@@ -217,6 +230,7 @@ export function Stage({
           {steward.explain && <span>{steward.explain}</span>}
         </p>
       )}
+      {room.phase !== "ended" && <SharedSets room={room} />}
       {layout.compact && <NeedList room={room} />}
       {tray}
       {room.checked > 0 && <div className="tb-stamp">{room.checked} events checked</div>}

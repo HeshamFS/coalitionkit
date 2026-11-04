@@ -26,7 +26,7 @@ from coalitionkit_edges.a2a.identity import CardError
 from coalitionkit_gardener import build_propose
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
-from coalitionkit_models import ModelGateway
+from coalitionkit_models import MediaClient, ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_packs import Pack
 from coalitionkit_packs.views import extend_catalog
@@ -51,9 +51,13 @@ from .packs import (
 )
 from .registry import Registry
 from .room import RoomEngine
+from .room.activity import reporter
 from .room.activity_ports import A2aActivity, McpActivity
+from .room.device_routes import DEVICE_PATHS
+from .room.inputs import inputs_routes
 from .room.routes import room_routes
 from .room.view import room_state
+from .room.websearch import RoomSearchPort
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
 from .whatsapp import mount_whatsapp
@@ -77,6 +81,7 @@ class Server:
         else:
             raise ValueError("store must be sqlite:///path or a Postgres URL")
         self.gateway = model_gateway or gateway()
+        self.media: MediaClient | None = None  # set for tests; else one per phone-input call
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
             lambda: Steward(self.gateway, signing_key=self.key, kid="host"),
@@ -201,6 +206,12 @@ class Server:
         if room is not None:
             room.attach(coalition)
             room_routes(self.surfaces[coalition], self, coalition)
+            inputs_routes(
+                self.surfaces[coalition],
+                self,
+                coalition,
+                on_activity=reporter(self.room, coalition) if self.room is not None else None,
+            )
         self.ports[coalition].on_refusal = hub.refused
         return host
 
@@ -236,7 +247,8 @@ class Server:
             host,
             self.packs,
             third if engine_rules else None,
-            self.room.task_share() if engine_rules and self.room else None,
+            # The Steward's share cap holds in every room the engine drives, pack or not.
+            self.room.task_share() if driven and self.room else None,
         )
         # Only the same assignment on the same terms stays refused: better terms may be asked again.
         turned_down = {
@@ -456,8 +468,12 @@ AGENT_PATHS = frozenset(
         "/v1/room/brief",
         "/v1/room/say",
         "/v1/room/done",
+        "/v1/room/voice",
+        "/v1/room/photo",
     }
 )
+# Minted devices at the Table (room/device_routes.py).
+ALL_AGENT_PATHS = AGENT_PATHS | DEVICE_PATHS
 
 
 # A picture a room's agent made: read with the viewer token like the feed.
@@ -476,7 +492,7 @@ class Dispatch:
             return
         allowed = (
             (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled)
-            or (path in AGENT_PATHS and "agent" in enabled)
+            or (path in ALL_AGENT_PATHS and "agent" in enabled)
             or (path.startswith(MEDIA_PATH) and "feed" in enabled)
         )
         if not allowed:
@@ -497,10 +513,11 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     mcp = mcp_app(
         Deps(
             MCPPort(server),
-            ViewPort(server.hosts, server.registry),
+            ViewPort(server.hosts, server.registry, server.room),
             server.registry,
             skills=server,
             activity=McpActivity(server),
+            search=RoomSearchPort(server),
         ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,

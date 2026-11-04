@@ -14,6 +14,7 @@ from pydantic import (
     model_validator,
 )
 
+from .compare import CompareSet, check_sets
 from .version import SEMVER, parse_range
 
 Name = Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")]
@@ -113,6 +114,7 @@ class Manifest(_Strict):
     connectors: list[Connector] | None = None
     strategy: Strategy | None = None
     suggest: Suggest | None = None
+    compare: list[CompareSet] | None = None
     evals: Annotated[list[RelPath], Field(min_length=1)]
     acceptance: RelPath | None = None
 
@@ -124,6 +126,11 @@ class Manifest(_Strict):
         if value is not None and (reason := bad_relative_path(value)):
             raise ValueError(reason)
         return value
+
+    @field_validator("compare")
+    @classmethod
+    def _sets(cls, value: list[CompareSet] | None) -> list[CompareSet] | None:
+        return None if value is None else check_sets(value)
 
     @field_validator("version")
     @classmethod

@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # The room engine drives needs, seats and briefs in hosted rooms. Harnesses that play the
     # members themselves leave it off; `coalitionkit up` turns it on.
     room_engine: Literal["on", "off"] = "off"
+    # The Talk stage before plans and after a change: rounds of agent talk (0 turns it off), and
+    # how long a round waits for an agent a person brought over MCP to say its line.
+    room_talk_rounds: int = Field(default=2, ge=0, le=2)
+    room_talk_wait_s: float = Field(default=45.0, ge=0, le=300)
     # A file of sample rooms for the first screen. The kit ships none.
     sample_rooms: Path | None = None
     admin_token: SecretStr | None = None

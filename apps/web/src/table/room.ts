@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // The `Room` the host builds per viewer and a reader
 // that never throws: a missing or malformed value becomes an empty one, so the screen still draws.
+
 import type { ViewerState } from "../feed/delta";
+import { type RoomSearch, readLinks, readSearches, type WebLink } from "./search/links";
+import { readTalk, type Talk } from "./talk/talk";
 import { type Busy, readBusy, readTools, type ToolCallItem } from "./tools/tools";
 
 export type Phase = "gather" | "brief" | "work" | "decide" | "commit" | "make" | "live" | "ended";
@@ -26,7 +29,7 @@ export type RoomSeat = {
   seat: string;
   role: string;
   label: string;
-  kind: "person" | "helper" | "open";
+  kind: "person" | "helper" | "device" | "open";
   you: boolean;
   signed: boolean;
   state: string;
@@ -54,6 +57,8 @@ export type Activity = {
   state: "running" | "done" | "failed";
   ms: number | null;
   source: Source | "host";
+  /** Words the person said by voice or read from a photo, then confirmed. */
+  via?: "voice" | "camera";
   event: string | null;
 };
 export type RoomResult = {
@@ -71,6 +76,8 @@ export type RoomResult = {
   data: unknown;
   messages: unknown[];
   replaced_by: string | null;
+  /** Web pages the result came from, when an agent searched. */
+  links?: WebLink[];
 };
 export type Stop = {
   id: string;
@@ -82,6 +89,17 @@ export type Stop = {
   explain: string;
 };
 export type Common = { slots: string[]; count_private: number | null; compared: number };
+/** A set a pack declared, compared by PSI: only the shared values, or only their count. */
+export type SharedSet = {
+  id: string;
+  label: string;
+  mode: "overlap" | "count";
+  state: "asking" | "crossing" | "done";
+  values: string[] | null;
+  count: number | null;
+  compared: number;
+  event: string | null;
+};
 export type Change = {
   text: string;
   /** The seat that caused the change, or null when the host did. */
@@ -133,13 +151,18 @@ export type Room = {
     start: string | null;
   }[];
   common: Common | null;
+  sets?: SharedSet[];
   plan_notes: Record<string, { name: string; line: string; source: Source }>;
   results: RoomResult[];
+  /** What the agents searched on the web, newest last. */
+  search?: RoomSearch[];
   stops: Stop[];
   checked: number;
   change: Change | null;
   begin: { can: boolean; open_seats: number } | null;
   measured: Measured | null;
+  /** What the agents said to each other (`room.talk`); absent on older hosts. */
+  talk?: Talk;
   mine: {
     brief: BriefItem[];
     /** When your agent stops waiting for answers (ISO), or null. */
@@ -149,8 +172,14 @@ export type Room = {
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
     tasks: MyTask[];
+    /** The viewer's own recent voice and photo readings (only ever their own). */
+    inputs?: { kind: "voice" | "photo"; text: string; ms: number }[];
+    /** Per compared set: how many of your own values stayed private. Yours only. */
+    sets?: Record<string, number>;
   };
 };
+
+const PHONE = new Set(["voice", "camera"]);
 
 const PHASES: Phase[] = ["gather", "brief", "work", "decide", "commit", "make", "live", "ended"];
 const NEED_KINDS: NeedKind[] = ["place", "schedule", "budget", "list", "draft", "image"];
@@ -190,7 +219,7 @@ function readSeats(v: unknown): RoomSeat[] {
       seat: str(s.seat),
       role: str(s.role),
       label: str(s.label) || str(s.seat),
-      kind: oneOf(s.kind, ["person", "helper", "open"] as const, "person"),
+      kind: oneOf(s.kind, ["person", "helper", "device", "open"] as const, "person"),
       you: s.you === true,
       signed: s.signed === true,
       state: str(s.state),
@@ -226,7 +255,8 @@ function readActivity(v: unknown): Activity[] {
       label: str(a.label),
       state: oneOf(a.state, ["running", "done", "failed"] as const, "done"),
       ms: numOrNull(a.ms),
-      source: a.source === "host" ? "host" : source(a.source),
+      source: a.source === "host" ? "host" : PHONE.has(str(a.source)) ? "host" : source(a.source),
+      ...(a.source === "voice" || a.source === "camera" ? { via: a.source } : {}),
       event: strOrNull(a.event),
     }));
 }
@@ -250,6 +280,7 @@ function readResults(v: unknown): RoomResult[] {
       data: r.data ?? null,
       messages: Array.isArray(r.messages) ? r.messages : [],
       replaced_by: strOrNull(r.replaced_by),
+      ...(r.links === undefined ? {} : { links: readLinks(r.links) }),
     }));
 }
 
@@ -260,6 +291,29 @@ function readCommon(v: unknown): Common | null {
     count_private: numOrNull(v.count_private),
     compared: Math.max(0, Math.trunc(num(v.compared))),
   };
+}
+
+function readSets(v: unknown): SharedSet[] {
+  return list(v)
+    .filter((s) => str(s.id) !== "")
+    .map((s) => ({
+      id: str(s.id),
+      label: str(s.label) || str(s.id),
+      mode: oneOf(s.mode, ["overlap", "count"] as const, "overlap"),
+      state: oneOf(s.state, ["asking", "crossing", "done"] as const, "asking"),
+      values: Array.isArray(s.values) ? strings(s.values) : null,
+      count: numOrNull(s.count),
+      compared: Math.max(0, Math.trunc(num(s.compared))),
+      event: strOrNull(s.event),
+    }));
+}
+
+function readPrivate(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isRec(v)) return out;
+  for (const [id, n] of Object.entries(v))
+    if (typeof n === "number" && n >= 0) out[id] = Math.trunc(n);
+  return out;
 }
 
 function readChange(v: unknown): Change | null {
@@ -315,6 +369,17 @@ function readMine(v: unknown): Room["mine"] {
         status: oneOf(b.status, ["open", "answered", "skipped"] as const, "open"),
       })),
     brief_closes: strOrNull(m.brief_closes),
+    ...(Array.isArray(m.inputs)
+      ? {
+          inputs: list(m.inputs)
+            .filter((i) => str(i.text) !== "")
+            .map((i) => ({
+              kind: oneOf(i.kind, ["voice", "photo"] as const, "voice"),
+              text: str(i.text),
+              ms: Math.trunc(num(i.ms)),
+            })),
+        }
+      : {}),
     asks: Array.isArray(m.asks)
       ? list(m.asks)
           .filter((a) => str(a.id) !== "" && str(a.summary) !== "")
@@ -336,6 +401,7 @@ function readMine(v: unknown): Room["mine"] {
         result: strOrNull(t.result),
         can_mark_done: t.can_mark_done === true,
       })),
+    ...(isRec(m.sets) ? { sets: readPrivate(m.sets) } : {}),
   };
 }
 
@@ -369,8 +435,10 @@ export function readRoom(state: ViewerState | null): Room | null {
         start: strOrNull(s.start),
       })),
     common: readCommon(raw.common),
+    ...(Array.isArray(raw.sets) ? { sets: readSets(raw.sets) } : {}),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),
+    ...(raw.search === undefined ? {} : { search: readSearches(raw.search) }),
     stops: list(raw.stops)
       .filter((s) => str(s.id) !== "")
       .map((s) => ({
@@ -385,6 +453,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     change: readChange(raw.change),
     begin,
     measured: readMeasured(raw.measured),
+    ...(raw.talk === undefined ? {} : { talk: readTalk(raw.talk) }),
     mine: readMine(raw.mine),
   };
 }

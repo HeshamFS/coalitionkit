@@ -12,9 +12,25 @@ from coalitionkit_contracts import new_ulid
 from coalitionkit_mcp.testing_rig import Rig, served_rig
 
 
+class FixtureSearch:
+    """A host search port: refuses a query holding a digit run, else one result."""
+
+    def __init__(self) -> None:
+        self.asked: list[tuple[str, str, str]] = []
+
+    async def web_search(
+        self, participant: str, coalition_id: str, query: str
+    ) -> dict[str, Any] | None:
+        self.asked.append((participant, coalition_id, query))
+        if any(ch.isdigit() for ch in query):
+            return {"refused": "it holds a street address"}
+        row = {"title": "A hall", "url": "https://example.org/hall", "snippet": "Big.", "x": 1}
+        return {"results": [row]}
+
+
 @pytest.fixture
 def rig() -> Generator[Rig]:
-    with served_rig() as made:
+    with served_rig(search=FixtureSearch()) as made:
         yield made
 
 

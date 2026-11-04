@@ -304,4 +304,5 @@ def test_a_host_without_the_psi_library_moves_on_and_says_so(
         until(lambda: (engine.read(cid)["compare"] or {}).get("state") == "done", 40, "compare")
         labels = [a["label"] for a in view_of(engine, cid, "p1")["activity"]]
         assert compare.NO_PSI in labels
-        assert engine.may_plan(cid), "the room goes on to plans"
+        # The talk comes between the comparison and the plans; with no model it passes at once.
+        until(lambda: engine.may_plan(cid), 20, "the room to go on to plans")

@@ -7,6 +7,8 @@ import { fetchHostMedia } from "../components/f01/hostMedia";
 import type { ViewerState } from "../feed/delta";
 import { download, exportsFor, toText } from "./exports";
 import type { Room, RoomResult } from "./room";
+import type { RoomSearch } from "./search/links";
+import { WebSources } from "./search/WebSources";
 import { ComposedSurface } from "./useSurface";
 
 export type SourceRow = { id: string; seq: number | null; type: string };
@@ -16,6 +18,8 @@ export type Shown = {
   sources: SourceRow[];
   /** The need's status in the host's own word, for "Show the work" only. */
   needStatus?: string;
+  /** What the agents searched for this need. */
+  searches?: RoomSearch[];
 };
 
 const record = (v: unknown): Record<string, unknown> =>
@@ -47,6 +51,7 @@ export function shownFor(room: Room, state: ViewerState | null, result: RoomResu
     byLabel: byLabelOf(room, result.by),
     sources: sourceRows(state, result.seqs),
     needStatus: room.needs.find((n) => n.id === result.need_id)?.status,
+    searches: (room.search ?? []).filter((s) => s.need === result.need_id),
   };
 }
 
@@ -66,10 +71,12 @@ function Work({
   result,
   sources,
   needStatus,
+  searches,
 }: {
   result: RoomResult;
   sources: SourceRow[];
   needStatus?: string;
+  searches?: RoomSearch[];
 }) {
   return (
     <div className="tb-work">
@@ -94,6 +101,7 @@ function Work({
           )}
         </ul>
       )}
+      <WebSources links={result.links ?? []} searches={searches} />
       {needStatus ? (
         <>
           <h4>Need status, as the host says it</h4>
@@ -202,12 +210,20 @@ export function ResultDialog({ shown, onClose }: { shown: Shown; onClose: () => 
           </p>
         )}
         {back ? (
-          <Work result={result} sources={sources} needStatus={shown.needStatus} />
-        ) : (
-          <ComposedSurface
-            messages={result.messages}
-            emptyText="This result has nothing to draw."
+          <Work
+            result={result}
+            sources={sources}
+            needStatus={shown.needStatus}
+            searches={shown.searches}
           />
+        ) : (
+          <>
+            <ComposedSurface
+              messages={result.messages}
+              emptyText="This result has nothing to draw."
+            />
+            <WebSources links={result.links ?? []} compact />
+          </>
         )}
         <div className="tb-row">
           <button type="button" className="btn" onClick={() => setBack(!back)}>

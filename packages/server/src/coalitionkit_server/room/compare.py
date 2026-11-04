@@ -21,6 +21,7 @@ from coalitionkit_vault.psi import Context, Requester, Responder
 from coalitionkit_vault.store import Facts, Vault
 
 from ..adapter import Document
+from . import sets
 from .activity import activity
 from .brief import chosen_slots
 from .seats import people, read_state
@@ -77,6 +78,7 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
     if task is None or task not in state.tasks:
         return
     if doc["compare"] is None:
+        await sets.advance(engine, coalition, state, task)  # a bound pack's sets, before the times
         start: Document = {"state": "asking", "task_id": task, "took_part": [], "slots": None}
         engine.update(coalition, lambda d: d.__setitem__("compare", {**start, "compared": 0}))
         engine.note(coalition, "comparing", "Asking each seat whether it holds times")

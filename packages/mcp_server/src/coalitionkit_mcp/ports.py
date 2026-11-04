@@ -75,6 +75,11 @@ class ViewPort(Protocol):
         """The data of the participant's live surface for the MCP App view."""
         ...
 
+    async def talk(self, participant: str, coalition_id: str) -> dict[str, Any] | None:
+        """The agents' talk as this participant may see it: ``open``, ``round``, ``rounds`` and
+        ``thread``. Optional: a view without it reports the talk as closed."""
+        ...
+
     async def subject_revision(
         self, participant: str, coalition_id: str, kind: str, subject_id: str
     ) -> int | None:
@@ -92,3 +97,13 @@ class ActivityPort(Protocol):
     async def record(
         self, coalition_id: str, activity: dict[str, Any], start: str | None = None
     ) -> str | None: ...
+
+
+class SearchPort(Protocol):
+    """The host's web search, under its outbound policy. None means search is off."""
+
+    async def web_search(
+        self, participant: str, coalition_id: str, query: str
+    ) -> dict[str, Any] | None:
+        """``{"results": [{title, url, snippet}]}``, or ``{"refused": why}``, or None when off."""
+        ...

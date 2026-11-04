@@ -57,7 +57,7 @@ def count_outside(engine: RoomEngine, coalition: str, state: State) -> None:
 def total_seats(engine: RoomEngine, coalition: str, state: State) -> int:
     door = engine.doors.door_row("coalition", coalition)
     seats = sum(r["count"] for r in door["roles"]) if door else len(state.charter["deciders"])
-    return max(seats, len(state.members))
+    return max(seats, len(people(state, engine.read(coalition))))
 
 
 def open_seats(engine: RoomEngine, coalition: str, state: State, doc: Document) -> int:

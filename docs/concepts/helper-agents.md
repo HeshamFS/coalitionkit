@@ -25,3 +25,8 @@ What every agent at the Table does is shown to the whole room as tool activity. 
 Routing a sentence a person says to their own agent is not recorded, because the record alone would tell the room that a private note exists. What the sentence leads to, a message to the room or a change, is recorded as itself.
 
 A call is two events: `started`, then `done` or `failed` with the measured time. A Steward review and an A2A message are one `done` event each. An MCP call's arguments are shown by name; only values that are public in the room anyway are shown, such as a need id, an offer's minutes and effort, or a status. The text of an answer, a change or an invitation is never shown. Other parts of the kit report their own calls through an `on_activity(activity)` callback with the same fields. See [The Table](the-table.md) for how this looks.
+## Agents that search
+
+When the host turns web search on, hosted agents and helpers can look things up. A hosted agent that offers on a `place` need searches for it once, tells its own person what it found, and the maker of the result names real places from those pages with their URLs. A `list` or `draft` maker searches only when its need asks for something from outside the room.
+
+The query holds only the goal and the need, never anything a person told their agent, and the host screens every query before it leaves. See [Web search for agents](../guides/web-search.md).

@@ -104,6 +104,7 @@ nav:
       - Seats and members: concepts/seats-and-members.md
       - Helper agents: concepts/helper-agents.md
       - Needs and offers: concepts/needs-and-offers.md
+      - Agents talk: concepts/agents-talk.md
       - Briefs: concepts/briefs.md
       - Plans and fairness: concepts/plans-and-fairness.md
       - Consent by press and hold: concepts/consent.md
@@ -129,11 +130,14 @@ nav:
       - WhatsApp channel: guides/whatsapp.md
       - Glasses view: guides/glasses.md
       - The Mint: guides/mint.md
+      - "Phone inputs: voice and photo": guides/phone-inputs.md
+      - Web search for agents: guides/web-search.md
       - Write a Discipline Pack:
           - guides/packs/index.md
           - A complete small pack: guides/packs/example.md
           - Vocabulary and roles: guides/packs/vocabulary-and-roles.md
           - Schemas and private fields: guides/packs/schemas.md
+          - Compared sets: guides/packs/compare.md
           - Templates and allocation: guides/packs/templates-and-allocation.md
           - Policies: guides/packs/policies.md
           - Mint templates and connectors: guides/packs/mint-and-connectors.md

@@ -14,12 +14,17 @@ from typing import TYPE_CHECKING
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
+from . import sets
 from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
+from .devices import devices_of
 from .engine import FEED, FOR_YOU
+from .inputs import inputs_of
 from .seats import open_seats, people
+from .talk_view import talk_of
 from .view_results import change_of, latest_by_need, results_of, tasks_of
 from .view_tools import add_busy, tools_of
+from .websearch import search_feed
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -82,6 +87,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
     mine = my_side(engine, coalition, viewer, state, doc)
     made = results_of(engine, state, doc, viewer)
     mine["tasks"] = tasks_of(state, doc, viewer, made)
+    mine["inputs"] = inputs_of(engine, coalition, viewer)
     waiting = (
         bool(engine.server.hosts[coalition].open_consents(viewer))
         or any(q["status"] == "open" for q in mine["brief"])
@@ -103,15 +109,19 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         ],
         "slots": [{"start": None, **s} for s in doc["slots"]],
         "common": common_of(engine, coalition, viewer, doc),
+        "sets": sets.public_sets(doc),
         "plan_notes": notes_of(viewer, state, doc),
         "results": made,
+        "search": search_feed(doc),
         "stops": [{k: s[k] for k in STOP_FIELDS} for s in doc["stops"]],
         "checked": checked_of(engine, coalition, state),
         "change": change_of(state, doc),
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "measured": measured_of(engine, coalition, state, doc),
+        "talk": talk_of(engine, coalition, viewer, state, doc),
         "mine": mine,
         "tools": tools,
+        "devices": devices_of(engine, coalition, viewer, doc),
     }
 
 
@@ -169,6 +179,8 @@ def seats_of(
         counts[role] = counts.get(role, 0) + 1
         if helper:
             label, kind, status = f"{helper['label']} (agent)", "helper", "signed"
+            if helper.get("kind") == "device":
+                label, kind = str(helper["label"]), "device"
         else:
             name = str(labels.get(role, role)).capitalize()
             label = given.get(person) or f"{name} {counts[role]}"
@@ -283,6 +295,7 @@ def my_side(
         "feed": feed[-FEED_SHOWN:],
         "for_you": {pid: item["line"] for pid, item in lines.items()},
         "tasks": [],
+        "sets": sets.mine(engine, coalition, viewer, doc),
     }
 
 
@@ -302,7 +315,7 @@ def asks_of(
         if kind == "task" and set(tasks) & committing:
             continue
         if kind == "charter":
-            helpers = len(doc["helpers"])
+            helpers = sum(1 for h in doc["helpers"].values() if h.get("kind") != "device")
             here = len(people(state, doc))
             text = (
                 "You are the only person here so far"
