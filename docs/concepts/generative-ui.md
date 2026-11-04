@@ -2,6 +2,8 @@
 
 Screens are generated, but only from a fixed set of parts. A model chooses components from [the catalog](../reference/catalog/index.md) and fills them in. It cannot write HTML, script or styles.
 
+![Models compose the screen, and code decides what is allowed](../assets/genui.jpg)
+
 ## Why it is closed
 
 A generated screen is a place where a mistaken or tricked model could show something false or dangerous. So:
