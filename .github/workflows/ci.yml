@@ -39,7 +39,7 @@ jobs:
       - name: Web lint
         run: npm --prefix apps/web run lint
       - name: Web tests (two workers)
-        run: npm --prefix apps/web test -- --maxWorkers=2
+        run: npm --prefix apps/web run test:ci
       - run: uv run python tools/check_workflows.py
       - name: Clean wheel installation and HTTP smoke
         run: uv run python tools/smoke_install.py

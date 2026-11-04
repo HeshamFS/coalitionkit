@@ -76,6 +76,7 @@ def ledger_path() -> Path:
 
 
 def connect(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=60, isolation_level=None)
     connection.execute("PRAGMA journal_mode=WAL")
     connection.execute("PRAGMA busy_timeout=60000")

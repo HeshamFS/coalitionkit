@@ -15,7 +15,7 @@ uv sync --locked
 uv run python tools/build_web.py
 uv run python tools/check.py
 npm --prefix apps/web run lint
-npm --prefix apps/web test -- --maxWorkers=2
+npm --prefix apps/web run test:ci
 uv run python tools/check_workflows.py
 uv run python tools/smoke_install.py
 ```

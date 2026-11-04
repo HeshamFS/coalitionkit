@@ -18,6 +18,7 @@ from coalitionkit_gardener.tension import tension_from_plans
 from coalitionkit_mcp.gateway import build_envelope
 from coalitionkit_runtime import Acknowledgement
 from coalitionkit_server.app import Server
+from coalitionkit_vault._group import SodiumUnavailable
 from coalitionkit_vault.psi import Context, Requester, Responder
 from coalitionkit_vault.store import Capacity, Facts, Vault
 
@@ -155,7 +156,13 @@ class Demo:
             await self.emit("query", query.model_dump(mode="json"), scope)
             await self.send(member, "answer", vault.answer(query).to_wire(), scope)
         if len(self.members) >= 2:
-            await self.match()
+            try:
+                await self.match()
+            except SodiumUnavailable:
+                print(
+                    "Demo: PSI not run; install coalitionkit[psi] and libsodium to enable it.",
+                    flush=True,
+                )
         await self.propose(self.tasks)
         await self.block_request()
 

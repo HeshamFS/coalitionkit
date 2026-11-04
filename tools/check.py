@@ -93,7 +93,7 @@ def schemas() -> None:
 
 
 def pytest() -> None:
-    run(py("pytest", "-q"))
+    run(py("pytest", "-q", "--basetemp", str(ROOT / ".cache" / "pytest-check")))
 
 
 def denylist_words() -> list[str]:
@@ -143,7 +143,19 @@ def separation() -> None:
     from separation import SeparationError, check_domain, check_packs
 
     tests = ("tools/test_separation.py",)
-    run(py("pytest", "-q", "-p", "no:cacheprovider", "-o", "pythonpath=tools", *tests))
+    run(
+        py(
+            "pytest",
+            "-q",
+            "--basetemp",
+            str(ROOT / ".cache" / "pytest-separation"),
+            "-p",
+            "no:cacheprovider",
+            "-o",
+            "pythonpath=tools",
+            *tests,
+        )
+    )
     try:
         for step in (check_domain, check_packs):
             print(step(), flush=True)

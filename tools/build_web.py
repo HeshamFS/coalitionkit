@@ -15,8 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def stage_spec() -> None:
     destination = ROOT / "packages/contracts/src/coalitionkit_contracts/data/spec"
-    destination.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(ROOT / "spec", destination, dirs_exist_ok=True)
+    if not destination.resolve().is_relative_to(ROOT):
+        raise ValueError("Resource destination must stay inside this checkout")
+    if destination.exists():
+        shutil.rmtree(destination)
+    shutil.copytree(ROOT / "spec", destination)
     print("Staged protocol schemas, vectors and catalog", flush=True)
 
 
@@ -37,6 +40,8 @@ def main() -> None:
     subprocess.run([npm, "run", "build"], cwd=web, check=True)
     destination = ROOT / "packages/cli/src/coalitionkit_cli/web_dist"
     # Only replace this tool's generated assets, never a caller-supplied path.
+    if not destination.resolve().is_relative_to(ROOT):
+        raise ValueError("Web destination must stay inside this checkout")
     if destination.exists():
         shutil.rmtree(destination)
     shutil.copytree(web / "dist", destination)

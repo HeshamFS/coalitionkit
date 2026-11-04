@@ -15,6 +15,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run",
+    "test:ci": "vitest run --maxWorkers=2",
     "test:e2e": "playwright test",
     "shots": "playwright test --project=gallery",
     "build:mcp": "node scripts/build.mjs --mcp-only",
