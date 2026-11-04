@@ -17,6 +17,7 @@ import asyncio
 import re
 import time
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, cast
 
 from coalitionkit_contracts import Scope, new_ulid
@@ -26,6 +27,7 @@ from coalitionkit_steward import StewardContext, Subject, core_policies
 from coalitionkit_steward.conditions import evaluate_all
 
 from ..adapter import Document
+from . import budget, public
 from .needs import tidy
 from .seats import read_state
 
@@ -63,9 +65,15 @@ def provider(engine: RoomEngine) -> SearchProvider | None:
     return cast(SearchProvider | None, server._web_search)
 
 
-def query_for(facts: Document) -> str:
-    """The words a search sends: the need and the goal, nothing any one person said."""
+def query_for(facts: Document, where: str | None = None) -> str:
+    """The words a search sends: the need and the goal, nothing any one person said privately.
+
+    ``where`` is a seat's published answer to a pack's public search question (its city); the
+    query is then the need and that answer only, so the pages are about the place itself.
+    """
     words = f"{facts['need']['title']}: {facts['goal']}"
+    if where:
+        words = f"{facts['need']['title']} in {where}"  # the goal would pull pages about it
     return tidy(" ".join(words.split()), QUERY_MAX)
 
 
@@ -78,7 +86,7 @@ def private_values(engine: RoomEngine, coalition: str, seats: list[str]) -> list
             found.append(str(note.get("text", "")))
         record = cast(Document, vault.get(BRIEF, {}))
         for q in cast(list[Document], record.get("questions", [])):
-            if q.get("status") == "answered" and q.get("kind") == "text":
+            if q.get("status") == "answered" and q.get("kind") == "text" and not q.get("public"):
                 found.append(str(q.get("answer", "")))
     return [v.strip() for v in found if len(v.strip()) >= 4]
 
@@ -158,6 +166,8 @@ async def search(
     private = private_values(engine, coalition, members)
     base: Document = {"seat": who, "agent": agent, "tool": "search:web", "args": query}
     refused = screen(query, private, coalition, who)
+    if not refused and budget.reached(engine, coalition):
+        refused = "the room has used its model budget"
     if refused:
         engine.start_activity(
             coalition, "searching", f"Search refused: {refused}", seat=who, need=need,
@@ -253,13 +263,47 @@ def keep(engine: RoomEngine, coalition: str, need: str, hits: list[SearchHit]) -
     engine.update(coalition, put)
 
 
+async def for_place(
+    engine: RoomEngine, coalition: str, who: str, facts: Document, where: str
+) -> None:
+    """One search for this need in one seat's own place, once per place, hits merged."""
+    need = str(facts["need"]["id"])
+    key = where.casefold()
+    lock = _LOCKS.setdefault((coalition, f"{need}@{key}"), asyncio.Lock())
+    async with lock:
+        if key in engine.read(coalition).get("search_places", {}).get(need, []):
+            return
+        hits = await search(engine, coalition, who, query_for(facts, where), need=need)
+        if not hits:
+            return
+        tagged = [replace(h, title=f"{h.title} ({where})") for h in hits]
+
+        def put(doc: Document) -> None:
+            done = doc.setdefault("search_places", {}).setdefault(need, [])
+            done.append(key)
+            old = list(doc.get("search_hits", {}).get(need, []))
+            seen = {h["url"] for h in old}
+            new = [h for h in links(tagged) if h["url"] not in seen]
+            doc["search_hits"] = {**doc.get("search_hits", {}), need: old + new}
+
+        engine.update(coalition, put)
+        names = "; ".join(h.title for h in hits[:3])
+        engine.feed_add(coalition, who, f"Your agent looked up {where} on the web: {names}.")
+
+
 async def for_need(
-    engine: RoomEngine, coalition: str, who: str, facts: Document
+    engine: RoomEngine, coalition: str, who: str, facts: Document, *, mine_only: bool = False
 ) -> list[SearchHit] | None:
     """Hits for a need, searched once per need and reused; None when search is off."""
     if provider(engine) is None:
         return None
     need = str(facts["need"]["id"])
+    places = public.search_places(engine, coalition) if facts["need"]["kind"] == "place" else {}
+    if places:  # each seat searches its own published answer; the hits are kept together
+        for seat in [who] if mine_only else sorted(places):
+            if seat in places:
+                await for_place(engine, coalition, seat, facts, places[seat])
+        return cached(engine, coalition, need)
     lock = _LOCKS.setdefault((coalition, need), asyncio.Lock())
     async with lock:  # seats offer at once: the first searches, the others reuse it
         hits = cached(engine, coalition, need)
@@ -300,6 +344,9 @@ async def at_offer(
         return
     for need in needs:
         if need["kind"] != "place" or need["id"] not in offered:
+            continue
+        if public.search_places(engine, coalition):
+            await for_need(engine, coalition, who, {"need": need, "goal": goal}, mine_only=True)
             continue
         if cached(engine, coalition, str(need["id"])) is not None:
             continue

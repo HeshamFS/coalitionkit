@@ -56,7 +56,7 @@ SYSTEM = (
 KEYWORDS: tuple[tuple[Kind, tuple[str, ...]], ...] = (
     ("image", ("poster", "posters", "flyer", "banner", "menu", "picture", "illustration")),
     ("budget", ("budget", "cost", "costs", "money", "pay", "price", "fund", "afford")),
-    ("schedule", ("when", "time", "schedule", "date", "day", "meet", "meeting", "agenda")),
+    ("schedule", ("when", "time", "hour", "schedule", "date", "day", "meet", "meeting", "agenda")),
     ("place", ("where", "place", "room", "venue", "location", "space", "site", "route")),
     ("list", ("list", "bring", "items", "supplies", "buy", "shopping", "inventory", "checklist")),
 )
@@ -98,7 +98,7 @@ def predicate(goal: str) -> str:
     """The part of the goal after "need(s)/want(s)/to", where the things to get done are."""
     text = goal.strip().rstrip(".!?")
     found = re.search(
-        r"\b(?:needs?|wants?|have to|has to|must|should|would like to)\b\s*", text, re.I
+        r"\b(?:needs?|wants?|have to|has to|must|should|would like to)\b(?!-)\s*", text, re.I
     )
     rest = text[found.end() :] if found else text
     return re.sub(r"^(?:to|that|us to)\s+", "", rest, flags=re.I).strip() or text

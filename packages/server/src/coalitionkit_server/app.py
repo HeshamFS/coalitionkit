@@ -527,6 +527,9 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         server.gardener.resume()
+        standing = getattr(app.state, "standing", None)
+        if standing is not None:
+            standing.start()  # a public host's standing room keeps its own clock
         whatsapp = getattr(app.state, "whatsapp", None)
         if whatsapp is not None:
             whatsapp.start()
@@ -536,6 +539,8 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
         finally:
             if whatsapp is not None:
                 await asyncio.to_thread(whatsapp.stop)
+            if standing is not None:
+                await standing.close()
             await server.gardener.close()
             if server.room is not None:
                 await server.room.close()

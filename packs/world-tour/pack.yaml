@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+name: world-tour
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  host: { may: [charter, offer, decide, commit], label: Host }
+  traveller: { may: [offer, decide, commit], label: Traveller }
+suggest:
+  keywords:
+    - tour
+    - world tour
+    - virtual tour
+    - virtual trip
+    - travel
+    - cities
+    - where are you
+    - stops
+    - must-see
+  examples:
+    - "Strangers from different cities make a one-hour virtual world tour with a must-see place in each city and a tour poster"
+    - "Show each other one must-see place in our cities in an hour that fits every time zone"
+    - "Plan a virtual trip through the cities we are in, one stop each, and draw a poster for it"
+    - "Where are you? Let's build a world tour of our cities in ten minutes"
+vocabulary: vocabulary.yaml
+schemas:
+  need: schemas/need-ext.json
+  offer: schemas/offer-ext.json
+policies:
+  - policies/no-contact-before-consent.yaml
+  - policies/redact-street-address.yaml
+  - policies/no-address-asks.yaml
+public:
+  - id: city
+    label: City
+    question:
+      text: "Which city are you in?"
+      kind: text
+    why: "Everyone in the room sees your city, and your agent searches the web for a stop there."
+    search: true
+compare:
+  - id: stop-kind
+    label: Kinds of stop we all like
+    question:
+      text: "Which kind of stop do you like?"
+      kind: choice
+      options: [food, view, museum, street, market]
+      why: "Only the kinds everyone picked are shown; the rest stays with your agent."
+    mode: overlap
+    min_seats: 2
+skills: [skills/SKILL.md]
+lessons: [lessons/tour-order.md, lessons/time-zones.md]
+task_templates: templates.yaml
+strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }
+evals: [evals/four-cities.yaml, evals/far-apart.yaml]
+acceptance: acceptance.yaml

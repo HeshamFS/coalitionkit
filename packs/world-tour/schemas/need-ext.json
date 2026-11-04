@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "world-tour what the tour needs",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "stop_kind": {
+      "enum": ["food", "view", "museum", "street", "market", "any"],
+      "description": "The kind of stop, or any."
+    },
+    "minutes": { "type": "integer", "minimum": 1, "maximum": 60 }
+  }
+}

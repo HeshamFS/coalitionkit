@@ -259,6 +259,7 @@ class RoomEngine:
             explain,
             needs,
             offers,
+            public,
             say,
             seats,
             talk,
@@ -282,6 +283,7 @@ class RoomEngine:
         async with self.lock_for(coalition):
             await seats.advance(self, coalition)
         await brief.advance(self, coalition)
+        await public.advance(self, coalition)
         await device_member.advance(self, coalition)
         await offers.advance(self, coalition)
         await compare.advance(self, coalition)

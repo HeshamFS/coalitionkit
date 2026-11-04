@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+templates:
+  - id: must-see
+    title: A must-see place in each city
+    role: traveller
+    ext: { stop_kind: any, minutes: 10 }
+  - id: the-hour
+    title: The hour that fits everyone
+    role: traveller
+    ext: { stop_kind: any, minutes: 60 }
+  - id: running-order
+    title: Who shows what, in order
+    role: traveller
+    ext: { stop_kind: any, minutes: 5 }
+  - id: poster
+    title: Tour poster
+    role: traveller
+    ext: { stop_kind: any, minutes: 5 }
