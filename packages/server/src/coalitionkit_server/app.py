@@ -458,7 +458,7 @@ AGENT_PATHS = frozenset(
     }
 )
 # Minted devices at the Table (room/device_routes.py).
-AGENT_PATHS |= DEVICE_PATHS
+ALL_AGENT_PATHS = AGENT_PATHS | DEVICE_PATHS
 
 
 class Dispatch:
@@ -472,7 +472,7 @@ class Dispatch:
             await self.mcp(scope, receive, send)
             return
         allowed = (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled) or (
-            path in AGENT_PATHS and "agent" in enabled
+            path in ALL_AGENT_PATHS and "agent" in enabled
         )
         if not allowed:
             await JSONResponse({"detail": "not found"}, 404)(scope, receive, send)

@@ -236,7 +236,7 @@ async def make_results(engine: RoomEngine, coalition: str, state: State, doc: Do
             continue
         if not engine.is_hosted(coalition, who) or active.get("suspended"):
             continue
-        if doc["helpers"].get(who, {}).get("kind") == "device":
+        if doc.get("helpers", {}).get(who, {}).get("kind") == "device":
             continue  # a minted device makes its own result from its confirmed hold
         if doc["made"].get(task, {}).get("commitment") != active["id"]:
             todo.append((task, str(active["id"])))
@@ -255,7 +255,7 @@ async def helpers_report(engine: RoomEngine, coalition: str, state: State, doc: 
         made = doc["made"].get(task)
         if (
             who is not None
-            and who in doc["helpers"]
+            and who in doc.get("helpers", {})
             and t["status"] == "committed"
             and made
             and made["result"]
