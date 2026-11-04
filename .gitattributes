@@ -1,0 +1,2 @@
+# Every checkout uses LF, so builds and formatters give the same bytes on every platform.
+* text=auto eol=lf
