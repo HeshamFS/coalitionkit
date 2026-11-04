@@ -18,6 +18,8 @@ from pydantic import BaseModel
 
 from coalitionkit_models import Completion, MissingKeyError, SchemaValidationError
 
+from .activity_model import spent, traced
+
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
@@ -80,6 +82,7 @@ async def ask[M: BaseModel](
     entry = engine.start_activity(
         coalition, verb, label, seat=seat, need=need, only=only, source="model"
     )
+    trace = await traced(engine, coalition, role, verb, label, seat, only)
     started = time.monotonic()
     opts: dict[str, Any] = {}
     if budget is not None:
@@ -101,6 +104,7 @@ async def ask[M: BaseModel](
     except MissingKeyError:
         # No key is not a failure of the room: the rules answer, and the entry says so.
         engine.end_activity(coalition, entry, state="done", ms=0, source="rules")
+        await trace("done", 0, "no key: the rules answered")
         return None
     except Exception as exc:
         ms = round((time.monotonic() - started) * 1000)
@@ -109,6 +113,7 @@ async def ask[M: BaseModel](
         if isinstance(exc, SchemaValidationError):
             why += ": " + str(exc)[:160]
         engine.end_activity(coalition, entry, state="failed", ms=ms, source="rules", error=why)
+        await trace("failed", ms, f"{type(exc).__name__}: the rules answered")
         return None
     ms = round((time.monotonic() - started) * 1000)
     engine.end_activity(
@@ -120,4 +125,5 @@ async def ask[M: BaseModel](
         cost=reply.cost_micro_usd,
         tokens=[reply.usage.prompt_tokens, reply.usage.completion_tokens],
     )
+    await trace("done", ms, spent(reply))
     return parsed

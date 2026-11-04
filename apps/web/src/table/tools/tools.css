@@ -1,0 +1,188 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The live strip of tool calls and the sparks on the ring. Theme tokens only. */
+.tk-strip {
+  position: relative;
+  z-index: 8;
+  flex: none;
+  margin: 6px 14px 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 12px / 1.35 var(--font-ui);
+}
+.tk-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.tk-title {
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.tk-count {
+  flex: 1;
+  white-space: nowrap;
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+}
+.tk-head button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: 500 11px var(--font-ui);
+  cursor: pointer;
+}
+.tk-lines {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-line {
+  display: grid;
+  grid-template-columns: 14px auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.tk-who {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tk-tool {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: rgba(var(--blue-rgb), 0.1);
+  color: var(--blue);
+  font: 500 11px var(--font-mono);
+  white-space: nowrap;
+}
+.tk-args {
+  overflow: hidden;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-took {
+  overflow: hidden;
+  max-width: 34ch;
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-line[data-status="failed"] .tk-took {
+  color: var(--bad-fg);
+}
+.tk-run {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(var(--blue-rgb), 0.25);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: tk-spin 0.8s linear infinite;
+}
+.tk-mark {
+  color: var(--blue);
+  font: 700 11px var(--font-mono);
+  text-align: center;
+}
+.tk-mark[data-failed="true"] {
+  color: var(--bad-fg);
+}
+.tk-cards {
+  display: grid;
+  gap: 6px;
+  max-height: 320px;
+  margin-top: 8px;
+  overflow: auto;
+}
+.tb--phone .tk-strip {
+  margin: 4px 10px;
+}
+/* On a phone the strip sits right under the caption, where it is seen without scrolling. */
+.tb--phone .tb-sheet > * {
+  order: 2;
+}
+.tb--phone .tb-sheet > .tb-dots,
+.tb--phone .tb-sheet > .tb-heat,
+.tb--phone .tb-sheet > .tb-caption {
+  order: 0;
+}
+.tb--phone .tb-sheet > .tk-strip {
+  order: 1;
+}
+.tb--phone .tk-title {
+  letter-spacing: 0.04em;
+}
+.tb--phone .tk-sparktag {
+  left: 0;
+  top: -62px;
+  transform: translateX(-50%);
+}
+.tb--phone .tk-line {
+  grid-template-columns: 14px auto minmax(0, 1fr) auto;
+}
+.tb--phone .tk-args {
+  display: none;
+}
+.tb--phone .tk-took {
+  max-width: 16ch;
+}
+.tk-spark {
+  position: absolute;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.tk-ring {
+  position: absolute;
+  left: -34px;
+  top: -34px;
+  width: 68px;
+  height: 68px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  animation: tk-pulse 1.4s ease-out infinite;
+}
+.tk-sparktag {
+  position: absolute;
+  left: 30px;
+  top: -40px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--blue);
+  color: var(--on-blue);
+  font: 600 12px var(--font-mono);
+  white-space: nowrap;
+}
+@keyframes tk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes tk-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(0.75);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-run,
+  .tk-ring {
+    animation: none;
+  }
+}

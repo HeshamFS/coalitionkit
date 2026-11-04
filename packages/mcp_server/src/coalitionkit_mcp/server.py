@@ -11,6 +11,7 @@ from mcp.server.context import CallNext, ServerRequestContext
 from mcp_types import ToolAnnotations
 
 from .access import CoalitionMCPServer, Deps
+from .activity import ToolActivity
 from .errors import split_error_text
 from .ports import TokenPort
 from .resources import CHARTER_URI, LOG_URI, TASKS_URI, charter, log, my_tasks
@@ -105,7 +106,10 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
             validate_token_resource=False,
         ),
         extensions=[apps],
-        middleware=[carry_error_code],
+        middleware=[
+            carry_error_code,
+            *([ToolActivity(deps.activity, deps.tokens.participant_for)] if deps.activity else []),
+        ],
     )
     for fn in (*PLAIN_WRITES, *CONSENT_WRITES):
         server.add_tool(fn, annotations=WRITE)

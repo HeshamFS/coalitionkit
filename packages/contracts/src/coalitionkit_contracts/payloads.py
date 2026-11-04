@@ -276,6 +276,19 @@ class ReceiptPayload(WireModel):
     head_hash: Sha256Hex
 
 
+class ToolPayload(WireModel):
+    """``coalition.tool``: one activity the host observed (see the spec's Tool activity)."""
+
+    seat: Id
+    agent: Annotated[str, StringConstraints(min_length=1, max_length=32)]
+    tool: Annotated[str, StringConstraints(pattern=r"^[a-z0-9_]+:[a-z0-9_.-]+$", max_length=64)]
+    args: Annotated[str, StringConstraints(max_length=200)]
+    result: Annotated[str, StringConstraints(max_length=200)]
+    status: Literal["started", "done", "failed"]
+    ms: SafeInt
+    refs: Annotated[UniqueUlids, Field(max_length=32)]
+
+
 PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
     "coalition.charter": CharterPayload,
     "coalition.join": JoinPayload,
@@ -295,10 +308,11 @@ PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
     "coalition.dissolve": DissolvePayload,
     "coalition.projection": ProjectionPayload,
     "coalition.receipt": ReceiptPayload,
+    "coalition.tool": ToolPayload,
     "coalition.error": ErrorPayload,
 }
 
-#: The eighteen message types of v0.1 (coalition.error is a payload, not one of the eighteen).
+#: The nineteen message types of v0.1 (coalition.error is a payload, not one of the nineteen).
 MESSAGE_TYPES: tuple[str, ...] = tuple(t for t in PAYLOAD_MODELS if t != "coalition.error")
 
 #: Types only the host sends; a member that sends one gets ``not_authorized``.
@@ -313,6 +327,7 @@ HOST_ONLY_TYPES: frozenset[str] = frozenset(
         "dissolve",
         "projection",
         "receipt",
+        "tool",
     )
 )
 #: Types a member (or its vault or edge) may send, before the per-type authorization checks.

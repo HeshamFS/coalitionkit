@@ -51,6 +51,7 @@ from .packs import (
 )
 from .registry import Registry
 from .room import RoomEngine
+from .room.activity_ports import A2aActivity, McpActivity
 from .room.routes import room_routes
 from .room.view import room_state
 from .settings import Settings, load_key
@@ -91,6 +92,7 @@ class Server:
         self.room = RoomEngine(self) if settings.room_engine == "on" else None
         if self.room is not None:
             self.steward.on_plan_review = self.room.steward_checking
+            self.steward.on_review = self.room.steward_reviewed
         with self.store.transaction("") as tx:
             rows = tx.execute("SELECT id, host FROM coalitions").fetchall()
         for coalition, card_url in rows:
@@ -494,7 +496,11 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     server = Server(settings, model_gateway)
     mcp = mcp_app(
         Deps(
-            MCPPort(server), ViewPort(server.hosts, server.registry), server.registry, skills=server
+            MCPPort(server),
+            ViewPort(server.hosts, server.registry),
+            server.registry,
+            skills=server,
+            activity=McpActivity(server),
         ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,
@@ -518,7 +524,9 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
                 await server.room.close()
             await asyncio.to_thread(server.close)
 
-    app = create_host_app(server, server.signer, server.registry, settings.public_base_url)
+    app = create_host_app(
+        A2aActivity(server), server.signer, server.registry, settings.public_base_url
+    )
     app.router.lifespan_context = lifespan
     app.state.server = server
     admin_routes(app, server)

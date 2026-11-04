@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from typing import Any, cast
 
 import pytest
-from examples import PAYLOADS, PLAN_ID, SCOPE, TASK_ID, make_envelope
+from examples import EVENT_ID, PAYLOADS, PLAN_ID, SCOPE, TASK_ID, make_envelope
 from pydantic import ValidationError
 
 from coalitionkit_contracts import (
@@ -68,11 +68,11 @@ def at(value: Any, path: tuple[Any, ...]) -> Any:
     return value
 
 
-def test_eighteen_types_and_every_schema_exists() -> None:
-    assert len(MESSAGE_TYPES) == 18
+def test_nineteen_types_and_every_schema_exists() -> None:
+    assert len(MESSAGE_TYPES) == 19
     assert set(MESSAGE_TYPES) == HOST_ONLY_TYPES | MEMBER_TYPES
     assert not HOST_ONLY_TYPES & MEMBER_TYPES
-    assert len(HOST_ONLY_TYPES) == 8
+    assert len(HOST_ONLY_TYPES) == 9
     assert set(PAYLOAD_MODELS) == set(PAYLOADS) == set(SCHEMA_FILES)
     ids = set(load_schemas())
     for name in [*SCHEMA_FILES.values(), "envelope", "scope", "common"]:
@@ -227,6 +227,16 @@ BAD_VALUES: list[tuple[str, dict[str, Any]]] = [
     ("coalition.receipt", {"seq": 0}),
     ("coalition.receipt", {"coalition_id": "c-1"}),
     ("coalition.dissolve", {"reason": "bored"}),
+    ("coalition.tool", {"status": "running"}),
+    ("coalition.tool", {"tool": "make_offer"}),
+    ("coalition.tool", {"tool": "MCP:Make Offer"}),
+    ("coalition.tool", {"args": "x" * 201}),
+    ("coalition.tool", {"result": "x" * 201}),
+    ("coalition.tool", {"ms": -1}),
+    ("coalition.tool", {"refs": ["not-a-ulid"]}),
+    ("coalition.tool", {"refs": [EVENT_ID, EVENT_ID]}),
+    ("coalition.tool", {"seat": ""}),
+    ("coalition.tool", {"agent": "a" * 33}),
     ("coalition.error", {"code": "oops"}),
     ("coalition.error", {"ref": "not-a-ulid"}),
     ("coalition.tension", {"deciders": []}),

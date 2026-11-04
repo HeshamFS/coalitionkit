@@ -140,6 +140,16 @@ PAYLOADS: dict[str, dict[str, Any]] = {
         "redacted": ["payload.window", "payload.requirements"],
     },
     "coalition.receipt": {"coalition_id": COALITION_ID, "seq": 7, "head_hash": "ab" * 32},
+    "coalition.tool": {
+        "seat": "p2",
+        "agent": "mcp",
+        "tool": "mcp:make_offer",
+        "args": "need " + NEED_ID,
+        "result": "accepted at seq 12",
+        "status": "done",
+        "ms": 184,
+        "refs": [EVENT_ID],
+    },
     "coalition.error": {
         "code": "rate_limited",
         "detail": {"message": "slow down", "retry_after_ms": 500},

@@ -21,6 +21,7 @@ from coalitionkit_vault.psi import Context, Requester, Responder
 from coalitionkit_vault.store import Facts, Vault
 
 from ..adapter import Document
+from .activity import activity
 from .brief import chosen_slots
 from .seats import people, read_state
 
@@ -104,7 +105,10 @@ async def run(engine: RoomEngine, coalition: str, state: State, doc: Document, t
         )
         doc = engine.read(coalition)
     took = doc["compare"]["took_part"]
-    slots = await cross(engine, coalition, took, task)
+    args = f"free times of {len(took)} seats, blinded"
+    async with activity(engine, coalition, took[0], "vault", "psi:compare", args) as call:
+        slots = await cross(engine, coalition, took, task)
+        call.result = f"{len(slots)} times in common, published"
     content = common_content(doc, slots)
     await send(
         engine,

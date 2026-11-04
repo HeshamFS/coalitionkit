@@ -39,6 +39,7 @@ SCHEMA_FILES: Mapping[str, str] = {
     "coalition.dissolve": "dissolve",
     "coalition.projection": "projection",
     "coalition.receipt": "receipt",
+    "coalition.tool": "tool",
     "coalition.error": "error",
 }
 
