@@ -6,6 +6,7 @@ import json
 import secrets
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -235,6 +236,15 @@ class Server:
             third if engine_rules else None,
             self.room.task_share() if engine_rules and self.room else None,
         )
+        turned_down = {
+            frozenset((str(a["task_id"]), str(a["assignee"])) for a in s.get("assignments", []))
+            for s in host.state.subjects.values()
+            if s["kind"] == "plan" and s.get("status") == "refused"
+        }
+        kept = tuple(p for p in plans.plans if frozenset(p.assignments.items()) not in turned_down)
+        if plans.plans and not kept:
+            return {"unresolved": [], "all_refused": True}
+        plans = replace(plans, plans=kept)
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
         payload = build_propose(

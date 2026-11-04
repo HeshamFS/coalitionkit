@@ -72,6 +72,9 @@ def fresh_doc() -> Document:
     }
 
 
+PLANS_REFUSED = "Every plan was turned down. Say what would change and the agents will try again."
+
+
 class RoomEngine:
     def __init__(self, server: Server) -> None:
         self.server = server
@@ -218,9 +221,17 @@ class RoomEngine:
         accepted = reply["receipt"]["payload"]
         return {"event_id": envelope["event_id"], "seq": accepted["seq"]}
 
-    def record_stop(self, coalition: str, seat: str | None, to: str | None, policy: str) -> None:
+    def record_stop(
+        self,
+        coalition: str,
+        seat: str | None,
+        to: str | None,
+        policy: str,
+        explain: str | None = None,
+    ) -> None:
         known = self.policies.get(policy)
-        explain = known.explain if known else "The Steward held this for a person to look at."
+        if explain is None:
+            explain = known.explain if known else "The Steward held this for a person to look at."
         entry: Document = {
             "id": new_ulid(),
             "at": datetime.fromtimestamp(self.now(), UTC).isoformat(),
@@ -377,6 +388,13 @@ class RoomEngine:
         if marker not in self.read(coalition)["held"]:
             self.record_stop(coalition, None, None, policy)
         self.update(coalition, lambda d: d["held"].__setitem__(marker, policy))
+
+    def all_plans_refused(self, coalition: str, marker: str) -> None:
+        """Nothing is left to propose. The room says so and waits for what would change."""
+        if marker in self.read(coalition)["held"]:
+            return
+        self.record_stop(coalition, None, None, "plans-refused", PLANS_REFUSED)
+        self.update(coalition, lambda d: d["held"].__setitem__(marker, "plans-refused"))
 
     def is_held(self, coalition: str, marker: str) -> bool:
         return marker in self.read(coalition)["held"]

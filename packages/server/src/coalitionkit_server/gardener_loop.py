@@ -165,12 +165,22 @@ class GardenerLoop:
             str(state.charter["revision"]),
             *inputs,
             *(json.dumps(state.offers[k], sort_keys=True) for k in offers),
+            # A no sends the tasks back with the same inputs; it must still bring new plans.
+            *sorted(
+                key
+                for key, s in state.subjects.items()
+                if s["kind"] in {"plan", "tension_option"} and s.get("status") == "refused"
+            ),
         )
         if any(e["payload"].get("proposal_set_id") == marker for e in state.events.values()):
             return
         if room is not None and room.is_held(coalition, marker):
             return
         result = self.server.plan(coalition, state.charter["deadline"], proposal_set_id=marker)
+        if not isinstance(result, Acknowledgement) and result.get("all_refused"):
+            if room is not None:
+                room.all_plans_refused(coalition, marker)
+            return
         if not isinstance(result, Acknowledgement):
             code = result.get("payload", {}).get("code")
             if room is not None and code in {"steward_blocked", "pack_violation"}:
