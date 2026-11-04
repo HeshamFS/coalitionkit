@@ -10,6 +10,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from coalitionkit_contracts.resources import spec_path
+
 
 def data_dir() -> Path:
     base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_DATA_HOME")
@@ -33,6 +35,9 @@ class Settings(BaseSettings):
     # Author key IDs mapped to public Ed25519 JWKs (also configurable through the environment).
     pack_trusted_keys: dict[str, dict[str, str]] = Field(default_factory=dict[str, dict[str, str]])
     genesis: Literal["off", "local", "admin"] = "off"
+    # The room engine drives needs, seats and briefs in hosted rooms. Harnesses that play the
+    # members themselves leave it off; `coalitionkit up` turns it on.
+    room_engine: Literal["on", "off"] = "off"
     # A file of sample rooms for the first screen. The kit ships none.
     sample_rooms: Path | None = None
     admin_token: SecretStr | None = None
@@ -44,9 +49,7 @@ class Settings(BaseSettings):
     # Where the message door's confirm link points: the web app's /confirm/<code> route.
     # Unset: the server's own public origin (the web app is served from there).
     confirm_link_base: str | None = None
-    catalog_file: Path = (
-        Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
-    )
+    catalog_file: Path = spec_path("catalog", "coalitionkit-v0_9.json")
 
     @property
     def effective_confirm_base(self) -> str:

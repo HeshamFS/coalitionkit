@@ -26,3 +26,17 @@ examples/.venv/
 packages/mint/scorecard-*.json
 
 .coalitionkit/
+
+.cache/
+.hypothesis/
+.import_linter_cache/
+*.sqlite3*
+*.db-wal
+*.db-shm
+
+# Generated release inputs (staged by tools/build_web.py)
+packages/cli/src/coalitionkit_cli/web_dist/
+packages/contracts/src/coalitionkit_contracts/data/spec/
+
+!.python-version
+/scorecard-*.json

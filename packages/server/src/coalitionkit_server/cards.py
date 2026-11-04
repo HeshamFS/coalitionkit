@@ -7,10 +7,15 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from coalitionkit_edges.a2a.identity import card_key_entry, coalition_extension, sign_card
 
 
-def member_card(base: str, key: Ed25519PrivateKey) -> AgentCard:
+def member_card(
+    base: str,
+    key: Ed25519PrivateKey,
+    name: str = "CoalitionKit member",
+    description: str = "A hosted Coalition participant",
+) -> AgentCard:
     card = AgentCard(
-        name="CoalitionKit member",
-        description="A hosted Coalition participant",
+        name=name,
+        description=description,
         version="0.1.0",
         supported_interfaces=[
             AgentInterface(url=base + "/a2a", protocol_binding="JSONRPC", protocol_version="1.0")

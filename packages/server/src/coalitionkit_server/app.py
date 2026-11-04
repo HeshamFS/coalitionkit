@@ -6,6 +6,7 @@ import json
 import secrets
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -49,6 +50,9 @@ from .packs import (
     surface_pack,
 )
 from .registry import Registry
+from .room import RoomEngine
+from .room.routes import room_routes
+from .room.view import room_state
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
 from .whatsapp import mount_whatsapp
@@ -84,6 +88,9 @@ class Server:
         self.ports: dict[str, HostPort] = {}
         self.surfaces: dict[str, FastAPI] = {}
         self.registry = Registry(self.store, self.key, settings.public_base_url)
+        self.room = RoomEngine(self) if settings.room_engine == "on" else None
+        if self.room is not None:
+            self.steward.on_plan_review = self.room.steward_checking
         with self.store.transaction("") as tx:
             rows = tx.execute("SELECT id, host FROM coalitions").fetchall()
         for coalition, card_url in rows:
@@ -92,6 +99,18 @@ class Server:
             self.attach(coalition)
         self.registry.restore(self.ports)
         self.gardener = GardenerLoop(self)
+
+    def cost_meter(self, coalition: str) -> Document | None:
+        """What the model has cost this room so far, from the gateway's real records."""
+        meter = self.gateway.meter
+        if meter is None:
+            return None
+        calls = sum(1 for r in meter.records if r.coalition_id == coalition)
+        return {
+            "spent": meter.total(coalition) / 1_000_000,
+            "currency": meter.prices.currency,
+            "calls": calls,
+        }
 
     def bound_pack(self, coalition: str) -> Pack | None:
         ref = self.hosts[coalition].state.charter.get("pack")
@@ -138,6 +157,7 @@ class Server:
             pack = self.bound_pack(coalition)
             return surface_pack(pack) if pack else None
 
+        room = self.room
         hub = SurfaceHub(
             host,
             ViewerAuth(self.registry, host),
@@ -152,6 +172,11 @@ class Server:
                 else None
             ),
             pack_views=lambda: pack.views.order if (pack := self.bound_pack(coalition)) else {},
+            room_state=(lambda viewer: room_state(room, coalition, viewer)) if room else None,
+            room_version=(lambda: room.version(coalition)) if room else None,
+            stage=(lambda: host.state.stage) if room else None,
+            cost_meter=(lambda: self.cost_meter(coalition)) if room else None,
+            busy=(lambda: coalition in room.checking) if room else None,
         )
 
         def policy_escalation(event: Document, policy_id: str, explain: str) -> None:
@@ -171,6 +196,9 @@ class Server:
         host.policy_escalation = policy_escalation
         self.surfaces[coalition] = surfaces_app(hub)
         hosted_routes(self.surfaces[coalition], self, coalition)
+        if room is not None:
+            room.attach(coalition)
+            room_routes(self.surfaces[coalition], self, coalition)
         self.ports[coalition].on_refusal = hub.refused
         return host
 
@@ -197,7 +225,40 @@ class Server:
         self, coalition: str, deadline: str, *, proposal_set_id: str | None = None
     ) -> Acknowledgement | Document:
         host = self.hosts[coalition]
-        plans = plan_for(host, self.packs)
+        # A room the engine drives, with no pack, trades cost and evenness against how much
+        # effort the chosen people said the work would be; a pack brings its own strategy.
+        driven = self.room is not None and self.room.drives(coalition)
+        third = self.room.effort_objective(coalition) if driven and self.room else None
+        engine_rules = driven and self.room is not None and self.bound_pack(coalition) is None
+        plans = plan_for(
+            host,
+            self.packs,
+            third if engine_rules else None,
+            self.room.task_share() if engine_rules and self.room else None,
+        )
+        # Only the same assignment on the same terms stays refused: better terms may be asked again.
+        turned_down = {
+            (
+                frozenset((str(a["task_id"]), str(a["assignee"])) for a in p["assignments"]),
+                tuple(sorted((str(k), float(v)) for k, v in p["objective_scores"].items())),
+            )
+            for e in host.state.events.values()
+            if e["type"] == "coalition.propose"
+            for p in e["payload"]["plans"]
+            if host.state.subject("plan", p["plan_id"]).get("status") == "refused"
+        }
+        kept = tuple(
+            p
+            for p in plans.plans
+            if (
+                frozenset(p.assignments.items()),
+                tuple(sorted(zip(plans.objective_names, map(float, p.objectives), strict=True))),
+            )
+            not in turned_down
+        )
+        if plans.plans and not kept:
+            return {"unresolved": [], "all_refused": True}
+        plans = replace(plans, plans=kept)
         if not plans.plans:
             return {"unresolved": [item.reason for item in plans.unresolved]}
         payload = build_propose(
@@ -236,10 +297,30 @@ class Server:
             return []
         return self.hosts[coalition_id].skills(participant)
 
+    def offered_over_mcp(self, coalition: str, who: str) -> None:
+        """This seat's own agent acts over MCP, where the room's private questions cannot reach."""
+        if self.room is None or not self.room.drives(coalition):
+            return
+        seats = self.room.read(coalition).get("mcp_seats", [])
+        if who not in seats:
+            self.room.update(coalition, lambda d: d.__setitem__("mcp_seats", [*seats, who]))
+
     async def accept(self, envelope_json: Document, authenticated_sender: str) -> Document:
         port = self.ports.get(str(envelope_json.get("coalition_id", "")))
         if port is None:
             return {"error": {"code": "unknown_participant", "detail": {}, "ref": new_ulid()}}
+        hidden_offer = (
+            envelope_json.get("type") == "coalition.offer"
+            and cast(Document, envelope_json.get("scope") or {}).get("audience") != "coalition"
+        )
+        if (
+            hidden_offer
+            and self.room is not None
+            and self.room.drives(str(envelope_json["coalition_id"]))
+        ):
+            # A plan is as visible as its narrowest source: a hidden offer would hide the plan.
+            detail = {"message": "an offer in this room must have the scope audience 'coalition'"}
+            return {"error": {"code": "schema_invalid", "detail": detail, "ref": new_ulid()}}
         return await port.accept(envelope_json, authenticated_sender)
 
     def close(self) -> None:
@@ -363,6 +444,20 @@ def admin_routes(app: FastAPI, server: Server) -> None:
         return json.loads(row[0])
 
 
+AGENT_PATHS = frozenset(
+    {
+        "/v1/agent",
+        "/v1/agent/answers",
+        "/v1/agent/offer",
+        "/v1/agent/vault",
+        "/v1/room/begin",
+        "/v1/room/brief",
+        "/v1/room/say",
+        "/v1/room/done",
+    }
+)
+
+
 class Dispatch:
     def __init__(self, server: Server, mcp: FastAPI) -> None:
         self.server, self.mcp = server, mcp
@@ -374,8 +469,7 @@ class Dispatch:
             await self.mcp(scope, receive, send)
             return
         allowed = (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled) or (
-            path in {"/v1/agent", "/v1/agent/answers", "/v1/agent/offer", "/v1/agent/vault"}
-            and "agent" in enabled
+            path in AGENT_PATHS and "agent" in enabled
         )
         if not allowed:
             await JSONResponse({"detail": "not found"}, 404)(scope, receive, send)
@@ -414,6 +508,8 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
             if whatsapp is not None:
                 await asyncio.to_thread(whatsapp.stop)
             await server.gardener.close()
+            if server.room is not None:
+                await server.room.close()
             await asyncio.to_thread(server.close)
 
     app = create_host_app(server, server.signer, server.registry, settings.public_base_url)

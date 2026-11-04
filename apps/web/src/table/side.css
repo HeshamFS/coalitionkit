@@ -1,0 +1,424 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Your side: one calm column, serif headings, nothing that looks like a dashboard card. */
+.tb-side {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background-color: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transition:
+    background-color 1.2s,
+    border-color 1.2s;
+}
+.tb-sidehead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: 600 13px var(--font-ui);
+}
+.tb-tag {
+  color: var(--ink-3);
+  font: 500 10px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tb-side h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 400 31px / 1.08 var(--font-display);
+  transition: color 1.2s;
+}
+.tb-side p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.tb-side [role="alert"] {
+  color: var(--bad-fg);
+}
+.tb-note {
+  font-size: 13px;
+}
+.tb-quiet {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 13.5px;
+}
+.tb-composed {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font: 500 10.5px / 1.5 var(--font-mono);
+}
+.tb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  transition: background-color 1.2s;
+}
+.tb-card--tall {
+  min-height: 130px;
+}
+.tb-card p {
+  color: var(--ink);
+}
+.tb-hatch {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: repeating-linear-gradient(135deg, var(--surface-2) 0 6px, transparent 6px 12px);
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+}
+.tb-viewas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- What waits for you ---------- */
+.tb-asks ul,
+.tb-list,
+.tb-who,
+.tb-tasks,
+.tb-kept {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tb-asks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tb-ask {
+  width: 100%;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border: 1px solid var(--warn-line);
+}
+.tb .btn.tb-ask:hover:not(:disabled) {
+  background: var(--warn-bg);
+  filter: brightness(0.97);
+}
+.tb-ask small {
+  font: 500 10.5px var(--font-mono);
+}
+.tb-list li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.tb-list li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.tb-who li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-left: 2px solid var(--blue);
+  font-size: 14px;
+}
+.tb-who span {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.tb-seal {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+.tb-begin,
+.tb-finish {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.tb-finish {
+  margin-top: 2px;
+}
+.tb-chain {
+  max-height: 60vh;
+  overflow: auto;
+  border-radius: 10px;
+}
+
+/* ---------- Feed, tasks, kept ---------- */
+.tb-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.tb-feed div {
+  padding-left: 12px;
+  border-left: 2px solid var(--blue);
+  animation: rise 0.35s ease-out 1;
+}
+.tb-task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+.tb-task > span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+.tb-task small,
+.tb-kept small {
+  color: var(--ink-3);
+  font: 500 10.5px var(--font-mono);
+}
+.tb-task [role="alert"] {
+  flex-basis: 100%;
+  font-size: 13px;
+}
+.tb-kept li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---------- The ending, after the room is gone ---------- */
+.tb-keptscreen {
+  width: min(660px, 100% - 32px);
+  margin: 0 auto 48px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+.tb-keptscreen h2 {
+  margin: 0 0 8px;
+  font: 400 30px / 1.1 var(--font-display);
+}
+.tb-keptscreen ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tb-keptscreen li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.tb-keptscreen small {
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+}
+.tb-keptscreen .tb-linky {
+  min-height: 44px;
+  color: var(--blue-text);
+  font: 500 15px var(--font-ui);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tb-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tb .tb-brief .f01-root-Heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display) !important;
+  font-size: 31px !important;
+  font-weight: 400 !important;
+  line-height: 1.08 !important;
+}
+
+.tb-brief .f01-choice-trigger,
+.tb-brief .f01-choice-control {
+  min-height: 44px;
+}
+
+.tb-brief .f01-options {
+  gap: 8px;
+}
+.tb-brief .f01-options button {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+.tb-countdown {
+  color: var(--warn-fg);
+  font: 500 13px var(--font-mono);
+}
+.tb-saynote {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+}
+.tb-saynote p {
+  margin: 0;
+}
+.tb-said {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.tb-saynote b {
+  color: var(--blue-text);
+}
+.tb-saynote b[data-stopped="true"],
+.tb-bad {
+  color: var(--bad-fg);
+}
+.tb-saynote .tb-linky {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0;
+  font-size: 13px;
+}
+.tb-receipt {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 500 11.5px var(--font-mono);
+}
+.tb-receipts {
+  color: var(--ink-3);
+  font: 500 11.5px var(--font-mono);
+}
+.tb-receipts summary {
+  min-height: 36px;
+  cursor: pointer;
+}
+.tb-receipts ul {
+  margin: 0 0 8px;
+  padding-left: 16px;
+}
+
+/* ---------- The consent sheet on the Table: the hold button stays on the first screen ---------- */
+.tb .ck-consent[data-compact="true"] {
+  gap: 10px;
+  padding: 14px;
+}
+.tb .ck-consent[data-compact="true"] .ck-consent-q {
+  font: 400 24px / 1.15 var(--font-display);
+  letter-spacing: 0;
+}
+.tb .ck-consent[data-compact="true"] .ck-consent-box {
+  gap: 6px;
+  padding: 10px 12px;
+}
+.tb .ck-consent[data-compact="true"] .ck-consent-yes {
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.tb .ck-consent[data-compact="true"] .ck-consent-p {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.tb .ck-consent[data-compact="true"] .ck-consent-seal {
+  padding: 0;
+}
+.tb .ck-consent[data-compact="true"] .trusted-seal {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  justify-items: start;
+  column-gap: 14px;
+  row-gap: 4px;
+  width: 100%;
+}
+.tb .ck-consent[data-compact="true"] .trusted-seal-control {
+  grid-row: 1 / span 2;
+  width: 88px;
+  height: 88px;
+}
+.tb .ck-consent[data-compact="true"] .trusted-seal .small {
+  grid-column: 2;
+  font-size: 12.5px;
+}
+.tb .ck-consent[data-compact="true"] .trusted-seal > .btn {
+  grid-column: 2;
+}
+.tb .ck-consent[data-compact="true"] .trusted-seal fieldset,
+.tb .ck-consent[data-compact="true"] .seal-status,
+.tb .ck-consent[data-compact="true"] .trusted-seal > p {
+  grid-column: 1 / -1;
+}
+.tb .ck-consent[data-compact="true"] .seal-status {
+  align-items: flex-start;
+}
+.tb .ck-consent[data-compact="true"] .seal-status:empty {
+  display: none;
+}
+@media (max-height: 800px) {
+  .tb .ck-consent[data-compact="true"] .ck-consent-box > .ck-consent-k:nth-of-type(2),
+  .tb .ck-consent[data-compact="true"] .ck-consent-box > .ck-consent-p {
+    display: none;
+  }
+}
+
+/* Phone: the first consent fits a 390 x 844 screen even with fallback fonts. */
+.tb--phone .tb-side {
+  gap: 8px;
+  padding: 12px 14px;
+}
+.tb--phone .tb-sidehead > span:first-child {
+  display: none;
+}
+.tb--phone .tb-sidehead {
+  justify-content: flex-end;
+}

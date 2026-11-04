@@ -144,6 +144,26 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
             "events": ({"seq": LEAF, "type": LEAF, "payload": JSON},),
         },
     },
+    "open_asks": {
+        "coalition_id": LEAF,
+        "asks": (
+            {
+                "kind": LEAF,
+                "id": LEAF,
+                "revision": LEAF,
+                "options": ({"option_id": LEAF, "summary": LEAF},),
+                "next_call": {
+                    "tool": LEAF,
+                    "arguments": {
+                        "coalition_id": LEAF,
+                        "commitment_id": LEAF,
+                        "choice": LEAF,
+                        "subject": {"kind": LEAF, "id": LEAF, "revision": LEAF},
+                    },
+                },
+            },
+        ),
+    },
     "pending_questions": {"coalition_id": LEAF, "questions": (QUESTION,)},
     "answer_question": {**ACK, "query_id": LEAF},
     "make_offer": {**ACK, "offer_id": LEAF},

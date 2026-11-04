@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+import logging
 import os
 import shutil
 import signal
@@ -15,6 +16,7 @@ from types import FrameType
 import uvicorn
 from pydantic import SecretStr
 
+from coalitionkit_contracts.resources import checkout_root, resource_path
 from coalitionkit_server import Settings, create_server
 from coalitionkit_server.app import Server
 
@@ -24,57 +26,52 @@ from .storage import admin_token, prepare
 from .web import Room
 
 
-def web_dist() -> Path | None:
-    root = Path(__file__).resolve().parents[4]
-    web = root / "apps" / "web"
-    dist = web / "dist"
-    if (dist / "index.html").is_file():
-        return dist
-    npm = shutil.which("npm")
-    if npm is None or not web.is_dir():
-        print("Room unavailable: install Node/npm, run npm --prefix apps/web ci, then rerun up.")
-        return None
-    if not (web / "node_modules").is_dir():
-        print("Installing web dependencies: npm --prefix apps/web ci", flush=True)
-        if build_command(npm, web, ["ci"]):
-            print("Web dependencies could not be installed; host still available.")
-            return None
-    print("Building the web room: npm --prefix apps/web run build", flush=True)
-    code = build_command(npm, web, ["run", "build"])
-    if code or not (dist / "index.html").is_file():
-        print("Room build failed: run npm --prefix apps/web ci and rerun up; host still available.")
-        return None
+def web_dist() -> Path:
+    """An installed wheel carries the room's files; a source checkout builds its own."""
+    root = checkout_root()
+    if root is not None:
+        return checkout_web(root / "apps" / "web")
+    dist = resource_path("coalitionkit_cli", "web_dist")
+    if not (dist / "index.html").is_file():
+        raise FileNotFoundError(
+            "this install has no web room files. Reinstall coalitionkit, or start with --no-web."
+        )
     return dist
 
 
-def build_command(npm: str, web: Path, arguments: list[str]) -> int:
-    flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-    child = subprocess.Popen(
-        [npm, "--prefix", str(web), *arguments],
-        creationflags=flags,
-        start_new_session=os.name != "nt",
-    )
-    try:
-        return child.wait()
-    except KeyboardInterrupt:
-        if os.name == "nt":
-            child.send_signal(signal.CTRL_BREAK_EVENT)
-        else:
-            os.killpg(child.pid, signal.SIGINT)
+def checkout_web(web: Path) -> Path:
+    """Serve ``apps/web/dist``, building it when it is absent or older than its source."""
+    dist = web / "dist"
+    built = (dist / "index.html").is_file()
+    if built and not _older_than_source(web, dist):
+        return dist
+    npm = shutil.which("npm")
+    if npm is None:
+        if built:
+            print("The web room is older than its source; npm was not found to rebuild it.")
+            return dist
+        raise FileNotFoundError(
+            "the web room is not built and npm was not found. "
+            "Install Node 22 or newer, or start with --no-web."
+        )
+    print("Building the web room. It takes a minute or two and only runs when needed.", flush=True)
+    steps = [[npm, "run", "build"]]
+    if not (web / "node_modules").is_dir():
+        steps.insert(0, [npm, "ci", "--no-audit", "--no-fund"])
+    for step in steps:
         try:
-            child.wait(timeout=15)
-        except subprocess.TimeoutExpired:
-            if os.name == "nt":
-                subprocess.run(
-                    ["taskkill", "/PID", str(child.pid), "/T", "/F"],
-                    check=False,
-                    capture_output=True,
-                    creationflags=flags,
-                )
-            else:
-                os.killpg(child.pid, signal.SIGKILL)
-            child.wait()
-        raise
+            subprocess.run(step, cwd=web, check=True)
+        except subprocess.CalledProcessError as exc:
+            raise OSError(
+                f"`npm {' '.join(step[1:])}` failed in {web} (exit {exc.returncode}). "
+                "Its output is above. Fix that, or start with --no-web."
+            ) from exc
+    return dist
+
+
+def _older_than_source(web: Path, dist: Path) -> bool:
+    stamp = (dist / "index.html").stat().st_mtime
+    return any(p.stat().st_mtime > stamp for p in (web / "src").rglob("*") if p.is_file())
 
 
 def run(args: argparse.Namespace) -> int:
@@ -98,40 +95,34 @@ def run(args: argparse.Namespace) -> int:
             bind_host="127.0.0.1",
             bind_port=port,
             genesis="local",
+            room_engine="on",
             packs=getattr(args, "pack", []),
         )
-        app = create_server(
-            settings,
-            model_gateway=(
-                demo_gateway(live=bool(os.environ.get("COALITIONKIT_META_API_KEY")))
-                if args.demo
-                else None
-            ),
-        )
+        keyed = bool(os.environ.get("COALITIONKIT_META_API_KEY"))
+        # Without a key the room still walks end to end, on the built-in rules and fixed checks.
+        app = create_server(settings, model_gateway=None if keyed else demo_gateway(live=False))
+        # The SDKs turn on INFO logging; this window is for what its owner acts on.
+        logging.getLogger().setLevel(logging.WARNING)
         server: Server = app.state.server
         try:
-            mode = (
-                "Meta API configured"
-                if os.environ.get("COALITIONKIT_META_API_KEY")
-                else "scripted demo (no model key required)"
-                if args.demo
-                else "no model key configured"
-            )
-            print(f"Mode: {mode}", flush=True)
             print(f"Host: {base} | MCP: {base}/mcp", flush=True)
-            code = server.registry.issue_start()
-            print(f"Start a coalition: {base}/#start={code}", flush=True)
+            print(
+                "Models: Meta API."
+                if keyed
+                else "Models: none set, so the room uses built-in rules. "
+                "Set COALITIONKIT_META_API_KEY for real ones.",
+                flush=True,
+            )
             if args.demo:
                 demo_start(server, data, args.members, base)
-            if dist is None:
-                print(
-                    "No room served. Use viewer tokens as Bearer credentials for the API.",
-                    flush=True,
-                )
-            else:
-                print(f"Open {base}/ and paste a Viewer token, then select Continue.", flush=True)
             print(
                 "Ctrl+C stops the host. Admin token is in admin.token (not displayed).", flush=True
+            )
+            print(
+                "The API and MCP are on the host address; no web room is served."
+                if dist is None
+                else f"\nOpen {base}/ and say what needs doing in one sentence.\n",
+                flush=True,
             )
         except BaseException:
             server.close()

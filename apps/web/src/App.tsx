@@ -11,11 +11,11 @@ import { clearOwner } from "./genesis/owner";
 import { Landing } from "./landing/Landing";
 import { LensView } from "./lens/LensView";
 import type { DissolveEvent } from "./moments/Dissolve";
-import { RoomView } from "./RoomView";
-import { EndedView } from "./room/endCoalition";
 import { beginEnd, clearEnded, readEnded, useEndRun } from "./room/ended";
 import { GlassesRoute } from "./room/glasses";
 import { SignIn } from "./SignIn";
+import { EndedTable } from "./table/EndedTable";
+import { RoomEntry } from "./table/Entry";
 
 export const EXPIRED_NOTICE = "Your session ended. Sign in again.";
 
@@ -53,8 +53,8 @@ export function App() {
     setConfig(null);
     enter();
   };
-  if (run) return <EndedView run={run} onLeave={leave} />;
-  if (ended) return <EndedView event={ended} onLeave={leave} />;
+  if (run) return <EndedTable run={run} onLeave={leave} />;
+  if (ended) return <EndedTable event={ended} onLeave={leave} />;
   if (path.startsWith("/gallery")) return <Gallery />;
   if (path.startsWith("/join")) return <Join onJoined={enter} />;
   if (!config) {
@@ -100,7 +100,7 @@ export function App() {
       ) : path.startsWith("/glasses") ? (
         <GlassesRoute />
       ) : (
-        <RoomView />
+        <RoomEntry />
       )}
     </FeedProvider>
   );

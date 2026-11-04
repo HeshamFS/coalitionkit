@@ -169,30 +169,25 @@ export function Plans({
   );
 }
 
-/** Agents, vendors, calendars shared, time, seq and spend. Unknown numbers stay `[MEASURED]`. */
+/** Agents, vendors, seq and spend. A number the feed does not carry is left out. */
 export function MeasuredStrip({ state, ready, index = 0 }: { state: ViewerState | null } & Ready) {
   const s = deriveStrip(state);
+  const log = [s.seq && `seq ${s.seq}`, s.spent && `spent ${s.spent}`].filter(Boolean).join(" · ");
   return (
     <Germ index={index} ready={ready} label="MetricStrip" className="room-strip-cell">
       <section className="room-strip" aria-label="Measured">
-        <span className="room-chip">
-          <b>{s.agents}</b> agents
-          {s.vendors && (
-            <>
-              {" "}
-              · <b>{s.vendors}</b> vendors
-            </>
-          )}
-        </span>
-        <span className="room-chip">
-          calendars shared <b>{s.calendars}</b>
-        </span>
-        <span className="room-chip">
-          time to first commitment <b>{s.elapsed}</b>
-        </span>
-        <span className="room-chip room-chip-mono">
-          seq {s.seq} · spent {s.spent}
-        </span>
+        {s.agents && (
+          <span className="room-chip">
+            <b>{s.agents}</b> agents
+            {s.vendors && (
+              <>
+                {" "}
+                · <b>{s.vendors}</b> vendors
+              </>
+            )}
+          </span>
+        )}
+        {log && <span className="room-chip room-chip-mono">{log}</span>}
       </section>
     </Germ>
   );

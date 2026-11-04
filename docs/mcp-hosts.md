@@ -2,7 +2,7 @@
 
 Every member reaches its Coalition through the host's MCP endpoint, `<host>/mcp`, with its own viewer token as a bearer token. Each host sees only that member's scope. Start a local host with `uv run coalitionkit up`; it prints the MCP URL and one viewer token per demo member.
 
-The tools a member gets: `list_coalitions`, `my_view`, `pending_questions`, `join_coalition`, `answer_question`, `make_offer`, `commit`, `report_ripple`, `report_done`, `leave_coalition`, and for consent `decide`, `approve_commitment` and `accept_charter`. `my_view` returns the member's surface as data, as readable text, and with a link to the MCP App view `ui://coalitionkit/surface-v1.html` for hosts that render MCP Apps.
+The tools a member gets: `list_coalitions`, `my_view`, `open_asks`, `pending_questions`, `join_coalition`, `answer_question`, `make_offer`, `commit`, `report_ripple`, `report_done`, `leave_coalition`, and for consent `decide`, `approve_commitment` and `accept_charter`. `my_view` returns the member's surface as data, as readable text, and with a link to the MCP App view `ui://coalitionkit/surface-v1.html` for hosts that render MCP Apps.
 
 The settings below were checked on 30 October 2026 against a local host. Replace `URL` with the printed MCP URL and `TOKEN` with a viewer token.
 

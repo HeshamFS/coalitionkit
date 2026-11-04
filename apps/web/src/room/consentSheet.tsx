@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // The consent seal as the Consent board draws it (story J-09): the question in one line, what a
-// yes does, what stays private, then press and hold to sign with the owner key. Built only from
+// yes does, what stays private, then press and hold to say yes, which the host signs for you. Built only from
 // the host's open request and the viewer's own projection, never from a composed tree.
 import type { ConsentAcknowledgement } from "../components/f08/ConsentSeal";
 import { TrustedConsentSeal } from "../components/f08/ConsentSeal";
@@ -57,6 +57,8 @@ export function ConsentSheet({
   onDecline,
   onSeePlans,
   declined,
+  summary,
+  compact = false,
 }: {
   request: OpenRequest;
   state: ViewerState | null;
@@ -64,12 +66,20 @@ export function ConsentSheet({
   onDecline: () => void | Promise<void>;
   onSeePlans?: () => void;
   declined: boolean;
+  /** The host's plain words for this ask. They replace the question when given. */
+  summary?: string;
+  /** The Table's tighter sheet: the hold button stays on the first screen. */
+  compact?: boolean;
 }) {
   const sheet = sheetFor(request, state);
   return (
-    <section className="ck-consent" aria-label={`Your yes is needed: ${sheet.question}`}>
-      <span className="ck-consent-eyebrow">Your agent needs your yes</span>
-      <h2 className="ck-consent-q">{sheet.question}</h2>
+    <section
+      className="ck-consent"
+      data-compact={compact}
+      aria-label={`Your yes is needed: ${summary ?? sheet.question}`}
+    >
+      {!compact && <span className="ck-consent-eyebrow">Your agent needs your yes</span>}
+      <h2 className="ck-consent-q">{summary ?? sheet.question}</h2>
       <div className="ck-consent-box">
         <span className="ck-consent-k">If you say yes</span>
         <ul className="ck-consent-yes">
@@ -79,10 +89,14 @@ export function ConsentSheet({
         </ul>
         <span className="ck-consent-k">What stays private</span>
         <p className="ck-consent-p">{sheet.privateNote}</p>
-        <span className="ck-consent-k">What you sign</span>
-        <p className="ck-consent-p ck-consent-sign">
-          {request.message} · {request.kind} · revision {request.revision}
-        </p>
+        {!compact && (
+          <>
+            <span className="ck-consent-k">What you sign</span>
+            <p className="ck-consent-p ck-consent-sign">
+              {request.message} · {request.kind} · revision {request.revision}
+            </p>
+          </>
+        )}
       </div>
       <div className="ck-consent-seal">
         <TrustedConsentSeal
@@ -95,7 +109,7 @@ export function ConsentSheet({
         <button type="button" className="btn" disabled={declined} onClick={onDecline}>
           Not this one
         </button>
-        {onSeePlans && (
+        {onSeePlans && request.kind === "plan" && (
           <button type="button" className="btn" onClick={onSeePlans}>
             See the other plans
           </button>

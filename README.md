@@ -16,7 +16,9 @@ cd coalitionkit
 uv run coalitionkit up
 ```
 
-`up` starts a local host and the web room on 127.0.0.1, creates a demo Coalition with three members, and prints one viewer token per member. Open the printed address, paste a token, and you are in the room as that member. No model key is needed to start; model features use `COALITIONKIT_META_API_KEY` when it is set. Details: [packages/cli/README.md](packages/cli/README.md).
+The first run builds the web room, which takes a minute or two. `up` then starts a local host on 127.0.0.1 and prints its address. Open it and say what needs doing in one sentence: you check the draft, open the room, share its code with the others, and enter.
+
+No model key is needed. Without one the room runs on built-in rules and says so; set `COALITIONKIT_META_API_KEY` to use real models. Details: [packages/cli/README.md](packages/cli/README.md).
 
 To reach the same Coalition from Claude Code, Claude Desktop, Codex, Grok or Antigravity, see [docs/mcp-hosts.md](docs/mcp-hosts.md).
 

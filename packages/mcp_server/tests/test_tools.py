@@ -14,7 +14,8 @@ from coalitionkit_contracts import (
 from coalitionkit_mcp.testing_rig import C1, C2, COMMITMENT, COST, OFFER_TARGET, TASK, Rig
 
 TOOLS = {
-    "list_coalitions", "join_coalition", "my_view", "pending_questions", "answer_question",
+    "list_coalitions", "join_coalition", "my_view", "open_asks", "pending_questions",
+    "answer_question",
     "make_offer", "decide", "approve_commitment", "report_done", "leave_coalition", "commit",
     "report_ripple", "accept_charter",
 }  # fmt: skip
@@ -161,6 +162,7 @@ async def test_a_token_cannot_act_as_another_participant(rig: Rig) -> None:
 async def test_every_tool_refuses_a_foreign_coalition(rig: Rig) -> None:
     calls: dict[str, dict[str, Any]] = {
         "my_view": {},
+        "open_asks": {},
         "pending_questions": {},
         "answer_question": {"query_id": "q", "result": "no"},
         "make_offer": {"target": OFFER_TARGET, "capacity": 1, "cost": COST},

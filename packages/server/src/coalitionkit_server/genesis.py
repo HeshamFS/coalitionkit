@@ -52,7 +52,12 @@ if TYPE_CHECKING:
     from .app import Server
 
 
-async def enroll_member(server: Server, redeemed: Document, role: str = "member") -> None:
+async def enroll_member(
+    server: Server,
+    redeemed: Document,
+    role: str = "member",
+    surfaces: tuple[str, ...] = ("web",),
+) -> None:
     """Join a redeemed hosted member using the same owner proof as the demo."""
     coalition, participant = redeemed["coalition_id"], redeemed["participant"]
     person = server.registry.hosted_for(coalition, participant)
@@ -68,7 +73,7 @@ async def enroll_member(server: Server, redeemed: Document, role: str = "member"
                 coalition, participant, person.card_url, jwk, person.owner_key
             ),
             "roles_requested": [role],
-            "surfaces": ["web"],
+            "surfaces": list(surfaces),
             "vault": "hosted",
         },
         scope={"audience": "coalition"},
@@ -199,6 +204,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
                 await enroll_member(server, redeemed, role)
             except ValueError, KeyError:
                 raise HTTPException(400, "invitation refused") from None
+            registry.set_name(redeemed["coalition_id"], redeemed["participant"], body.display_name)
             doors.arrive(redeemed["coalition_id"], redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
@@ -333,6 +339,7 @@ def mount_start(
             registry.record_owner(
                 created["coalition_id"], redeemed["participant"], redeemed["token"]
             )
+            registry.set_name(created["coalition_id"], redeemed["participant"], body.owner_name)
             with server.store.transaction(created["coalition_id"]) as tx:
                 tx.execute(
                     "INSERT INTO server_genesis VALUES (?, ?, ?)",
@@ -459,6 +466,8 @@ def dissolve_coalition(server: Server, coalition: str, reason: str) -> Document 
                         (json.dumps(progress), coalition),
                     )
                 done = progress
+        if server.room is not None:
+            server.room.on_dissolved(coalition)
         return done
     except Exception:
         return JSONResponse({"failed": step, "done": done}, status_code=500)

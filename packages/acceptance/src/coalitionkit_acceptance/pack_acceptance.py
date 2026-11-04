@@ -25,6 +25,7 @@ from coalitionkit_contracts import (
 )
 from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_contracts.payloads import QueryPayload
+from coalitionkit_contracts.resources import spec_path
 from coalitionkit_gardener import build_propose
 from coalitionkit_models import ChatMessage, CostMeter, FakeModel, ModelGateway
 from coalitionkit_models.settings import Settings as ModelSettings
@@ -73,7 +74,7 @@ class Journey:
             target.write_bytes(data)
         author = Ed25519PrivateKey.generate()
         sign_pack(copied, author, "acceptance-author")
-        catalog = Path(__file__).resolve().parents[4] / "spec/catalog/coalitionkit-v0_9.json"
+        catalog = spec_path("catalog", "coalitionkit-v0_9.json")
         pack = inspect_pack(copied, core_catalog=load_catalog(catalog))
         self.pack, self.scenario = pack, scenario
         self.server = Server(
@@ -539,7 +540,7 @@ async def run_acceptance(
 
 
 def command(directory: Path, *, live: bool, as_json: bool) -> int:
-    catalog = Path(__file__).resolve().parents[4] / "spec/catalog/coalitionkit-v0_9.json"
+    catalog = spec_path("catalog", "coalitionkit-v0_9.json")
     pack = inspect_pack(directory, core_catalog=load_catalog(catalog))
     result = asyncio.run(run_acceptance(pack, live=live))
     if not as_json:

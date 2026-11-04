@@ -64,7 +64,7 @@ class Draft(Goal):
 # Model spend on drafts is metered here, since no coalition exists yet.
 DRAFT_METER = "genesis-draft"
 # How long Genesis waits for the model's draft before answering with the reader's own.
-MODEL_DRAFT_BUDGET_S = 10
+MODEL_DRAFT_BUDGET_S = 20
 
 
 class Reading(BaseModel):
@@ -104,6 +104,9 @@ class DraftResponse(BaseModel):
     )
     suggested: Suggestion | None = None
     vocabulary: Document = Field(default_factory=dict)
+    # Whether the model answered, and if not, why, in words a screen can show as they are.
+    model_status: Literal["answered", "no_key", "timed_out", "failed"] = "answered"
+    model_note: str = ""
 
 
 WORDS = dict(
@@ -199,13 +202,18 @@ def read_goal(
     roles: dict[str, Role] = {}
     # Counts tied to people/roles, never durations or quantities of requested objects.
     role_pattern = re.compile(
-        rf"\b({NUMBER})\s+(of us|people|members?|participants?|labs?|couriers?|"
+        rf"\b({NUMBER})\s+(of us|people|members?|participants?|friends?|colleagues?|"
+        r"neighbou?rs?|classmates?|roommates?|flatmates?|teammates?|siblings?|labs?|couriers?|"
         r"teams?|volunteers?|organizers?|drivers?|reviewers?|groups?|businesses|business)\b",
         re.I,
     )
+    plain_people = re.compile(
+        r"of us|people|participants?|friends?|colleagues?|neighbou?rs?|classmates?|roommates?|"
+        r"flatmates?|teammates?|siblings?"
+    )
     for role_match in role_pattern.finditer(goal):
         label = role_match[2].lower()
-        label = "member" if label in {"of us", "people", "participants", "participant"} else label
+        label = "member" if plain_people.fullmatch(label) else label
         label = "business" if label == "businesses" else label
         if label.endswith("s") and label != "business":
             label = label[:-1]
@@ -276,13 +284,22 @@ def with_reader_gaps(result: DraftResponse, reader: DraftResponse) -> DraftRespo
     return result
 
 
+def noted(
+    fallback: DraftResponse, status: Literal["no_key", "timed_out", "failed"], note: str
+) -> DraftResponse:
+    fallback.model_status, fallback.model_note = status, note
+    return fallback
+
+
 async def draft_goal(
     goal: str, gateway: ModelGateway, utc_offset_minutes: int | None = None
 ) -> DraftResponse:
     fallback = read_goal(goal, utc_offset_minutes=utc_offset_minutes)
     local_now = datetime.now(UTC).astimezone(timezone(timedelta(minutes=utc_offset_minutes or 0)))
     if not os.environ.get("COALITIONKIT_META_API_KEY"):
-        return fallback
+        return noted(
+            fallback, "no_key", "No model is set up here, so only the built-in reader ran."
+        )
     try:
         async with asyncio.timeout(MODEL_DRAFT_BUDGET_S):
             reply = await gateway.complete(
@@ -296,7 +313,8 @@ async def draft_goal(
                         "UTC, reading day words in the writer's local time, now "
                         f"{local_now.isoformat()}. "
                         "List each thing the goal asks to get done as a need, in the goal's "
-                        "words. Default role member, count 1. "
+                        "words. Default role member, count 1; when the goal counts the people "
+                        "taking part ('two friends', 'the three of us'), use that count. "
                         "Use deciders all, pack null, source model. Never invent a deadline. "
                         "Place is the exact place name in the goal, or null. "
                         "Choose at most six cards from the closed kinds. Each word is an exact "
@@ -323,5 +341,14 @@ async def draft_goal(
             result = with_reader_gaps(result, fallback)
             result.composition = compose_draft(result)
             return result
+    except TimeoutError:
+        return noted(
+            fallback,
+            "timed_out",
+            f"The model did not answer in {MODEL_DRAFT_BUDGET_S:g} seconds, so the built-in "
+            "reader's reading is shown.",
+        )
     except Exception:
-        return fallback
+        return noted(
+            fallback, "failed", "The model's answer could not be used, so the built-in reader ran."
+        )

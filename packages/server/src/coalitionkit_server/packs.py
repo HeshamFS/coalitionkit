@@ -4,9 +4,11 @@
 import importlib
 import json
 import re
+from collections.abc import Callable, Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -344,7 +346,12 @@ def lesson_values(
     }
 
 
-def plan_for(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) -> PlanSet:
+def plan_for(
+    host: CoalitionHost,
+    installed: dict[tuple[str, str], Pack],
+    third: Callable[[Mapping[str, str]], float] | None = None,
+    task_share: Fraction | None = None,
+) -> PlanSet:
     """Plan current open tasks with counted, unexpired offers and the bound strategy."""
     state = host.state
     pack = bound_pack(state.charter, installed)
@@ -366,7 +373,9 @@ def plan_for(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) -> Pla
     )
     return generate_plans(
         Problem(tasks, offers, {p: 1 for p in state.members}),
+        third,
         config=PlanConfig(
+            max_task_share=task_share,
             allocation=strategy.allocation if strategy else None,
             fairness=strategy.fairness or {} if strategy else {},
         ),

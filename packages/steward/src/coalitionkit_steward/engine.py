@@ -13,6 +13,7 @@ deterministic result and the model's.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
@@ -260,8 +261,11 @@ class Steward:
         best: _Outcome | None = None
         best_reason = ""
         paths: list[str] = []
-        for view in views:
-            outcome, reason = await self._audit_view(subject, view)
+        # The views are independent questions to the model, so they are asked together; the
+        # answers come back in the order of the views, so the verdict chosen is the same one the
+        # one-by-one loop chose.
+        answers = await asyncio.gather(*(self._audit_view(subject, view) for view in views))
+        for outcome, reason in answers:
             if outcome.action in ("redact", "escalate"):
                 paths.extend(outcome.redact)  # every projection's redactions are required
             if best is None or SEVERITY[outcome.action] > SEVERITY[best.action]:

@@ -22,6 +22,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from coalitionkit_contracts import new_ulid, public_key_to_jwk
+from coalitionkit_edges.a2a.identity import CardError
 
 from .adapter import Document
 from .rooms import Box
@@ -41,6 +42,7 @@ KNOCK_PER_CALLER = 5
 KNOCK_POLL_PER_CALLER = 60
 KNOCKS_OPEN_MAX = 20
 KNOCK_LIFETIME = timedelta(minutes=15)
+JOIN_HOLD = timedelta(minutes=5)
 WINDOW_S = 60.0
 
 TABLES = (
@@ -108,7 +110,7 @@ def knocks_since() -> str:
 def erase_door(tx: Any, coalition: str) -> int:
     """Every door, knock and arrival row of one coalition; returns how many went."""
     total = 0
-    for table in ("server_doors", "server_door_arrivals", "server_door_knocks"):
+    for table in ("server_doors", "server_door_arrivals", "server_door_knocks", "server_names"):
         gone = tx.execute(f"DELETE FROM {table} WHERE coalition = ? RETURNING 1", (coalition,))
         total += len(gone.fetchall())
     return total
@@ -230,10 +232,22 @@ class DoorStore:
             return "whatsapp"
         return "hosted" if hosted and hosted[0] else "a2a"
 
+    def held(self, door: Document) -> list[str]:
+        """Roles of seats handed to an agent with its own card that has not joined yet."""
+        coalition = door["coalition"]
+        since = (datetime.now(UTC) - JOIN_HOLD).isoformat()
+        with self.server.store.transaction(coalition) as tx:
+            rows = tx.execute(
+                "SELECT participant, role FROM server_door_arrivals WHERE coalition = ? AND at > ?",
+                (coalition, since),
+            ).fetchall()
+        members = self.server.hosts[coalition].state.members
+        return [r for p, r in rows if p not in members]
+
     def seats(self, door: Document) -> tuple[int, int, dict[str, int]]:
         arrivals = self.present(door)
         used: dict[str, int] = {}
-        for _, role, _ in arrivals:
+        for role in [*(a[1] for a in arrivals), *self.held(door)]:
             used[role] = used.get(role, 0) + 1
         return sum(r["count"] for r in door["roles"]), len(arrivals), used
 
@@ -331,6 +345,10 @@ class JoinCode(BaseModel):
     code: str = Field(max_length=32)
     display_name: str | None = Field(default=None, min_length=1, max_length=64)
     role: str | None = Field(default=None, max_length=64)
+    # An agent from outside brings its own signed card and holds its own keys; it then joins over
+    # A2A itself. Without a card the host holds the seat's keys and joins for the person.
+    card_url: str | None = Field(default=None, max_length=2048)
+    card: Document | None = None
 
 
 class Answer(BaseModel):
@@ -430,15 +448,21 @@ def mount_door(
             invitation = registry.issue_invitation(coalition, "member")
             try:
                 redeemed = registry.redeem(
-                    invitation["link"].split("#")[1], server.ports, None, None
+                    invitation["link"].split("#")[1], server.ports, body.card_url, body.card
                 )
-                await enroll(server, redeemed, role)
+                if body.card is None:
+                    await enroll(server, redeemed, role)
+            except CardError as exc:
+                registry.revoke_invitation(coalition, invitation["id"])
+                raise HTTPException(400, "card refused: " + exc.reason) from None
             except ValueError, KeyError:
                 registry.revoke_invitation(coalition, invitation["id"])
                 raise HTTPException(400, "join refused") from None
+            registry.set_name(coalition, redeemed["participant"], body.display_name)
             store.arrive(coalition, redeemed["participant"], role)
             return {
                 **{k: redeemed[k] for k in ("coalition_id", "participant", "token")},
+                "role": role,
                 "host_key": public_key_to_jwk(server.key.public_key(), "host"),
             }
 

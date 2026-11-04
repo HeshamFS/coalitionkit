@@ -118,6 +118,46 @@ def surface_text(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def next_call(coalition_id: str, ask: dict[str, Any]) -> dict[str, Any]:
+    """The exact tool call that answers one ask. The person's own answer is still what is signed."""
+    kind, subject_id = str(ask.get("kind")), str(ask.get("id"))
+    if kind == "charter":
+        return {"tool": "accept_charter", "arguments": {"coalition_id": coalition_id}}
+    if kind == "commitment":
+        arguments = {"coalition_id": coalition_id, "commitment_id": subject_id}
+        return {"tool": "approve_commitment", "arguments": arguments}
+    subject = {"kind": kind, "id": subject_id, "revision": ask.get("revision")}
+    # A tension is a vote: the choice is one of its options, not the tension itself.
+    choice = "one option_id from options" if kind == "tension_option" else subject_id
+    arguments = {"coalition_id": coalition_id, "subject": subject, "choice": choice}
+    return {"tool": "decide", "arguments": arguments}
+
+
+async def open_asks(coalition_id: str, ctx: Context) -> CallToolResult:
+    """List what this participant is asked to decide right now, with the tool call for each.
+
+    Say yes to one plan, not to every plan. Each answer is the person's own, asked at that call.
+    """
+    hosted = await authorize(ctx, coalition_id)
+    found = await deps_of(ctx).view.open_asks(hosted.participant, coalition_id)
+    asks = [
+        {
+            "kind": a.get("kind"),
+            "id": a.get("id"),
+            "revision": a.get("revision"),
+            "options": a.get("options", []),
+            "next_call": next_call(coalition_id, a),
+        }
+        for a in found
+    ]
+    data = {"coalition_id": coalition_id, "asks": asks}
+    return ok(
+        "open_asks",
+        data,
+        lambda d: f"{len(d['asks'])} open ask(s) in Coalition {coalition_id}.",
+    )
+
+
 async def my_view(coalition_id: str, ctx: Context, device: str = "web") -> CallToolResult:
     """Show this participant's live Coalition surface, as readable text with its data attached."""
     hosted = await authorize(ctx, coalition_id)
@@ -129,4 +169,11 @@ async def my_view(coalition_id: str, ctx: Context, device: str = "web") -> CallT
     return ok("my_view", data, surface_text, meta={"ui": {"resourceUri": VIEW_URI}}, readable=True)
 
 
-__all__ = ["VIEW_URI", "list_coalitions", "my_view", "parse_invite", "pending_questions"]
+__all__ = [
+    "VIEW_URI",
+    "list_coalitions",
+    "my_view",
+    "open_asks",
+    "parse_invite",
+    "pending_questions",
+]

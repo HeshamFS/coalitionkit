@@ -1,17 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
 [project]
 name = "coalitionkit-surfaces"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "CoalitionKit surfaces: AG-UI feed and agent sessions and validated A2UI trees"
+readme = {text = "CoalitionKit surfaces: AG-UI feed and agent sessions and validated A2UI trees", content-type = "text/plain"}
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{name = "Hesham Salama", email = "hesham.salama@rub.de"}]
+keywords = ["agents", "coordination", "a2a", "mcp", "coalition"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.15", "Operating System :: OS Independent", "Topic :: Software Development :: Libraries :: Python Modules"]
 requires-python = ">=3.15"
 dependencies = [
-    "coalitionkit-contracts",
-    "coalitionkit-runtime",
+    "coalitionkit-contracts==0.1.0",
+    "coalitionkit-runtime==0.1.0",
     "ag-ui-protocol==1.0.0",
     "fastapi==0.162.0",
     "jsonpatch==1.38",
     "uvicorn==0.54.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/HeshamFS/coalitionkit"
+Repository = "https://github.com/HeshamFS/coalitionkit"
+Issues = "https://github.com/HeshamFS/coalitionkit/issues"
+Changelog = "https://github.com/HeshamFS/coalitionkit/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

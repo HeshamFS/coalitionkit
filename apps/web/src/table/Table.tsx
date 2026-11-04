@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: Apache-2.0
+// The live Table: the real feed, the real requests and the real routes, handed to the same screen
+// the gallery shows. It stands in for the five-tab room whenever the host sent `state.room`.
+import { useEffect, useMemo } from "react";
+import { useAgentSnapshot, useFeedApi, useFeedSnapshot } from "../feed/useFeed";
+import { isOwner } from "../genesis/owner";
+import { rememberEnded } from "../room/ended";
+import { usePhoneRoom } from "../room/media";
+import { dissolvedEvent } from "../room/moments";
+import { liveIo } from "./api";
+import { rememberResults, rememberRoom } from "./keep";
+import { shownFor } from "./ResultDialog";
+import { readRoom } from "./room";
+import { TableView } from "./TableView";
+
+export function Table() {
+  const feed = useFeedSnapshot();
+  const agent = useAgentSnapshot();
+  const { answer, outcome, agent: store, signOut } = useFeedApi();
+  const phone = usePhoneRoom();
+  const io = useMemo(() => liveIo(), []);
+  const room = readRoom(feed.state);
+  const dissolved = dissolvedEvent(feed.state);
+  const key = dissolved ? `${dissolved.reason}|${dissolved.skills_written.join(",")}` : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the event's contents
+  useEffect(() => {
+    if (dissolved) rememberEnded(dissolved);
+  }, [key]);
+  // What the agents made, and the shape of the room, outlive it: the feed closes at the end.
+  const resultsKey = room
+    ? JSON.stringify([room.phase, room.results.map((r) => [r.id, r.replaced_by])])
+    : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the results and phase
+  useEffect(() => {
+    if (!room) return;
+    rememberResults(room.results.map((r) => shownFor(room, feed.state, r)));
+    rememberRoom(room, feed.state);
+  }, [resultsKey]);
+  if (!room) return null;
+  return (
+    <TableView
+      room={room}
+      state={feed.state}
+      requests={agent.requests}
+      focus={agent.focus}
+      setFocus={(id) => store.setFocus(id)}
+      answer={answer}
+      outcome={outcome}
+      io={io}
+      phone={phone}
+      owner={isOwner()}
+      status={feed.status}
+      refusal={agent.refusal}
+      onSignOut={signOut}
+    />
+  );
+}

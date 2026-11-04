@@ -213,15 +213,18 @@ wheels = [
 
 [[package]]
 name = "coalitionkit-acceptance"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/acceptance" }
 dependencies = [
     { name = "coalitionkit-contracts" },
     { name = "coalitionkit-edges" },
     { name = "coalitionkit-gardener" },
     { name = "coalitionkit-mcp" },
+    { name = "coalitionkit-mint" },
     { name = "coalitionkit-models" },
+    { name = "coalitionkit-packs" },
     { name = "coalitionkit-runtime" },
+    { name = "coalitionkit-server" },
     { name = "coalitionkit-steward" },
     { name = "coalitionkit-surfaces" },
     { name = "coalitionkit-vault" },
@@ -236,8 +239,11 @@ requires-dist = [
     { name = "coalitionkit-edges", editable = "packages/edges" },
     { name = "coalitionkit-gardener", editable = "packages/gardener" },
     { name = "coalitionkit-mcp", editable = "packages/mcp_server" },
+    { name = "coalitionkit-mint", editable = "packages/mint" },
     { name = "coalitionkit-models", editable = "packages/models" },
+    { name = "coalitionkit-packs", editable = "packages/packs" },
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "coalitionkit-server", editable = "packages/server" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
     { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
     { name = "coalitionkit-vault", editable = "packages/vault" },
@@ -248,7 +254,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-channels"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/channels" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -269,7 +275,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-cli"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -290,7 +296,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-conformance"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/conformance" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -307,7 +313,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-contracts"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/contracts" }
 dependencies = [
     { name = "cryptography" },
@@ -330,7 +336,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-edges"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/edges" }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server", "signing"] },
@@ -351,7 +357,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-gardener"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/gardener" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -362,7 +368,7 @@ requires-dist = [{ name = "coalitionkit-contracts", editable = "packages/contrac
 
 [[package]]
 name = "coalitionkit-mcp"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/mcp_server" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -383,7 +389,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-mint"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/mint" }
 dependencies = [
     { name = "a2a-sdk" },
@@ -420,7 +426,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-models"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/models" }
 dependencies = [
     { name = "httpx2" },
@@ -439,7 +445,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-packs"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/packs" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -464,22 +470,27 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-runtime"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/runtime" }
 dependencies = [
     { name = "coalitionkit-contracts" },
+]
+
+[package.optional-dependencies]
+postgres = [
     { name = "psycopg", extra = ["binary"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
+    { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = "==3.3.6" },
 ]
+provides-extras = ["postgres"]
 
 [[package]]
 name = "coalitionkit-server"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/server" }
 dependencies = [
     { name = "coalitionkit-channels" },
@@ -492,6 +503,7 @@ dependencies = [
     { name = "coalitionkit-runtime" },
     { name = "coalitionkit-steward" },
     { name = "coalitionkit-surfaces" },
+    { name = "coalitionkit-vault" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -511,6 +523,7 @@ requires-dist = [
     { name = "coalitionkit-runtime", editable = "packages/runtime" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
     { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
+    { name = "coalitionkit-vault", editable = "packages/vault" },
     { name = "cryptography", specifier = "==50.0.2" },
     { name = "fastapi", specifier = "==0.162.0" },
     { name = "httpx" },
@@ -520,7 +533,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-steward"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/steward" }
 dependencies = [
     { name = "coalitionkit-contracts" },
@@ -541,7 +554,7 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-surfaces"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/surfaces" }
 dependencies = [
     { name = "ag-ui-protocol" },
@@ -564,11 +577,15 @@ requires-dist = [
 
 [[package]]
 name = "coalitionkit-vault"
-version = "0.1.0.dev0"
+version = "0.1.0"
 source = { editable = "packages/vault" }
 dependencies = [
     { name = "coalitionkit-contracts" },
     { name = "cryptography" },
+]
+
+[package.optional-dependencies]
+psi = [
     { name = "pysodium" },
 ]
 
@@ -576,8 +593,9 @@ dependencies = [
 requires-dist = [
     { name = "coalitionkit-contracts", editable = "packages/contracts" },
     { name = "cryptography", specifier = "==50.0.2" },
-    { name = "pysodium", specifier = "==0.7.19" },
+    { name = "pysodium", marker = "extra == 'psi'", specifier = "==0.7.19" },
 ]
+provides-extras = ["psi"]
 
 [[package]]
 name = "coalitionkit-workspace"
@@ -597,11 +615,11 @@ dev = [
     { name = "coalitionkit-mint" },
     { name = "coalitionkit-models" },
     { name = "coalitionkit-packs" },
-    { name = "coalitionkit-runtime" },
+    { name = "coalitionkit-runtime", extra = ["postgres"] },
     { name = "coalitionkit-server" },
     { name = "coalitionkit-steward" },
     { name = "coalitionkit-surfaces" },
-    { name = "coalitionkit-vault" },
+    { name = "coalitionkit-vault", extra = ["psi"] },
     { name = "hypothesis" },
     { name = "import-linter" },
     { name = "jsonschema" },
@@ -626,11 +644,11 @@ dev = [
     { name = "coalitionkit-mint", editable = "packages/mint" },
     { name = "coalitionkit-models", editable = "packages/models" },
     { name = "coalitionkit-packs", editable = "packages/packs" },
-    { name = "coalitionkit-runtime", editable = "packages/runtime" },
+    { name = "coalitionkit-runtime", extras = ["postgres"], editable = "packages/runtime" },
     { name = "coalitionkit-server", editable = "packages/server" },
     { name = "coalitionkit-steward", editable = "packages/steward" },
     { name = "coalitionkit-surfaces", editable = "packages/surfaces" },
-    { name = "coalitionkit-vault", editable = "packages/vault" },
+    { name = "coalitionkit-vault", extras = ["psi"], editable = "packages/vault" },
     { name = "hypothesis", specifier = "==6.170.13" },
     { name = "import-linter", specifier = "==2.15" },
     { name = "jsonschema", specifier = "==4.26.0" },

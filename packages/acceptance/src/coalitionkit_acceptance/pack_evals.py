@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Literal
 
 from coalitionkit_contracts.payloads import QueryPayload
+from coalitionkit_contracts.resources import spec_path
 from coalitionkit_models import ChatMessage, CostMeter, ModelGateway
 from coalitionkit_packs.loader import Pack, inspect_pack
 from coalitionkit_packs.manifest import eval_role
@@ -261,7 +262,7 @@ async def run_scenario(pack: Pack, scenario: EvalScenario, *, live: bool = False
 
 def command(directory: Path, *, live: bool, require_live: bool, as_json: bool) -> int:
     """Optional CLI entry point, loaded lazily by the pack command."""
-    catalog_path = Path(__file__).resolve().parents[4] / "spec/catalog/coalitionkit-v0_9.json"
+    catalog_path = spec_path("catalog", "coalitionkit-v0_9.json")
     pack = inspect_pack(directory, core_catalog=load_catalog(catalog_path))
     key = live_settings().meta_api_key if live else None
     no_key = live and (key is None or not key.get_secret_value().strip())

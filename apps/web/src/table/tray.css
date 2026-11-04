@@ -1,0 +1,190 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* What the agents made, and the dialog that opens a result. */
+.tb-tray {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+.tb-slot {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  gap: 6px;
+}
+.tb-made {
+  position: relative;
+  display: block;
+  min-height: 66px;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 1.2s,
+    border-color 1.2s,
+    transform 0.2s;
+}
+.tb-made:hover {
+  border-color: var(--blue-line);
+  transform: translateY(-1px);
+}
+.tb-made[data-fresh="true"] {
+  animation: germinate 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 1;
+}
+.tb-made b {
+  display: block;
+  font: 600 13px var(--font-ui);
+}
+.tb-made span {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-3);
+  font: 500 10px var(--font-mono);
+}
+.tb-made[data-state="wait"],
+.tb-made[data-state="making"] {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+.tb-made[data-state="wait"] b {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.tb-made[data-state="making"] {
+  border-style: solid;
+  background: var(--surface);
+}
+.tb-made[data-replaced="true"] {
+  min-height: 0;
+  opacity: 0.7;
+}
+.tb-made[data-replaced="true"] b {
+  text-decoration: line-through;
+}
+
+/* ---------- Dialog ---------- */
+.tb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: var(--scrim);
+}
+.tb-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(660px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 40px -12px rgba(14, 23, 38, 0.5);
+  animation: rise 0.3s ease-out 1;
+}
+.tb-doc:focus {
+  outline: none;
+}
+.tb-doc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tb-doc h3 {
+  margin: 0 0 4px;
+  font: 400 30px / 1.1 var(--font-display);
+}
+.tb-doc-meta {
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+}
+.tb-replaced {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: 13px;
+}
+.tb-work h4 {
+  margin: 14px 0 4px;
+  color: var(--ink-3);
+  font: 500 10.5px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tb-work p,
+.tb-work li {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.tb-work ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.tb-work pre {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--code-bg);
+  color: var(--ink);
+  font: 400 12px / 1.5 var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tb-doc .tb-note {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+@keyframes germinate {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+    box-shadow: 0 0 0 0 rgba(var(--blue-rgb), 0.7);
+  }
+  60% {
+    opacity: 1;
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+    box-shadow: 0 0 0 14px rgba(var(--blue-rgb), 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb-made,
+  .tb-doc {
+    animation: none !important;
+  }
+}
+
+/* The dialog already carries the result's title, so the tree's own big heading is not drawn twice. */
+.tb-doc .f01-root-Heading h2 {
+  display: none;
+}
+.tb-doc .f01-root-Text span {
+  white-space: pre-line;
+}

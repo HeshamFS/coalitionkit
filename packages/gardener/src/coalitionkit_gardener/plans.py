@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -27,6 +28,10 @@ class PlanConfig:
     lambdas: tuple[Fraction, ...] = DEFAULT_LAMBDAS
     max_plans: int = 3
     third_name: str = "third"
+    #: The most any one assignee may hold of a plan's tasks (counted in tasks). A plan over it
+    #: never enters the front, so the plans compared are all inside the cap. If no complete
+    #: allocation fits (too few people), the cap is dropped rather than leaving no plan.
+    max_task_share: Fraction | None = None
     allocation: str | None = None
     fairness: Mapping[str, float] = field(default_factory=dict[str, float])
 
@@ -45,6 +50,53 @@ class PlanSet:
     objective_names: tuple[str, str, str] = field(
         default=("total_cost", "max_share_ratio", "third")
     )
+
+
+ENUMERATION_LIMIT = 20_000  # most complete allocations tried one by one; larger rooms search
+
+
+def _fair(assign: Mapping[str, str], cap: Fraction | None) -> bool:
+    """No one holds more than ``cap`` of the tasks (a lone task or lone person always passes)."""
+    if cap is None or len(assign) < 2:
+        return True
+    counts: dict[str, int] = {}
+    for who in assign.values():
+        counts[who] = counts.get(who, 0) + 1
+    return Fraction(max(counts.values()), len(assign)) <= cap
+
+
+def _enumerate(
+    problem: Problem,
+    table: Mapping[tuple[str, str], Bid],
+    task_ids: tuple[str, ...],
+    score3: ThirdObjective,
+    cfg: PlanConfig,
+) -> dict[tuple[tuple[str, str], ...], Objectives] | None:
+    """Every complete allocation inside the share cap, scored exactly, for a small room.
+
+    Deterministic (tasks and bidders in sorted order). Returns None when the room is too big to
+    enumerate, when there is no cap, or when some task has no bidder, so the search runs as before.
+    """
+    if cfg.max_task_share is None:
+        return None
+    bidders = [sorted(w for (t, w) in table if t == task) for task in task_ids]
+    size = 1
+    for options in bidders:
+        size *= len(options)
+    if not task_ids or size == 0 or size > ENUMERATION_LIMIT:
+        return None
+    every: dict[tuple[tuple[str, str], ...], Objectives] = {}
+    fair: dict[tuple[tuple[str, str], ...], Objectives] = {}
+    for combo in itertools.product(*bidders):
+        assign = dict(zip(task_ids, combo, strict=True))
+        obj = _objectives(problem, table, assign, score3)
+        if not _within_cap(problem, obj[1]):
+            continue
+        key = tuple(sorted(assign.items()))
+        every[key] = obj
+        if _fair(assign, cfg.max_task_share):
+            fair[key] = obj
+    return fair or every or None
 
 
 def dominates(a: Objectives, b: Objectives) -> bool:
@@ -81,15 +133,19 @@ def generate_plans(
     task_ids = problem.task_ids
     found: dict[tuple[tuple[str, str], ...], Objectives] = {}
     failed: tuple[Unresolved, ...] = ()
-    for lam in cfg.lambdas:
+    exact = _enumerate(problem, table, task_ids, score3, cfg)
+    if exact is not None:
+        found = exact
+    for lam in cfg.lambdas if exact is None else ():
         outcome = AuctionStrategy(lam).run(problem, task_ids, {})
         if outcome.unresolved:
             failed = failed or outcome.unresolved
             continue
-        _remember(found, problem, table, outcome.chosen, score3)
-    for start in list(found):
+        if _fair(outcome.chosen, cfg.max_task_share):
+            _remember(found, problem, table, outcome.chosen, score3)
+    for start in list(found) if exact is None else []:
         for axis in range(3):
-            better = _climb(problem, table, dict(start), axis, score3)
+            better = _climb(problem, table, dict(start), axis, score3, cfg.max_task_share)
             _remember(found, problem, table, better, score3)
     if not found:
         return PlanSet((), failed, names)
@@ -137,6 +193,7 @@ def _climb(
     start: dict[str, str],
     axis: int,
     score3: ThirdObjective,
+    cap: Fraction | None = None,
 ) -> dict[str, str]:
     """Single-task reassignments that lower objective ``axis`` (the others break ties)."""
 
@@ -153,7 +210,7 @@ def _climb(
                     continue
                 trial = {**current, tid: who}
                 obj = _objectives(problem, table, trial, score3)
-                if _within_cap(problem, obj[1]) and key(obj) < key(best):
+                if _within_cap(problem, obj[1]) and _fair(trial, cap) and key(obj) < key(best):
                     current, best, improved = trial, obj, True
         if not improved:
             break

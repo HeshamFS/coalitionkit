@@ -60,8 +60,30 @@ class Registry(CredentialRegistry):
                 "(id TEXT PRIMARY KEY, digest TEXT UNIQUE, coalition TEXT, kind TEXT)",
                 "CREATE TABLE IF NOT EXISTS server_dissolutions "
                 "(coalition TEXT PRIMARY KEY, progress TEXT)",
+                "CREATE TABLE IF NOT EXISTS server_names "
+                "(coalition TEXT, participant TEXT, name TEXT, "
+                "PRIMARY KEY (coalition, participant))",
             ):
                 tx.execute(statement)
+
+    def set_name(self, coalition: str, participant: str, name: str | None) -> None:
+        """The name given on sitting down: shown on the seat and told to the person's agent."""
+        clean = " ".join((name or "").replace("<", "").replace(">", "").split())[:64]
+        if not clean:
+            return
+        with self.store.transaction(coalition) as tx:
+            tx.execute(
+                "INSERT INTO server_names VALUES (?, ?, ?) "
+                "ON CONFLICT (coalition, participant) DO UPDATE SET name = excluded.name",
+                (coalition, participant, clean),
+            )
+
+    def names(self, coalition: str) -> dict[str, str]:
+        with self.store.transaction(coalition) as tx:
+            rows = tx.execute(
+                "SELECT participant, name FROM server_names WHERE coalition = ?", (coalition,)
+            ).fetchall()
+        return {str(p): str(n) for p, n in rows}
 
     def issue_start(self) -> str:
         token = secrets.token_urlsafe(32)
@@ -235,6 +257,7 @@ class Registry(CredentialRegistry):
         ports: dict[str, HostPort],
         card_url: str | None,
         card_data: Document | None,
+        agent_label: str | None = None,
     ) -> Document:
         # Serializes local redemption; the unique credential row prevents cross-process reuse.
         with self.lock:
@@ -258,7 +281,16 @@ class Registry(CredentialRegistry):
             if card_url is None and card_data is None:
                 agent, owner = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
                 card_url = f"{self.base}/cards/{coalition}/{quote(participant, safe='')}"
-                card = member_card(self.base, agent)
+                card = (
+                    member_card(
+                        self.base,
+                        agent,
+                        f"{agent_label} (agent)",
+                        "An agent run by the room for an open seat. It is not a person.",
+                    )
+                    if agent_label
+                    else member_card(self.base, agent)
+                )
                 hosted = self.cipher.encrypt(
                     json.dumps(
                         {

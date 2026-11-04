@@ -96,6 +96,18 @@ class ViewPort:
             return []
         return self.hosts[coalition_id].replay(participant, since)
 
+    async def open_asks(self, participant: str, coalition_id: str) -> list[Document]:
+        host = self.hosts.get(coalition_id)
+        if host is None or not await self.is_member(participant, coalition_id):
+            return []
+        asks: list[Document] = []
+        for ask in host.open_consents(participant):
+            if ask["kind"] == "tension_option":
+                options = host.state.subject("tension_option", ask["id"]).get("options", [])
+                ask = {**ask, "options": options}
+            asks.append(ask)
+        return asks
+
     async def pending_questions(self, participant: str, coalition_id: str) -> list[Document]:
         answered = {item["query_id"] for item in self.events(participant, coalition_id, "answer")}
         return [

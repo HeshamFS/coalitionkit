@@ -1,23 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
 [project]
 name = "coalitionkit-acceptance"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "CoalitionKit acceptance harness: scripted scenarios for ripple, scale, chaos and cost"
+readme = {text = "CoalitionKit acceptance harness: scripted scenarios for ripple, scale, chaos and cost", content-type = "text/plain"}
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{name = "Hesham Salama", email = "hesham.salama@rub.de"}]
+keywords = ["agents", "coordination", "a2a", "mcp", "coalition"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.15", "Operating System :: OS Independent", "Topic :: Software Development :: Libraries :: Python Modules"]
 requires-python = ">=3.15"
 dependencies = [
-    "coalitionkit-contracts",
-    "coalitionkit-runtime",
-    "coalitionkit-edges",
-    "coalitionkit-gardener",
-    "coalitionkit-models",
-    "coalitionkit-vault",
-    "coalitionkit-steward",
-    "coalitionkit-surfaces",
-    "coalitionkit-mcp",
+    "coalitionkit-mint==0.1.0",
+    "coalitionkit-server==0.1.0",
+    "coalitionkit-packs==0.1.0",
+    "coalitionkit-contracts==0.1.0",
+    "coalitionkit-runtime==0.1.0",
+    "coalitionkit-edges==0.1.0",
+    "coalitionkit-gardener==0.1.0",
+    "coalitionkit-models==0.1.0",
+    "coalitionkit-vault==0.1.0",
+    "coalitionkit-steward==0.1.0",
+    "coalitionkit-surfaces==0.1.0",
+    "coalitionkit-mcp==0.1.0",
     "mcp>=2.3.0",
     "httpx",
     "httpx2==2.16.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/HeshamFS/coalitionkit"
+Repository = "https://github.com/HeshamFS/coalitionkit"
+Issues = "https://github.com/HeshamFS/coalitionkit/issues"
+Changelog = "https://github.com/HeshamFS/coalitionkit/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

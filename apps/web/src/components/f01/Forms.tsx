@@ -166,7 +166,7 @@ export function Choices({ name, p, send, build }: ViewProps) {
     setValue(v);
     send(name === "RadioGroup" ? "change" : "select", { value: v });
   };
-  if (name === "ChoicePicker" && (p.display === "menu" || p.multiple))
+  if (name === "ChoicePicker" && (p.display === "menu" || (p.multiple && p.display !== "chips")))
     return <ChoiceMenu p={p} value={value} pick={pick} />;
   return (
     <div>

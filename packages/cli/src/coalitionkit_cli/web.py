@@ -3,7 +3,8 @@
 
 from pathlib import Path
 
-from starlette.responses import FileResponse
+from starlette.exceptions import HTTPException
+from starlette.responses import FileResponse, PlainTextResponse
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -39,4 +40,7 @@ class Room:
         ):
             await FileResponse(self.dist / "index.html")(scope, receive, send)
         else:
-            await self.static(scope, receive, send)
+            try:
+                await self.static(scope, receive, send)
+            except HTTPException as exc:  # a missing file (a favicon, say) is a plain 404
+                await PlainTextResponse("", status_code=exc.status_code)(scope, receive, send)

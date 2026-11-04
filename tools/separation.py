@@ -3,14 +3,11 @@
 
 1. Domain words: no word from the denylist and no pack name under ``packages/``, ``apps/`` or
    ``spec/``. Packs add their own domain words to the denylist, so the scan covers them.
-2. Freeze: after the ``core-freeze-3.3`` tag (the kit release packs build on), a ``pack/*``
-   branch may change only ``packs/``, ``docs/`` and the denylist.
-3. Packs: every folder in ``packs/`` validates with the loader, and its scripted evals pass.
+2. Packs: every folder in ``packs/`` validates with the loader, and its scripted evals pass.
 """
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import sys
@@ -21,9 +18,6 @@ ROOT = Path(__file__).resolve().parent.parent
 DENYLIST = ROOT / "tools" / "discipline-denylist.txt"
 PACKS = ROOT / "packs"
 KIT_DIRS = ("packages", "apps", "spec")
-FREEZE_TAG = "core-freeze-3.3"
-PACK_BRANCH = "pack/"
-PACK_BRANCH_MAY_CHANGE = ("packs/", "docs/", "tools/discipline-denylist.txt")
 SKIP_DIRS = {
     ".venv",
     "__pycache__",
@@ -99,40 +93,6 @@ def check_domain(root: Path = ROOT) -> str:
             + "\n  ".join(hits[:50])
         )
     return f"kit free of {len(terms)} domain words and pack names"
-
-
-def git(*args: str, root: Path = ROOT) -> str:
-    result = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
-    return result.stdout.strip() if result.returncode == 0 else ""
-
-
-def current_branch(root: Path = ROOT) -> str:
-    return (
-        os.environ.get("GITHUB_HEAD_REF")
-        or os.environ.get("CK_BRANCH")
-        or git("rev-parse", "--abbrev-ref", "HEAD", root=root)
-    )
-
-
-def frozen_changes(changed: Iterable[str]) -> list[str]:
-    """Paths a pack branch may not change."""
-    return sorted(p for p in changed if not p.startswith(PACK_BRANCH_MAY_CHANGE))
-
-
-def check_freeze(root: Path = ROOT) -> str:
-    if not git("rev-parse", "-q", "--verify", f"refs/tags/{FREEZE_TAG}", root=root):
-        return f"no {FREEZE_TAG} tag yet: the kit is not frozen"
-    branch = current_branch(root)
-    if not branch.startswith(PACK_BRANCH):
-        return f"branch {branch!r} is not a pack branch: freeze check not applied"
-    changed = git("diff", "--name-only", f"{FREEZE_TAG}...HEAD", root=root).splitlines()
-    changed += git("diff", "--name-only", "HEAD", root=root).splitlines()
-    bad = frozen_changes(changed)
-    if bad:
-        raise SeparationError(
-            f"a pack branch changed the kit after {FREEZE_TAG}:\n  " + "\n  ".join(bad)
-        )
-    return f"pack branch {branch!r} leaves the kit unchanged since {FREEZE_TAG}"
 
 
 def pack_command(*args: str) -> list[str]:

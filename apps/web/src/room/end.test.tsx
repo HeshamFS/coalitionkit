@@ -114,7 +114,7 @@ describe("ending a coalition", () => {
     const dialog = screen.getByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: "End coalition" }));
     await screen.findByText("2 tasks closed");
-    expect(screen.getByText("Nothing kept")).toBeTruthy();
+    expect(screen.getByText(/What the host reports it closed and erased/)).toBeTruthy();
     const post = calls.find((c) => c.url.endsWith("/v1/coalition/dissolve"));
     expect(new Headers(post?.init.headers).get("authorization")).toBe("Bearer owner-token");
     expect(JSON.parse(String(post?.init.body))).toEqual({ reason: "completed" });
