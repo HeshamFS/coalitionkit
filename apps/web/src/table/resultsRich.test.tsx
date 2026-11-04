@@ -6,7 +6,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { clearToken, saveToken } from "../feed/config";
 import { SurfaceBook } from "../feed/surfaces";
-import { promptOf } from "./ResultDialog";
+import { pictureOf, promptOf } from "./ResultDialog";
 import type { RoomResult } from "./room";
 import { localTimes } from "./slots";
 
@@ -97,4 +97,12 @@ it("shows the prompt of a picture under the work, and nothing for other kinds", 
   const base = { kind: "image", data: { prompt: "A poster for a small group" } } as RoomResult;
   expect(promptOf(base)).toBe("A poster for a small group");
   expect(promptOf({ ...base, kind: "draft" })).toBe("");
+});
+
+it("names the host path of a picture only for a well-formed hash", () => {
+  const hash = "c".repeat(64);
+  const r = { kind: "image", data: { hash } } as RoomResult;
+  expect(pictureOf(r)).toBe(`/v1/room/media/${hash}`);
+  expect(pictureOf({ ...r, data: { hash: "../host.key" } })).toBe("");
+  expect(pictureOf({ ...r, data: { hash: null } })).toBe("");
 });

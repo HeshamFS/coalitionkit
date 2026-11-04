@@ -128,7 +128,7 @@ A change to a task that is already `done` cannot ripple, because `done` is termi
 | `budget` | `{currency, amount, rows: [{label, amount, who, provenance}], how_shared, time: [{label, amount, provenance, ref}], time_total, suggested: [], total}` | CSV |
 | `list` | `{items: [{label, who, provenance}]}` | CSV |
 | `draft` | `{subject, body}` | text |
-| `image` | `{hash, alt, prompt, width, height}`. Without a picture: `{hash: null, alt, prompt, why}` | none |
+| `image` | `{hash, alt, prompt, width, height}`. Without a picture: `{hash: null, alt, prompt, why}` | the picture file |
 
 With no money in the goal, a budget is a time budget: `currency` is `minutes`, `rows` are the signed minutes from offers, and `total` is their sum.
 

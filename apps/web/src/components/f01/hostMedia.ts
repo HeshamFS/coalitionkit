@@ -7,6 +7,19 @@ import { assertAllowedBase, readConfig } from "../../feed/config";
 
 export const HOST_MEDIA = /^\/v1\/room\/media\/[0-9a-f]{64}$/;
 
+/** The bytes of a room picture, fetched with the viewer token from an allowed base only. */
+export async function fetchHostMedia(src: string): Promise<Blob> {
+  if (!HOST_MEDIA.test(src)) throw new Error("not a room picture");
+  const config = readConfig();
+  if (!config) throw new Error("not signed in");
+  assertAllowedBase(config.baseUrl);
+  const r = await fetch(`${config.baseUrl}${src}`, {
+    headers: { Authorization: `Bearer ${config.token}` },
+  });
+  if (!r.ok) throw new Error(String(r.status));
+  return r.blob();
+}
+
 export function useHostSrc(src: string): { src: string; failed: boolean } {
   const hosted = HOST_MEDIA.test(src);
   const [local, setLocal] = useState("");
@@ -17,19 +30,7 @@ export function useHostSrc(src: string): { src: string; failed: boolean } {
     let live = true;
     setLocal("");
     setFailed(false);
-    const config = readConfig();
-    if (!config) {
-      setFailed(true);
-      return;
-    }
-    try {
-      assertAllowedBase(config.baseUrl);
-    } catch {
-      setFailed(true);
-      return;
-    }
-    fetch(`${config.baseUrl}${src}`, { headers: { Authorization: `Bearer ${config.token}` } })
-      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+    fetchHostMedia(src)
       .then((blob) => {
         url = URL.createObjectURL(blob);
         if (live) setLocal(url);
