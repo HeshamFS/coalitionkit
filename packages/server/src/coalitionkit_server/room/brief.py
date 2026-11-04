@@ -21,6 +21,7 @@ from coalitionkit_runtime.lifecycle import State
 from coalitionkit_surfaces import compose_surface
 
 from ..adapter import Document
+from . import sets
 from .model import ask
 from .needs import tidy
 from .seats import people
@@ -180,10 +181,10 @@ def tree(q: Document, ref: str) -> tuple[list[Document], Document]:
     """The components and data model of one question. Every number points at a real event."""
     kind = q["kind"]
     options = [{"id": o["id"], "label": o["label"]} for o in q["options"]]
-    if kind == "choice":
+    if kind == "choice" and not q.get("multiple"):
         field: Document = {"component": "ChoicePicker", "display": "chips", "options": options}
         data: Any = ""
-    elif kind == "slots":
+    elif kind in ("slots", "choice"):  # a pack's compared set lets a person pick any options
         field = {
             "component": "ChoicePicker",
             "display": "chips",
@@ -252,10 +253,10 @@ def check_answer(q: Document, value: Any) -> Any:
     """The value in its closed shape, or ValueError."""
     kind = q["kind"]
     ids = {o["id"] for o in q["options"]}
-    if kind == "choice":
+    if kind == "choice" and not q.get("multiple"):
         if isinstance(value, str) and value in ids:
             return value
-    elif kind == "slots":
+    elif kind in ("slots", "choice"):
         if (
             isinstance(value, list)
             and value
@@ -335,6 +336,7 @@ async def open_brief(engine: RoomEngine, coalition: str, who: str, state: State)
     source = "model" if questions else "rules"
     if not questions:
         questions = questions_from(engine, fallback_items(needs, slots), slots, ref)
+    questions += sets.questions(engine, coalition, slots, ref)  # the pack's compared sets
     now = engine.now()
 
     def opened(d: Document) -> None:
@@ -451,10 +453,10 @@ def given(engine: RoomEngine, coalition: str, who: str) -> list[Document]:
             continue
         labels = {o["id"]: o["label"] for o in q["options"]}
         answer = q["answer"]
-        if q["kind"] == "choice":
+        if isinstance(answer, list):  # slots, or the options picked for a compared set
+            answer = [labels.get(str(a), a) for a in answer]  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+        elif q["kind"] == "choice":
             answer = labels.get(answer, answer)
-        elif q["kind"] == "slots":
-            answer = [labels.get(a, a) for a in answer]
         out.append({"ask": q["ask"], "kind": q["kind"], "unit": q["unit"], "answer": answer})
     return out
 
@@ -464,6 +466,6 @@ def chosen_slots(engine: RoomEngine, coalition: str, who: str) -> list[str]:
     record: Document = engine.vault(coalition, who).get(KEY, {})
     found: list[str] = []
     for q in record.get("questions", []):
-        if q["kind"] == "slots" and q["status"] == "answered":
+        if q["kind"] == "slots" and q["status"] == "answered" and not q.get("set"):
             found.extend(q["answer"])
     return sorted(set(found))

@@ -11,12 +11,14 @@ fails, builds what it honestly can without one.
 
 from __future__ import annotations
 
+import json
 import re
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 from ..adapter import Document
+from . import sets
 from .model import ask
 from .needs import tidy
 
@@ -46,6 +48,10 @@ SYSTEM = (
     "people said privately is given to you, so do not guess it. Beyond the signed plan nobody "
     "has agreed anything: never write that people agreed, decided or confirmed something, and "
     "never make someone's home the place. "
+    "The facts may hold sets: what everyone has in common for a named set, found without "
+    "anyone showing their own list. Where what you make picks from such a set, choose only "
+    "from its values and name no other option; a set that gives only a count says how many "
+    "are shared, not which. "
 )
 KIND_RULES = {
     "draft": (
@@ -283,7 +289,8 @@ async def make_data(
 ) -> Document | None:
     """What the maker made, checked, or None (the caller then builds what it can by rules)."""
     names = set(facts["people"])
-    shown = {k: facts[k] for k in ("goal", "need", "plan", "common", "people", "amount")}
+    keys = ("goal", "need", "plan", "common", "sets", "people", "amount")
+    shown = {k: facts[k] for k in keys if k in facts}
     problem = ""
     for _ in range(2):
         out = await ask(
@@ -304,6 +311,9 @@ async def make_data(
         if out is None:
             return None
         result: Any = clean(kind, out, facts, names)
+        stray = sets.strays(json.dumps(result, ensure_ascii=False), facts.get("sets", {}))
+        if not isinstance(result, str) and stray:
+            result = "choose only from what everyone shares; leave out " + ", ".join(stray)
         if isinstance(result, str):
             problem = result
             continue

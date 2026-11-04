@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
+from . import sets
 from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
@@ -101,6 +102,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         ],
         "slots": [{"start": None, **s} for s in doc["slots"]],
         "common": common_of(engine, coalition, viewer, doc),
+        "sets": sets.public_sets(doc),
         "plan_notes": notes_of(viewer, state, doc),
         "results": made,
         "stops": [{k: s[k] for k in STOP_FIELDS} for s in doc["stops"]],
@@ -280,6 +282,7 @@ def my_side(
         "feed": feed[-FEED_SHOWN:],
         "for_you": {pid: item["line"] for pid, item in lines.items()},
         "tasks": [],
+        "sets": sets.mine(engine, coalition, viewer, doc),
     }
 
 
