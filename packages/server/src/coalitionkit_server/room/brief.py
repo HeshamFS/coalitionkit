@@ -224,7 +224,7 @@ def tree(q: Document, ref: str) -> tuple[list[Document], Document]:
             "text": q["why"],
             "variant": "caption",
             "tone": "muted",
-            "provenance": "model",
+            **({} if q.get("set") else {"provenance": "model"}),  # a pack's line is not a model's
         },
         {"id": "input", **field, "value": {"path": "/answer"}},
         {

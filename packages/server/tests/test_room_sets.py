@@ -56,7 +56,7 @@ def test_declared_sets_are_asked_crossed_and_only_the_shared_part_is_published(
                 "q2": 3,
                 "q3": ["s1"],
                 "set-colours": ["o1", "o2", "o3"],
-                "set-words": f"Apple, plum , {CANARY}",
+                "set-words": f"Applezq, plumzq , {CANARY}",
             },
         )
         reply_brief(
@@ -67,7 +67,7 @@ def test_declared_sets_are_asked_crossed_and_only_the_shared_part_is_published(
                 "q2": 3,
                 "q3": ["s1"],
                 "set-colours": ["o2", "o3", "o4"],
-                "set-words": "PLUM; fig",
+                "set-words": "PLUMZQ; figzq",
             },
         )
         reply_brief(
@@ -136,8 +136,14 @@ def test_declared_sets_are_asked_crossed_and_only_the_shared_part_is_published(
                 frames = server.surfaces[cid].state.hub.feed_session(member).start()
                 places[f"feed {member}"] = " ".join(f.model_dump_json() for f in frames)
         assert CANARY in json.dumps(engine.vault(cid, "p1")), "positive control: the vault has it"
-        for secret in (CANARY, "apple", "plum", "fig"):
-            leaks = [name for name, text in places.items() if secret in text.lower()]
+        mine_only = {"figzq": a["participant"]}  # a seat's own screen may hold its own words
+        for secret in (CANARY, "applezq", "plumzq", "figzq"):
+            owner = mine_only.get(secret, "p1")
+            leaks = [
+                name
+                for name, text in places.items()
+                if secret in text.lower() and not name.endswith(f" {owner}")
+            ]
             assert not leaks, f"{secret} leaked into {leaks}"
         for one_seat_only in ("red", "yellow", "white"):  # options are public; choices are not
             for name in ("log", "steward", "engine row", "activities"):
