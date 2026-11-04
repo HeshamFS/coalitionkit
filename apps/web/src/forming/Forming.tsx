@@ -163,7 +163,7 @@ export function Forming({
   const eyebrow = reading
     ? "The Gardener is reading"
     : reply
-      ? `${reply.composition?.source === "model" ? "Read by the Gardener's model" : "Read without a model"} · ${cards.length} ${cards.length === 1 ? "component" : "components"} chosen`
+      ? `${reply.composition?.source === "model" ? "Read by the Gardener's model" : reply.model_note || "Read without a model"} · ${cards.length} ${cards.length === 1 ? "component" : "components"} chosen`
       : "Opening a room";
 
   return (
