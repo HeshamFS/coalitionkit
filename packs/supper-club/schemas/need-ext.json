@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "supper-club what the dinner needs",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "course": {
+      "enum": ["starter", "main", "side", "dessert", "drinks"],
+      "description": "The course this need belongs to, if it belongs to one."
+    },
+    "lands_at": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "The time the course should be on the table, as HH:MM."
+    }
+  }
+}
