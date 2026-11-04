@@ -19,6 +19,7 @@ from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
 from .seats import open_seats, people
 from .view_results import change_of, latest_by_need, results_of, tasks_of
+from .websearch import search_feed
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -103,6 +104,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "common": common_of(engine, coalition, viewer, doc),
         "plan_notes": notes_of(viewer, state, doc),
         "results": made,
+        "search": search_feed(doc),
         "stops": [{k: s[k] for k in STOP_FIELDS} for s in doc["stops"]],
         "checked": checked_of(engine, coalition, state),
         "change": change_of(state, doc),

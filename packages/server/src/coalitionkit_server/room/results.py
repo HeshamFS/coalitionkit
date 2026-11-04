@@ -157,8 +157,8 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
     """The result's data: the maker's work where it stood, else what code can honestly say."""
     if kind == "place":
         ideas = (made or {}).get("ideas", [])
-        options = [{**i, "provenance": "estimate"} for i in ideas if not echoes(i["name"], facts)]
-        return {"options": options, "chosen": None}
+        options = [{"provenance": "estimate", **i} for i in ideas if not echoes(i["name"], facts)]
+        return {"options": options, "chosen": None, **web_of(made)}
     if kind == "budget":
         return budget_data(facts, made)
     if kind == "schedule":
@@ -166,7 +166,8 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
         return {"items": schedule_items(facts, steps), "steps": steps}
     if kind == "list":
         if made:
-            return {"items": [{**i, "provenance": "estimate"} for i in made["items"]]}
+            items = [{**i, "provenance": "estimate"} for i in made["items"]]
+            return {"items": items, **web_of(made)}
         return {
             "items": [
                 {"label": a["title"], "who": a["who"], "provenance": "signed"}
@@ -174,6 +175,11 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
             ]
         }
     return made or draft_by_rules(facts)
+
+
+def web_of(made: Document | None) -> Document:
+    """The pages a web search found for this result, kept with its data when there are any."""
+    return {"web": made["web"]} if made and made.get("web") else {}
 
 
 def card(index: int, title: str, fields: list[Document], prov: str) -> Document:
@@ -218,6 +224,8 @@ def fixed_body(kind: str, data: Document) -> list[Document]:
             fields = [{"label": "Why it fits", "value": o["why"]}]
             if o.get("check"):
                 fields.append({"label": "Check first", "value": o["check"]})
+            if o.get("url"):
+                fields.append({"label": "Found on the web", "value": o["url"]})
             body.append(card(i, o["name"], fields, "estimate"))
     elif kind == "schedule":
         for i, s in enumerate(data["items"]):
@@ -407,7 +415,7 @@ async def layout(
     shown = {
         k: v
         for k, v in data.items()
-        if k not in {"time", "time_total"} and v not in (None, "", [], {})
+        if k not in {"time", "time_total", "web"} and v not in (None, "", [], {})
     }
     need = {k: facts["need"][k] for k in ("title", "detail")}
     errors: list[str] = []

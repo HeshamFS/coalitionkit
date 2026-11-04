@@ -16,7 +16,10 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from coalitionkit_models.search import page_key
+
 from ..adapter import Document
+from . import websearch
 from .model import ask
 from .needs import tidy
 
@@ -125,6 +128,29 @@ class ListOut(BaseModel):
     items: list[Item]
 
 
+class FoundPlace(BaseModel):
+    name: str
+    why_it_fits: str
+    check_first: str
+    url: str
+
+
+class FoundPlaceOut(BaseModel):
+    places: list[FoundPlace]
+
+
+WEB_RULES = (
+    " Pages a web search found are given under 'found_on_the_web' (title, url, snippet). They "
+    "are facts from outside the room: you may use what they say, and name a real place, shop "
+    "or service only if a page there names it. Never write a URL that is not in that list. "
+)
+FOUND_PLACE = (
+    "Choose 2 or 3 real places from 'found_on_the_web' that fit this goal. For each give its "
+    "name as the page gives it (at most eight words), why it fits in one or two plain sentences "
+    "that end properly, what to check first before booking it, and the url of the page it came "
+    "from, copied exactly. Write the way a neighbour would say it across a table, no hedging."
+)
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "draft": DraftOut,
     "budget": BudgetOut,
@@ -225,8 +251,35 @@ def plain(text: str, limit: int) -> str:
     return line[:1].upper() + line[1:]
 
 
+def clean_found(out: FoundPlaceOut, facts: Document) -> Document | str:
+    """Real places, each from a page the search returned; anything else is refused."""
+    urls = {page_key(h["url"]): h["url"] for h in facts.get("found_on_the_web", [])}
+    ideas: list[Document] = []
+    for p in out.places:
+        url = urls.get(page_key(p.url.strip()))
+        name = tidy(p.name, 90).rstrip(". ")
+        if url and name and p.why_it_fits.strip():
+            ideas.append(
+                {
+                    "name": name,
+                    "why": plain(p.why_it_fits, 220),
+                    "check": plain(p.check_first, 220),
+                    "url": url,
+                    "provenance": "search",
+                }
+            )
+    ideas = ideas[:3]
+    if any(shows_free_slot(f"{i['why']} {i['check']}", facts) for i in ideas):
+        return "do not write the shared free times, a clock time or a deadline in the places"
+    if len(ideas) < 2:
+        return "choose two or three places from found_on_the_web, each with its url copied exactly"
+    return {"ideas": ideas}
+
+
 def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Document | str:
     """The maker's output made safe and checked, or the reason it cannot be used."""
+    if isinstance(out, FoundPlaceOut):
+        return clean_found(out, facts)
     if isinstance(out, DraftOut):
         body = out.body.strip()
         if len(body) < 80 or PLACEHOLDER.search(body) or PLACEHOLDER.search(out.subject):
@@ -284,15 +337,24 @@ async def make_data(
     """What the maker made, checked, or None (the caller then builds what it can by rules)."""
     names = set(facts["people"])
     shown = {k: facts[k] for k in ("goal", "need", "plan", "common", "people", "amount")}
+    hits = None
+    if kind == "place" or (kind in {"list", "draft"} and websearch.wants_fact(facts)):
+        hits = await websearch.for_need(engine, coalition, assignee, facts)
+    found = websearch.links(hits or [])
+    if found:
+        shown["found_on_the_web"] = [{k: h[k] for k in ("title", "url", "snippet")} for h in found]
+    searched = bool(found) and kind == "place"
+    rules = FOUND_PLACE if searched else KIND_RULES[kind]
+    schema = FoundPlaceOut if searched else SCHEMAS[kind]
     problem = ""
     for _ in range(2):
         out = await ask(
             engine,
             coalition,
             "composer",
-            SYSTEM + KIND_RULES[kind],
+            SYSTEM + (WEB_RULES if found else "") + rules,
             {"kind": kind, "facts": shown, "fix_this": problem},
-            SCHEMAS[kind],
+            schema,
             verb="making",
             label=f"Making {facts['need']['title']}",
             seat=assignee,
@@ -303,9 +365,11 @@ async def make_data(
         )
         if out is None:
             return None
-        result: Any = clean(kind, out, facts, names)
+        result: Any = clean(kind, out, {**facts, **shown}, names)
         if isinstance(result, str):
             problem = result
             continue
+        if found:
+            result["web"] = found
         return result
     return None
