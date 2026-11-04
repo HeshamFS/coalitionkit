@@ -194,6 +194,8 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
 def web_of(made: Document | None) -> Document:
     """The pages a web search found for this result, kept with its data when there are any."""
     return {"web": made["web"]} if made and made.get("web") else {}
+
+
 def parse_tree(nodes: list[Node]) -> list[Document] | str:
     """The model's nodes as components, with empty cards dropped, or why they cannot be used."""
     out: list[Document] = []
