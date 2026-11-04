@@ -50,7 +50,7 @@ async def test_a_client_that_cannot_ask_is_told_where_the_person_signs(
     async with rig.connect("p1") as client:
         result = await client.call_tool(tool, arguments)
     assert result.is_error
-    text = result.content[0].text
+    text = str(getattr(result.content[0], "text", ""))
     assert "nothing was signed" in text and "/signin" in text
     # The agent learns where its person goes, never a token or a link it could sign through.
     assert "token=" not in text and "http" not in text
