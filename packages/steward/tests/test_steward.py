@@ -213,6 +213,28 @@ async def test_core_policies_positive_and_negative(
         assert signed.body.policy_id == policy
 
 
+SAY = "coalition.say"
+
+
+@pytest.mark.parametrize(
+    ("text", "action", "policy"),
+    [
+        ("Call me on +49 170 1234567 to settle the food.", "block", "no-contact-details-in-room"),
+        ("You should take 2 tablets daily before the trip.", "escalate", "no-regulated-advice"),
+        ("I can take the venue if someone keeps the books.", "allow", "default"),
+    ],
+)
+async def test_a_line_the_agents_say_is_reviewed_like_any_message(
+    text: str, action: str, policy: str
+) -> None:
+    steward, _, _ = make([reply(ALLOW)] * 2)
+    payload = {"to": "room", "text": text, "intent": "trade"}
+    signed = await steward.review(envelope(SAY, payload), context=MEMBERS, flagged=False)
+    assert signed.body.action == action
+    if action != "allow":
+        assert signed.body.policy_id == policy
+
+
 async def test_redact_verdict_lists_the_paths() -> None:
     steward, _, _ = make([reply(ALLOW)])
     payload = {"source": "chat", "content": "hi", "contact": {"phone": "1", "email": "e"}}
