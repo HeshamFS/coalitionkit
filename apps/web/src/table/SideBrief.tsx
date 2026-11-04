@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Surface } from "../feed/surfaces";
 import { problemText } from "./api";
 import { useTable } from "./context";
+import { BriefInputs } from "./inputs/BriefInputs";
 import type { BriefItem, Room } from "./room";
 import { slotLabel } from "./slots";
 import { useSurface } from "./useSurface";
@@ -142,6 +143,7 @@ function Question({ item, index, total }: { item: BriefItem; index: number; tota
           This question could not be drawn as the host designed it. You can skip it.
         </p>
       )}
+      {!sent && found && !found.fallback && <BriefInputs item={item} />}
       {sent ? (
         <p role="status">Saved to your vault. Waiting for the next step.</p>
       ) : (

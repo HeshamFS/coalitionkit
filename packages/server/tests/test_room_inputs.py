@@ -194,8 +194,18 @@ def test_a_sentence_said_by_voice_reaches_the_room_marked_as_voice(tmp_path: Pat
         assert reply.status_code == 200 and reply.json()["route"] == "room"
         said = [e for e in events(client, cid, "observe") if e["on_behalf_of"] == "p1"]
         assert [e["payload"]["source"] for e in said] == ["voice"]
-        spoken = [a for a in view_of(engine, cid, "p1")["activity"] if a["verb"] == "saying"]
-        assert spoken[-1]["source"] == "voice"
+        photo = client.post(
+            "/v1/room/say",
+            json={"text": "everyone: we have two chairs", "via": "photo"},
+            headers=bearer(owner["token"]),
+        )
+        assert photo.status_code == 200
+        said = [e for e in events(client, cid, "observe") if e["on_behalf_of"] == "p1"]
+        assert [e["payload"]["source"] for e in said] == ["voice", "camera"]
+        said_to_room = "Said something to the room"
+        activity = view_of(engine, cid, "p1")["activity"]
+        spoken = [a for a in activity if a["label"] == said_to_room]
+        assert [a["source"] for a in spoken] == ["voice", "camera"]
         bad = client.post(
             "/v1/room/say", json={"text": "hi", "via": "fax"}, headers=bearer(owner["token"])
         )

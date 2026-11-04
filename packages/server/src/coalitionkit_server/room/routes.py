@@ -31,7 +31,7 @@ class Begin(BaseModel):
 class Say(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str
-    via: Literal["typed", "voice"] = "typed"
+    via: Literal["typed", "voice", "photo"] = "typed"
 
 
 class Done(BaseModel):
@@ -72,7 +72,7 @@ def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
         text = body.text.strip()
         if not text or len(text) > say.MAX_SAY:
             raise HTTPException(422, f"say something, up to {say.MAX_SAY} characters")
-        source = "voice" if body.via == "voice" else "chat"
+        source = {"voice": "voice", "photo": "camera"}.get(body.via, "chat")
         return JSONResponse(await say.say(engine, coalition, who, text, source=source))
 
     @app.post("/v1/room/done")

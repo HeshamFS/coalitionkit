@@ -1,0 +1,158 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Mic and camera buttons, the confirm card and the mic mark on the ring. Colours come from the
+   Table's own tokens, so light and dark follow it. */
+
+.ck-in-btn {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.ck-in-btn:hover:not(:disabled):not([data-disabled="true"]) {
+  border-color: var(--blue-line);
+  color: var(--blue-text);
+}
+.ck-in-btn:focus-within,
+.ck-in-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.ck-in-btn:disabled,
+.ck-in-btn[data-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ck-in-btn[data-recording="true"] {
+  border-color: var(--bad-line);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  animation: ck-in-pulse 1.2s ease-in-out infinite;
+}
+.ck-in-secs {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ck-in-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ck-in-note {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0 12px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.ck-in-note[role="alert"] {
+  color: var(--bad-fg);
+}
+
+.ck-in-confirm {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--blue-line);
+  border-radius: 12px;
+  background: var(--blue-tint);
+  color: var(--ink);
+}
+.ck-in-confirm textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+.ck-in-seen,
+.ck-in-answer {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.ck-in-answer b {
+  color: var(--ink);
+}
+.ck-in-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ck-in-brief {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ck-in-hint {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.ck-in-mark {
+  position: absolute;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--blue-line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--blue-text);
+  font-size: 12px;
+  transform: translate(-50%, -50%);
+  box-shadow: var(--shadow);
+}
+.ck-in-burst {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ck-in-burst 1.4s ease-out 2;
+}
+
+@keyframes ck-in-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(var(--bad-rgb), 0.18);
+  }
+}
+@keyframes ck-in-burst {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ck-in-btn[data-recording="true"],
+  .ck-in-burst {
+    animation: none;
+  }
+}

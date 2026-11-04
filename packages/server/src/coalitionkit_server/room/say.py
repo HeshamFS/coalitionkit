@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from .engine import RoomEngine
 
 MAX_SAY = 500
+PHONE = frozenset({"voice", "camera"})  # confirmed phone inputs keep their source
 NOTES = "_room_notes"
 CHANGE_WORDS = re.compile(
     r"\b(can'?t|cannot|won'?t|unable|no longer|not able|instead|change|cancel|drop|postpone|"
@@ -108,7 +109,8 @@ async def say(
     engine: RoomEngine, coalition: str, who: str, text: str, *, source: str = "chat"
 ) -> Document:
     """Route one sentence. Returns {route, reply, event_id?, stopped?}. ``source`` is "voice" for
-    a sentence the person said aloud and confirmed; it marks the observe and the activity."""
+    a sentence the person said aloud and confirmed, "camera" for one read from their photo; it
+    marks the observe and the activity."""
     state = await read_state(engine, coalition)
     doc = engine.read(coalition)
     needs = [n for n in doc["needs"] if n["id"] in state.tasks]
@@ -205,7 +207,7 @@ async def to_room(
         coalition,
         who,
         "observe",
-        {"source": "voice" if source == "voice" else "chat", "content": body},
+        {"source": source if source in PHONE else "chat", "content": body},
         {"audience": "coalition"},
     )
     if sent is None:
@@ -224,7 +226,7 @@ async def to_room(
         seat=who,
         state="done",
         event=str(sent["event_id"]),
-        **({"source": "voice"} if source == "voice" else {}),
+        **({"source": source} if source in PHONE else {}),
     )
     engine.feed_add(coalition, who, f"Sent to the room: {tidy(body, 200)}")
     return {
@@ -288,7 +290,7 @@ async def to_change(
         seat=who,
         state="done",
         event=event_id,
-        **({"source": "voice"} if source == "voice" else {}),
+        **({"source": source} if source in PHONE else {}),
     )
     engine.feed_add(
         coalition, who, f"Sent as a change to: {names}. Everything else stays as it is."

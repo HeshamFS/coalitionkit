@@ -7,6 +7,7 @@ import { Logo } from "../landing/marks";
 import { changeLine, commonLine } from "./beams";
 import { captionFor } from "./caption";
 import { fitScale, type Layout } from "./geometry";
+import { VoiceMarks } from "./inputs/VoiceMarks";
 import { needStatus } from "./needWords";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
@@ -139,6 +140,7 @@ function StageContents({
           onPick={() => onSeat(s.seat)}
         />
       ))}
+      {!ended && <VoiceMarks room={room} home={home} />}
       {commonText && !ended && (
         <div className="tb-chipnote" style={{ left: layout.W * 0.6, top: layout.H - 40 }}>
           {commonText}

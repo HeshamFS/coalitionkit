@@ -4,6 +4,7 @@
 import { type FormEvent, useState } from "react";
 import { problemText, type SayReply } from "./api";
 import { useTable } from "./context";
+import { SayInputs } from "./inputs/SayInputs";
 import { MOMENTS, momentIndex } from "./phase";
 import type { Room } from "./room";
 
@@ -69,6 +70,7 @@ export function Say() {
       <label className="tb-sr" htmlFor="tb-say">
         Tell your agent or the room
       </label>
+      <SayInputs locked={lock !== null} />
       <input
         id="tb-say"
         type="text"
