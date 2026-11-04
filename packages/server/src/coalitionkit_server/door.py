@@ -61,18 +61,19 @@ def digest(value: str) -> str:
 
 
 class Limiter:
-    """A sliding-minute counter held in memory, one per host process."""
+    """A sliding counter held in memory, one per host process. By default, over a minute."""
 
-    def __init__(self, limit: int) -> None:
+    def __init__(self, limit: int, window_s: float = WINDOW_S) -> None:
         self.limit = limit
+        self.window_s = window_s
         self.hits: dict[str, deque[float]] = {}
 
     def allow(self, key: str) -> bool:
         now = time.monotonic()
         if len(self.hits) > 10000:
-            self.hits = {k: v for k, v in self.hits.items() if v and v[-1] > now - WINDOW_S}
+            self.hits = {k: v for k, v in self.hits.items() if v and v[-1] > now - self.window_s}
         window = self.hits.setdefault(key, deque())
-        while window and window[0] <= now - WINDOW_S:
+        while window and window[0] <= now - self.window_s:
             window.popleft()
         if len(window) >= self.limit:
             return False

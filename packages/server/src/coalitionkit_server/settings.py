@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # how long a round waits for an agent a person brought over MCP to say its line.
     room_talk_rounds: int = Field(default=2, ge=0, le=2)
     room_talk_wait_s: float = Field(default=45.0, ge=0, le=300)
+    # Limits for a host open to the public, whose model calls someone is paying for. Unset, a
+    # host has neither. Past a room's budget its model calls stop; past the day's count no
+    # room starts, and the model reads at most ten sentences for each room allowed.
+    room_budget_usd: float | None = Field(default=None, gt=0)
+    rooms_per_day: int | None = Field(default=None, ge=1)
     # A file of sample rooms for the first screen. The kit ships none.
     sample_rooms: Path | None = None
     admin_token: SecretStr | None = None

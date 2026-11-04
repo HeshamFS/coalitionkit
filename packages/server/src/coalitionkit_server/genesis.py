@@ -107,6 +107,11 @@ class Dissolve(BaseModel):
     reason: Literal["completed", "cancelled"]
 
 
+DAY_S = 24 * 60 * 60.0
+DRAFTS_PER_ROOM = 10
+DAY_FULL = "This host has opened all the rooms it can for today. Try again tomorrow."
+
+
 def mount_genesis(app: FastAPI, server: Server) -> None:
     if server.settings.genesis == "off":
         return
@@ -234,8 +239,13 @@ def mount_drafting(
             admin(request, server.settings)
         return [public_pack(pack) for pack in server.packs.values()]
 
+    limit = server.settings.rooms_per_day
+    drafts = Limiter(limit * DRAFTS_PER_ROOM, DAY_S) if limit else None
+
     @app.post("/v1/genesis/draft", dependencies=[Depends(gate)])
     async def draft(request: Request, body: DraftAsk) -> DraftResponse:
+        if drafts and not drafts.allow("host"):
+            raise HTTPException(429, DAY_FULL)
         if server.settings.genesis == "admin":
             from .app import admin
 
@@ -287,6 +297,8 @@ def mount_start(
 ) -> None:
     registry = server.registry
     starts = Limiter(START_PER_MINUTE)
+    limit = server.settings.rooms_per_day
+    today = Limiter(limit, DAY_S) if limit else None
 
     @app.post("/v1/genesis/start", dependencies=[Depends(gate)])
     async def start(request: Request, body: Start) -> Document:
@@ -296,6 +308,8 @@ def mount_start(
         local = server.settings.genesis == "local"
         if local and not starts.allow(caller(request)):
             raise HTTPException(429, "too many starts")
+        if today and not today.allow("host"):
+            raise HTTPException(429, DAY_FULL)
         now = datetime.now(UTC)
         if body.draft.deadline is not None and body.draft.deadline <= now:
             raise HTTPException(422, "that deadline has passed")
@@ -330,6 +344,9 @@ def mount_start(
                     {**charter, "revision": 1, "created_at": datetime.now(UTC).isoformat()},
                 )
                 created = server.create(charter)
+                budget, meter = server.settings.room_budget_usd, server.gateway.meter
+                if budget and meter:
+                    meter.set_budget(created["coalition_id"], int(budget * 1_000_000))
                 redeemed = registry.redeem(
                     created["invitations"][0]["invitation"], server.ports, None, None
                 )
