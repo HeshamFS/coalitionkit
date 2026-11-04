@@ -256,3 +256,31 @@ async def test_member_re_asked_for_its_commitment_request(asks: int) -> None:
 )
 async def test_demo_live(tmp_path: Path) -> None:
     await exercise(tmp_path, live=True)
+
+
+async def test_demo_continues_when_optional_psi_is_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def unavailable(name: str) -> Any:
+        raise ModuleNotFoundError(name=name)
+
+    monkeypatch.setattr("coalitionkit_vault._group.import_module", unavailable)
+    app = create_server(
+        Settings(
+            store=SecretStr(f"sqlite:///{tmp_path / 'demo.db'}"),
+            host_key_file=tmp_path / "host.key",
+        ),
+        model_gateway=demo_gateway(),
+    )
+    server: Server = app.state.server
+    try:
+        coalition, tokens = await enroll(server, 3)
+        demo = demo_runner(server, coalition, 0)
+        await approve(server, coalition, tokens, "charter")
+        assert await demo.step()
+        assert demo.phase == "plan"
+        assert demo.overlap is None
+        assert "PSI not run" in capsys.readouterr().out
+        assert not any(e["type"] == "coalition.match" for e in server.store.read(coalition))
+    finally:
+        server.close()

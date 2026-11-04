@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Literal
 
@@ -141,8 +143,28 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
     if route == "room":
         return await to_room(engine, coalition, who, text, sentence)
     if route == "change":
-        return await to_change(engine, coalition, who, text, affected, withdraw, sentence, state)
+        # Block the planner before publishing a ripple or successor need.
+        with pause_planning(engine, coalition):
+            return await to_change(
+                engine, coalition, who, text, affected, withdraw, sentence, state
+            )
     return keep_private(engine, coalition, who, text, sentence)
+
+
+@contextmanager
+def pause_planning(engine: RoomEngine, coalition: str) -> Generator[None]:
+    """A transient gate for publishing changes, independent of routine room seat work."""
+    with engine.lock:
+        engine.publishing_changes[coalition] = engine.publishing_changes.get(coalition, 0) + 1
+    try:
+        yield
+    finally:
+        with engine.lock:
+            remaining = engine.publishing_changes[coalition] - 1
+            if remaining:
+                engine.publishing_changes[coalition] = remaining
+            else:
+                del engine.publishing_changes[coalition]
 
 
 def _join(line: str, sentence: str) -> str:

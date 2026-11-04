@@ -186,6 +186,9 @@ async def make_one(
 
 async def make_results(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:
     """Make the result of every committed task whose commitment has none yet."""
+    # Reading host state yields to background makers. Refresh their completion marks
+    # before scheduling, otherwise a just-finished task can be started a second time.
+    doc = engine.read(coalition)
     todo: list[tuple[str, str]] = []
     for task, t in state.tasks.items():
         who = t.get("assignee")

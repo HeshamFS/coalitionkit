@@ -24,7 +24,7 @@ from coalitionkit_models.prices import PriceTable
 
 LEDGER_VAR = "COALITIONKIT_ACCEPTANCE_LEDGER"
 KEY_VAR = "COALITIONKIT_META_ACCEPTANCE_KEY"
-DEFAULT = Path(__file__).resolve().parents[2] / "scorecard-ledger.sqlite3"
+DEFAULT = Path.cwd() / ".coalitionkit" / "scorecard-ledger.sqlite3"
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS usage ("
     "id INTEGER PRIMARY KEY AUTOINCREMENT, run TEXT NOT NULL, dedicated INTEGER NOT NULL, "
@@ -76,6 +76,7 @@ def ledger_path() -> Path:
 
 
 def connect(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=60, isolation_level=None)
     connection.execute("PRAGMA journal_mode=WAL")
     connection.execute("PRAGMA busy_timeout=60000")

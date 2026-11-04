@@ -14,9 +14,10 @@ from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
+from .resources import spec_path
+
 SCHEMA_BASE = "https://coalitionkit.dev/schemas/coalition/v0/"
 SCHEMA_DIR_ENV = "COALITIONKIT_SCHEMA_DIR"
-_RELATIVE = Path("spec") / "schemas" / "coalition" / "v0"
 
 #: Message types that have a schema file named after the type's last segment.
 SCHEMA_FILES: Mapping[str, str] = {
@@ -51,15 +52,9 @@ class SchemaValidationError(Exception):
 
 
 def schema_dir() -> Path:
-    """The schema folder: ``$COALITIONKIT_SCHEMA_DIR``, else found by walking up from this file."""
+    """An explicit schema override, or the schemas shipped in this distribution."""
     override = os.environ.get(SCHEMA_DIR_ENV)
-    if override:
-        return Path(override)
-    for parent in Path(__file__).resolve().parents:
-        candidate = parent / _RELATIVE
-        if candidate.is_dir():
-            return candidate
-    raise FileNotFoundError(f"cannot find {_RELATIVE}; set {SCHEMA_DIR_ENV}")
+    return Path(override) if override else spec_path("schemas", "coalition", "v0")
 
 
 def load_schemas() -> dict[str, dict[str, Any]]:

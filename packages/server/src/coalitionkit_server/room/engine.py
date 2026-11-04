@@ -88,6 +88,7 @@ class RoomEngine:
         self.driven: set[str] = set()
         self.wakes: dict[str, tuple[asyncio.AbstractEventLoop, asyncio.Event]] = {}
         self.locks: dict[str, asyncio.Lock] = {}
+        self.publishing_changes: dict[str, int] = {}
         self.now: Callable[[], float] = time.time
         self.catalog: Catalog = load_catalog(server.settings.catalog_file)
         with server.store.transaction("") as tx:
@@ -407,6 +408,7 @@ class RoomEngine:
                 and d["offers_done"]
                 and done
                 and not d["change_pending"]
+                and not self.publishing_changes.get(coalition)
             )
 
     # --- the public document ------------------------------------------------------------------

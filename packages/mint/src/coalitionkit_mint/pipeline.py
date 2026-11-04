@@ -13,6 +13,7 @@ from typing import Any, Literal
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import ValidationError
 
+from coalitionkit_contracts.resources import resource_path
 from coalitionkit_models.errors import SchemaValidationError
 from coalitionkit_models.gateway import ModelGateway
 
@@ -109,7 +110,7 @@ async def mint(
     folder.parent.mkdir(parents=True, exist_ok=True)
     try:
         async with asyncio.timeout(90):
-            scan_templates(Path(__file__).parent / "templates")
+            scan_templates(resource_path("coalitionkit_mint", "templates"))
             with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:
                 records, rules = await perceive(
                     video,

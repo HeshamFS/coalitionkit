@@ -2,15 +2,15 @@
 """Local normative scope vectors; these alone never certify a remote host."""
 
 import json
-from pathlib import Path
 
 from coalitionkit_contracts import Membership, Scope, ScopeSource, resolve_narrowest
+from coalitionkit_contracts.resources import spec_path
 
 from .operator import OperatorUnavailable
 
 
 async def scope_vectors() -> str:
-    path = Path(__file__).resolve().parents[4] / "spec" / "vectors" / "scope.json"
+    path = spec_path("vectors", "scope.json")
     if not path.is_file():
         raise OperatorUnavailable("Local spec/vectors/scope.json is unavailable")
     cases = json.loads(path.read_text(encoding="utf-8"))["cases"]

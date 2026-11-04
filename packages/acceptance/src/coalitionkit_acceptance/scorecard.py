@@ -37,8 +37,7 @@ from .privacy import PrivacyResult, record, run_privacy, totals
 from .ripple_server import run_ripple_server
 from .scale_server import run_scale_server
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[3]
+REPO = Path(os.environ.get("COALITIONKIT_SOURCE_DIR", Path.cwd())).resolve()
 
 
 class NotRun(Exception):
@@ -62,6 +61,8 @@ def p95(result: dict[str, Any], key: str) -> float | None:
 
 async def run_1() -> Row:
     row = Row(1, "Interop: three stacks over A2A")
+    if not (REPO / "examples/pyproject.toml").is_file():
+        raise NotRun("interop requires a source checkout; set COALITIONKIT_SOURCE_DIR")
     uv = shutil.which("uv") or str(Path.home() / ".local" / "bin" / "uv.exe")
     if not Path(uv).exists() and shutil.which("uv") is None:
         raise NotRun("uv was not found to run the examples project")
@@ -170,6 +171,8 @@ async def run_6() -> Row:
     row = Row(6, "Mint: upload to pending, attacks, cost")
     if not live_enabled():
         raise NotRun(live_skip_reason() + "; the Mint runs on the live models only")
+    if not (REPO / "packages/mint/tests/test_live.py").is_file():
+        raise NotRun("Mint live acceptance requires COALITIONKIT_SOURCE_DIR")
     uv = shutil.which("uv") or str(Path.home() / ".local" / "bin" / "uv.exe")
     with tempfile.TemporaryDirectory() as directory:
         command = [uv, "--directory", str(REPO), "run", "pytest", "-m", "live", "-s", "-q"]
@@ -424,7 +427,7 @@ def table(rows: list[Row]) -> str:
 def main() -> int:
     rows = asyncio.run(collect())
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
-    out = HERE.parents[1] / f"scorecard-{stamp}.json"
+    out = Path.cwd() / f"scorecard-{stamp}.json"
     out.write_text(
         json.dumps(
             {

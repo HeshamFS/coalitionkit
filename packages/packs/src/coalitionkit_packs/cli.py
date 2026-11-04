@@ -26,6 +26,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 from coalitionkit_contracts import SignatureError
 from coalitionkit_contracts.owner import jwk_to_public_key
+from coalitionkit_contracts.resources import spec_path
 from coalitionkit_surfaces import load_catalog
 
 from .errors import PackError
@@ -54,7 +55,12 @@ def _parser() -> argparse.ArgumentParser:
     accept.add_argument("--json", action="store_true")
     check = sub.add_parser("validate", help="check every pack rule (signature not required)")
     check.add_argument("directory", type=Path)
-    check.add_argument("--catalog", type=Path, help="core catalog JSON (surfaces format)")
+    check.add_argument(
+        "--catalog",
+        type=Path,
+        default=spec_path("catalog", "coalitionkit-v0_9.json"),
+        help="core catalog JSON (surfaces format)",
+    )
     check.add_argument("--core-version", help="core version to test the pack's range against")
     sign = sub.add_parser("sign", help="write pack.sig with an Ed25519 key (PKCS8 PEM)")
     sign.add_argument("directory", type=Path)

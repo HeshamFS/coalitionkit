@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Publish Python distributions
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish version 0.1.0 to PyPI after validation
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: pypi-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      UV_CONCURRENT_BUILDS: '2'
+      UV_CONCURRENT_INSTALLS: '2'
+      RAYON_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.6'
+          python-version: '3.15.2'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.15.0'
+      - run: sudo apt-get update && sudo apt-get install -y libsodium23
+      - run: uv sync --locked
+      - run: npm install --global npm@11.10.0
+      - run: uv run python tools/build_web.py
+      - run: uv run python tools/check.py
+      - run: npm --prefix apps/web run lint
+      - run: npm --prefix apps/web run test:ci
+      - run: uv run python tools/check_workflows.py
+      - run: uv run python tools/smoke_install.py
+      - name: Build source distributions and wheels
+        run: |
+          for project in packages/*/pyproject.toml; do
+            uv build "$(dirname "$project")" --no-sources --out-dir dist
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/coalitionkit/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist
+      - name: Publish using PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1

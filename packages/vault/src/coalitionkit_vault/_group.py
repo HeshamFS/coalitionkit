@@ -19,7 +19,22 @@ class Sodium(Protocol):
     def crypto_scalarmult_ristretto255_base(self, scalar: bytes) -> bytes: ...
 
 
-sodium = cast(Sodium, import_module("pysodium"))
+class SodiumUnavailable(RuntimeError):
+    """The optional PSI native backend is not installed or cannot be loaded."""
+
+
+class _LazySodium:
+    def __getattr__(self, name: str) -> object:
+        try:
+            module = import_module("pysodium")
+        except (ImportError, OSError, ValueError, TypeError) as exc:
+            raise SodiumUnavailable(
+                "Private set intersection requires coalitionkit[psi] and libsodium >=1.0.18"
+            ) from exc
+        return getattr(module, name)
+
+
+sodium = cast(Sodium, _LazySodium())
 DST = b"CoalitionKit-v0.1-PSI-ristretto255_XMD:SHA-512_R255MAP_RO_"
 
 
