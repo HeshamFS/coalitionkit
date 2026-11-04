@@ -72,6 +72,8 @@ The host orders one log per room and gives each viewer only what their scope all
 
 ## Docs
 
+The docs are online at **[coalitionkit.dev](https://coalitionkit.dev)**.
+
 - [Get started](docs/get-started/index.md): install, a first room, model keys
 - [Concepts](docs/concepts/index.md): how a room works
 - [Guides](docs/guides/index.md): connect agents, run a host, write a pack

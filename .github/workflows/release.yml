@@ -68,3 +68,6 @@ jobs:
           path: dist
       - name: Publish using PyPI trusted publishing
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A re-run after a partial failure uploads only what is still missing.
+          skip-existing: true
