@@ -47,7 +47,7 @@ type Room = {
         | "explaining" | "committing" | "making" | "saying" | "changing" | "ending";
     need: string | null; label: string;
     state: "running" | "done" | "failed"; ms: number | null;
-    source: "model" | "rules" | "host"; event: string | null;
+    source: "model" | "rules" | "host" | "voice" | "camera"; event: string | null;
   }[];
   slots: { id: string; label: string; start: string | null }[];
   common: { slots: string[]; count_private: number | null; compared: number } | null;
@@ -85,6 +85,7 @@ type Room = {
       task_id: string; title: string; status: string;
       result: string | null; can_mark_done: boolean;
     }[];
+    inputs: { kind: "voice" | "photo"; text: string; ms: number }[];
   };
 };
 ```
@@ -105,6 +106,8 @@ type Room = {
 - `needs[].status` is `no offers` when the offer round is over and nobody has offered on it.
 - An offer's minutes are one person's own estimate for one need, capped by the most time they said they would give to any one job. They are never summed.
 - A late joiner gets a brief and a vault, but is not a decider and is not part of the offer or compare rounds.
+- `activity[].source` is `voice` on a say or change the person spoke and confirmed, and `camera` on one read from their photo. The Table puts a mic mark by that seat.
+- `mine.inputs` holds the viewer's own last ten voice and photo readings: the words the host read, never the audio or the image. `ms` is how long the reading took. It is kept in the viewer's vault and is in no one else's feed.
 
 ## Results
 
@@ -136,5 +139,7 @@ With no money in the goal, a budget is a time budget: `currency` is `minutes`, `
 A question's tree keeps its input at the data path `/answer`, and its Send button carries the action `room.brief` with `{question_id, value}`. The screen posts that to `/v1/room/brief`.
 
 The value is an option id for `choice`, a list of slot ids for `slots`, a number for `amount` and a string for `text`. A number in a data model may be wrapped as `{value, event_ref}`, so both sides unwrap it.
+
+A question can also be answered by voice or with a photo. `/v1/room/voice` with `question_id`, or `/v1/room/photo` with `question_id`, returns `answer` in the same closed shape, or null when the input does not answer the question. The screen shows it and posts it to `/v1/room/brief` only when the person confirms. See [Phone inputs](../guides/phone-inputs.md).
 
 See also [HTTP routes](http-routes.md) and [The Table](../concepts/the-table.md).
