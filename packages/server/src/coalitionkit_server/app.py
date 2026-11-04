@@ -51,6 +51,7 @@ from .packs import (
 )
 from .registry import Registry
 from .room import RoomEngine
+from .room.activity import reporter
 from .room.activity_ports import A2aActivity, McpActivity
 from .room.device_routes import DEVICE_PATHS
 from .room.inputs import inputs_routes
@@ -205,7 +206,12 @@ class Server:
         if room is not None:
             room.attach(coalition)
             room_routes(self.surfaces[coalition], self, coalition)
-            inputs_routes(self.surfaces[coalition], self, coalition)
+            inputs_routes(
+                self.surfaces[coalition],
+                self,
+                coalition,
+                on_activity=reporter(self.room, coalition) if self.room is not None else None,
+            )
         self.ports[coalition].on_refusal = hub.refused
         return host
 

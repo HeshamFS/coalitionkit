@@ -216,3 +216,31 @@ def test_an_inbound_a2a_message_is_recorded(tmp_path: Path) -> None:
         assert ok["refs"] == [said["event_id"]] and ok["result"].startswith("accepted at seq ")
         assert refused["status"] == "failed" and refused["seat"] == "outside"
         assert "hello" not in json.dumps(found), "the message itself is not repeated"
+
+
+def test_every_part_reports_into_the_room_record(tmp_path: Path) -> None:
+    """Search, pictures and devices report through the same recorder as the engine's own calls."""
+    from coalitionkit_server.room import devices, image, websearch
+
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
+        room, _ = room_with_real_steward(client)
+        cid, engine = room["coalition_id"], engine_of(client)
+        hooks = {
+            "search": websearch.hook(engine, cid),
+            "media": image.activity_sink(engine, cid),
+            "mint": devices.room_reporter(engine, cid),
+        }
+
+        async def report() -> None:
+            for name, hook in hooks.items():
+                assert hook is not None, name
+                base = {"seat": "p1", "agent": name, "tool": f"{name}:probe", "refs": []}
+                await hook({**base, "args": "a", "result": "", "status": "started", "ms": 0})
+                await hook({**base, "args": "a", "result": "ok", "status": "done", "ms": 5})
+
+        asyncio.run(report())
+        recorded = [e["payload"] for e in events(client, cid, "tool")]
+        for name in hooks:
+            seen = [p["status"] for p in recorded if p["tool"] == f"{name}:probe"]
+            assert seen == ["started", "done"], (name, seen)
+        assert websearch.hook(engine, "not-a-room") is None

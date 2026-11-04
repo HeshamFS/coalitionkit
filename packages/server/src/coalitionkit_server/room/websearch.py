@@ -107,10 +107,11 @@ def screen(query: str, private: list[str], coalition: str, who: str) -> str | No
     return f"the Steward's policy {stopped[0]} matched" if stopped else None
 
 
-def hook(engine: RoomEngine) -> Activity | None:
-    """The activity recorder the orchestrator wires in (``engine.on_activity``), if any."""
-    found: Any = getattr(engine, "on_activity", None)
-    return cast(Activity, found) if callable(found) else None
+def hook(engine: RoomEngine, coalition: str) -> Activity | None:
+    """The room's tool-activity recorder, bound to this room; None for a room that is not traced."""
+    from .activity import records, reporter
+
+    return reporter(engine, coalition) if records(engine, coalition) else None
 
 
 async def report(on_activity: Activity | None, activity: Document) -> None:
@@ -152,7 +153,7 @@ async def search(
         return None
     settings = engine.server.gateway.settings
     most = min(limit or settings.search_max_results, settings.search_max_results)
-    on_activity = on_activity or hook(engine)
+    on_activity = on_activity or hook(engine, coalition)
     members = seats if seats is not None else sorted((await read_state(engine, coalition)).members)
     private = private_values(engine, coalition, members)
     base: Document = {"seat": who, "agent": agent, "tool": "search:web", "args": query}

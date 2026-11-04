@@ -57,6 +57,13 @@ class Hub:
 HUBS: weakref.WeakKeyDictionary[RoomEngine, Hub] = weakref.WeakKeyDictionary()
 
 
+def room_reporter(engine: RoomEngine, coalition: str) -> Activity | None:
+    """The room's tool-activity recorder, bound to this room; None for a room that is not traced."""
+    from .activity import records, reporter
+
+    return reporter(engine, coalition) if records(engine, coalition) else None
+
+
 def hub(engine: RoomEngine) -> Hub:
     found = HUBS.get(engine)
     if found is None:
@@ -100,7 +107,7 @@ async def report(
     refs: list[str] | None = None,
 ) -> None:
     """One activity in the shared shape. Lines never hold a nonce, signature or private value."""
-    callback = hub(engine).on_activity
+    callback = hub(engine).on_activity or room_reporter(engine, coalition)
     if callback is None:
         return
     activity: Document = {
