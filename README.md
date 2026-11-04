@@ -86,6 +86,8 @@ Version 0.1 is a pre-release. The protocol is a draft and will change, and the k
 | [`conformance`](packages/conformance) | The black-box conformance runner |
 | [`acceptance`](packages/acceptance) | Whole-journey acceptance tests |
 | [`cli`](packages/cli) | The `coalitionkit` command |
+| [`langchain`](packages/langchain) | A room's actions as LangChain tools |
+| [`langgraph`](packages/langgraph) | A graph as a seat, with an interrupt where a person must consent |
 | [`apps/web`](apps/web) | The web room and the glasses view |
 
 ## Develop
