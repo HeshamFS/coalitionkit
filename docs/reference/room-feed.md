@@ -12,13 +12,14 @@ A viewer follows a room over `GET /v1/feed`, a stream of server-sent events usin
 | Brief | Each seat's agent asks its person | none: answers go to the vault | 1-3 questions of closed kinds |
 | Offer | Each seat's agent | `offer` per need | Which needs, at what cost, checked against the vault |
 | Compare | Vaults | `query`, `answer`, `match` rounds | none |
+| Talk | Each seat's agent, in turn, for up to two rounds | `say`, then new `offer` from agents that change their own | One line or a pass, and the needs whose own offer to change |
 | Plans | Gardener | `propose`, `tension` | A public name and line per plan, and a private "for you" line per seat |
 | Decide | People | `decide` | none |
 | Commit | Agent asks, person signs | `commit`, `decide(commitment)`, `decide(task)` | none |
 | Make | Assignee's agent | `observe` (source `document`) holding the result, then `done` for helpers | A catalog tree per task |
 | My part | Person | `done` with evidence | none |
 | Say | Anyone | Private note, `observe` (chat) or `ripple` | Route the sentence |
-| Change | Agents, then the people asked | `ripple`, new `offer`, `propose`, `tension`, limited to who is affected | As above, for the tasks it touches |
+| Change | Agents, then the people asked | `ripple`, new `offer`, then a Talk stage, `propose`, `tension`, limited to who is affected | As above, for the tasks it touches |
 | Finish | Owner, or the deadline | `dissolve` | none |
 
 Every model step has a rule-based fallback. Each output records `source: "model"` or `"rules"`, and the screen shows it.
@@ -72,6 +73,17 @@ type Room = {
     cost: string | null; vendors: number | null;
     started_at?: string | null; ended?: boolean;
   } | null;
+  talk: {
+    open: boolean; round: number; rounds: number;
+    stage: "start" | "change" | null; waiting_for: string[];
+    thread: {
+      seq: number; id: string; from: string; to: string;
+      intent: "ask" | "answer" | "trade" | "caveat" | "agree" | "disagree";
+      text: string; re: string | null; stage: "start" | "change";
+    }[];
+    revised: { seat: string; needs: string[]; at: string }[];
+    mine: { whisper: string | null; listening: boolean };
+  };
   mine: {
     brief: {
       id: string; ask: string; why: string; component: string;
@@ -104,6 +116,10 @@ type Room = {
 - `common.count_private` is computed from the viewer's own vault, and is null for a seat that sat out the comparison. It is never stored in the public document.
 - `needs[].status` is `no offers` when the offer round is over and nobody has offered on it.
 - An offer's minutes are one person's own estimate for one need, capped by the most time they said they would give to any one job. They are never summed.
+- `talk.open` is true while the Talk stage runs; `phase` stays `work` meanwhile. `talk.stage` is `start` for the talk before the first plans and `change` for one after a change. Each line's own `stage` says the same for that line.
+- `talk.thread` holds every `coalition.say` this viewer may see, in log order. `from` and `to` are seat ids, and `to` is `room` for a line to everyone. `re` is the event id of the line it answers.
+- `talk.waiting_for` lists the outside seats a round is still waiting for. `talk.revised` lists the seats whose agent changed its own offers after the talk, and on which needs.
+- `talk.mine` is private to the viewer: `whisper` is a sentence they asked their agent to say that it has not said yet, and `listening` is true while a sentence for the others is kept for the talk instead of sent as chat.
 - A late joiner gets a brief and a vault, but is not a decider and is not part of the offer or compare rounds.
 
 ## Results

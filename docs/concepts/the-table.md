@@ -11,6 +11,10 @@
 
 A plan's cards and the results tray appear on the sheet when they exist.
 
+## When the agents talk
+
+Before the plans, the agents [talk to each other](agents-talk.md). A bubble by each speaking seat holds its newest line, and a beam runs from the speaker to the seat the line is for, or to the goal when it is for everyone. The thread panel on your side lists every line in order. On a phone the thread is on your side, and the table shows the newest bubble.
+
 ## Light and night
 
 Light means it is your turn. Night comes when the agents are working and nothing waits on you, so you can tell at a glance whether you are needed.

@@ -165,7 +165,14 @@ def test_rules_find_private_values_but_not_public_words() -> None:
 
 def test_the_agents_talk_again_after_a_change(tmp_path: Path) -> None:
     lines = {("Member 1", 1): {"intent": "caveat", "text": "Mind the budget for the venue."}}
-    model = RoomModel(needs=NEEDS, brief=BRIEF, talk=scripted(lines))
+    heard: list[Any] = []
+    script = scripted(lines)
+
+    def talk(user: str) -> dict[str, Any]:
+        heard.append(json.loads(user)["what_changed"])
+        return script(user)
+
+    model = RoomModel(needs=NEEDS, brief=BRIEF, talk=talk)
     with serve(tmp_path, model) as client:
         cid, engine, people = room_to_talk(client)
         until(lambda: events(client, cid, "propose") or events(client, cid, "tension"), 40, "plans")
@@ -180,3 +187,8 @@ def test_the_agents_talk_again_after_a_change(tmp_path: Path) -> None:
         thread = view_of(engine, cid, "p1")["talk"]["thread"]
         assert [t["stage"] for t in thread] == ["start", "change"]
         assert view_of(engine, cid, "p1")["talk"]["stage"] == "change"
+        assert heard[0] is None  # the first talk follows no change
+        after = [h for h in heard if h]
+        assert after and after[0]["by"] in {"you", "Member 1"}
+        assert after[0]["said"] == "I can't find a venue after all"
+        assert after[0]["they_can_no_longer_do_them"] is True

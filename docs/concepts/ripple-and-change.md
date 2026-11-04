@@ -23,6 +23,7 @@ A **ripple** invalidates only the needs a change touches. In a live room with fi
 `1 of 5 re-planned · 2 people asked again · 4 untouched`
 
 - Only people who offered on those needs offer again.
+- The agents [talk again](agents-talk.md) about what moved before the new plan.
 - A new plan is proposed only for what moved.
 - Everyone asked says yes again. Anyone else is left alone.
 

@@ -50,7 +50,9 @@ SYSTEM = (
     "your_person_asked_you_to_say is not empty, say that for them, faithfully and briefly. In "
     "revise list the ids of needs whose offer you want to change because of what was said, "
     "for example a trade you accept or a need another seat fits better; else leave it empty. "
-    "At most 280 characters."
+    "If what_changed is set, the room is planning again only because of it: talk about the "
+    "needs it moved, and treat it as true (a seat that can no longer do a job does not take "
+    "it back). At most 280 characters."
 )
 
 
@@ -168,6 +170,21 @@ def public_words(state: State, doc: Document) -> str:
     return " ".join([goal, *(n["title"] for n in doc["needs"]), *common])
 
 
+def changed_of(doc: Document, labels: dict[str, str], who: str) -> Document | None:
+    """The change this talk follows, in the words the room already saw, or None."""
+    change = doc.get("change")
+    if not change or session_key(doc) == "start":
+        return None
+    titles = {n["id"]: n["title"] for n in doc["needs"]}
+    by = str(change.get("from") or "")
+    return {
+        "by": "you" if by == who else labels.get(by, "a seat"),
+        "said": change["text"],
+        "needs_moved": [titles.get(i, i) for i in change["moved"]],
+        "they_can_no_longer_do_them": bool(change.get("withdraw")),
+    }
+
+
 async def speak(
     engine: RoomEngine, coalition: str, who: str, state: State, talk: Document
 ) -> Document:
@@ -194,6 +211,7 @@ async def speak(
             "thread": thread[-THREAD_SHOWN:],
             "told_by_your_person": told,
             "your_person_asked_you_to_say": asked_to,
+            "what_changed": changed_of(doc, labels, who),
         },
         TalkReply,
         verb="saying",

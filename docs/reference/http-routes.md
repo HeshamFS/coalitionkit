@@ -30,7 +30,7 @@ A tree in the room can never answer a consent. Consent only goes through `/v1/ag
 |---|---|---|
 | `POST /v1/room/begin` | `{helpers}` | `{phase}`. 403 unless the viewer is the owner |
 | `POST /v1/room/brief` | `{question_id, value}` or `{question_id, skip: true}` | `{status}`. 422 if the value does not fit the question |
-| `POST /v1/room/say` | `{text}`, up to 500 characters | `{route, reply, event_id?, stopped?}` |
+| `POST /v1/room/say` | `{text}`, up to 500 characters | `{route, reply, event_id?, stopped?}`; `route` is `talk` when the sentence is kept for the agent to say in the talk |
 | `POST /v1/room/done` | `{task_id}` | `{seq}`. 409 unless the viewer's approved commitment has a result |
 
 All four need a viewer token.
