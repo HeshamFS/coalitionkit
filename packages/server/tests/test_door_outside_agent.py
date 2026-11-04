@@ -8,7 +8,12 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from google.protobuf.json_format import MessageToDict
 from room_rig import RoomModel, bearer, engine_of, events, serve, server_of, until, view_of
-from test_room_engine import BRIEF, NEEDS, open_brief, seated_room
+from test_room_engine import (
+    BRIEF,
+    NEEDS,
+    open_brief,  # pyright: ignore[reportUnknownVariableType]
+    seated_room,  # pyright: ignore[reportUnknownVariableType]
+)
 
 from coalitionkit_mcp.gateway import build_envelope, default_scope
 from coalitionkit_server.cards import member_card
@@ -127,7 +132,7 @@ def test_an_outside_result_is_shown_and_a_bad_one_breaks_nothing(tmp_path: Path)
             reply = client.portal.call(server.accept, sent, person.card_url)  # type: ignore[union-attr]
             assert "error" not in reply, reply
 
-        good = {
+        good: dict[str, object] = {
             "result": 1,
             "need_id": need,
             "kind": "draft",
