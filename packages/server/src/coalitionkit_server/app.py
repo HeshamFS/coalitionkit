@@ -247,7 +247,8 @@ class Server:
             host,
             self.packs,
             third if engine_rules else None,
-            self.room.task_share() if engine_rules and self.room else None,
+            # The Steward's share cap holds in every room the engine drives, pack or not.
+            self.room.task_share() if driven and self.room else None,
         )
         # Only the same assignment on the same terms stays refused: better terms may be asked again.
         turned_down = {

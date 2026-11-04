@@ -25,3 +25,5 @@ Mark a field `"x-private": true` and it belongs in the member's vault. It must n
 Marking a field private does not stop someone from typing the same thing in a free-text field. Keep free text short, and add a [policy](policies.md) for what must never appear.
 
 Without a bound pack, `ext` must be absent.
+
+To compare private sets such as colours or tools people own without anyone showing their list, see [Compared sets](compare.md).

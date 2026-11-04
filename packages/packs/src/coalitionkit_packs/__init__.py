@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Discipline Packs: load, validate, sign and verify packs without touching the core."""
 
+from .compare import CompareQuestion, CompareSet
 from .errors import PackError, Problem
 from .loader import Pack, inspect_pack, load_pack
 from .manifest import Manifest
@@ -15,6 +16,8 @@ from .signing import (
 from .views import Views, extend_catalog
 
 __all__ = [
+    "CompareQuestion",
+    "CompareSet",
     "EvalOutcome",
     "EvalScenario",
     "Manifest",

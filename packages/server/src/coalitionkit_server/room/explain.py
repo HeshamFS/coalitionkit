@@ -20,6 +20,7 @@ from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
 from . import plan_words as words
+from . import sets
 from .brief import given
 from .engine import FOR_YOU
 from .model import ask
@@ -172,7 +173,11 @@ async def name_plans(
         coalition,
         "gardener",
         NAMES_SYSTEM,
-        {"goal": state.charter["goal"], "plans": words.facts(shown)},
+        {
+            "goal": state.charter["goal"],
+            "plans": words.facts(shown),
+            "shared_by_everyone": sets.facts(engine, coalition, doc),
+        },
         NamesReply,
         verb="explaining",
         label="Naming the plans",

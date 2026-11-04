@@ -19,7 +19,7 @@ from coalitionkit_contracts import new_ulid
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from . import makers, results
+from . import makers, results, sets
 from .seats import read_state, sign_asks
 
 if TYPE_CHECKING:
@@ -154,6 +154,7 @@ def facts_for(
         ],
         "amount": makers.stated_amount(str(state.charter["goal"])),
         "common": [{"id": s, "label": slots.get(s, s)} for s in shared],
+        "sets": sets.facts(engine, coalition, doc),
         "now": datetime.fromtimestamp(engine.now(), UTC).isoformat(),
         "money": bool(
             MONEY.search(f"{state.charter['goal']} {needs[task]['title']} {needs[task]['detail']}")

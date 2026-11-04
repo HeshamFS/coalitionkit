@@ -9,6 +9,7 @@ import { captionFor } from "./caption";
 import { fitScale, type Layout } from "./geometry";
 import { VoiceMarks } from "./inputs/VoiceMarks";
 import { needStatus } from "./needWords";
+import { SharedSets } from "./psi/SharedSets";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
@@ -229,6 +230,7 @@ export function Stage({
           {steward.explain && <span>{steward.explain}</span>}
         </p>
       )}
+      {room.phase !== "ended" && <SharedSets room={room} />}
       {layout.compact && <NeedList room={room} />}
       {tray}
       {room.checked > 0 && <div className="tb-stamp">{room.checked} events checked</div>}
