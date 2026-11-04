@@ -10,7 +10,7 @@ Put the model keys in the environment, then start the host with the pack and the
 
 ```sh
 export COALITIONKIT_META_API_KEY=...
-export COALITIONKIT_STANDING_ROOM_GOAL="Strangers from anywhere build a one-hour virtual world tour: one must-see stop in each of our cities, the hour that fits everyone, and a tour poster"
+export COALITIONKIT_STANDING_ROOM_GOAL="We need a must-see place in each of our cities, the hour that fits everyone, who shows what in order, and a tour poster for our one-hour virtual world tour"
 export COALITIONKIT_STANDING_ROOM_PACK=world-tour
 export COALITIONKIT_STANDING_ROOM_MINUTES=15
 export COALITIONKIT_ROOM_BUDGET_USD=0.50

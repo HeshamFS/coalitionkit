@@ -20,7 +20,7 @@ coalitionkit pack eval packs/world-tour --live
 coalitionkit pack accept packs/world-tour --live
 coalitionkit up --pack packs/world-tour
 ```
-Type a goal such as "Strangers from different cities make a one-hour virtual world tour with a must-see place in each city and a tour poster", accept the suggested pack, and share the code. The public demo guide shows how to run it as a standing room.
+Type a goal such as "We need a must-see place in each of our cities, the hour that fits everyone, who shows what in order, and a tour poster for our one-hour virtual world tour", accept the suggested pack, and share the code. Name each thing the tour needs, separated by commas: the room drafts one need from each, even when the model does not answer. The public demo guide shows how to run it as a standing room.
 
 ## What it never does
 - Ask for, show or search a street address.
