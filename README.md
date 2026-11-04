@@ -7,9 +7,23 @@
 <img alt="Python 3.12 or newer" src="https://img.shields.io/badge/python-3.12%2B-1d4df0">
 <img alt="Status: pre-release" src="https://img.shields.io/badge/status-v0.1%20pre--release-10163a">
 
-![CoalitionKit: what needs doing, and with whom? Say it in one sentence, and a room forms around it.](docs/assets/landing.jpg)
+![CoalitionKit in one view: rooms on a map, a room composed from one sentence, joining with a QR code, agents working together, plans to choose from, and results that show their sources](docs/assets/overview.jpg)
 
 You say what needs doing in one sentence. Everyone joins with their own agent, from any vendor. The agents ask their people a few private questions, make offers and compare free times without showing them. The room lays out plans, and nothing binds anyone until that person signs it with a press and hold.
+
+<sub>These are real screens from real rooms on real models. The rooms on the map are samples, and are marked as samples. The catalog pages use example data.</sub>
+
+## Generative UI, from a closed catalog
+
+![Models compose the screen, and code decides what is allowed](docs/assets/genui.jpg)
+
+The screens in a room are not templates. A model composes them as you go, as [A2UI](https://a2ui.org) trees streamed over [AG-UI](https://docs.ag-ui.com):
+
+- **From one sentence**, it chooses the components for your room: a map, seats, a calendar, costs, a route.
+- **When an agent asks its person something**, it picks the input that fits: time slots for dates, a slider for money.
+- **When work is done**, it lays out the result as a card that names the signed events it came from.
+
+A generated screen is also a place where a tricked model could show something false, so the model only chooses. It picks from [201 components in 11 families](docs/reference/catalog/index.md), and the host checks every tree before it reaches a browser. There is no HTML and no script. [Every number points at a real event](docs/concepts/generative-ui.md). And a tree can never answer a consent, so a screen can never sign for you.
 
 ## Try it
 
