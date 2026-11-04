@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     # missing credentials must never silently select another provider's model.
     # Meta's endpoint remains available through an explicit steward_provider="meta".
     steward_provider: StewardProvider | None = None
-    steward_baseten_model: str = "meta-models/muse-spark-open-1026"
+    steward_baseten_model: str = "meta-models/muse-spark-open"
 
     image_model: str = "muse-image-1.0"
     segment_model: str = "sam-3.1"
