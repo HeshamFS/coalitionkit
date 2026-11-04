@@ -57,6 +57,9 @@ class StewardAdapter:
         self.timings: list[tuple[str, float, str]] = []
         # Told when a plan set enters and leaves review: (phase, coalition, seconds, action).
         self.on_plan_review: Callable[[str, str, float, str], None] | None = None
+        # Told after every review, inside the host's transaction: a dict with ``coalition``,
+        # ``event_id``, ``type``, ``by``, ``seconds``, ``action`` and ``policy_id``.
+        self.on_review: Callable[[dict[str, object]], None] | None = None
         self._members = members
         self._policies = core_policies()
         self._ready = None
@@ -74,6 +77,18 @@ class StewardAdapter:
         if watching and self.on_plan_review is not None:
             self.on_plan_review("end", coalition, time.monotonic() - started, verdict.action)
         self.timings.append((str(envelope.get("type")), time.monotonic() - started, verdict.action))
+        if self.on_review is not None:
+            self.on_review(
+                {
+                    "coalition": coalition,
+                    "event_id": envelope.get("event_id"),
+                    "type": envelope.get("type"),
+                    "by": envelope.get("on_behalf_of"),
+                    "seconds": time.monotonic() - started,
+                    "action": verdict.action,
+                    "policy_id": verdict.policy_id,
+                }
+            )
         del self.timings[:-2000]
         return verdict
 

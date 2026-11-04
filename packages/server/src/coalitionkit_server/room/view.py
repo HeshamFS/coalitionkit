@@ -19,6 +19,7 @@ from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
 from .seats import open_seats, people
 from .view_results import change_of, latest_by_need, results_of, tasks_of
+from .view_tools import add_busy, tools_of
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -87,12 +88,13 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         or any(t["can_mark_done"] for t in mine["tasks"])
     )
     owner = engine.owner(coalition)
+    tools = tools_of(state, viewer)
     return {
         "phase": phase,
         "lights": "day" if phase in {"gather", "ended"} or waiting else "night",
         "goal": str(state.charter.get("goal", "")),
         "closes": str(state.charter.get("deadline", "")),
-        "seats": seats_of(engine, coalition, viewer, state, doc),
+        "seats": add_busy(seats_of(engine, coalition, viewer, state, doc), tools, engine.now()),
         "needs": needs_of(viewer, state, doc, latest_by_need(made)),
         "activity": [
             {k: item[k] for k in SHOWN}
@@ -109,6 +111,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "measured": measured_of(engine, coalition, state, doc),
         "mine": mine,
+        "tools": tools,
     }
 
 

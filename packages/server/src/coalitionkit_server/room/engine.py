@@ -251,10 +251,11 @@ class RoomEngine:
 
     # --- the step -----------------------------------------------------------------------------
     async def step(self, coalition: str) -> None:
-        from . import brief, compare, explain, needs, offers, say, seats, work
+        from . import activity, brief, compare, explain, needs, offers, say, seats, work
 
         host = self.server.hosts[coalition]
         self.flush_checks(coalition)
+        await activity.flush_reviews(self, coalition)
         state = await self.thread(lambda: host.state)
         owner = self.owner(coalition)
         if state.stage != "Dissolve":
@@ -340,6 +341,12 @@ class RoomEngine:
             self.finished_checks.append((coalition, entry, seconds, action))
         self.versions[coalition] = self.versions.get(coalition, 0) + 1
         self.wake(coalition)
+
+    def steward_reviewed(self, review: Mapping[str, Any]) -> None:
+        """The Steward reviewed one event: it becomes a ``steward:review`` activity."""
+        from .activity import steward_reviewed
+
+        steward_reviewed(self, dict(review))
 
     def flush_checks(self, coalition: str) -> None:
         """Write the audits that have ended into the activity, once."""

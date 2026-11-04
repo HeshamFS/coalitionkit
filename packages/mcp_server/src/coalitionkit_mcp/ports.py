@@ -84,3 +84,11 @@ class ViewPort(Protocol):
 
 class SkillsPort(Protocol):
     async def skills(self, participant: str, coalition_id: str) -> list[dict[str, Any]]: ...
+
+
+class ActivityPort(Protocol):
+    """Where reported activities go. ``record`` answers the recorded event id, or None."""
+
+    async def record(
+        self, coalition_id: str, activity: dict[str, Any], start: str | None = None
+    ) -> str | None: ...
