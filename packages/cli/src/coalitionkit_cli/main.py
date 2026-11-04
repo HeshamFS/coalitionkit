@@ -58,10 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         return run(args)
     except KeyboardInterrupt:
         return 0
-    except OSError, ValueError:
-        print(
-            "Could not start: check the data directory, saved port and web build.", file=sys.stderr
-        )
+    except (OSError, ValueError) as exc:
+        print(f"Could not start: {exc}", file=sys.stderr)
         return 2
 
 

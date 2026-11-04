@@ -4,8 +4,10 @@
 import argparse
 import asyncio
 import os
+import shutil
 import signal
 import socket
+import subprocess
 from contextlib import suppress
 from pathlib import Path
 from types import FrameType
@@ -13,7 +15,7 @@ from types import FrameType
 import uvicorn
 from pydantic import SecretStr
 
-from coalitionkit_contracts.resources import resource_path
+from coalitionkit_contracts.resources import checkout_root, resource_path
 from coalitionkit_server import Settings, create_server
 from coalitionkit_server.app import Server
 
@@ -23,11 +25,52 @@ from .storage import admin_token, prepare
 from .web import Room
 
 
-def web_dist() -> Path | None:
+def web_dist() -> Path:
+    """An installed wheel carries the room's files; a source checkout builds its own."""
+    root = checkout_root()
+    if root is not None:
+        return checkout_web(root / "apps" / "web")
     dist = resource_path("coalitionkit_cli", "web_dist")
     if not (dist / "index.html").is_file():
-        raise FileNotFoundError("Room assets missing; build the release with tools/build_web.py")
+        raise FileNotFoundError(
+            "this install has no web room files. Reinstall coalitionkit, or start with --no-web."
+        )
     return dist
+
+
+def checkout_web(web: Path) -> Path:
+    """Serve ``apps/web/dist``, building it when it is absent or older than its source."""
+    dist = web / "dist"
+    built = (dist / "index.html").is_file()
+    if built and not _older_than_source(web, dist):
+        return dist
+    npm = shutil.which("npm")
+    if npm is None:
+        if built:
+            print("The web room is older than its source; npm was not found to rebuild it.")
+            return dist
+        raise FileNotFoundError(
+            "the web room is not built and npm was not found. "
+            "Install Node 22 or newer, or start with --no-web."
+        )
+    print("Building the web room. It takes a minute or two and only runs when needed.", flush=True)
+    steps = [[npm, "run", "build"]]
+    if not (web / "node_modules").is_dir():
+        steps.insert(0, [npm, "ci", "--no-audit", "--no-fund"])
+    for step in steps:
+        try:
+            subprocess.run(step, cwd=web, check=True)
+        except subprocess.CalledProcessError as exc:
+            raise OSError(
+                f"`npm {' '.join(step[1:])}` failed in {web} (exit {exc.returncode}). "
+                "Its output is above. Fix that, or start with --no-web."
+            ) from exc
+    return dist
+
+
+def _older_than_source(web: Path, dist: Path) -> bool:
+    stamp = (dist / "index.html").stat().st_mtime
+    return any(p.stat().st_mtime > stamp for p in (web / "src").rglob("*") if p.is_file())
 
 
 def run(args: argparse.Namespace) -> int:
