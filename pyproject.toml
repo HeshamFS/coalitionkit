@@ -29,6 +29,10 @@ dev = [
     "coalitionkit-cli",
     "coalitionkit-packs",
     "coalitionkit-channels",
+    "coalitionkit-langchain",
+    "coalitionkit-langgraph",
+    "langchain==1.4.8",
+    "langchain-openai==1.7.3",
     "jsonschema==4.26.0",
     "pyright==1.1.414",
     "pytest==9.2.0",
@@ -39,6 +43,9 @@ dev = [
 
 [tool.uv]
 package = false
+# zstandard has no CPython 3.15 wheel and its sdist needs a C toolchain. langsmith (via
+# langchain-core) lists it, but only uses it to compress tracing uploads.
+override-dependencies = ["zstandard; python_version < '3.15'"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -61,6 +68,8 @@ coalitionkit-server = { workspace = true }
 coalitionkit-cli = { workspace = true }
 coalitionkit-packs = { workspace = true }
 coalitionkit-channels = { workspace = true }
+coalitionkit-langchain = { workspace = true }
+coalitionkit-langgraph = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -77,7 +86,7 @@ known-third-party = ["examples"]
 known-first-party = ["coalitionkit_contracts", "coalitionkit_vault", "coalitionkit_runtime", "coalitionkit_edges", "coalitionkit_gardener", "coalitionkit_models", "coalitionkit_steward", "coalitionkit_mcp", "coalitionkit_acceptance", "coalitionkit_surfaces", "coalitionkit_server", "coalitionkit_packs", "coalitionkit_mint", "coalitionkit_channels", "coalitionkit_cli"]
 
 [tool.pyright]
-include = ["packages/cli", "packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools", "packages/conformance"]
+include = ["packages/langchain", "packages/langgraph", "packages/cli", "packages/contracts", "packages/vault", "packages/runtime", "packages/edges", "packages/gardener", "packages/models", "packages/steward", "packages/mcp_server", "packages/acceptance", "packages/surfaces", "packages/server", "packages/packs", "packages/mint", "packages/channels", "tools", "packages/conformance"]
 exclude = ["**/.venv", "**/__pycache__"]
 pythonVersion = "3.15"
 extraPaths = ["packages/contracts/tests", "packages/edges/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
@@ -134,7 +143,7 @@ forbidden_modules = [
 
 [tool.pytest.ini_options]
 testpaths = ["packages"]
-addopts = "--import-mode=importlib"
+addopts = "--import-mode=importlib -p no:langsmith_plugin"
 pythonpath = ["packages/contracts/tests", "packages/surfaces/tests", "packages/packs/tests", "packages/channels/tests", "packages/server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -143,6 +152,9 @@ filterwarnings = [
     # pysodium 0.7.19 declares a ctypes struct with _pack_ and no _layout_; Python 3.15 warns on
     # non-Windows platforms. Third-party and harmless until 3.19; drop when pysodium sets it.
     "ignore:Due to '_pack_':DeprecationWarning:pysodium",
+    # langsmith (via langchain-core) calls this at import time, and it goes in Python 3.16. Drop
+    # this when langsmith moves to inspect.iscoroutinefunction.
+    "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",
     # Windows only: asyncio's proactor pipe transports of subprocesses that exited are finalized
     # after their loop closed (CPython's own __del__ warns). Not a leak in this code.
     "ignore:Exception ignored in. <function _ProactorBasePipeTransport.__del__:pytest.PytestUnraisableExceptionWarning",

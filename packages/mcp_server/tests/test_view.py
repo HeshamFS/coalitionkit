@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from coalitionkit_mcp.testing_rig import C1, Rig
+from coalitionkit_mcp.tools_read import event_line
 from coalitionkit_mcp.view import CSP, MAX_VIEW_BYTES
 
 VIEW = "ui://coalitionkit/surface-v1.html"
@@ -75,3 +76,31 @@ async def test_my_view_carries_the_viewers_events_in_order_and_readable_text(rig
     assert "Status:" not in text  # no status field, so no "unknown" that contradicts the list
     assert "never" not in str(result)  # fields no allowlist names are dropped
     assert (result.meta or {})["ui"]["resourceUri"] == VIEW
+
+
+def test_the_text_alone_holds_the_ids_an_agent_acts_on() -> None:
+    """A host may pass its model only the text. The next tool call must be possible from it."""
+    plan = {"plan_id": "P1", "assignments": [{"task_id": "T1", "assignee": "p2"}]}
+    cases = {
+        "coalition.need": (
+            {"need_id": "N1", "description": "Find a place"},
+            "need N1: Find a place",
+        ),
+        "coalition.offer": ({"target": {"kind": "need", "id": "N1"}}, "on need N1"),
+        "coalition.propose": ({"plans": [plan]}, "plan P1: task T1 to p2"),
+        "coalition.commit": (
+            {"task_id": "T1", "commitment_id": "C9", "status": "pending"},
+            "task T1, commitment C9 pending",
+        ),
+        "coalition.done": ({"task_id": "T1"}, "task T1"),
+    }
+    for kind, (payload, expected) in cases.items():
+        line = event_line({"seq": 4, "type": kind, "on_behalf_of": "p2", "payload": payload})
+        assert line.startswith(f"- #4 {kind} by p2: ") and expected in line
+
+
+def test_a_plan_shows_only_what_the_viewers_projection_holds() -> None:
+    line = event_line(
+        {"seq": 5, "type": "coalition.propose", "payload": {"plans": [{"plan_id": "P1"}]}}
+    )
+    assert line == "- #5 coalition.propose: plan P1: no tasks you can see"

@@ -41,8 +41,10 @@ Keep credentials out of commits, fixtures, issue reports and screenshots.
 
 All Python packages use version 0.1.0 and exact versions for internal dependencies.
 The `coalitionkit` distribution aggregates the 16 core distributions. Framework
-extras require matching `coalitionkit-langgraph` and `coalitionkit-langchain`
-distributions. They must be built and available before advertising those extras.
+extras use `coalitionkit-langgraph` and `coalitionkit-langchain`, built the same way.
+`zstandard`, which `langchain-core` needs through `langsmith`, has no Python 3.15 wheel,
+so on 3.15 those two need a C compiler. The workspace overrides it, because it is only
+used to compress tracing uploads.
 The aggregate is outside the development workspace lock so its optional framework
 dependencies do not prevent core development before those packages are available.
 
