@@ -11,6 +11,8 @@ import { needStatus } from "./needWords";
 import type { Room } from "./room";
 import { Beams, Crossing, StopBeam, Waves } from "./StageLayers";
 import { GoalDisc, NeedNode, SeatNode, seatColor } from "./StageNodes";
+import { ToolSparks } from "./tools/ToolSparks";
+import { ToolStrip } from "./tools/ToolStrip";
 import { useCurrentStop, useStageFx } from "./useStageFx";
 
 /** The scale that fits the stage into the room the sheet has left, measured on the sheet itself. */
@@ -139,6 +141,7 @@ function StageContents({
           onPick={() => onSeat(s.seat)}
         />
       ))}
+      {!ended && <ToolSparks seats={list} home={home} />}
       {commonText && !ended && (
         <div className="tb-chipnote" style={{ left: layout.W * 0.6, top: layout.H - 40 }}>
           {commonText}
@@ -205,6 +208,7 @@ export function Stage({
           <StageContents room={room} layout={layout} viewing={viewing} onSeat={onSeat} />
         </div>
       </div>
+      <ToolStrip room={room} />
       {decide && !layout.compact && <div className="tb-planstrip">{plans}</div>}
       {steward && room.phase !== "ended" && (
         <p className="tb-stewardbar" role="status">

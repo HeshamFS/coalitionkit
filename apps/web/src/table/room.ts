@@ -2,6 +2,7 @@
 // The `Room` the host builds per viewer and a reader
 // that never throws: a missing or malformed value becomes an empty one, so the screen still draws.
 import type { ViewerState } from "../feed/delta";
+import { type Busy, readBusy, readTools, type ToolCallItem } from "./tools/tools";
 
 export type Phase = "gather" | "brief" | "work" | "decide" | "commit" | "make" | "live" | "ended";
 export type Lights = "day" | "night";
@@ -29,6 +30,8 @@ export type RoomSeat = {
   you: boolean;
   signed: boolean;
   state: string;
+  /** What this seat's agent is doing right now, from `coalition.tool` (gap tools). */
+  busy?: Busy | null;
 };
 export type RoomNeed = {
   id: string;
@@ -122,6 +125,8 @@ export type Room = {
   seats: RoomSeat[];
   needs: RoomNeed[];
   activity: Activity[];
+  /** The agents' tool calls, newest last (`coalition.tool`). */
+  tools?: ToolCallItem[];
   slots: {
     id: string;
     label: string /** ISO start, when the host gave one */;
@@ -189,6 +194,7 @@ function readSeats(v: unknown): RoomSeat[] {
       you: s.you === true,
       signed: s.signed === true,
       state: str(s.state),
+      ...(s.busy !== undefined ? { busy: readBusy(s.busy) } : {}),
     }));
 }
 
@@ -354,6 +360,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     seats: readSeats(raw.seats),
     needs: readNeeds(raw.needs),
     activity: readActivity(raw.activity),
+    ...(raw.tools !== undefined ? { tools: readTools(raw.tools) } : {}),
     slots: list(raw.slots)
       .filter((s) => str(s.id) !== "")
       .map((s) => ({
