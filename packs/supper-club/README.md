@@ -10,7 +10,7 @@ A Discipline Pack for friends who cook one dinner from several kitchens. Their a
 | `cook` | charter, offer, decide, commit | A friend who cooks; the first cook starts the room |
 | `guest` | offer, decide, commit | A friend who brings something but does not host a course |
 | `absent-cook` | offer, decide, commit | A cook who is away: their agent answers from what they said, and only the cook signs |
-| `grocer` | offer, commit | A business agent, such as a shop that holds a delivery slot. Any grocer in a demo is simulated and says so on its card |
+| `grocer` | offer, decide, commit | A business agent, such as a shop that holds a delivery slot. It decides only to sign its own charter acceptance, which its offers need to count. Any grocer in a demo is simulated and says so on its card |
 
 **Words.** A task is a *course or errand*, a need is *what the dinner needs*, an offer is *I can bring or cook*, the resource is *time and kitchen*.
 
