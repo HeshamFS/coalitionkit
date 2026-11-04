@@ -43,6 +43,16 @@ def people(state: State, doc: Document) -> list[str]:
     return [p for p in state.members if p not in doc["helpers"]]
 
 
+def count_outside(engine: RoomEngine, coalition: str, state: State) -> None:
+    """Remember how many seats are outside agents, each time the seating changes."""
+    doc = engine.read(coalition)
+    seated = people(state, doc)
+    if doc.get("outside_of") == len(seated):
+        return
+    outside = sum(1 for p in seated if not engine.is_hosted(coalition, p))
+    engine.update(coalition, lambda d: d.update(outside=outside, outside_of=len(seated)))
+
+
 def total_seats(engine: RoomEngine, coalition: str, state: State) -> int:
     door = engine.doors.door_row("coalition", coalition)
     seats = sum(r["count"] for r in door["roles"]) if door else len(state.charter["deciders"])

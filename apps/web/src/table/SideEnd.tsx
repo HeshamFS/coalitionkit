@@ -164,7 +164,7 @@ function Measured() {
   if (!m) return null;
   const lines = [
     m.calendars_shared !== null &&
-      `${m.calendars_shared} ${m.calendars_shared === 1 ? "calendar" : "calendars"} shared`,
+      `${m.calendars_shared} ${m.calendars_shared === 1 ? "calendar" : "calendars"} compared privately`,
     m.minutes !== null &&
       `${m.minutes} ${m.minutes === 1 ? "minute" : "minutes"} from start to end`,
     m.cost !== null && `${m.cost} spent on the model`,
@@ -214,8 +214,8 @@ export function SideEnded() {
         <>
           <span className="tb-tag">Lessons kept, with no private data in them</span>
           <ul className="tb-list">
-            {skills.map((id) => (
-              <li key={id}>{counts?.lessons?.[id]?.title || id}</li>
+            {skills.map((id, index) => (
+              <li key={id}>{counts?.lessons?.[id]?.title || `Lesson ${index + 1}`}</li>
             ))}
           </ul>
         </>

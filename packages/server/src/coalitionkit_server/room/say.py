@@ -49,6 +49,13 @@ ADDRESSED = re.compile(
     re.I,
 )
 ROOM_WORDS = re.compile(r"^(@?room|everyone|all|tell (everyone|the room))\b[:,]?\s*", re.I)
+# A sentence that opens by naming the room is for the room, whatever the model reads into it.
+OPENS_TO_ROOM = re.compile(
+    r"^(@room\b|room\s*[:,]|everyone\b|everybody\b|all of you\b"
+    r"|tell (everyone|everybody|the room|the group)\b"
+    r"|let (everyone|everybody|the room|the group) know\b)",
+    re.I,
+)
 
 SYSTEM = (
     "You are one person's agent in a small group room. The person typed one sentence; decide "
@@ -127,6 +134,8 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
         only=who,
     )
     route, withdraw = (reply.route, reply.withdraw) if reply else rule_route(text)
+    if route == "private" and OPENS_TO_ROOM.match(text.strip()):
+        route = "room"
     if route == "room" and not ADDRESSED.search(text):
         route = "private"  # a question to your agent is never sent to the room by a guess
     affected: list[str] = []

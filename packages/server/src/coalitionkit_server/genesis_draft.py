@@ -202,13 +202,18 @@ def read_goal(
     roles: dict[str, Role] = {}
     # Counts tied to people/roles, never durations or quantities of requested objects.
     role_pattern = re.compile(
-        rf"\b({NUMBER})\s+(of us|people|members?|participants?|labs?|couriers?|"
+        rf"\b({NUMBER})\s+(of us|people|members?|participants?|friends?|colleagues?|"
+        r"neighbou?rs?|classmates?|roommates?|flatmates?|teammates?|siblings?|labs?|couriers?|"
         r"teams?|volunteers?|organizers?|drivers?|reviewers?|groups?|businesses|business)\b",
         re.I,
     )
+    plain_people = re.compile(
+        r"of us|people|participants?|friends?|colleagues?|neighbou?rs?|classmates?|roommates?|"
+        r"flatmates?|teammates?|siblings?"
+    )
     for role_match in role_pattern.finditer(goal):
         label = role_match[2].lower()
-        label = "member" if label in {"of us", "people", "participants", "participant"} else label
+        label = "member" if plain_people.fullmatch(label) else label
         label = "business" if label == "businesses" else label
         if label.endswith("s") and label != "business":
             label = label[:-1]
@@ -308,7 +313,8 @@ async def draft_goal(
                         "UTC, reading day words in the writer's local time, now "
                         f"{local_now.isoformat()}. "
                         "List each thing the goal asks to get done as a need, in the goal's "
-                        "words. Default role member, count 1. "
+                        "words. Default role member, count 1; when the goal counts the people "
+                        "taking part ('two friends', 'the three of us'), use that count. "
                         "Use deciders all, pack null, source model. Never invent a deadline. "
                         "Place is the exact place name in the goal, or null. "
                         "Choose at most six cards from the closed kinds. Each word is an exact "

@@ -68,12 +68,14 @@ KIND_RULES = {
         "such as 'it could' or 'as a proposal', and no list of tasks for named people."
     ),
     "schedule": (
-        "Give the ordered steps of the plan, each a short action. The times are added from the "
-        "shared times; do not write times."
+        "Give the ordered steps of the plan, each a short action of at most 15 words. The times "
+        "are added from the shared times; do not write times. Do not say a step is a proposal: "
+        "the screen marks it."
     ),
     "list": (
-        "Give 3 to 8 concrete items and, for each, who brings or does it, using the people's "
-        "names, or 'anyone' when it does not matter."
+        "Give 3 to 8 concrete items of at most 10 words each and, for each, who brings or does "
+        "it, using the people's names, or 'anyone' when it does not matter. Do not say an item "
+        "is a proposal: the screen marks it."
     ),
 }
 
@@ -183,6 +185,17 @@ TALKS_ABOUT = re.compile(
     r"\b(?:a|this|the) (?:proposal|set is a proposal)\b|\bas a proposal\b", re.I
 )
 SAYS_PROPOSAL = re.compile(r" ?This is an? (?:proposal|suggestion)(?: for the group)?\.", re.I)
+# The tail of a short line that only repeats what the screen's mark already says.
+PROPOSAL_TAIL = re.compile(
+    r"\W+(?:this|it|that|all this|the whole \w+|this whole \w+)\s+(?:\w+\s+)?"
+    r"(?:is|are)\s+(?:an?\s+|only\s+an?\s+)?(?:proposal|suggestion|proposed|suggested)\b.*$",
+    re.I,
+)
+
+
+def short_line(text: str, limit: int) -> str:
+    """A list item or a step: whole, without a tail about being a proposal."""
+    return tidy(PROPOSAL_TAIL.sub("", text.strip()), limit)
 
 
 def unhedged(text: str) -> str:
@@ -233,16 +246,16 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
             return "do not write the shared free times, a clock time or a deadline in the ideas"
         return {"ideas": ideas} if len(ideas) >= 2 else "give two or three kinds of place"
     if isinstance(out, ScheduleOut):
-        steps = [tidy(s.step, 80) for s in out.steps if tidy(s.step, 80)][:6]
+        steps = [short_line(s.step, 140) for s in out.steps if short_line(s.step, 140)][:6]
         return {"steps": steps} if steps else "give the steps"
     if isinstance(out, ListOut):
         items = [
             {
-                "label": tidy(i.label, 60),
+                "label": short_line(i.label, 100),
                 "who": i.who if i.who in names else "anyone",
             }
             for i in out.items
-            if tidy(i.label, 60)
+            if short_line(i.label, 100)
         ][:8]
         return {"items": items} if len(items) >= 2 else "give at least two items"
     return "unusable"

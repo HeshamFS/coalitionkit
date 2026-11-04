@@ -44,8 +44,11 @@ LAYOUT_SYSTEM = (
     "one Card per group of related lines and set the card's provenance once ('estimate' for "
     "everything the data marks as a suggestion); do not repeat it on every line. Never make an "
     "empty card. Write every number inside a string; no number may stand alone. Strings only, "
-    "no markup. A message goes in one Card whose child is a Text holding the whole message."
+    "no markup. A message goes in one Card whose child is a Text holding the whole message. "
+    "This is for people: never show an id, a kind or an empty value."
 )
+INTERNAL_LABELS = {"id", "kind", "chosen", "need", "need_id", "provenance", "source"}
+EMPTY_VALUES = {"", "null", "none", "undefined", "[]", "{}"}
 
 
 class Node(BaseModel):
@@ -360,6 +363,20 @@ def covers(tree: list[Document], kind: str, data: Document) -> str | None:
     return None
 
 
+def shows_internals(tree: list[Document], need_id: str) -> str | None:
+    """What a person should not be shown, or None. The model can ignore the prompt; code cannot."""
+    if need_id and need_id.lower() in shown_text(tree):
+        return "do not show the id of the need"
+    for node in reachable(tree):
+        fields = cast(list[Document], node.get("fields") or [])
+        for field in fields:
+            label = str(field.get("label", "")).strip().lower()
+            value = str(field.get("value", "")).strip().lower()
+            if label in INTERNAL_LABELS or value in EMPTY_VALUES:
+                return f"do not show the field '{label}': it means nothing to a person"
+    return None
+
+
 def tree_errors(engine: RoomEngine, components: list[Document], known: set[str]) -> list[str]:
     return compose_surface(engine.catalog, "result", components, {}, known).errors
 
@@ -387,7 +404,12 @@ async def layout(
     known: set[str],
 ) -> tuple[str, list[Document]] | None:
     """The composer's layout of the data, if it passes every check; else None."""
-    shown = {k: v for k, v in data.items() if k not in {"time", "time_total"}}
+    shown = {
+        k: v
+        for k, v in data.items()
+        if k not in {"time", "time_total"} and v not in (None, "", [], {})
+    }
+    need = {k: facts["need"][k] for k in ("title", "detail")}
     errors: list[str] = []
     for _ in range(2):
         reply = await ask(
@@ -395,7 +417,7 @@ async def layout(
             coalition,
             "composer",
             LAYOUT_SYSTEM,
-            {"kind": kind, "need": facts["need"], "data": shown, "fix_this": errors},
+            {"kind": kind, "need": need, "data": shown, "fix_this": errors},
             LayoutReply,
             verb="making",
             label=f"Laying out {facts['need']['title']}",
@@ -416,7 +438,7 @@ async def layout(
             hidden = [n["id"] for n in parsed if n not in reachable(parsed)]
             if hidden and not errors:
                 errors = [f"these nodes are not reachable from root: {', '.join(hidden)}"]
-            missing = covers(parsed, kind, data)
+            missing = covers(parsed, kind, data) or shows_internals(parsed, facts["need"]["id"])
             if missing and not errors:
                 errors = [missing]
             if not errors and parsed:

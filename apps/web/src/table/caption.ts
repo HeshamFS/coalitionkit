@@ -46,9 +46,9 @@ function resting(room: Room, ctx: { plans: number; waiting: boolean }): Caption 
           unsigned + open === 0
             ? "Everyone is seated."
             : unsigned > 0
-              ? `Waiting for ${unsigned} ${unsigned === 1 ? "person" : "people"} to take a seat.`
+              ? `Waiting for ${unsigned} ${unsigned === 1 ? "person" : "people"} to say yes.`
               : `${open} ${open === 1 ? "seat is" : "seats are"} still open.`,
-        sub: `${people.length - unsigned} of ${people.length} seated`,
+        sub: `${people.length - unsigned} of ${people.length} signed`,
       };
     case "brief":
       return {

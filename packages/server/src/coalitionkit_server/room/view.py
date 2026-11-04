@@ -125,7 +125,10 @@ def measured_of(engine: RoomEngine, coalition: str, state: State, doc: Document)
         "calendars_shared": len(cmp["took_part"]) if cmp and cmp["state"] == "done" else 0,
         "minutes": None if started is None else round((engine.now() - float(started)) / 60),
         "cost": spent,
-        "vendors": sum(1 for p in people(state, doc) if not engine.is_hosted(coalition, p)),
+        # Ending a room deletes its credentials, so the count from before the end stands.
+        "vendors": doc.get("outside", 0)
+        if state.stage == "Dissolve"
+        else sum(1 for p in people(state, doc) if not engine.is_hosted(coalition, p)),
     }
 
 
@@ -289,7 +292,12 @@ def asks_of(
             continue
         if kind == "charter":
             helpers = len(doc["helpers"])
-            text = f"The door closed. The {len(people(state, doc))} people here now decide together"
+            here = len(people(state, doc))
+            text = (
+                "You are the only person here so far"
+                if here == 1
+                else (f"The {here} people here decide together")
+            )
             text += (
                 f", and {helpers} helper agent{'s' if helpers != 1 else ''} joined."
                 if helpers

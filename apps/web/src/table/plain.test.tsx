@@ -304,7 +304,7 @@ describe("one ending", () => {
       s.state,
     );
     render(<EndedTable event={{ reason: "completed", skills_written: [] }} onLeave={() => {}} />);
-    expect(screen.getByText("5 calendars shared")).toBeInTheDocument();
+    expect(screen.getByText("5 calendars compared privately")).toBeInTheDocument();
     expect(screen.getByText("47 minutes from start to end")).toBeInTheDocument();
     expect(screen.getByText("1 outside agent")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/spent on the model|\[COST\]|\[MEASURED\]/);

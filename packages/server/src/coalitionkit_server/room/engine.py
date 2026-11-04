@@ -244,6 +244,8 @@ class RoomEngine:
         self.flush_checks(coalition)
         state = await self.thread(lambda: host.state)
         owner = self.owner(coalition)
+        if state.stage != "Dissolve":
+            seats.count_outside(self, coalition, state)
         if state.stage == "Dissolve" or owner is None or not state.accepted_charter(owner):
             return
         if self.read(coalition)["needs_state"] != "ready":
