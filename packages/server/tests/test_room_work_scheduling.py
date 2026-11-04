@@ -23,7 +23,7 @@ async def test_completed_result_is_not_scheduled_from_a_stale_snapshot() -> None
             }
         },
     )
-    stale = {"made": {}}
+    stale: dict[str, Any] = {"made": {}}
     current = {"made": {"task-1": {"commitment": "commitment-1", "result": "result-1"}}}
     engine: Any = SimpleNamespace(
         read=Mock(return_value=current), is_hosted=Mock(return_value=True), spawn=Mock()

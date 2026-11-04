@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Literal
@@ -152,7 +152,7 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
 
 
 @contextmanager
-def pause_planning(engine: RoomEngine, coalition: str) -> Iterator[None]:
+def pause_planning(engine: RoomEngine, coalition: str) -> Generator[None]:
     """A transient gate for publishing changes, independent of routine room seat work."""
     with engine.lock:
         engine.publishing_changes[coalition] = engine.publishing_changes.get(coalition, 0) + 1
