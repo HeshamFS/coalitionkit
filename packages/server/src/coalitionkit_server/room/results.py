@@ -23,15 +23,20 @@ from pydantic import BaseModel
 from coalitionkit_surfaces import compose_surface
 
 from ..adapter import Document
-from . import makers
+from . import image, makers
+from .fixed import fixed_tree, surface_model, time_card
 from .model import ask
 from .needs import slot_start, tidy
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
 
-KINDS = ("place", "schedule", "budget", "list", "draft")
-WHITELIST = {"Column", "Row", "Card", "Heading", "Text", "Badge", "Divider"}
+KINDS = ("place", "schedule", "budget", "list", "draft", "image")
+WHITELIST = {
+    *("Column", "Row", "Card", "Heading", "Text", "Badge", "Divider"),
+    *("Checklist", "CostSplit", "Timeline", "Gantt", "KeyValue", "Table", "List"),
+    *("Meter", "Deadline", "Image"),
+}
 MAX_ITEMS = 6
 
 LAYOUT_SYSTEM = (
@@ -45,7 +50,16 @@ LAYOUT_SYSTEM = (
     "everything the data marks as a suggestion); do not repeat it on every line. Never make an "
     "empty card. Write every number inside a string; no number may stand alone. Strings only, "
     "no markup. A message goes in one Card whose child is a Text holding the whole message. "
-    "This is for people: never show an id, a kind or an empty value."
+    "This is for people: never show an id, a kind or an empty value. Richer parts, each with "
+    "exactly these props: CostSplit (items: [{label, payer, amount, kind}] with amount a "
+    "string such as '60 EUR', settlements: [strings]); Checklist (items: [{text, done}], done "
+    "false); Timeline (items: [{start, end, title, state}], start and end ISO times, state "
+    "'next'); Gantt (rows: [{task, assignee, start, end, status}]); KeyValue (pairs: [{label, "
+    "value}]); Table (columns: [{key, label}], rows: {path} naming a list in the data, such "
+    "as {'path': '/items'}); List (items: {path}); Deadline (label, consequence, deadline "
+    "ISO). Put a rich part inside a Card's children so the card carries the title and the "
+    "provenance. A budget shows its lines in a CostSplit, a list in a Checklist whose text "
+    "names who brings each item, a schedule in a Timeline or a Gantt."
 )
 INTERNAL_LABELS = {"id", "kind", "chosen", "need", "need_id", "provenance", "source"}
 EMPTY_VALUES = {"", "null", "none", "undefined", "[]", "{}"}
@@ -180,125 +194,6 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
 def web_of(made: Document | None) -> Document:
     """The pages a web search found for this result, kept with its data when there are any."""
     return {"web": made["web"]} if made and made.get("web") else {}
-
-
-def card(index: int, title: str, fields: list[Document], prov: str) -> Document:
-    return {
-        "id": f"fx{index}",
-        "component": "Card",
-        "title": title,
-        "fields": fields,
-        "provenance": prov,
-    }
-
-
-def time_card(index: int, data: Document) -> Document | None:
-    rows = data["time"] if data["amount"] is not None else data["rows"]
-    if not rows:
-        return None
-    fields = [
-        {
-            "label": r["label"],
-            "value": {"value": r["amount"], "event_ref": r["ref"]} if r["ref"] else "to be set",
-        }
-        for r in rows
-    ]
-    return card(index, "Time people offered, in minutes", fields, "signed")
-
-
-def fixed_body(kind: str, data: Document) -> list[Document]:
-    """The cards code builds from the data: every one has something in it."""
-    body: list[Document] = []
-    if kind == "place" and not data["options"]:
-        hint = "Say a place in the Say box, for example: the hall is free on Saturday."
-        body.append(
-            card(
-                0,
-                "No place has been named yet",
-                [{"label": "To name one", "value": hint}],
-                "signed",
-            )
-        )
-    elif kind == "place":
-        for i, o in enumerate(data["options"]):
-            fields = [{"label": "Why it fits", "value": o["why"]}]
-            if o.get("check"):
-                fields.append({"label": "Check first", "value": o["check"]})
-            if o.get("url"):
-                fields.append({"label": "Found on the web", "value": o["url"]})
-            body.append(card(i, o["name"], fields, "estimate"))
-    elif kind == "schedule":
-        for i, s in enumerate(data["items"]):
-            fields = [
-                {"label": "Start", "value": s["start"]},
-                {"label": "End", "value": s["end"]},
-                {"label": "Where", "value": s["where"]},
-            ]
-            body.append(card(i, s["title"], fields, "signed"))
-        if data["steps"]:
-            steps = [{"label": f"Step {n + 1}", "value": t} for n, t in enumerate(data["steps"])]
-            body.append(card(len(body), "Order of steps", steps, "estimate"))
-    elif kind == "budget" and data["amount"] is not None:
-        fields = [
-            {
-                "label": r["label"],
-                "value": f"{r['amount']} {data['currency']}"
-                + (f" ({r['who']})" if r["who"] else ""),
-            }
-            for r in data["rows"]
-        ]
-        fields.append({"label": "Total", "value": f"{data['total']} {data['currency']}"})
-        body.append(card(0, f"Budget of {data['amount']} {data['currency']}", fields, "estimate"))
-        if data["how_shared"]:
-            body.append({"id": "fxs", "component": "Text", "text": data["how_shared"]})
-        extra = time_card(1, data)
-        if extra:
-            body.append(extra)
-    elif kind == "budget":
-        extra = time_card(0, data)
-        if extra:
-            body.append(extra)
-    elif kind == "list":
-        fields = [{"label": i["label"], "value": i["who"]} for i in data["items"]]
-        body.append(
-            card(
-                0,
-                "Who brings what",
-                fields,
-                data["items"][0]["provenance"] if data["items"] else "estimate",
-            )
-        )
-    else:
-        body.append(
-            {
-                "id": "fx0",
-                "component": "Card",
-                "title": data["subject"],
-                "provenance": "estimate",
-                "children": ["fxb"],
-            }
-        )
-        body.append({"id": "fxb", "component": "Text", "text": data["body"]})
-    return body
-
-
-def fixed_tree(kind: str, title: str, detail: str, data: Document) -> list[Document]:
-    """The tree code builds when the model's layout is missing or fails: always valid."""
-    body = fixed_body(kind, data)
-    head: list[Document] = [
-        {"id": "h", "component": "Heading", "text": title, "variant": "h2"},
-        {"id": "d", "component": "Text", "text": detail, "variant": "caption", "tone": "muted"},
-    ]
-    top = [n["id"] for n in body if n["id"] != "fxb"]
-    root: Document = {
-        "id": "root",
-        "component": "Column",
-        "gap": "12",
-        "children": ["h", "d", *top],
-    }
-    return [root, *head, *body]
-
-
 def parse_tree(nodes: list[Node]) -> list[Document] | str:
     """The model's nodes as components, with empty cards dropped, or why they cannot be used."""
     out: list[Document] = []
@@ -353,9 +248,16 @@ def shown_text(tree: list[Document]) -> str:
     return json.dumps(reachable(tree), ensure_ascii=False).lower()
 
 
+#: The part each kind is shown in: a layout without it is asked for again.
+PREFERRED = {"budget": "CostSplit", "list": "Checklist"}
+
+
 def covers(tree: list[Document], kind: str, data: Document) -> str | None:
-    """None if the tree shows all of the data, else what is missing."""
+    """None if the tree shows all of the data in the part made for it, else what is missing."""
     seen = shown_text(tree)
+    part = PREFERRED.get(kind)
+    if part and not any(n["component"] == part for n in reachable(tree)):
+        return f"show the {kind} in a {part}"
     wanted: list[str] = []
     if kind == "place":
         wanted = [o["name"] for o in data["options"]]
@@ -365,9 +267,29 @@ def covers(tree: list[Document], kind: str, data: Document) -> str | None:
         wanted = [r["label"] for r in data["rows"]]
     elif kind == "draft":
         wanted = [data["subject"], data["body"][:40]]
+    elif (
+        kind == "image"
+        and data.get("hash")
+        and not any(n["component"] == "Image" for n in reachable(tree))
+    ):
+        return "the layout leaves out the picture"
     for item in wanted:
         if json.dumps(item[:14].lower(), ensure_ascii=False)[1:-1] not in seen:
             return f"the layout leaves out: {item}"
+    return None
+
+
+#: A layout may not say that something was agreed: beyond the signed plan nobody agreed anything.
+SAYS_AGREED = re.compile(
+    r"\b(?:is|are|was|were|been|now|all|we|they|everyone)\s+(?:agreed|decided|confirmed)\b", re.I
+)
+
+
+def claims_agreement(tree: list[Document], data: Document) -> str | None:
+    """The layout says something was agreed that the data does not say, or None."""
+    said = SAYS_AGREED.search(shown_text(tree))
+    if said and said[0].lower() not in json.dumps(data, ensure_ascii=False).lower():
+        return "nobody has agreed this yet: do not write that it was agreed, decided or confirmed"
     return None
 
 
@@ -385,8 +307,11 @@ def shows_internals(tree: list[Document], need_id: str) -> str | None:
     return None
 
 
-def tree_errors(engine: RoomEngine, components: list[Document], known: set[str]) -> list[str]:
-    return compose_surface(engine.catalog, "result", components, {}, known).errors
+def tree_errors(
+    engine: RoomEngine, components: list[Document], known: set[str], model: Document | None = None
+) -> list[str]:
+    """Every reason the tree fails the catalog, its bindings checked against the data model."""
+    return compose_surface(engine.catalog, "result", components, model or {}, known).errors
 
 
 def append_time(tree: list[Document], kind: str, data: Document) -> list[Document]:
@@ -442,11 +367,15 @@ async def layout(
         elif not title or title.lower().startswith("suggestion"):
             errors = ["give a title from the need or the content, not 'Suggestion'"]
         else:
-            errors = tree_errors(engine, parsed, known)
+            errors = tree_errors(engine, parsed, known, surface_model(kind, data))
             hidden = [n["id"] for n in parsed if n not in reachable(parsed)]
             if hidden and not errors:
                 errors = [f"these nodes are not reachable from root: {', '.join(hidden)}"]
-            missing = covers(parsed, kind, data) or shows_internals(parsed, facts["need"]["id"])
+            missing = (
+                covers(parsed, kind, data)
+                or shows_internals(parsed, facts["need"]["id"])
+                or claims_agreement(parsed, data)
+            )
             if missing and not errors:
                 errors = [missing]
             if not errors and parsed:
@@ -475,6 +404,11 @@ async def make(
 ) -> tuple[str, Document, list[Document], str]:
     """(title, data, tree, source). The data is the maker's work when it stood ("model"), else
     what code can say ("rules"); the tree is the composer's layout when it passes, else fixed."""
+    if kind == "image":
+        sink = image.activity_sink(engine, coalition)
+        data, source = await image.make_image(engine, coalition, assignee, task, facts, sink)
+        title = facts["need"]["title"]
+        return title, data, fixed_tree(kind, title, facts["need"]["detail"], data), source
     made = await makers.make_data(engine, coalition, kind, assignee, task, facts)
     data = data_for(kind, made, facts)
     source = "model" if made is not None and not made.get("by_rules") else "rules"

@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useState } from "react";
 import { Glyph } from "./Glyph";
+import { useHostSrc } from "./hostMedia";
 import { Player } from "./Player";
 import { number, rows, str, type ViewProps } from "./shared";
 
 export function Media({ name, p, send }: ViewProps) {
-  const [failed, setFailed] = useState(false);
+  const [broken, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const src = str(p.src);
+  const hosted = useHostSrc(str(p.src));
+  const src = hosted.src;
+  const failed = broken || hosted.failed;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new host source starts a new image load
   useEffect(() => {
     setFailed(false);

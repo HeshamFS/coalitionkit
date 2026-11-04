@@ -3,6 +3,7 @@
 // "Show the work" turns it over: the tree itself, the events it came from with their sequence
 // numbers, who made it (the model or the rules) and the check it passed. Export is per kind.
 import { useEffect, useRef, useState } from "react";
+import { fetchHostMedia } from "../components/f01/hostMedia";
 import type { ViewerState } from "../feed/delta";
 import { download, exportsFor, toText } from "./exports";
 import type { Room, RoomResult } from "./room";
@@ -54,6 +55,18 @@ export function shownFor(room: Room, state: ViewerState | null, result: RoomResu
   };
 }
 
+/** The words a picture was drawn from: built by the host from the room's public facts. */
+export const promptOf = (r: RoomResult): string => {
+  const prompt = r.kind === "image" ? record(r.data).prompt : undefined;
+  return typeof prompt === "string" ? prompt : "";
+};
+
+/** The host path of an image result's picture, or "" when it has none. */
+export const pictureOf = (r: RoomResult): string => {
+  const hash = r.kind === "image" ? record(r.data).hash : undefined;
+  return typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash) ? `/v1/room/media/${hash}` : "";
+};
+
 function Work({
   result,
   sources,
@@ -93,6 +106,12 @@ function Work({
         <>
           <h4>Need status, as the host says it</h4>
           <p>{needStatus}</p>
+        </>
+      ) : null}
+      {promptOf(result) ? (
+        <>
+          <h4>What the image model was asked</h4>
+          <p className="tb-prompt">{promptOf(result)}</p>
         </>
       ) : null}
       <h4>Check passed</h4>
@@ -144,6 +163,21 @@ export function ResultDialog({ shown, onClose }: { shown: Shown; onClose: () => 
     }
   };
   const files = exportsFor(result);
+  const savePicture = async () => {
+    try {
+      const blob = await fetchHostMedia(pictureOf(result));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${result.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "picture"}.${blob.type === "image/png" ? "png" : blob.type === "image/jpeg" ? "jpg" : "webp"}`;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setNote("The picture could not be fetched from the host.");
+    }
+  };
   const seqs = sources.map((s) => (s.seq === null ? s.id : String(s.seq)));
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click only; Escape and Close are the keyboard ways
@@ -198,6 +232,11 @@ export function ResultDialog({ shown, onClose }: { shown: Shown; onClose: () => 
           <button type="button" className="btn tb-quietbtn" onClick={copy}>
             Copy text
           </button>
+          {pictureOf(result) ? (
+            <button type="button" className="btn tb-quietbtn" onClick={savePicture}>
+              Download picture
+            </button>
+          ) : null}
           {files.map((f) => (
             <button
               key={f.file}
