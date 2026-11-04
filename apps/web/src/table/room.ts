@@ -2,6 +2,7 @@
 // The `Room` the host builds per viewer and a reader
 // that never throws: a missing or malformed value becomes an empty one, so the screen still draws.
 import type { ViewerState } from "../feed/delta";
+import { readTalk, type Talk } from "./talk/talk";
 
 export type Phase = "gather" | "brief" | "work" | "decide" | "commit" | "make" | "live" | "ended";
 export type Lights = "day" | "night";
@@ -135,6 +136,8 @@ export type Room = {
   change: Change | null;
   begin: { can: boolean; open_seats: number } | null;
   measured: Measured | null;
+  /** What the agents said to each other (`room.talk`); absent on older hosts. */
+  talk?: Talk;
   mine: {
     brief: BriefItem[];
     /** When your agent stops waiting for answers (ISO), or null. */
@@ -378,6 +381,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     change: readChange(raw.change),
     begin,
     measured: readMeasured(raw.measured),
+    ...(raw.talk === undefined ? {} : { talk: readTalk(raw.talk) }),
     mine: readMine(raw.mine),
   };
 }

@@ -1,0 +1,121 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The talk: beams between seats, bubbles by the speakers, and the thread panel. */
+
+.tk-beam .tb-bl {
+  background: var(--seat-2, var(--blue));
+  opacity: 0.35;
+  height: 2px;
+  background-image: repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 11px);
+}
+.tk-beam {
+  color: var(--blue);
+}
+.tk-beam[data-room="true"] .tb-bl {
+  opacity: 0.22;
+}
+.tk-beam[data-newest="true"] .tb-bl {
+  opacity: 0.95;
+  height: 3px;
+  top: -1.5px;
+  animation: draw 0.6s ease-out 1;
+}
+
+.tk-bubble {
+  position: absolute;
+  z-index: 6;
+  max-width: 230px;
+  margin: 0;
+  padding: 8px 11px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 6px 18px rgba(16, 22, 58, 0.12);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+  transform: translate(-50%, 34px);
+  pointer-events: none;
+  animation: tk-pop 0.35s ease-out 1;
+}
+.tk-bubble[data-above="true"] {
+  transform: translate(-50%, calc(-100% - 34px));
+}
+.tk-bubble[data-newest="true"] {
+  border-color: var(--blue-line);
+  box-shadow: 0 6px 22px rgba(var(--blue-rgb), 0.22);
+}
+.tk-bubble[data-newest="false"] {
+  opacity: 0.78;
+}
+.tk-bubble figcaption {
+  margin-bottom: 2px;
+  color: var(--blue-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tk-bubble blockquote {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@keyframes tk-pop {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.tk-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.tk-thread[data-open="true"] {
+  border-color: var(--blue-line);
+}
+.tk-thread header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.tk-thread header p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.tk-thread .f03-thread-text {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.tk-moved {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.tk-whisper {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--blue-tint);
+  color: var(--blue-text);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-bubble,
+  .tk-beam[data-newest="true"] .tb-bl {
+    animation: none;
+  }
+}

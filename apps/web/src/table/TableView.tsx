@@ -23,6 +23,7 @@ import type { Room } from "./room";
 import { Side } from "./Side";
 import { Stage } from "./Stage";
 import { Tray, trayVisible } from "./Tray";
+import { TalkThread } from "./talk/TalkThread";
 import "./table.css";
 import "./stage.css";
 import "./beams.css";
@@ -277,6 +278,7 @@ export function TableView(props: TableViewProps) {
                 selected={picked}
                 onPick={pick}
               />
+              <TalkThread />
             </div>
           }
           table={stage}
