@@ -195,3 +195,6 @@
   object-fit: contain;
   background: var(--surface-2);
 }
+.tb-doc .f06-cost td.r {
+  white-space: nowrap;
+}
