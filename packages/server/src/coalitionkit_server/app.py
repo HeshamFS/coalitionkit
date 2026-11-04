@@ -155,7 +155,7 @@ class Server:
         host = CoalitionHost(
             self.store, coalition, self.signer.card_url, self.key, "host", steward=self.steward
         )
-        bind_runtime(host, self.packs)
+        bind_runtime(host, self.packs, room_needs=self.room is not None)
         self.hosts[coalition] = host
         self.ports[coalition] = HostPort(host)
         core_catalog = load_catalog(self.settings.catalog_file) if self.packs else None

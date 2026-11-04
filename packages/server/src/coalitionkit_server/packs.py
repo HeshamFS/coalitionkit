@@ -53,8 +53,13 @@ def bound_pack(charter: Document, installed: dict[tuple[str, str], Pack]) -> Pac
     return pack
 
 
-def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) -> None:
-    """Resolve each submission against the installed, exact-version pack snapshot."""
+def bind_runtime(
+    host: CoalitionHost, installed: dict[tuple[str, str], Pack], *, room_needs: bool = False
+) -> None:
+    """Resolve each submission against the installed, exact-version pack snapshot.
+
+    ``room_needs`` says a hosted room makes this Coalition's needs from the pack's templates
+    itself, so the templates are not drafted again when every seat has signed."""
 
     with host.store.transaction(host.coalition_id) as tx:
         tx.execute(
@@ -159,7 +164,9 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
         if event["type"] != "coalition.decide" or event["payload"]["subject"]["kind"] != "charter":
             return []
         pack = bound_pack(state.charter, installed)
-        if not pack or not all(state.accepted_charter(p) for p in state.charter["deciders"]):
+        if room_needs or not pack:
+            return []
+        if not all(state.accepted_charter(p) for p in state.charter["deciders"]):
             return []
         charter = next(e for e in state.events.values() if e["type"] == "coalition.charter")
         if any(
