@@ -49,14 +49,21 @@ offers:
       cost: { minutes: 15, money: 0, effort: medium }
       valid_until: "2099-01-01T00:00:00Z"
       ext: { stop_kind: any, minutes: 15 }
+  - member: p3
+    need: 3
+    offer:
+      capacity: 1
+      cost: { minutes: 5, money: 0, effort: low }
+      valid_until: "2099-01-01T00:00:00Z"
+      ext: { stop_kind: any, minutes: 5, note: "I can draw the poster" }
 expect:
-  allocation: { 0: p1, 1: p2, 2: p3 }
+  allocation: { 0: p1, 1: p2, 2: p3, 3: p3 }
   fairness: { max_share_ratio: 2 }
   commitments_signed_by_owner: true
   agent_only_yes_refused: true
   distinguishing:
     absent_answered: { member: p3, answer: yes }
-  change: { by: p2, invalidates: [1], affected: [1], untouched: [0, 2] }
+  change: { by: p2, invalidates: [1], affected: [1], untouched: [0, 2, 3] }
   policy_probe:
     by: p1
     type: coalition.observe

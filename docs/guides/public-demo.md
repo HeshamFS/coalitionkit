@@ -51,7 +51,7 @@ Visitors cannot start a room. While the standing room is on, `POST /v1/genesis/s
 
 ## The guards
 
-- **Budget per room.** Before each model call of a room (a hosted agent's question or offer, a made result, a picture), the host checks the room's metered spend against `COALITIONKIT_ROOM_BUDGET_USD`. Past it, nothing is sent, the rules answer instead, and the Table shows one line: *Model budget reached*. The Steward's reviews are not capped, because they guard what the room shows.
+- **Budget per room.** Before each model call of a room (a hosted agent's question or offer, a made result, a picture, a web search), the host checks the room's metered spend against `COALITIONKIT_ROOM_BUDGET_USD`. Past it, nothing is sent, the rules answer instead, and the Table shows one line: *Model budget reached*. The Steward's reviews are not capped, because they guard what the room shows.
 - **Time.** No room outlives its minutes, so an abandoned room costs nothing after its end.
 - **No new rooms.** Only the host forms rooms. A visitor's sentence never reaches a model.
 - **Search stays public.** Agents search the web only with public words: the goal, the need and, for a pack's public question, the answer the seat published. A street address or anything a person said privately stops the query before it leaves the host. See [Web search](web-search.md).

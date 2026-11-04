@@ -27,7 +27,7 @@ from coalitionkit_steward import StewardContext, Subject, core_policies
 from coalitionkit_steward.conditions import evaluate_all
 
 from ..adapter import Document
-from . import public
+from . import budget, public
 from .needs import tidy
 from .seats import read_state
 
@@ -165,6 +165,8 @@ async def search(
     private = private_values(engine, coalition, members)
     base: Document = {"seat": who, "agent": agent, "tool": "search:web", "args": query}
     refused = screen(query, private, coalition, who)
+    if not refused and budget.reached(engine, coalition):
+        refused = "the room has used its model budget"
     if refused:
         engine.start_activity(
             coalition, "searching", f"Search refused: {refused}", seat=who, need=need,
