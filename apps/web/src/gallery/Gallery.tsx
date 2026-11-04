@@ -35,8 +35,7 @@ export function Gallery() {
           <div className="eyebrow">coalitionkit/v0_9 · web renderer</div>
           <div className="sheet-title">Component gallery</div>
           <div className="sheet-sub">
-            Every implemented component in every state. Neutral example data
-            only.
+            Every implemented component in every state. Neutral example data only.
           </div>
         </div>
         <div className="h-right gallery-bar">
