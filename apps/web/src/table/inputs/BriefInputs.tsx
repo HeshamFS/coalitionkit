@@ -5,14 +5,24 @@
 import { useMemo, useState } from "react";
 import { problemText } from "../api";
 import { useTable } from "../context";
-import type { BriefItem } from "../room";
+import type { BriefItem, Room } from "../room";
+import { slotLabel } from "../slots";
 import { CameraButton, MicButton } from "./Buttons";
 import { type InputsIo, inputsIo, type Reading } from "./io";
 
 type Proposal = Reading & { via: "voice" | "photo" };
 
+/** Time slots in the viewer's own time, as the question's chips show them; else the host's words. */
+export function wordsFor(answer: unknown, words: string, slots: Room["slots"]): string {
+  if (!Array.isArray(answer)) return words;
+  const found = answer.map((id) => slots.find((s) => s.id === id));
+  return found.every((s) => s?.start)
+    ? found.map((s) => (s ? slotLabel(s) : "")).join(", ")
+    : words;
+}
+
 export function BriefInputs({ item, io: given }: { item: BriefItem; io?: InputsIo }) {
-  const { io: room } = useTable();
+  const { io: room, room: here } = useTable();
   const io = useMemo(() => given ?? inputsIo(), [given]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [edited, setEdited] = useState("");
@@ -85,7 +95,7 @@ export function BriefInputs({ item, io: given }: { item: BriefItem; io?: InputsI
               />
             ) : (
               <p className="ck-in-answer">
-                Your answer: <b>{proposal.words}</b>
+                Your answer: <b>{wordsFor(proposal.answer, proposal.words, here.slots)}</b>
               </p>
             )
           ) : (
