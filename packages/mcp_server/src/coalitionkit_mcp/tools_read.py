@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from mcp.server.mcpserver.context import Context
@@ -77,18 +77,54 @@ def event_list(surface: dict[str, Any]) -> list[dict[str, Any]]:
 TEXT_PREVIEW = 280
 
 
+def plan_text(plan: dict[str, Any]) -> str:
+    assigned = ", ".join(
+        f"task {a.get('task_id')} to {a.get('assignee')}" for a in plan.get("assignments", [])
+    )
+    return f"plan {plan.get('plan_id')}: {assigned or 'no tasks you can see'}"
+
+
+def event_detail(kind: Any, payload: dict[str, Any]) -> str:
+    """What an agent needs from an entry to act on it: the ids its next call takes."""
+    if kind == "coalition.need":
+        return f"need {payload.get('need_id')}: {payload.get('description', '')}"
+    if kind == "coalition.offer":
+        target: dict[str, Any] = payload.get("target") or {}
+        return f"on {target.get('kind')} {target.get('id')}, cost {payload.get('cost')}"
+    if kind == "coalition.propose":
+        return "; ".join(plan_text(p) for p in payload.get("plans", []))
+    if kind == "coalition.commit":
+        found = f"commitment {payload.get('commitment_id')} {payload.get('status')}"
+        return f"task {payload.get('task_id')}, {found}"
+    if kind == "coalition.done":
+        return f"task {payload.get('task_id')}"
+    if kind == "coalition.tension":
+        return f"vote {payload.get('tension_id')}, options {payload.get('options')}"
+    if kind == "coalition.decide":
+        subject: dict[str, Any] = payload.get("subject") or {}
+        answer = "yes" if payload.get("consent") else "no"
+        return (
+            f"{subject.get('kind')} {subject.get('id')}: {answer}, choice {payload.get('choice')}"
+        )
+    return ""
+
+
 def event_line(event: dict[str, Any]) -> str:
-    """One log entry; a note's own text is shown, since hosts that read only text need it.
+    """One log entry, with what a host that reads only text needs in order to act on it.
 
     The text comes from the same projection as the structured result, so a field the viewer may
     not see (redacted or out of scope) is already absent here.
     """
     line = f"- #{event.get('seq')} {event.get('type')}"
-    payload: Any = event.get("payload")
-    content: Any = payload.get("content") if isinstance(payload, dict) else None  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    if event.get("on_behalf_of"):
+        line += f" by {event['on_behalf_of']}"
+    raw: Any = event.get("payload")
+    payload = cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
+    detail = event_detail(event.get("type"), payload)
+    content: Any = payload.get("content")
     if isinstance(content, str) and content.strip():
-        line += ": " + " ".join(content.split())[:TEXT_PREVIEW]
-    return line
+        detail = " ".join(content.split())[:TEXT_PREVIEW]
+    return f"{line}: {detail}" if detail else line
 
 
 def surface_text(data: dict[str, Any]) -> str:

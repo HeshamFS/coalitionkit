@@ -458,6 +458,10 @@ AGENT_PATHS = frozenset(
 )
 
 
+# A picture a room's agent made: read with the viewer token like the feed.
+MEDIA_PATH = "/v1/room/media/"
+
+
 class Dispatch:
     def __init__(self, server: Server, mcp: FastAPI) -> None:
         self.server, self.mcp = server, mcp
@@ -468,8 +472,10 @@ class Dispatch:
         if path == "/mcp" and "mcp" in enabled:
             await self.mcp(scope, receive, send)
             return
-        allowed = (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled) or (
-            path in AGENT_PATHS and "agent" in enabled
+        allowed = (
+            (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled)
+            or (path in AGENT_PATHS and "agent" in enabled)
+            or (path.startswith(MEDIA_PATH) and "feed" in enabled)
         )
         if not allowed:
             await JSONResponse({"detail": "not found"}, 404)(scope, receive, send)

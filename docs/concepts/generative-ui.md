@@ -2,6 +2,8 @@
 
 Screens are generated, but only from a fixed set of parts. A model chooses components from [the catalog](../reference/catalog/index.md) and fills them in. It cannot write HTML, script or styles.
 
+![Models compose the screen, and code decides what is allowed](../assets/genui.jpg)
+
 ## Why it is closed
 
 A generated screen is a place where a mistaken or tricked model could show something false or dangerous. So:
@@ -19,4 +21,4 @@ A [Discipline Pack](../guides/packs/index.md) can add views of its own, through 
 
 ## Today in the room
 
-The room's result layouts use seven of these: `Column`, `Row`, `Card`, `Heading`, `Text`, `Badge` and `Divider`. Questions use input components such as `ChoicePicker` and `Slider`. The forming screen picks from a wider set, such as a map and a calendar. The rest of the catalog is available to anything that composes a surface, and you can see all of it at `/gallery` on a running host.
+The room's result layouts use seventeen of these. Seven arrange and label: `Column`, `Row`, `Card`, `Heading`, `Text`, `Badge` and `Divider`. Ten carry data: `CostSplit` for a budget, `Checklist` for a list, `Timeline` and `Gantt` for a schedule, `Image` for a picture, and `KeyValue`, `Table`, `List`, `Meter` and `Deadline`. Each is checked against its props in the catalog and against the result's data model before it is shown. A budget whose layout leaves out its `CostSplit`, or a list without its `Checklist`, is asked for again, then replaced by the fixed layout, which uses them too. Questions use input components such as `ChoicePicker` and `Slider`. The forming screen picks from a wider set, such as a map and a calendar. The rest of the catalog is available to anything that composes a surface, and you can see all of it at `/gallery` on a running host.
