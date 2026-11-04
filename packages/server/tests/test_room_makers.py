@@ -80,8 +80,10 @@ def test_every_card_of_a_fixed_tree_is_reachable_from_root() -> None:
         shown = {n["id"] for n in results.reachable(tree)}
         assert {n["id"] for n in tree} == shown, kind
         cards = [n for n in tree if n["component"] == "Card"]
-        wanted = {"place": 3, "schedule": 4, "budget": 2, "list": 1, "draft": 1}[kind]
+        wanted = {"place": 3, "schedule": 2, "budget": 2, "list": 1, "draft": 1}[kind]
         assert len(cards) == wanted, (kind, len(cards))
+        rich = {"schedule": "Timeline", "budget": "CostSplit", "list": "Checklist"}.get(kind)
+        assert rich is None or any(n["component"] == rich for n in tree), kind
 
 
 def test_a_draft_may_not_present_free_slots_as_the_event_time() -> None:

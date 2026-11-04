@@ -49,6 +49,12 @@ export function shownFor(room: Room, state: ViewerState | null, result: RoomResu
   };
 }
 
+/** The words a picture was drawn from: built by the host from the room's public facts. */
+export const promptOf = (r: RoomResult): string => {
+  const prompt = r.kind === "image" ? record(r.data).prompt : undefined;
+  return typeof prompt === "string" ? prompt : "";
+};
+
 function Work({
   result,
   sources,
@@ -85,6 +91,12 @@ function Work({
         <>
           <h4>Need status, as the host says it</h4>
           <p>{needStatus}</p>
+        </>
+      ) : null}
+      {promptOf(result) ? (
+        <>
+          <h4>What the image model was asked</h4>
+          <p className="tb-prompt">{promptOf(result)}</p>
         </>
       ) : null}
       <h4>Check passed</h4>

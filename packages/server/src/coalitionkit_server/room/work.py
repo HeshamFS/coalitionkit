@@ -77,7 +77,7 @@ def well_formed(content: Any) -> bool:
         c.get("result") == 1
         and isinstance(c.get("need_id"), str)
         and isinstance(kind, str)
-        and kind in {"place", "schedule", "budget", "list", "draft"}
+        and kind in {"place", "schedule", "budget", "list", "draft", "image"}
         and isinstance(c.get("title"), str)
         and isinstance(source, str)
         and source in {"model", "rules"}

@@ -6,7 +6,7 @@ import type { ViewerState } from "../feed/delta";
 export type Phase = "gather" | "brief" | "work" | "decide" | "commit" | "make" | "live" | "ended";
 export type Lights = "day" | "night";
 export type Source = "model" | "rules";
-export type NeedKind = "place" | "schedule" | "budget" | "list" | "draft";
+export type NeedKind = "place" | "schedule" | "budget" | "list" | "draft" | "image";
 export type Verb =
   | "reading"
   | "asking"
@@ -148,7 +148,7 @@ export type Room = {
 };
 
 const PHASES: Phase[] = ["gather", "brief", "work", "decide", "commit", "make", "live", "ended"];
-const NEED_KINDS: NeedKind[] = ["place", "schedule", "budget", "list", "draft"];
+const NEED_KINDS: NeedKind[] = ["place", "schedule", "budget", "list", "draft", "image"];
 const VERBS: Verb[] = [
   "reading",
   "asking",
