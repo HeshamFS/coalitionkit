@@ -181,6 +181,11 @@ class Run:
                 "cost_usd": round(sum(r.cost_micro_usd for r in steward) / 1e6, 4),
                 "slow": [(t[0], round(t[1], 1)) for t in timings if t[1] > 3],
             },
+            "calls": [
+                (a["at"][11:19], a["label"], a["ms"])
+                for a in doc["activity"]
+                if a["source"] == "model" and a["ms"] is not None
+            ],
             "stops": [(s["policy"], s["seat"], s["explain"]) for s in doc["stops"]],
             "gaps": doc["gaps_noted"],
             "failed": [

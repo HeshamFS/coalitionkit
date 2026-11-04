@@ -10,7 +10,6 @@ their own click on ``/v1/room/done``. When the charter's deadline passes the roo
 
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 from datetime import UTC, datetime
@@ -163,6 +162,10 @@ async def make_one(
         "components": tree,
         "data": data,
     }
+    now = await read_state(engine, coalition)
+    still = active_commitment(now, task)
+    if still is None or str(still["id"]) != commitment or now.stage == "Dissolve":
+        return  # the room moved on while this was being made; the next step decides again
     sent = await engine.submit(
         coalition,
         who,
@@ -193,7 +196,12 @@ async def make_results(engine: RoomEngine, coalition: str, state: State, doc: Do
             continue
         if doc["made"].get(task, {}).get("commitment") != active["id"]:
             todo.append((task, str(active["id"])))
-    await asyncio.gather(*(make_one(engine, coalition, state, doc, t, c) for t, c in todo))
+    for task, commitment in todo:
+        engine.spawn(
+            coalition,
+            f"make:{task}:{commitment}",
+            lambda t=task, c=commitment: make_one(engine, coalition, state, doc, t, c),
+        )
 
 
 async def helpers_report(engine: RoomEngine, coalition: str, state: State, doc: Document) -> None:

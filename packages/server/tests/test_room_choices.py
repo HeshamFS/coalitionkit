@@ -198,7 +198,7 @@ def test_two_people_who_want_the_same_job_with_crossing_estimates_meet_a_tension
         cid, engine = room["coalition_id"], engine_of(client)
         who = [room["owner"], a, b]
         ids = ["p1", a["participant"], b["participant"]]
-        names = [engine.name_of(cid, i) for i in ids]
+        names = [str(engine.name_of(cid, i)) for i in ids]
         # p1 and p2 both want the venue (first need) and both are quick at a different job.
         minutes[names[0]] = [90, 20, 60]
         minutes[names[1]] = [90, 60, 20]

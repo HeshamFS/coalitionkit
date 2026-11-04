@@ -178,8 +178,13 @@ def test_a_change_re_plans_only_what_it_touches(tmp_path: Path) -> None:
         assert all(a["assignee"] != speaker for p in plan for a in p["assignments"])
         change = view_of(engine, cid, "p1")["change"]
         assert change["from"] == speaker and change["moved"] == [costs] and change["untouched"] == 2
-        decide_plan(client, cid, people)
-        until(lambda: host.state.tasks[costs]["status"] in {"decided", "committed"}, 20, "decided")
+
+        def decided() -> bool:
+            # A tension can arrive just after its plans; answer whatever is open until it holds.
+            decide_plan(client, cid, people)
+            return host.state.tasks[costs]["status"] in {"decided", "committed"}
+
+        until(decided, 20, "decided")
         approve_commitments(client, cid, people)
         until(lambda: len(results_of(client, cid)) == 4, 40, "a new result for it")
         new_result = results_of(client, cid)[-1]

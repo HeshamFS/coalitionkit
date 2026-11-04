@@ -46,3 +46,98 @@ def test_a_money_budget_keeps_the_signed_minutes_apart() -> None:
     data = results.budget_data(facts, made)
     assert data["currency"] == "EUR" and data["total"] == 300
     assert data["time_total"] == 30 and data["time"][0]["ref"] == "e1"
+
+
+def test_every_card_of_a_fixed_tree_is_reachable_from_root() -> None:
+    reading = {"label": "Mira: Find a place", "amount": 50, "provenance": "signed", "ref": "e1"}
+    idea = {"why": "Room", "check": "Is it free", "provenance": "estimate"}
+    cases = {
+        "place": {"options": [{"name": f"Place {n}", **idea} for n in range(3)], "chosen": None},
+        "schedule": {
+            "items": [
+                {"title": f"Step {n}", "start": "a", "end": "b", "where": "c"} for n in range(3)
+            ],
+            "steps": ["Meet", "Talk"],
+        },
+        "budget": {
+            "currency": "EUR",
+            "amount": 300,
+            "rows": [
+                {"label": "Hall", "amount": 200, "who": "all", "provenance": "estimate"},
+                {"label": "Food", "amount": 100, "who": "all", "provenance": "estimate"},
+            ],
+            "how_shared": "equally",
+            "suggested": [],
+            "time": [reading],
+            "time_total": 50,
+            "total": 300,
+        },
+        "list": {"items": [{"label": "Chairs", "who": "anyone", "provenance": "estimate"}] * 2},
+        "draft": {"subject": "Hello", "body": "Come to our fair. " * 6},
+    }
+    for kind, data in cases.items():
+        tree = results.fixed_tree(kind, "Title", "Detail", data)
+        shown = {n["id"] for n in results.reachable(tree)}
+        assert {n["id"] for n in tree} == shown, kind
+        cards = [n for n in tree if n["component"] == "Card"]
+        wanted = {"place": 3, "schedule": 4, "budget": 2, "list": 1, "draft": 1}[kind]
+        assert len(cards) == wanted, (kind, len(cards))
+
+
+def test_a_draft_may_not_present_free_slots_as_the_event_time() -> None:
+    facts = {
+        "amount": None,
+        "goal": "A fair next Saturday",
+        "common": [{"id": "s2", "label": "Thu 05 Nov, 14:00 UTC"}],
+    }
+    base = "Hello neighbours, we run a small fair next Saturday and we would love you to come. "
+    for bad in (
+        "Join us on Thu 05 Nov, 14:00 UTC.",
+        "Come at 14:00.",
+        "Meet Thu 05 Nov for a preview.",
+    ):
+        out = makers.clean("draft", makers.DraftOut(subject="Fair", body=base + bad), facts, set())
+        assert isinstance(out, str) and "free" in out, bad
+    fine = makers.clean(
+        "draft", makers.DraftOut(subject="Fair", body=base + "Reply please."), facts, set()
+    )
+    assert isinstance(fine, dict)
+    rules = results.draft_by_rules({**facts, "people": ["Mira"], "need": {"title": "Invitation"}})
+    assert "Thu 05 Nov" not in rules["body"] and "still to be confirmed" in rules["body"]
+
+
+def test_place_ideas_lose_the_hedge_in_front() -> None:
+    assert (
+        makers.plain("As a proposal, it could give room for tables.", 200)
+        == "It could give room for tables."
+    )
+    assert (
+        makers.plain("As a suggestion: Check the opening hours.", 200) == "Check the opening hours."
+    )
+
+
+def test_hedges_and_invented_clock_times_are_caught() -> None:
+    said = makers.unhedged("We run a fair. As a proposal, we suggest a start. This is a proposal.")
+    assert said == "We run a fair. We suggest a start."
+    lines = makers.unhedged("Hello.\n\nAs a proposal, we meet late.")
+    assert lines == "Hello.\n\nWe meet late."
+    facts: dict[str, object] = {"amount": None, "goal": "A fair", "common": []}
+    body = "Hello neighbours, we run a small fair next Saturday and we would love you to come. "
+    out = makers.clean(
+        "draft", makers.DraftOut(subject="Fair", body=body + "Start at 11am."), facts, set()
+    )
+    assert isinstance(out, str)
+    idea = makers.Idea(
+        kind_of_place="Hall", why_it_fits="Space", check_first="Ask before 18:00 UTC"
+    )
+    placed = makers.clean("place", makers.PlaceOut(ideas=[idea, idea]), facts, set())
+    assert isinstance(placed, str)
+
+
+def test_sentences_that_only_talk_about_being_a_proposal_are_dropped() -> None:
+    assert makers.unhedged("It fits the fair. This set is a proposal.") == "It fits the fair."
+    nl = chr(10)
+    body = (
+        "We run a fair." + nl + nl + "Please treat this invitation as a proposal while we finish."
+    )
+    assert makers.unhedged(body) == "We run a fair."

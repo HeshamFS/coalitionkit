@@ -554,3 +554,44 @@ async def test_reader_fills_needs_the_model_left_out() -> None:
     assert result.draft.deadline == reader.draft.deadline is not None
     kinds = sorted(r.kind for r in result.reading)
     assert kinds == ["count", "deadline", "need"]
+
+
+async def test_a_slow_or_broken_model_is_named_as_such(monkeypatch: pytest.MonkeyPatch) -> None:
+    import asyncio
+
+    from coalitionkit_server import genesis_draft
+
+    monkeypatch.setenv("COALITIONKIT_META_API_KEY", "test")
+    assert genesis_draft.MODEL_DRAFT_BUDGET_S == 20
+
+    class Slow:
+        async def complete(self, *args: object, **kwargs: object) -> object:
+            await asyncio.sleep(5)
+            raise AssertionError("not reached")
+
+    monkeypatch.setattr(genesis_draft, "MODEL_DRAFT_BUDGET_S", 0.05)
+    slow = await draft_goal("A shared goal", Slow())  # pyright: ignore[reportArgumentType]
+    assert slow.source == "reader" and slow.model_status == "timed_out"
+    assert "did not answer" in slow.model_note and "no model" not in slow.model_note.lower()
+    broken = await draft_goal(
+        "A shared goal", ModelGateway(ModelSettings(), transport=FakeModel([ValueError("x")]))
+    )
+    assert broken.model_status == "failed" and "could not be used" in broken.model_note
+    monkeypatch.delenv("COALITIONKIT_META_API_KEY")
+    keyless = await draft_goal(
+        "A shared goal", ModelGateway(ModelSettings(), transport=FakeModel([]))
+    )
+    assert keyless.model_status == "no_key" and "No model is set up" in keyless.model_note
+    expected = read_goal("A shared goal")
+    monkeypatch.setenv("COALITIONKIT_META_API_KEY", "test")
+    good = FakeModel(
+        [
+            ScriptedResponse(
+                ModelDraft(
+                    draft=expected.draft, source="model", reading=expected.reading
+                ).model_dump_json()
+            )
+        ]
+    )
+    answered = await draft_goal("A shared goal", ModelGateway(ModelSettings(), transport=good))
+    assert answered.model_status == "answered" and answered.model_note == ""

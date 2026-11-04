@@ -261,7 +261,9 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         return
     doc = engine.read(coalition)
     fresh = [p for p in plans if p["plan_id"] not in doc["plan_notes"]]
-    if fresh:
-        await name_plans(engine, coalition, state, fresh, doc)
     hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
-    await asyncio.gather(*(for_you(engine, coalition, who, state, plans, doc) for who in hosted))
+    # The plan names and each person's own line do not depend on each other: ask together.
+    await asyncio.gather(
+        *([name_plans(engine, coalition, state, fresh, doc)] if fresh else []),
+        *(for_you(engine, coalition, who, state, plans, doc) for who in hosted),
+    )
