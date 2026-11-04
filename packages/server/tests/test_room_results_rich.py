@@ -45,7 +45,7 @@ class FakeMedia:
 
 
 def facts() -> dict[str, Any]:
-    reading = {"label": "Mira: Find a place", "amount": 50, "provenance": "signed", "ref": "e1"}
+    reading = {"label": "Member 1: Find a place", "amount": 50, "provenance": "signed", "ref": "e1"}
     return {
         "budget": {
             "currency": "EUR",
