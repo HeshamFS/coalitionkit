@@ -318,7 +318,11 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         save(engine, coalition, talk)
         engine.note(coalition, "saying", "The agents are talking before the plans")
     if talk["phase"] == "speaking":
-        hosted = [p for p in people(state, doc) if engine.is_hosted(coalition, p)]
+        # A seat whose own agent works over MCP speaks for itself; the room waits for it below.
+        over_mcp = set(doc.get("mcp_seats", []))
+        hosted = [
+            p for p in people(state, doc) if engine.is_hosted(coalition, p) and p not in over_mcp
+        ]
         for who in hosted:
             if who in talk["spoke"]:
                 continue
