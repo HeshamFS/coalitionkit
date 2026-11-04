@@ -32,8 +32,9 @@ A tree in the room can never answer a consent. Consent only goes through `/v1/ag
 | `POST /v1/room/brief` | `{question_id, value}` or `{question_id, skip: true}` | `{status}`. 422 if the value does not fit the question |
 | `POST /v1/room/say` | `{text}`, up to 500 characters | `{route, reply, event_id?, stopped?}` |
 | `POST /v1/room/done` | `{task_id}` | `{seq}`. 409 unless the viewer's approved commitment has a result |
+| `GET /v1/room/media/{hash}` | none | The bytes of a picture an agent in this room made, with its image type. `hash` is the SHA-256 of the bytes. 404 for any other hash or another room's picture |
 
-All four need a viewer token.
+All five need a viewer token. A picture is kept under the host's data directory at `media/<room>/<hash>`; the browser fetches it with the token and shows it from a local address, because an image tag cannot send one.
 
 ## Start, join and end
 

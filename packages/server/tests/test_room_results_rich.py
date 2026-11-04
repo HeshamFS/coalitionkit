@@ -149,6 +149,13 @@ def test_the_composer_may_use_rich_parts_and_code_still_checks_them(tmp_path: Pa
         assert results.covers(cards, "list", facts()["list"]) == "show the list in a Checklist"
 
 
+def test_a_layout_may_not_say_the_budget_was_agreed() -> None:
+    said = [{"id": "root", "component": "Text", "text": "A budget totalling 120 euro is agreed."}]
+    assert results.claims_agreement(said, facts()["budget"])
+    plain = [{"id": "root", "component": "Text", "text": "A proposal to share 120 euro."}]
+    assert results.claims_agreement(plain, facts()["budget"]) is None
+
+
 def test_the_composer_is_told_which_part_each_kind_prefers() -> None:
     for part in ("CostSplit", "Checklist", "Timeline", "Gantt", "budget shows", "a list in"):
         assert part in results.LAYOUT_SYSTEM

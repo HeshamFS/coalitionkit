@@ -275,6 +275,20 @@ def covers(tree: list[Document], kind: str, data: Document) -> str | None:
     return None
 
 
+#: A layout may not say that something was agreed: beyond the signed plan nobody agreed anything.
+SAYS_AGREED = re.compile(
+    r"\b(?:is|are|was|were|been|now|all|we|they|everyone)\s+(?:agreed|decided|confirmed)\b", re.I
+)
+
+
+def claims_agreement(tree: list[Document], data: Document) -> str | None:
+    """The layout says something was agreed that the data does not say, or None."""
+    said = SAYS_AGREED.search(shown_text(tree))
+    if said and said[0].lower() not in json.dumps(data, ensure_ascii=False).lower():
+        return "nobody has agreed this yet: do not write that it was agreed, decided or confirmed"
+    return None
+
+
 def shows_internals(tree: list[Document], need_id: str) -> str | None:
     """What a person should not be shown, or None. The model can ignore the prompt; code cannot."""
     if need_id and need_id.lower() in shown_text(tree):
@@ -353,7 +367,11 @@ async def layout(
             hidden = [n["id"] for n in parsed if n not in reachable(parsed)]
             if hidden and not errors:
                 errors = [f"these nodes are not reachable from root: {', '.join(hidden)}"]
-            missing = covers(parsed, kind, data) or shows_internals(parsed, facts["need"]["id"])
+            missing = (
+                covers(parsed, kind, data)
+                or shows_internals(parsed, facts["need"]["id"])
+                or claims_agreement(parsed, data)
+            )
             if missing and not errors:
                 errors = [missing]
             if not errors and parsed:
