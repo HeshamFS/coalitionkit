@@ -121,6 +121,10 @@ async def draw(
     engine: RoomEngine, coalition: str, who: str, prompt: str
 ) -> tuple[bytes | None, str]:
     """The picture's bytes, or None and why not, in words a person can read."""
+    from . import budget
+
+    if budget.reached(engine, coalition):
+        return None, budget.WHY
     try:
         async with asyncio.timeout(IMAGE_TIMEOUT_S):
             data = await media_client(engine).generate_image(

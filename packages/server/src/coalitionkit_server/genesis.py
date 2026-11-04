@@ -45,6 +45,7 @@ from .genesis_draft import (
 )
 from .packs import PackRef, public_pack, suggest_pack
 from .rooms import mount_rooms
+from .standing import mount_standing, standing_on
 
 __all__ = ["DraftResponse", "ModelDraft", "draft_goal", "read_goal"]
 
@@ -173,6 +174,7 @@ def mount_genesis(app: FastAPI, server: Server) -> None:
     mount_drafting(app, server, gate, chosen_pack)
     mount_start(app, server, gate, chosen_pack, mutation, doors)
     mount_door(app, server, doors, gate, owner, mutation, enroll_member)
+    mount_standing(app, server, doors, gate, mutation)
 
     @app.post("/v1/invitations", dependencies=[Depends(gate)])
     async def issue(request: Request, body: Invitations) -> Document:
@@ -236,7 +238,7 @@ def mount_drafting(
 
     @app.post("/v1/genesis/draft", dependencies=[Depends(gate)])
     async def draft(request: Request, body: DraftAsk) -> DraftResponse:
-        if server.settings.genesis == "admin":
+        if server.settings.genesis == "admin" or standing_on(server):
             from .app import admin
 
             admin(request, server.settings)
@@ -304,7 +306,8 @@ def mount_start(
             len(body.draft.place) > 120 or body.draft.place not in body.draft.goal
         ):
             body.draft.place = None
-        coded = bool(value) or not local
+        # A host running a standing room lets visitors join it; a new room needs a start code.
+        coded = bool(value) or not local or standing_on(server)
         if coded and not value.startswith("Start "):
             raise HTTPException(401, "start code required")
         if body.draft.pack:
@@ -314,58 +317,59 @@ def mount_start(
         async with mutation:
             if coded and not registry.consume_start(value[6:]):
                 raise HTTPException(401, "invalid start code")
-            closes = body.draft.deadline or datetime.now(UTC) + timedelta(days=7)
-            charter: Document = {
-                "goal": body.draft.goal,
-                "roles": [{"id": r.id} for r in body.draft.roles],
-                "rules": [],
-                "deadline": closes.isoformat(),
-                "deciders": [f"p{i}" for i in range(1, sum(r.count for r in body.draft.roles) + 1)],
-            }
-            if body.draft.pack:
-                charter["pack"] = body.draft.pack.model_dump()
             try:
-                validate_payload(
-                    "coalition.charter",
-                    {**charter, "revision": 1, "created_at": datetime.now(UTC).isoformat()},
-                )
-                created = server.create(charter)
-                redeemed = registry.redeem(
-                    created["invitations"][0]["invitation"], server.ports, None, None
-                )
-                await enroll_member(server, redeemed, body.draft.roles[0].id)
+                return await open_room(server, doors, body.draft, body.owner_name, body.visibility)
             except (ValueError, SchemaValidationError) as exc:
                 raise HTTPException(422, str(exc)) from None
-            registry.record_owner(
-                created["coalition_id"], redeemed["participant"], redeemed["token"]
-            )
-            registry.set_name(created["coalition_id"], redeemed["participant"], body.owner_name)
-            with server.store.transaction(created["coalition_id"]) as tx:
-                tx.execute(
-                    "INSERT INTO server_genesis VALUES (?, ?, ?)",
-                    (
-                        created["coalition_id"],
-                        redeemed["participant"],
-                        json.dumps(body.draft.needs),
-                    ),
-                )
-            doors.open(
-                created["coalition_id"],
-                redeemed["participant"],
-                [r.model_dump() for r in body.draft.roles],
-                body.visibility,
-                body.draft.goal,
-                body.draft.place,
-                closes,
-            )
-            server.gardener.start(created["coalition_id"])
-            return {
-                "door": doors.view(created["coalition_id"]),
-                "coalition_id": created["coalition_id"],
-                "owner": {"participant": redeemed["participant"], "token": redeemed["token"]},
-                # The key members pin at join; the browser verifies the log against it.
-                "host_key": created["host_key"],
-            }
+
+
+async def open_room(
+    server: Server,
+    doors: DoorStore,
+    draft: Draft,
+    owner_name: str | None,
+    visibility: Literal["code", "nearby"],
+) -> Document:
+    """Create the room from a checked draft, seat its owner and open its door.
+
+    The caller holds the start lock. Raises ``ValueError`` or ``SchemaValidationError`` when
+    the charter is refused.
+    """
+    registry = server.registry
+    closes = draft.deadline or datetime.now(UTC) + timedelta(days=7)
+    charter: Document = {
+        "goal": draft.goal,
+        "roles": [{"id": r.id} for r in draft.roles],
+        "rules": [],
+        "deadline": closes.isoformat(),
+        "deciders": [f"p{i}" for i in range(1, sum(r.count for r in draft.roles) + 1)],
+    }
+    if draft.pack:
+        charter["pack"] = draft.pack.model_dump()
+    validate_payload(
+        "coalition.charter", {**charter, "revision": 1, "created_at": datetime.now(UTC).isoformat()}
+    )
+    created = server.create(charter)
+    redeemed = registry.redeem(created["invitations"][0]["invitation"], server.ports, None, None)
+    await enroll_member(server, redeemed, draft.roles[0].id)
+    coalition, participant = created["coalition_id"], redeemed["participant"]
+    registry.record_owner(coalition, participant, redeemed["token"])
+    registry.set_name(coalition, participant, owner_name)
+    with server.store.transaction(coalition) as tx:
+        tx.execute(
+            "INSERT INTO server_genesis VALUES (?, ?, ?)",
+            (coalition, participant, json.dumps(draft.needs)),
+        )
+    roles = [r.model_dump() for r in draft.roles]
+    doors.open(coalition, participant, roles, visibility, draft.goal, draft.place, closes)
+    server.gardener.start(coalition)
+    return {
+        "door": doors.view(coalition),
+        "coalition_id": coalition,
+        "owner": {"participant": participant, "token": redeemed["token"]},
+        # The key members pin at join; the browser verifies the log against it.
+        "host_key": created["host_key"],
+    }
 
 
 def owner_lessons(server: Server, coalition: str, ids: list[str]) -> Document:
