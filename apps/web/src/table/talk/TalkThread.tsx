@@ -60,7 +60,8 @@ export function TalkThread() {
     if (el && count > 0) el.scrollTop = el.scrollHeight;
   }, [count]);
   if (!talk.open && talk.thread.length === 0 && !talk.mine.whisper) return null;
-  const moved = talk.revised.map((r) => {
+  // Only the newest few: the full list of revisions is in the log.
+  const moved = talk.revised.slice(-3).map((r) => {
     const titles = r.needs.map((id) => room.needs.find((n) => n.id === id)?.title ?? "a need");
     return `${nameOf(room.seats, r.seat)} changed its offer on ${titles.join(" and ")}.`;
   });
