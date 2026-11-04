@@ -93,6 +93,7 @@ def test_a_room_records_model_psi_and_steward_activity(tmp_path: Path) -> None:
         brief_calls = [e["payload"] for e in tools if e["payload"]["tool"] == "model:brief"]
         assert {p["agent"] for p in brief_calls} == {"hosted"}
         assert all("Your agent" not in p["args"] for p in brief_calls), "said to the room"
+        assert "model:say" not in names, "a private note is never traced"
         reviews = [e["payload"] for e in tools if e["payload"]["tool"] == "steward:review"]
         assert all(r["seat"] == "host" and r["agent"] == "steward" for r in reviews)
         assert not any(r["args"].startswith(("match", "query", "answer", "tool")) for r in reviews)

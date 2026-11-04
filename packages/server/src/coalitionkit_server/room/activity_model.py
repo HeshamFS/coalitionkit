@@ -27,10 +27,12 @@ TOOLS = {
     "making": "model:result",
     "saying": "model:say",
 }
+#: Steps that are not recorded: routing what a person said to their own agent would tell the room
+#: that a private note exists. What the sentence leads to (a message, a change) is recorded itself.
+UNRECORDED = frozenset({"model:say"})
 #: Words for a step whose own label speaks to one person ("your agent ..."), seen by everyone.
 PUBLIC_WORDS = {
     "model:brief": "choosing what to ask its person",
-    "model:say": "deciding where its person's words go",
     "model:plan": "writing its person a line about each plan",
     "model:offer": "choosing offers from its person's answers",
 }
@@ -62,6 +64,12 @@ async def traced(
 ) -> Finish:
     """Record that a model call started; the returned function records how it ended."""
     tool = tool_of(verb, role, label)
+    if tool in UNRECORDED:
+
+        async def nothing(status: str, ms: int, result: str) -> None:
+            return None
+
+        return nothing
     args = PUBLIC_WORDS.get(tool, label) if only is not None else label
     base: dict[str, Any] = {
         "seat": seat or "host",
