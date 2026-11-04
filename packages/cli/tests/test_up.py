@@ -4,6 +4,7 @@
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,6 +12,7 @@ import pytest
 from coalitionkit_cli import up
 from coalitionkit_cli.main import main
 from coalitionkit_contracts.resources import checkout_root, spec_path
+from coalitionkit_server import create_server
 
 
 def _web(tmp_path: Path, *, built: bool, modules: bool = True) -> Path:
@@ -102,11 +104,20 @@ def test_up_leads_with_the_sentence_and_makes_no_demo(
     room = tmp_path / "room"
     room.mkdir()
     (room / "index.html").write_text("room")
+    made: list[Any] = []
+
+    def keep(*args: Any, **kwargs: Any) -> Any:
+        made.append(create_server(*args, **kwargs))
+        return made[-1]
+
     with (
         patch.object(up, "web_dist", return_value=room),
+        patch.object(up, "create_server", side_effect=keep),
         patch("uvicorn.Server.serve", new=AsyncMock()),
     ):
         assert main(["up", "--data-dir", str(tmp_path / "data")]) == 0
+    # A real host closes in its shutdown step; this one never served, so the test closes it.
+    made[0].state.server.close()
     printed = capsys.readouterr().out
     assert "say what needs doing in one sentence" in printed
     assert "built-in rules" in printed

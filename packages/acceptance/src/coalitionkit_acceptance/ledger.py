@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -75,11 +76,24 @@ def ledger_path() -> Path:
     return Path(value) if value else DEFAULT
 
 
+WAL_TRIES = 100
+
+
 def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=60, isolation_level=None)
-    connection.execute("PRAGMA journal_mode=WAL")
     connection.execute("PRAGMA busy_timeout=60000")
+    # Turning on WAL needs a lock that the busy timeout does not wait for, so two processes
+    # starting together can fail here at once. Everything after this line does wait.
+    for attempt in range(WAL_TRIES):
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            break
+        except sqlite3.OperationalError:
+            if attempt == WAL_TRIES - 1:
+                connection.close()
+                raise
+            time.sleep(0.1)
     connection.execute(SCHEMA)
     return connection
 
