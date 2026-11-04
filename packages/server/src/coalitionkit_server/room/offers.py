@@ -127,7 +127,7 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
 
 async def helper_offer(engine: RoomEngine, coalition: str, pid: str, state: State) -> None:
     info = engine.read(coalition)["helpers"][pid]
-    if info["need_id"] not in state.tasks:
+    if info.get("kind") == "device" or info["need_id"] not in state.tasks:
         return
     item = OfferItem(need_id=info["need_id"], minutes=HELPER_MINUTES, money=0, effort="low")
     await send_offer(engine, coalition, pid, state, item)

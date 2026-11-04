@@ -16,6 +16,7 @@ from coalitionkit_runtime.lifecycle import State
 from ..adapter import Document
 from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
+from .devices import devices_of
 from .engine import FEED, FOR_YOU
 from .seats import open_seats, people
 from .view_results import change_of, latest_by_need, results_of, tasks_of
@@ -109,6 +110,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "measured": measured_of(engine, coalition, state, doc),
         "mine": mine,
+        "devices": devices_of(engine, coalition, viewer, doc),
     }
 
 
@@ -166,6 +168,8 @@ def seats_of(
         counts[role] = counts.get(role, 0) + 1
         if helper:
             label, kind, status = f"{helper['label']} (agent)", "helper", "signed"
+            if helper.get("kind") == "device":
+                label, kind = str(helper["label"]), "device"
         else:
             name = str(labels.get(role, role)).capitalize()
             label = given.get(person) or f"{name} {counts[role]}"

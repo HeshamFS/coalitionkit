@@ -51,6 +51,7 @@ from .packs import (
 )
 from .registry import Registry
 from .room import RoomEngine
+from .room.device_routes import DEVICE_PATHS
 from .room.routes import room_routes
 from .room.view import room_state
 from .settings import Settings, load_key
@@ -456,6 +457,8 @@ AGENT_PATHS = frozenset(
         "/v1/room/done",
     }
 )
+# Minted devices at the Table (room/device_routes.py).
+AGENT_PATHS |= DEVICE_PATHS
 
 
 class Dispatch:
