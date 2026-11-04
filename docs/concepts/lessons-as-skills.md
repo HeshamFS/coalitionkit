@@ -6,7 +6,7 @@ A [Discipline Pack](../guides/packs/skills-and-lessons.md) brings its own lesson
 
 ## What it holds
 
-A lesson is filled only from the log, using a fixed set of placeholders. Vault contents never reach the log, so they cannot reach a lesson.
+A lesson is filled from selected fields of the log and from the record of which pack policies fired, including on messages that were refused, using a fixed set of placeholders. It takes a policy's id and action from that record, not the message. Vault contents never enter a lesson.
 
 Like anything the host derives, a lesson takes the narrowest scope of what it came from. It is shown only to members who could see every source. It can still name the goal and the people in the room, so treat lessons as you treat the log.
 

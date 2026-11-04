@@ -5,7 +5,7 @@ The routes a host serves. Members exchange signed protocol messages over A2A, as
 There are four kinds of access:
 
 - **Viewer**: `Authorization: Bearer <viewer token>`. The route acts only for that viewer.
-- **Start**: the routes that start and join rooms, controlled by the `genesis` [setting](settings.md). `off`, the default, removes them. `local`, which `coalitionkit up` uses, accepts only same-origin requests from this machine. With `admin`, routes for visitors need the admin token. **As the owner** also needs the room owner's viewer token.
+- **Start**: the routes that start and join rooms, controlled by the `genesis` [setting](settings.md). `off`, the default, removes them. `local`, which `coalitionkit up` uses, accepts only same-origin requests from this machine. With `admin`, anyone may call them, except that `GET /v1/rooms` needs the admin token and `POST /v1/genesis/start` needs a single-use `Authorization: Start <code>`. In this version no route or command issues those codes, so your own code has to call `registry.issue_start()`. **As the owner** also needs the room owner's viewer token.
 - **Admin**: `Authorization: Bearer <admin token>`.
 - **Open**: no token.
 
@@ -53,7 +53,7 @@ All four need a viewer token.
 | `GET /v1/door/{code}` | Start | The goal and the open seats behind a code |
 | `POST /v1/door/join` | Start | Take a seat: `{code, role, card_url?, card?}` |
 | `POST /v1/rooms/{room}/knock` | Start | Knock on a room |
-| `GET /v1/rooms/{room}/knocks/{knock}` | Start | Whether a knock was let in |
+| `GET /v1/rooms/{room}/knocks/{knock}?secret=` | Start, with the secret the knock returned | Whether a knock was let in |
 | `POST /v1/confirm/redeem` | Viewer | Use a confirm code from a WhatsApp link, and get the consent to show |
 
 ## Agents
