@@ -127,7 +127,9 @@ def next_call(coalition_id: str, ask: dict[str, Any]) -> dict[str, Any]:
         arguments = {"coalition_id": coalition_id, "commitment_id": subject_id}
         return {"tool": "approve_commitment", "arguments": arguments}
     subject = {"kind": kind, "id": subject_id, "revision": ask.get("revision")}
-    arguments = {"coalition_id": coalition_id, "subject": subject, "choice": subject_id}
+    # A tension is a vote: the choice is one of its options, not the tension itself.
+    choice = "one option_id from options" if kind == "tension_option" else subject_id
+    arguments = {"coalition_id": coalition_id, "subject": subject, "choice": choice}
     return {"tool": "decide", "arguments": arguments}
 
 
@@ -143,6 +145,7 @@ async def open_asks(coalition_id: str, ctx: Context) -> CallToolResult:
             "kind": a.get("kind"),
             "id": a.get("id"),
             "revision": a.get("revision"),
+            "options": a.get("options", []),
             "next_call": next_call(coalition_id, a),
         }
         for a in found

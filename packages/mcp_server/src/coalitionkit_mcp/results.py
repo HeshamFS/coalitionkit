@@ -151,6 +151,7 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
                 "kind": LEAF,
                 "id": LEAF,
                 "revision": LEAF,
+                "options": ({"option_id": LEAF, "summary": LEAF},),
                 "next_call": {
                     "tool": LEAF,
                     "arguments": {
