@@ -11,18 +11,30 @@ export function localTimes(messages: unknown[]): unknown[] {
     (m) => {
       const parts = m?.updateComponents;
       if (!parts?.components) return m;
-      const components = parts.components.map((c) =>
-        Array.isArray(c.fields)
-          ? {
-              ...c,
-              fields: (c.fields as Record<string, unknown>[]).map((f) =>
-                typeof f.value === "string" && STAMP.test(f.value)
-                  ? { ...f, value: slotLabel({ id: "", label: f.value, start: f.value }) }
-                  : f,
-              ),
-            }
-          : c,
-      );
+      const local = (v: unknown) =>
+        typeof v === "string" && STAMP.test(v) ? slotLabel({ id: "", label: v, start: v }) : v;
+      const components = parts.components.map((c) => {
+        let out = c;
+        if (Array.isArray(c.fields))
+          out = {
+            ...out,
+            fields: (c.fields as Record<string, unknown>[]).map((f) => ({
+              ...f,
+              value: local(f.value),
+            })),
+          };
+        // A timeline's items carry ISO times too: shown in the viewer's own time.
+        if (c.component === "Timeline" && Array.isArray(c.items))
+          out = {
+            ...out,
+            items: (c.items as Record<string, unknown>[]).map((i) => ({
+              ...i,
+              start: local(i.start),
+              ...(i.end === undefined ? {} : { end: local(i.end) }),
+            })),
+          };
+        return out;
+      });
       return { ...m, updateComponents: { ...parts, components } };
     },
   );

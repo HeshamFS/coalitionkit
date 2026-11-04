@@ -22,3 +22,5 @@ The API each package exports. The `coalitionkit` package installs all of them.
 | [`conformance`](conformance.md) | `coalitionkit_conformance` | The black-box conformance runner. |
 | [`acceptance`](acceptance.md) | `coalitionkit_acceptance` | Acceptance runners for the kit. |
 | [`cli`](cli.md) | `coalitionkit_cli` | The `coalitionkit` command. |
+| [`langchain`](langchain.md) | `coalitionkit_langchain` | A room's actions as LangChain tools. |
+| [`langgraph`](langgraph.md) | `coalitionkit_langgraph` | A graph as a seat, with an interrupt where a person must consent. |

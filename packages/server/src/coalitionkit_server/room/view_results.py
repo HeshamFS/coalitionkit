@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from coalitionkit_runtime.lifecycle import State
 from coalitionkit_surfaces import compose_surface
+from coalitionkit_surfaces.catalog import validate_data_model
 
 from ..adapter import Document
 from .needs import tidy
@@ -39,11 +40,12 @@ def results_of(engine: RoomEngine, state: State, doc: Document, viewer: str) -> 
         sources = [s for s in content["sources"] if isinstance(s, str)]
         surface = f"result-{event['event_id']}"
         tree = content["components"]
-        composed = compose_surface(engine.catalog, surface, tree, {}, seen)
+        model = model_of(content)
+        composed = compose_surface(engine.catalog, surface, tree, model, seen)
         if not tree or composed.errors:
             # An agent from outside may send only its data: it is still shown, in the fixed layout.
             tree = plain_tree(content)
-            composed = compose_surface(engine.catalog, surface, tree, {}, seen)
+            composed = compose_surface(engine.catalog, surface, tree, model, seen)
         messages = composed.messages
         shown.append(
             {
@@ -67,9 +69,17 @@ def results_of(engine: RoomEngine, state: State, doc: Document, viewer: str) -> 
     return shown
 
 
+def model_of(content: Document) -> Document:
+    """The result surface's data model, or an empty one when the data would not pass."""
+    from .fixed import surface_model
+
+    model = surface_model(str(content["kind"]), content["data"])
+    return model if not validate_data_model(model) else {}
+
+
 def plain_tree(content: Document) -> list[Document]:
     """The fixed layout of a result's data, or its data as words when that has another shape."""
-    from .results import fixed_tree
+    from .fixed import fixed_tree
 
     title, data = tidy(content["title"], 80), content["data"]
     try:

@@ -34,8 +34,9 @@ A tree in the room can never answer a consent. Consent only goes through `/v1/ag
 | `POST /v1/room/voice` | A mono 16-bit PCM WAV, 16 or 24 kHz, at most 20 seconds: the raw body (`Content-Type: audio/wav`) or a multipart part `audio`. Optional `question_id` | `{text, ms, source}`, plus `{answer, words, question_id, answer_source}` for a question. 413 for a long clip, 422 for another format, 503 without a model key |
 | `POST /v1/room/photo` | A PNG, JPEG or WebP image: the raw body or a multipart part `image`, with `question_id` or `purpose=say` | `{answer, words, description, ms, source}`. 415 for another image type |
 | `POST /v1/room/done` | `{task_id}` | `{seq}`. 409 unless the viewer's approved commitment has a result |
+| `GET /v1/room/media/{hash}` | none | The bytes of a picture an agent in this room made, with its image type. `hash` is the SHA-256 of the bytes. 404 for any other hash or another room's picture |
 
-All four need a viewer token.
+All five need a viewer token. A picture is kept under the host's data directory at `media/<room>/<hash>`; the browser fetches it with the token and shows it from a local address, because an image tag cannot send one.
 
 ## Start, join and end
 
