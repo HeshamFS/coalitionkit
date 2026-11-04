@@ -5,7 +5,7 @@ should reproduce a report on the latest release when possible.
 
 Report suspected vulnerabilities privately through
 [GitHub private vulnerability reporting](https://github.com/HeshamFS/coalitionkit/security/advisories/new).
-If private reporting is unavailable, email Hesham Salama at hesham.salama@rub.de.
+If private reporting is unavailable, email Hesham Salama at hesham@autonomouslab.io.
 Include the affected version, minimal reproduction, impact and any relevant logs
 with credentials and personal data removed. Do not post an exploit, secret or
 private participant data in a public issue.

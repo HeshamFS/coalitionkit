@@ -24,9 +24,9 @@ Yes. Connect it [over MCP](guides/mcp-agents.md) or [over A2A with its own card]
 
 `coalitionkit up` listens only on this machine, so other devices cannot reach it without more setup. See [Join from another device](get-started/join-another-device.md) and [Deploy a host](guides/deploy.md).
 
-## Why does it need Python 3.15?
+## Which Python does it need?
 
-That is what the kit is built and tested on today.
+Python 3.12 or newer. CI runs on 3.12 and 3.15.
 
 ## Why does the room say it cannot compare free times?
 

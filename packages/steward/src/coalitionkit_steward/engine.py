@@ -88,7 +88,7 @@ def parse_model_verdict(text: str) -> ModelVerdict | None:
     """The verdict, or None when the answer is not strict JSON in the schema."""
     try:
         return ModelVerdict.model_validate_json(text, strict=True)
-    except ValidationError, ValueError:
+    except (ValidationError, ValueError):
         return None
 
 

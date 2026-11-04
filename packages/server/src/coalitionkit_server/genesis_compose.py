@@ -352,6 +352,6 @@ def compose_draft(result: DraftResponse, catalog: Catalog | None = None) -> Comp
             return Composition(
                 source="model", cards=build_cards(result, [*result.model_cards, *found], catalog)
             )
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             result.model_cards = []
     return Composition(cards=build_cards(result, reader_choices(result), catalog))

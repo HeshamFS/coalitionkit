@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Protocol clients use real TCP ports and the composed application's lifespan."""
 
+from __future__ import annotations
+
 import json
 import socket
 import threading

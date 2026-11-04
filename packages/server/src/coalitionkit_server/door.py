@@ -455,7 +455,7 @@ def mount_door(
             except CardError as exc:
                 registry.revoke_invitation(coalition, invitation["id"])
                 raise HTTPException(400, "card refused: " + exc.reason) from None
-            except ValueError, KeyError:
+            except (ValueError, KeyError):
                 registry.revoke_invitation(coalition, invitation["id"])
                 raise HTTPException(400, "join refused") from None
             registry.set_name(coalition, redeemed["participant"], body.display_name)

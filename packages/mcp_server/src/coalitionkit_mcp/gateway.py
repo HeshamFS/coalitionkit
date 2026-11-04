@@ -113,6 +113,6 @@ def receipt_ack(host: HostPort, receipt: Any, submitted: dict[str, Any]) -> dict
         info = verify_receipt(data, key)
         if data["coalition_id"] != submitted["coalition_id"]:
             raise ValueError("wrong coalition")
-    except SchemaValidationError, SignatureError, LogIntegrityError, ValueError:
+    except (SchemaValidationError, SignatureError, LogIntegrityError, ValueError):
         raise CoalitionToolError("bad_signature", "invalid host receipt") from None
     return {"event_id": submitted["event_id"], "seq": info.seq}
