@@ -488,7 +488,10 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     server = Server(settings, model_gateway)
     mcp = mcp_app(
         Deps(
-            MCPPort(server), ViewPort(server.hosts, server.registry), server.registry, skills=server
+            MCPPort(server),
+            ViewPort(server.hosts, server.registry, server.room),
+            server.registry,
+            skills=server,
         ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,

@@ -18,6 +18,7 @@ from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
 from .seats import open_seats, people
+from .talk_view import talk_of
 from .view_results import change_of, latest_by_need, results_of, tasks_of
 
 if TYPE_CHECKING:
@@ -108,6 +109,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
         "change": change_of(state, doc),
         "begin": begin_of(engine, coalition, viewer, owner, state, doc),
         "measured": measured_of(engine, coalition, state, doc),
+        "talk": talk_of(engine, coalition, viewer, state, doc),
         "mine": mine,
     }
 

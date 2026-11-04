@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """MCP and surface adapters, based only on the runtime's scoped projection."""
 
+from typing import Any
+
 from mcp.server.auth.middleware.auth_context import get_access_token
 
 from coalitionkit_mcp.elicit import sign_decision
@@ -38,8 +40,10 @@ class OwnerSigner:
 
 
 class ViewPort:
-    def __init__(self, hosts: dict[str, CoalitionHost], registry: Registry) -> None:
-        self.hosts, self.registry = hosts, registry
+    def __init__(
+        self, hosts: dict[str, CoalitionHost], registry: Registry, room: Any = None
+    ) -> None:
+        self.hosts, self.registry, self.room = hosts, registry, room
 
     def authorized(self, participant: str, coalition: str) -> bool:
         access = get_access_token()
@@ -120,6 +124,30 @@ class ViewPort:
         if not await self.is_member(participant, coalition_id):
             return {}
         return self.hosts[coalition_id].view(participant)
+
+    async def talk(self, participant: str, coalition_id: str) -> Document | None:
+        """The room's talk, from this participant's own projection. No whisper is included."""
+        host = self.hosts.get(coalition_id)
+        if host is None or not await self.is_member(participant, coalition_id):
+            return None
+        if self.room is None or not self.room.drives(coalition_id):
+            thread = [
+                {
+                    **e["payload"],
+                    "id": e["event_id"],
+                    "seq": e.get("seq"),
+                    "from": e["on_behalf_of"],
+                }
+                for e in host.view(participant)["events"].values()
+                if e["type"] == "coalition.say"
+            ]
+            return {"open": False, "round": 0, "rounds": 0, "thread": thread}
+        from .room.talk_view import talk_of
+
+        found = talk_of(
+            self.room, coalition_id, participant, host.state, self.room.read(coalition_id)
+        )
+        return {k: v for k, v in found.items() if k != "mine"}
 
     async def subject_revision(
         self, participant: str, coalition_id: str, kind: str, subject_id: str

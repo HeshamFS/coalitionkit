@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Assembles the MCP server: thirteen tools, three resources, one view, bearer-token auth."""
+"""Assembles the MCP server: sixteen tools, three resources, one view, bearer-token auth."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from .ports import TokenPort
 from .resources import CHARTER_URI, LOG_URI, TASKS_URI, charter, log, my_tasks
 from .tools_consent import accept_charter, approve_commitment, decide
 from .tools_read import VIEW_URI, list_coalitions, my_view, open_asks, pending_questions
+from .tools_talk import read_talk, say
 from .tools_write import (
     answer_question,
     commit,
@@ -38,6 +39,7 @@ PLAIN_WRITES = (
     report_ripple,
     report_done,
     leave_coalition,
+    say,
 )
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
 #: The read tools whose results the view can draw; each links to it through its UI metadata.
@@ -109,6 +111,7 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
     )
     for fn in (*PLAIN_WRITES, *CONSENT_WRITES):
         server.add_tool(fn, annotations=WRITE)
+    server.add_tool(read_talk, annotations=READ)
     server.resource(CHARTER_URI, name="charter", mime_type="application/json")(charter)
     server.resource(TASKS_URI, name="my-tasks", mime_type="application/json")(my_tasks)
     server.resource(LOG_URI, name="log", mime_type="application/json")(log)
