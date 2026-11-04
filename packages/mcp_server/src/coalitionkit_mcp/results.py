@@ -174,6 +174,11 @@ RESULT_SPECS: Final[dict[str, dict[str, Spec]]] = {
     "decide": {**ACK, "subject": SUBJECT, "choice": LEAF, "consent": LEAF},
     "approve_commitment": {**ACK, "commitment_id": LEAF, "revision": LEAF, "consent": LEAF},
     "accept_charter": {**ACK, "coalition_id": LEAF, "revision": LEAF, "consent": LEAF},
+    "web_search": {
+        "coalition_id": LEAF,
+        "query": LEAF,
+        "results": ({"title": LEAF, "url": LEAF, "snippet": LEAF},),
+    },
 }
 
 

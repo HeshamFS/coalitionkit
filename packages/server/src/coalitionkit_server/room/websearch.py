@@ -318,3 +318,22 @@ def search_feed(doc: Document) -> list[Document]:
         row["stopped"] = entry.get("refused") or entry.get("failed")
         out.append(row)
     return out
+
+
+class RoomSearchPort:
+    """The MCP server's ``web_search`` for outside agents: the same screen, the same Table line."""
+
+    def __init__(self, server: Any) -> None:
+        self._server = server
+
+    async def web_search(self, participant: str, coalition_id: str, query: str) -> Document | None:
+        engine: RoomEngine | None = self._server.room
+        if engine is None or provider(engine) is None:
+            return None
+        seats = sorted((await read_state(engine, coalition_id)).members)
+        private = private_values(engine, coalition_id, seats)
+        refused = screen(query, private, coalition_id, participant)
+        hits = await search(engine, coalition_id, participant, query, agent="mcp", seats=seats)
+        if refused or hits is None:
+            return {"refused": refused or "web search is off"}
+        return {"results": [{k: h[k] for k in ("title", "url", "snippet")} for h in links(hits)]}

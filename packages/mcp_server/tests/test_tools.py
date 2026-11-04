@@ -17,7 +17,7 @@ TOOLS = {
     "list_coalitions", "join_coalition", "my_view", "open_asks", "pending_questions",
     "answer_question",
     "make_offer", "decide", "approve_commitment", "report_done", "leave_coalition", "commit",
-    "report_ripple", "accept_charter",
+    "report_ripple", "accept_charter", "web_search",
 }  # fmt: skip
 
 

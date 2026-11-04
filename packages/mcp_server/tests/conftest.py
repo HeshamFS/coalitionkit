@@ -21,6 +21,22 @@ class FixtureSkills:
         return [{"name": "guide", "title": "Guide", "text": "# Guide\nWork together."}]
 
 
+class FixtureSearch:
+    """A host search port: refuses a query holding a digit run, else one result."""
+
+    def __init__(self) -> None:
+        self.asked: list[tuple[str, str, str]] = []
+
+    async def web_search(
+        self, participant: str, coalition_id: str, query: str
+    ) -> dict[str, Any] | None:
+        self.asked.append((participant, coalition_id, query))
+        if any(ch.isdigit() for ch in query):
+            return {"refused": "it holds a street address"}
+        row = {"title": "A hall", "url": "https://example.org/hall", "snippet": "Big.", "x": 1}
+        return {"results": [row]}
+
+
 @pytest.fixture
 def rig() -> Any:
     port = free_port()
@@ -69,7 +85,7 @@ def rig() -> Any:
     host_key = Ed25519PrivateKey.generate()
     host = FakeHost(HostSigner("https://host.example.org/card.json", host_key, "host-1"))
     app = create_app(
-        Deps(host=host, view=view, tokens=tokens, skills=FixtureSkills()),
+        Deps(host=host, view=view, tokens=tokens, skills=FixtureSkills(), search=FixtureSearch()),
         public_url=f"http://127.0.0.1:{port}/mcp",
         issuer_url="http://127.0.0.1:1",
         allowed_hosts=["127.0.0.1:*"],

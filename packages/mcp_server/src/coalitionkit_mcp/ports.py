@@ -84,3 +84,13 @@ class ViewPort(Protocol):
 
 class SkillsPort(Protocol):
     async def skills(self, participant: str, coalition_id: str) -> list[dict[str, Any]]: ...
+
+
+class SearchPort(Protocol):
+    """The host's web search, under its outbound policy. None means search is off."""
+
+    async def web_search(
+        self, participant: str, coalition_id: str, query: str
+    ) -> dict[str, Any] | None:
+        """``{"results": [{title, url, snippet}]}``, or ``{"refused": why}``, or None when off."""
+        ...

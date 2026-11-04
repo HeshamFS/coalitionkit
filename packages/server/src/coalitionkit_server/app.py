@@ -53,6 +53,7 @@ from .registry import Registry
 from .room import RoomEngine
 from .room.routes import room_routes
 from .room.view import room_state
+from .room.websearch import RoomSearchPort
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
 from .whatsapp import mount_whatsapp
@@ -488,7 +489,11 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
     server = Server(settings, model_gateway)
     mcp = mcp_app(
         Deps(
-            MCPPort(server), ViewPort(server.hosts, server.registry), server.registry, skills=server
+            MCPPort(server),
+            ViewPort(server.hosts, server.registry),
+            server.registry,
+            skills=server,
+            search=RoomSearchPort(server),
         ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,
