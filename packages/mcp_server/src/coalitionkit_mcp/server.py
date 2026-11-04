@@ -15,7 +15,7 @@ from .errors import split_error_text
 from .ports import TokenPort
 from .resources import CHARTER_URI, LOG_URI, TASKS_URI, charter, log, my_tasks
 from .tools_consent import accept_charter, approve_commitment, decide
-from .tools_read import VIEW_URI, list_coalitions, my_view, pending_questions
+from .tools_read import VIEW_URI, list_coalitions, my_view, open_asks, pending_questions
 from .tools_write import (
     answer_question,
     commit,
@@ -41,7 +41,7 @@ PLAIN_WRITES = (
 )
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
 #: The read tools whose results the view can draw; each links to it through its UI metadata.
-VIEW_READS = (list_coalitions, pending_questions)
+VIEW_READS = (list_coalitions, pending_questions, open_asks)
 
 
 class PortTokenVerifier:

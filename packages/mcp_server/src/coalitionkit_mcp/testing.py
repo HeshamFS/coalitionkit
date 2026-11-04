@@ -101,6 +101,9 @@ class FakeViewPort:
         found = self._member(participant, coalition_id)
         return [] if found is None else list(found.tasks.get(participant, []))
 
+    async def open_asks(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
+        return []
+
     async def pending_questions(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
         found = self._member(participant, coalition_id)
         return [] if found is None else list(found.questions.get(participant, []))

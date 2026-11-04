@@ -59,6 +59,10 @@ class ViewPort(Protocol):
 
     async def my_tasks(self, participant: str, coalition_id: str) -> list[dict[str, Any]]: ...
 
+    async def open_asks(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
+        """What this participant is asked to decide right now: ``kind``, ``id``, ``revision``."""
+        ...
+
     async def log(self, participant: str, coalition_id: str, since: int) -> list[dict[str, Any]]:
         """Entries with ``seq`` above ``since``, each an original, a projection or a stub."""
         ...

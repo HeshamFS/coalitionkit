@@ -45,7 +45,7 @@ async def test_every_read_tool_the_view_can_draw_links_to_it(rig: Rig) -> None:
     linked = {
         t.name for t in listed.tools if ((t.meta or {}).get("ui") or {}).get("resourceUri") == VIEW
     }
-    assert linked == {"my_view", "list_coalitions", "pending_questions"}
+    assert linked == {"my_view", "list_coalitions", "open_asks", "pending_questions"}
 
 
 async def test_my_view_carries_the_viewers_events_in_order_and_readable_text(rig: Rig) -> None:
