@@ -37,3 +37,5 @@ packages/mint/scorecard-*.json
 # Generated release inputs (staged by tools/build_web.py)
 packages/cli/src/coalitionkit_cli/web_dist/
 packages/contracts/src/coalitionkit_contracts/data/spec/
+
+!.python-version
