@@ -13,6 +13,5 @@
     },
     "street_address": { "type": "string", "x-private": true },
     "phone": { "type": "string", "x-private": true }
-  },
-  "required": ["minutes"]
+  }
 }
