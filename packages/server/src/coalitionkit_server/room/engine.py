@@ -72,6 +72,8 @@ def fresh_doc() -> Document:
     }
 
 
+MODEL_AUDIT = "steward-model-audit"
+PLANS_HELD = "A person should look at these plans. Say what should change and the agents try again."
 PLANS_REFUSED = "Every plan was turned down. Say what would change and the agents will try again."
 
 
@@ -241,7 +243,7 @@ class RoomEngine:
             "explain": explain,
         }
         self.update(coalition, lambda d: d["stops"].append(entry))
-        label = f"The Steward held a message: {explain}"
+        label = explain if seat is None else f"The Steward held a message: {explain}"
         self.start_activity(coalition, "stopped", label, seat=seat, state="done", source="host")
 
     def lock_for(self, coalition: str) -> asyncio.Lock:
@@ -384,9 +386,19 @@ class RoomEngine:
         ]
 
     def hold(self, coalition: str, marker: str, policy: str) -> None:
-        """A plan set the Steward held: it is not sent again until the offers change."""
-        if marker not in self.read(coalition)["held"]:
-            self.record_stop(coalition, None, None, policy)
+        """A plan set the Steward held: it is not sent again until the offers change.
+
+        A verdict of the model audit can differ between two reads of the same plans, so it gets
+        one more read before it stops the room. A fixed policy stops it at once.
+        """
+        doc = self.read(coalition)
+        if policy == MODEL_AUDIT and doc.get("audit_retried") != marker:
+            self.update(coalition, lambda d: d.__setitem__("audit_retried", marker))
+            self.wake_gardener(coalition)
+            return
+        if marker not in doc["held"]:
+            words = PLANS_HELD if policy == MODEL_AUDIT else None
+            self.record_stop(coalition, None, None, policy, words)
         self.update(coalition, lambda d: d["held"].__setitem__(marker, policy))
 
     def all_plans_refused(self, coalition: str, marker: str) -> None:

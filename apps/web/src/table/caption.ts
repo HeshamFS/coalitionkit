@@ -57,11 +57,23 @@ function resting(room: Room, ctx: { plans: number; waiting: boolean }): Caption 
           : "Waiting for the others to answer their agents.",
         sub: "Answers stay private",
       };
-    case "work":
+    case "work": {
+      // A stop with no seat is about the plans themselves: nothing moves until someone speaks.
+      const held = room.stops.filter((s) => s.seat === null).at(-1);
+      if (held) {
+        return {
+          text:
+            held.policy === "plans-refused"
+              ? "Every plan was turned down."
+              : "The Steward held the plans.",
+          sub: "Say what should change, and the agents try again",
+        };
+      }
       return {
         text: "The agents are comparing what each person can offer.",
         sub: "Nothing is asked of you now",
       };
+    }
     case "decide":
       return {
         text:
