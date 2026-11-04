@@ -25,7 +25,7 @@ export type RoomSeat = {
   seat: string;
   role: string;
   label: string;
-  kind: "person" | "helper" | "open";
+  kind: "person" | "helper" | "device" | "open";
   you: boolean;
   signed: boolean;
   state: string;
@@ -185,7 +185,7 @@ function readSeats(v: unknown): RoomSeat[] {
       seat: str(s.seat),
       role: str(s.role),
       label: str(s.label) || str(s.seat),
-      kind: oneOf(s.kind, ["person", "helper", "open"] as const, "person"),
+      kind: oneOf(s.kind, ["person", "helper", "device", "open"] as const, "person"),
       you: s.you === true,
       signed: s.signed === true,
       state: str(s.state),

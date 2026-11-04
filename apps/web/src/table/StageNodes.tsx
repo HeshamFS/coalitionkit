@@ -9,7 +9,7 @@ import type { RoomNeed, RoomSeat, Stop } from "./room";
 /** Seat colour: you are blue, helpers are slate, the rest take the landing's seat colours. */
 export function seatColor(seat: RoomSeat, index: number): string {
   if (seat.you) return "var(--blue)";
-  if (seat.kind === "helper") return "var(--seat-5)";
+  if (seat.kind === "helper" || seat.kind === "device") return "var(--seat-5)";
   return `var(--seat-${(index % 4) + 1})`;
 }
 
@@ -29,7 +29,7 @@ const stopWords = (stops: Stop[]) =>
 const aria = (seat: RoomSeat, viewing: boolean) => {
   if (seat.you) return viewing ? "Back to my side" : "Your seat";
   if (seat.kind === "open") return "Open seat";
-  return `See ${seat.label}'s screen${seat.kind === "helper" ? " (an agent)" : ""}`;
+  return `See ${seat.label}'s screen${seat.kind === "helper" ? " (an agent)" : seat.kind === "device" ? " (a minted device)" : ""}`;
 };
 
 export function SeatNode({
@@ -84,6 +84,7 @@ export function SeatNode({
         </button>
         <span className="tb-seatname">{open ? "Open seat" : seat.label}</span>
         {seat.kind === "helper" && <span className="tb-agenttag">agent</span>}
+        {seat.kind === "device" && <span className="tb-agenttag">device</span>}
         {stops.length > 0 && (
           <ul className="tb-stoptip" aria-label="Stopped by the Steward">
             {stops.map((s) => (
