@@ -33,12 +33,15 @@
   color: var(--ink);
   font-size: 13px;
   line-height: 1.35;
-  transform: translate(-50%, 34px);
+  transform: translate(34px, -50%);
   pointer-events: none;
   animation: tk-pop 0.35s ease-out 1;
 }
-.tk-bubble[data-above="true"] {
-  transform: translate(-50%, calc(-100% - 34px));
+.tk-bubble[data-side="left"] {
+  transform: translate(calc(-100% - 34px), -50%);
+}
+.tk-bubble[data-compact="true"] {
+  max-width: 170px;
 }
 .tk-bubble[data-newest="true"] {
   border-color: var(--blue-line);

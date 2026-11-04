@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { captionFor } from "../caption";
 import { mockIo } from "../fixtureIo";
 import { SCENES } from "../scenes";
 import { TableView } from "../TableView";
@@ -101,5 +102,16 @@ describe("room.talk", () => {
     );
     expect(container.querySelector(".tk-thread")).toBeNull();
     expect(container.querySelector(".tk-bubble")).toBeNull();
+  });
+
+  it("says the agents are talking while the talk is open", () => {
+    const scene = SCENES.find((s) => s.id === "work");
+    if (!scene) throw new Error("work scene");
+    const room = { ...scene.room, activity: [], stops: [], talk: readTalk(RAW) };
+    expect(captionFor(room, { plans: 0, waiting: false }).text).toBe(
+      "The agents are talking before the plans.",
+    );
+    const after = { ...room, talk: { ...readTalk(RAW), open: false } };
+    expect(captionFor(after, { plans: 0, waiting: false }).text).not.toMatch(/talking/);
   });
 });

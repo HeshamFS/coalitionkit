@@ -154,11 +154,11 @@ def cli_page() -> dict[Path, str]:
 
 def mcp_page() -> dict[Path, str]:
     from coalitionkit_mcp.resources import CHARTER_URI, LOG_URI, TASKS_URI
-    from coalitionkit_mcp.server import CONSENT_WRITES, PLAIN_WRITES, VIEW_READS
+    from coalitionkit_mcp.server import CONSENT_WRITES, PLAIN_READS, PLAIN_WRITES, VIEW_READS
     from coalitionkit_mcp.tools_read import my_view
 
     groups = {
-        "Read": [my_view, *VIEW_READS],
+        "Read": [my_view, *VIEW_READS, *PLAIN_READS],
         "Act": list(PLAIN_WRITES),
         "Ask the person": list(CONSENT_WRITES),
     }

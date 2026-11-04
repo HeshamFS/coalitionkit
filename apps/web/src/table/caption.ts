@@ -69,6 +69,12 @@ function resting(room: Room, ctx: { plans: number; waiting: boolean }): Caption 
           sub: "Say what should change, and the agents try again",
         };
       }
+      if (room.talk?.open) {
+        return {
+          text: "The agents are talking before the plans.",
+          sub: "Nothing is asked of you now",
+        };
+      }
       return {
         text: "The agents are comparing what each person can offer.",
         sub: "Nothing is asked of you now",

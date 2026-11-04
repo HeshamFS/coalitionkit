@@ -44,6 +44,8 @@ PLAIN_WRITES = (
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
 #: The read tools whose results the view can draw; each links to it through its UI metadata.
 VIEW_READS = (list_coalitions, pending_questions, open_asks)
+#: Read tools with no view of their own.
+PLAIN_READS = (read_talk,)
 
 
 class PortTokenVerifier:
@@ -111,7 +113,8 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
     )
     for fn in (*PLAIN_WRITES, *CONSENT_WRITES):
         server.add_tool(fn, annotations=WRITE)
-    server.add_tool(read_talk, annotations=READ)
+    for read in PLAIN_READS:
+        server.add_tool(read, annotations=READ)
     server.resource(CHARTER_URI, name="charter", mime_type="application/json")(charter)
     server.resource(TASKS_URI, name="my-tasks", mime_type="application/json")(my_tasks)
     server.resource(LOG_URI, name="log", mime_type="application/json")(log)

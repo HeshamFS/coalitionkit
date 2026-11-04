@@ -22,5 +22,6 @@ Every message is a signed envelope in the log. The full rules are in [the protoc
 | `coalition.query` | `query_id`, `kind`, `subject` | [`query.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/query.json) |
 | `coalition.receipt` | `coalition_id`, `seq`, `head_hash` | [`receipt.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/receipt.json) |
 | `coalition.ripple` | `change`, `invalidates` | [`ripple.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/ripple.json) |
+| `coalition.say` | `to`, `text`, `intent` | [`say.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/say.json) |
 | `coalition.scope` | `audience` | [`scope.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/scope.json) |
 | `coalition.tension` | `tension_id`, `revision`, `task_ids`, `options`, `tradeoffs`, `deciders`, `decision_deadline` | [`tension.json`](https://github.com/HeshamFS/coalitionkit/blob/main/spec/schemas/coalition/v0/tension.json) |

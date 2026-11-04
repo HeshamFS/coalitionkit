@@ -161,3 +161,22 @@ def test_rules_find_private_values_but_not_public_words() -> None:
     assert leaked("my knee is bad, so no stairs", values) == "My knee is bad"
     assert leaked("my knee is bad", values, allowed="Say my knee is bad") is None
     assert whispered("tell them that I can only do mornings") == "I can only do mornings"
+
+
+def test_the_agents_talk_again_after_a_change(tmp_path: Path) -> None:
+    lines = {("Member 1", 1): {"intent": "caveat", "text": "Mind the budget for the venue."}}
+    model = RoomModel(needs=NEEDS, brief=BRIEF, talk=scripted(lines))
+    with serve(tmp_path, model) as client:
+        cid, engine, people = room_to_talk(client)
+        until(lambda: events(client, cid, "propose") or events(client, cid, "tension"), 40, "plans")
+        assert len(says(client, cid)) == 1
+        changed = client.post(
+            "/v1/room/say",
+            json={"text": "I can't find a venue after all"},
+            headers=bearer(people["p1"]["token"]),
+        )
+        assert changed.status_code == 200 and changed.json()["route"] == "change", changed.text
+        until(lambda: str(engine.read(cid).get("talk_done")).startswith("change:"), 40, "talk 2")
+        thread = view_of(engine, cid, "p1")["talk"]["thread"]
+        assert [t["stage"] for t in thread] == ["start", "change"]
+        assert view_of(engine, cid, "p1")["talk"]["stage"] == "change"

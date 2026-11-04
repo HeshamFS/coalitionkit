@@ -110,7 +110,7 @@ def test_three_hosted_seats_talk_before_the_plans(tmp_path: Path) -> None:
         first_say = min((e["seq"] for e in said), default=0)
         revised_events = [o for o in offers_by_seq if o[0] > first_say and first_say]
         plans = events(client, cid, "propose") + events(client, cid, "tension")
-        outcome = {
+        outcome: dict[str, Any] = {
             "whisper_route": whisper.get("route"),
             "seconds_in_talk": talked,
             "rounds": doc["talk"]["round"],

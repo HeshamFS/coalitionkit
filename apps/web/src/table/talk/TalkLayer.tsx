@@ -40,16 +40,16 @@ export function TalkLayer({
           </div>
         );
       })}
-      {latestBySeat(talk, compact ? 2 : 3).map((line) => {
+      {latestBySeat(talk, compact ? 1 : 3).map((line) => {
         const at = home.get(line.from);
         if (!at) return null;
-        const above = at.y > centre.y;
+        // Beside the seat, on the side toward the goal: seats on one side never stack bubbles.
         return (
           <figure
             key={line.id}
             className="tk-bubble"
-            data-above={above}
-            data-left={at.x > centre.x}
+            data-side={at.x > centre.x ? "left" : "right"}
+            data-compact={compact}
             data-newest={line.id === newest}
             style={{ left: at.x, top: at.y }}
           >
