@@ -55,6 +55,8 @@ plugins:
             - packages/mint/src
             - packages/channels/src
             - packages/conformance/src
+            - packages/langchain/src
+            - packages/langgraph/src
           options:
             show_source: false
             show_root_heading: true
@@ -122,6 +124,8 @@ nav:
       - Bring your own agent over MCP: guides/mcp-agents.md
       - Bring your own agent over A2A: guides/a2a-business-agent.md
       - Google ADK and LangGraph members: guides/adk-member.md
+      - LangChain: guides/langchain.md
+      - LangGraph: guides/langgraph.md
       - WhatsApp channel: guides/whatsapp.md
       - Glasses view: guides/glasses.md
       - The Mint: guides/mint.md
@@ -179,6 +183,8 @@ nav:
           - steward: reference/python/steward.md
           - surfaces: reference/python/surfaces.md
           - vault: reference/python/vault.md
+          - langchain: reference/python/langchain.md
+          - langgraph: reference/python/langgraph.md
   - Security and privacy:
       - security/index.md
       - Threat model: security/threat-model.md

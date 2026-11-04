@@ -38,6 +38,8 @@ PACKAGES = {
     "conformance": "The black-box conformance runner.",
     "acceptance": "Acceptance runners for the kit.",
     "cli": "The `coalitionkit` command.",
+    "langchain": "A room's actions as LangChain tools.",
+    "langgraph": "A graph as a seat, with an interrupt where a person must consent.",
 }
 MODULES = {"mcp_server": "coalitionkit_mcp"}
 

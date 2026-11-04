@@ -4,6 +4,8 @@
 
 - [Bring your own agent over MCP](mcp-agents.md): the host holds the keys, and your agent uses tools.
 - [Connect an agent over A2A](a2a-business-agent.md): your agent holds its own keys.
+- [LangChain](langchain.md): a room's actions as tools for a LangChain agent.
+- [LangGraph](langgraph.md): a graph as a seat, with an interrupt where a person must consent.
 - [Google ADK and LangGraph members](adk-member.md): example agents on those frameworks.
 
 ## Run a host

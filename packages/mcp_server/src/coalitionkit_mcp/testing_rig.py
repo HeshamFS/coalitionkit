@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Callable
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+import socket
+from collections.abc import AsyncGenerator, Callable, Generator
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -15,9 +16,9 @@ from mcp.client.session import ClientRequestContext
 from mcp.client.streamable_http import streamable_http_client
 from mcp_types import ElicitRequestParams, ElicitResult, ErrorData
 
-from coalitionkit_edges.a2a.host_port import FakeHost
-from coalitionkit_mcp import HostedParticipant
-from coalitionkit_mcp.testing import FakeViewPort
+from coalitionkit_edges.a2a.host_port import FakeHost, HostSigner
+from coalitionkit_mcp import Deps, HostedParticipant, create_app
+from coalitionkit_mcp.testing import FakeCoalition, FakeTokenPort, FakeViewPort, ServedApp
 
 C1 = "01M4XRC000000G40R40M30E209"
 C2 = "01M4XRC1J00000000000000000"
@@ -91,3 +92,69 @@ def yes(_: ElicitRequestParams) -> ElicitResult:
 
 def no(_: ElicitRequestParams) -> ElicitResult:
     return ElicitResult(action="accept", content={"consent": False})
+
+
+class FixtureSkills:
+    async def skills(self, participant: str, coalition_id: str) -> list[dict[str, Any]]:
+        return [{"name": "guide", "title": "Guide", "text": "# Guide\nWork together."}]
+
+
+@contextmanager
+def served_rig(search: Any = None) -> Generator[Rig]:
+    """A served MCP app on a real localhost port with a FakeHost."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = int(probe.getsockname()[1])
+    people = {"p1": hosted("p1"), "p2": hosted("p2")}
+    tokens = FakeTokenPort()
+    for name, person in people.items():
+        tokens.add(f"tok-{name}", person)
+    view = FakeViewPort()
+    view.add(
+        C1,
+        FakeCoalition(
+            goal=CHARTER["goal"],
+            charter=dict(CHARTER),
+            members={"p1": ["member", "organizer"], "p2": ["member"]},
+            revisions={("charter", C1): 2, ("commitment", COMMITMENT): 3, ("plan", PLAN): 1},
+            tasks={
+                "p2": [
+                    {
+                        "task_id": TASK,
+                        "title": "Book room",
+                        "status": "decided",
+                        "secret_note": "never shown",
+                    }
+                ]
+            },
+            questions={
+                "p2": [
+                    {
+                        "query_id": "q-1",
+                        "kind": "feasible",
+                        "subject": "room",
+                        "secret_note": "never shown",
+                    }
+                ]
+            },
+        ),
+    )
+    view.add(
+        C2,
+        FakeCoalition(
+            goal="Another one",
+            charter={**CHARTER, "goal": "Another one"},
+            members={"p1": ["member"]},
+        ),
+    )
+    host_key = Ed25519PrivateKey.generate()
+    host = FakeHost(HostSigner("https://host.example.org/card.json", host_key, "host-1"))
+    app = create_app(
+        Deps(host=host, view=view, tokens=tokens, skills=FixtureSkills(), search=search),
+        public_url=f"http://127.0.0.1:{port}/mcp",
+        issuer_url="http://127.0.0.1:1",
+        allowed_hosts=["127.0.0.1:*"],
+        allowed_origins=["http://127.0.0.1:*"],
+    )
+    with ServedApp(app, port) as served:
+        yield Rig(served.url, host, view, people)
