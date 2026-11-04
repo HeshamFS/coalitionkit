@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 BUDGET_TOKENS = 12_000
 MAKER_TIMEOUT_S = 90.0
+SEARCHED_TIMEOUT_S = 120.0  # choosing among found pages reads more
 AMOUNT = re.compile(
     r"(?:([€$£])\s*(\d[\d.,]*))|(?:(\d[\d.,]*)\s*(euros?|eur|dollars?|usd|pounds?|gbp)\b)", re.I
 )
@@ -276,6 +277,21 @@ def clean_found(out: FoundPlaceOut, facts: Document) -> Document | str:
     return {"ideas": ideas}
 
 
+def places_by_rules(found: list[Document]) -> Document | None:
+    """When the maker fails, the pages the search found still stand, said as found."""
+    ideas = [
+        {
+            "name": tidy(h["title"], 90).rstrip(". "),
+            "why": tidy(h["snippet"], 220) or "A web search found this page for the need.",
+            "check": "Open the page and check it is open, has room and suits the group.",
+            "url": h["url"],
+            "provenance": "search",
+        }
+        for h in found[:3]
+    ]
+    return {"ideas": ideas, "web": found, "by_rules": True} if len(ideas) >= 2 else None
+
+
 def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Document | str:
     """The maker's output made safe and checked, or the reason it cannot be used."""
     if isinstance(out, FoundPlaceOut):
@@ -360,11 +376,11 @@ async def make_data(
             seat=assignee,
             need=task,
             budget=BUDGET_TOKENS,
-            effort="medium",
-            timeout=MAKER_TIMEOUT_S,
+            effort="low" if searched else "medium",
+            timeout=SEARCHED_TIMEOUT_S if searched else MAKER_TIMEOUT_S,
         )
         if out is None:
-            return None
+            return places_by_rules(found) if searched else None
         result: Any = clean(kind, out, {**facts, **shown}, names)
         if isinstance(result, str):
             problem = result
@@ -372,4 +388,4 @@ async def make_data(
         if found:
             result["web"] = found
         return result
-    return None
+    return places_by_rules(found) if searched else None

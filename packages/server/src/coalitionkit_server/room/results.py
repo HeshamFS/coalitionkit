@@ -477,7 +477,7 @@ async def make(
     what code can say ("rules"); the tree is the composer's layout when it passes, else fixed."""
     made = await makers.make_data(engine, coalition, kind, assignee, task, facts)
     data = data_for(kind, made, facts)
-    source = "model" if made is not None else "rules"
+    source = "model" if made is not None and not made.get("by_rules") else "rules"
     title = title_for(kind, data, facts["need"])
     shown = None
     needs_layout = (kind == "place" and data["options"]) or kind == "list"

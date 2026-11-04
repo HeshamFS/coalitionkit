@@ -24,7 +24,7 @@ from room_rig import (
 from test_room_work import SHAPES, approve_commitments, laid, to_decided
 
 from coalitionkit_models import SearchHit, SearchRun
-from coalitionkit_server.room import websearch
+from coalitionkit_server.room import makers, websearch
 
 HITS = (
     SearchHit("Riverside Hall", "https://example.org/riverside-hall", "Seats forty.", "fake"),
@@ -82,7 +82,7 @@ def test_a_place_result_names_real_places_with_their_urls(tmp_path: Path) -> Non
         assert {o["provenance"] for o in options} == {"search"}
         assert [w["url"] for w in place["data"]["web"]] == [h.url for h in HITS]
         assert len(fake.queries) == 1, "one search for the need"
-        assert fake.queries[0].startswith("Find a venue.")
+        assert fake.queries[0].startswith("Find a venue: ")
         view = view_of(engine, cid, "p1")
         shown = next(r for r in view["results"] if r["kind"] == "place")
         assert [link["url"] for link in shown["links"]] == [h.url for h in HITS]
@@ -139,9 +139,7 @@ def test_the_query_is_built_from_public_words_only() -> None:
         "goal": "A games night for six people in the old town",
     }
     query = websearch.query_for(facts)
-    assert query == (
-        "Find a venue. Somewhere all can reach. For: A games night for six people in the old town"
-    )
+    assert query == "Find a venue: A games night for six people in the old town"
     assert websearch.screen(query, [], "c", "p1") is None
     assert websearch.screen("Hauptstraße 5 hall", [], "c", "p1") == "it holds a street address"
     assert websearch.screen("mail me at a@b.org", [], "c", "p1") is not None
@@ -153,3 +151,12 @@ def test_links_from_an_outside_agent_are_checked_before_they_show() -> None:
     data = {"web": [{"title": "Ok", "url": "https://example.org"}, {"url": "javascript:x"}, 3]}
     assert websearch.shown_links(data) == [{"title": "Ok", "url": "https://example.org"}]
     assert websearch.shown_links({"web": "no"}) == [] and websearch.shown_links(None) == []
+
+
+def test_when_the_maker_fails_the_found_pages_still_stand() -> None:
+    found = websearch.links(list(HITS))
+    made = makers.places_by_rules(found)
+    assert made is not None and made["by_rules"] is True
+    assert [i["url"] for i in made["ideas"]] == [h.url for h in HITS]
+    assert {i["provenance"] for i in made["ideas"]} == {"search"}
+    assert makers.places_by_rules(found[:1]) is None

@@ -65,8 +65,7 @@ def provider(engine: RoomEngine) -> SearchProvider | None:
 
 def query_for(facts: Document) -> str:
     """The words a search sends: the need and the goal, nothing any one person said."""
-    need = facts["need"]
-    words = f"{need['title']}. {need.get('detail') or ''} For: {facts['goal']}"
+    words = f"{facts['need']['title']}: {facts['goal']}"
     return tidy(" ".join(words.split()), QUERY_MAX)
 
 
@@ -271,6 +270,12 @@ async def for_need(
         return hits
 
 
+def searched_by(engine: RoomEngine, coalition: str, need: str) -> str | None:
+    """The seat whose search found this need's pages."""
+    done = [s for s in engine.read(coalition).get("search", []) if s.get("need") == need]
+    return str(done[-1]["seat"]) if done else None
+
+
 def wants_fact(facts: Document) -> bool:
     """A list or a draft searches only when its need asks for something from outside the room."""
     need = facts["need"]
@@ -298,7 +303,7 @@ async def at_offer(
         if cached(engine, coalition, str(need["id"])) is not None:
             continue
         hits = await for_need(engine, coalition, who, {"need": need, "goal": goal})
-        if hits:
+        if hits and searched_by(engine, coalition, str(need["id"])) == who:
             names = "; ".join(h.title for h in hits[:3])
             engine.feed_add(
                 coalition, who, f"Your agent looked up {need['title']} on the web: {names}."

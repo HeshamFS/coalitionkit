@@ -13,7 +13,7 @@ A **result** is the real thing a need asked for: a budget that adds up, a list, 
 
 | Kind | Holds | Export |
 |---|---|---|
-| `place` | Kinds of place, why each fits, what to check first | None |
+| `place` | Kinds of place, or real places found on the web, why each fits, what to check first | None |
 | `schedule` | Ordered steps, with times | ICS |
 | `budget` | Lines, who pays, how it is shared, and the time people offered | CSV |
 | `list` | Items and who brings each | CSV |
@@ -23,7 +23,7 @@ A **result** is the real thing a need asked for: a budget that adds up, a list, 
 
 Each result says whether it came from the model or from rules, and what it builds on is labelled **estimate** when it is a suggestion. **Show the work** shows the tree, the events it came from and the check it passed.
 
-The agent does not know things it cannot check. Hosted agents suggest kinds of place, not named venues, because they do not search the web. An outside agent writes what it likes: a venue it names may not exist. The Steward checks policy, not truth.
+The agent does not know things it cannot check. With web search off, hosted agents suggest kinds of place, not named venues. With it on, they name real places from pages a search returned, each with its URL, and the result lists its sources under **Found on the web** (see [Web search for agents](../guides/web-search.md)). A page can still be out of date. An outside agent writes what it likes: a venue it names may not exist. The Steward checks policy, not truth.
 
 ## Who can publish
 

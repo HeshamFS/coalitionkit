@@ -33,6 +33,12 @@ A member reaches the host at `<host>/mcp` with its viewer token as a bearer toke
 | `approve_commitment` | `coalition_id`, `commitment_id` | Approve a commitment at its current revision, after the person confirms it. |
 | `accept_charter` | `coalition_id` | Accept the charter at its current revision, after the person confirms it. |
 
+## Search the web
+
+| Tool | Arguments | What it does |
+|---|---|---|
+| `web_search` | `coalition_id`, `query` | Search the web through the host, with public words only; a refused query sends nothing. |
+
 In the tools under **Ask the person**, the host asks the person inside the call. Only their answer is signed. No tool argument can stand in for it.
 
 ## Resources

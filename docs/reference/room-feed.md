@@ -44,10 +44,11 @@ type Room = {
   activity: {
     id: string; at: string; seat: string | null;
     verb: "reading" | "asking" | "offering" | "comparing" | "stopped" | "planning"
-        | "explaining" | "committing" | "making" | "saying" | "changing" | "ending";
+        | "explaining" | "committing" | "making" | "saying" | "changing" | "ending"
+        | "searching";
     need: string | null; label: string;
     state: "running" | "done" | "failed"; ms: number | null;
-    source: "model" | "rules" | "host"; event: string | null;
+    source: "model" | "rules" | "host" | "search"; event: string | null;
   }[];
   slots: { id: string; label: string; start: string | null }[];
   common: { slots: string[]; count_private: number | null; compared: number } | null;
@@ -57,6 +58,12 @@ type Room = {
     by: string; seq: number; source: "model" | "rules"; sources: string[];
     seqs: number[]; tree: unknown[]; data: unknown; messages: unknown[];
     replaced_by: string | null;
+    links: { title: string; url: string }[];
+  }[];
+  search: {
+    id: string; seat: string; need: string | null; query: string;
+    provider: "meta" | "ddg" | "brave"; ran: string[]; count: number;
+    first: string; ms: number | null; stopped: string | null;
   }[];
   stops: {
     id: string; at: string; seat: string | null; to: string | null;
@@ -93,6 +100,8 @@ type Room = {
 
 - `results[].id` is the id of the `observe` event. `needs[].result` and `mine.tasks[].result` hold that id. `by` is a seat id. `seqs` holds the log positions of those `sources` this viewer may see, so it can be shorter than `sources`.
 - `plan_notes` and `mine.for_you` are keyed by plan id.
+- `search` lists the last 20 web searches the agents ran, newest last. `query` is the screened query that left the host, empty when it was refused; `ran` holds the queries the provider actually ran; `stopped` says why a search was refused or failed, else null. No query holds a private value. See [Web search for agents](../guides/web-search.md).
+- `results[].links` are the web pages a result came from, read from `data.web`; only `http` and `https` URLs are kept.
 - `asks` is what the viewer is asked to decide. A task request whose commitment is also pending is left out, because one yes on the commitment closes both.
 - `measured` holds the real numbers for the closing screen. `cost` is null without a cost meter.
 - `stops[].to` is the seat a stopped message was aimed at, or null when it was aimed at the room. A plan set the Steward holds appears as a stop without a seat.
@@ -123,11 +132,13 @@ A change to a task that is already `done` cannot ripple, because `done` is termi
 
 | Kind | `data` | Export |
 |---|---|---|
-| `place` | `{options: [{name, why, check, provenance}], chosen: name or null}`. `options` may be empty | none |
+| `place` | `{options: [{name, why, check, provenance, url?}], chosen: name or null, web?}`. `options` may be empty. A place found on the web has `url` and `provenance: "search"` | none |
 | `schedule` | `{items: [{title, start, end, where}]}` with ISO 8601 times, and `steps` beside them | ICS |
 | `budget` | `{currency, amount, rows: [{label, amount, who, provenance}], how_shared, time: [{label, amount, provenance, ref}], time_total, suggested: [], total}` | CSV |
-| `list` | `{items: [{label, who, provenance}]}` | CSV |
+| `list` | `{items: [{label, who, provenance}], web?}` | CSV |
 | `draft` | `{subject, body}` | text |
+
+`web`, when present, is `[{title, url, snippet, source}]`: the pages a web search returned for this result. A `draft` may carry it too.
 
 With no money in the goal, a budget is a time budget: `currency` is `minutes`, `rows` are the signed minutes from offers, and `total` is their sum.
 

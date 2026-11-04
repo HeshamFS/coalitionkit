@@ -22,8 +22,11 @@ QUERY_MAX = 200
 
 
 async def web_search(coalition_id: str, query: str, ctx: Context) -> CallToolResult:
-    """Search the web through the host. Use public words only: never a private detail,
-    a contact detail or a street address (the host refuses such a query)."""
+    """Search the web through the host, with public words only; a refused query sends nothing.
+
+    Never put a private detail, a contact detail or a street address in the query: the host
+    refuses it with ``steward_blocked``.
+    """
     hosted = await authorize(ctx, coalition_id)
     words = " ".join(query.split())
     if not words or len(words) > QUERY_MAX:
