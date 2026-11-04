@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """An agent from outside takes a seat through the door code and does not hold the room up."""
 
+import json
 from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from google.protobuf.json_format import MessageToDict
-from room_rig import RoomModel, bearer, engine_of, events, serve, server_of, until
+from room_rig import RoomModel, bearer, engine_of, events, serve, server_of, until, view_of
 from test_room_engine import BRIEF, NEEDS, open_brief, seated_room
 
 from coalitionkit_mcp.gateway import build_envelope, default_scope
@@ -108,3 +109,38 @@ def test_a_hidden_offer_is_refused_so_it_cannot_hide_a_plan(tmp_path: Path) -> N
         open_offer = build_envelope(person, cid, "coalition.offer", payload)
         reply = client.portal.call(server.accept, open_offer, person.card_url)  # type: ignore[union-attr]
         assert "error" not in reply
+
+
+def test_an_outside_result_is_shown_and_a_bad_one_breaks_nothing(tmp_path: Path) -> None:
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
+        room, (member,) = seated_room(tmp_path, client)
+        cid, who = room["coalition_id"], member["participant"]
+        need = events(client, cid, "need")[0]["payload"]["need_id"]
+        server = server_of(client)
+        person = server.registry.hosted_for(cid, who)
+
+        def publish(content: dict[str, object]) -> None:
+            body = {"source": "document", "content": json.dumps(content)}
+            sent = build_envelope(
+                person, cid, "coalition.observe", body, scope={"audience": "coalition"}
+            )
+            reply = client.portal.call(server.accept, sent, person.card_url)  # type: ignore[union-attr]
+            assert "error" not in reply, reply
+
+        good = {
+            "result": 1,
+            "need_id": need,
+            "kind": "draft",
+            "title": "Lunch stop",
+            "source": "model",
+            "sources": [],
+            "components": [],
+            "data": {"subject": "Lunch stop", "body": "The bakery by the lake, at noon."},
+        }
+        publish(good)
+        publish({"result": 1, "need_id": need})
+        publish({**good, "kind": "budget", "title": "Odd shape", "data": {"nothing": "here"}})
+        results = view_of(engine_of(client), cid, "p1")["results"]
+        assert [r["title"] for r in results] == ["Lunch stop", "Odd shape"]
+        assert "The bakery by the lake" in json.dumps(results[0]["messages"])
+        assert results[1]["messages"], "another shape of data is still shown"

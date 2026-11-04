@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from coalitionkit_runtime.lifecycle import State
 from coalitionkit_surfaces import compose_surface
 
 from ..adapter import Document
+from .needs import tidy
 from .work import can_mark_done, result_events
 
 if TYPE_CHECKING:
@@ -35,9 +37,14 @@ def results_of(engine: RoomEngine, state: State, doc: Document, viewer: str) -> 
         successor = doc["successors"].get(need)
         replaced = later or (latest.get(str(successor), str(successor)) if successor else None)
         sources = [s for s in content["sources"] if isinstance(s, str)]
-        messages = compose_surface(
-            engine.catalog, f"result-{event['event_id']}", content["components"], {}, seen
-        ).messages
+        surface = f"result-{event['event_id']}"
+        tree = content["components"]
+        composed = compose_surface(engine.catalog, surface, tree, {}, seen)
+        if not tree or composed.errors:
+            # An agent from outside may send only its data: it is still shown, in the fixed layout.
+            tree = plain_tree(content)
+            composed = compose_surface(engine.catalog, surface, tree, {}, seen)
+        messages = composed.messages
         shown.append(
             {
                 "id": event["event_id"],
@@ -51,13 +58,25 @@ def results_of(engine: RoomEngine, state: State, doc: Document, viewer: str) -> 
                 "seqs": [
                     state.events[s]["seq"] for s in sources if s in seen and s in state.events
                 ],
-                "tree": content["components"],
+                "tree": tree,
                 "data": content["data"],
                 "messages": messages,
                 "replaced_by": replaced,
             }
         )
     return shown
+
+
+def plain_tree(content: Document) -> list[Document]:
+    """The fixed layout of a result's data, or its data as words when that has another shape."""
+    from .results import fixed_tree
+
+    title, data = tidy(content["title"], 80), content["data"]
+    try:
+        return fixed_tree(content["kind"], title, "", data)
+    except KeyError, TypeError, AttributeError, ValueError:
+        words = tidy(json.dumps(data, ensure_ascii=False), 2000)
+        return fixed_tree("draft", title, "", {"subject": title, "body": words})
 
 
 def latest_by_need(results: list[Document]) -> dict[str, str]:
