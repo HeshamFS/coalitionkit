@@ -17,6 +17,7 @@ from ..adapter import Document
 from .brief import BRIEF_SECONDS, chosen_slots
 from .brief import KEY as BRIEF_KEY
 from .engine import FEED, FOR_YOU
+from .inputs import inputs_of
 from .seats import open_seats, people
 from .view_results import change_of, latest_by_need, results_of, tasks_of
 from .view_tools import add_busy, tools_of
@@ -82,6 +83,7 @@ def build(engine: RoomEngine, coalition: str, viewer: str, state: State) -> Docu
     mine = my_side(engine, coalition, viewer, state, doc)
     made = results_of(engine, state, doc, viewer)
     mine["tasks"] = tasks_of(state, doc, viewer, made)
+    mine["inputs"] = inputs_of(engine, coalition, viewer)
     waiting = (
         bool(engine.server.hosts[coalition].open_consents(viewer))
         or any(q["status"] == "open" for q in mine["brief"])

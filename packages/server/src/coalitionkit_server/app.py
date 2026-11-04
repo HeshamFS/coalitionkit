@@ -26,7 +26,7 @@ from coalitionkit_edges.a2a.identity import CardError
 from coalitionkit_gardener import build_propose
 from coalitionkit_mcp.access import Deps
 from coalitionkit_mcp.app import create_app as mcp_app
-from coalitionkit_models import ModelGateway
+from coalitionkit_models import MediaClient, ModelGateway
 from coalitionkit_models.settings import ROLES
 from coalitionkit_packs import Pack
 from coalitionkit_packs.views import extend_catalog
@@ -52,6 +52,7 @@ from .packs import (
 from .registry import Registry
 from .room import RoomEngine
 from .room.activity_ports import A2aActivity, McpActivity
+from .room.inputs import inputs_routes
 from .room.routes import room_routes
 from .room.view import room_state
 from .settings import Settings, load_key
@@ -77,6 +78,7 @@ class Server:
         else:
             raise ValueError("store must be sqlite:///path or a Postgres URL")
         self.gateway = model_gateway or gateway()
+        self.media: MediaClient | None = None  # set for tests; else one per phone-input call
         self.runner = AuditLoop()
         self.steward = StewardAdapter(
             lambda: Steward(self.gateway, signing_key=self.key, kid="host"),
@@ -201,6 +203,7 @@ class Server:
         if room is not None:
             room.attach(coalition)
             room_routes(self.surfaces[coalition], self, coalition)
+            inputs_routes(self.surfaces[coalition], self, coalition)
         self.ports[coalition].on_refusal = hub.refused
         return host
 
@@ -456,6 +459,8 @@ AGENT_PATHS = frozenset(
         "/v1/room/brief",
         "/v1/room/say",
         "/v1/room/done",
+        "/v1/room/voice",
+        "/v1/room/photo",
     }
 )
 

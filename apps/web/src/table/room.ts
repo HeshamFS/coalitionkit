@@ -54,6 +54,8 @@ export type Activity = {
   state: "running" | "done" | "failed";
   ms: number | null;
   source: Source | "host";
+  /** Words the person said by voice or read from a photo, then confirmed. */
+  via?: "voice" | "camera";
   event: string | null;
 };
 export type RoomResult = {
@@ -149,8 +151,12 @@ export type Room = {
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
     tasks: MyTask[];
+    /** The viewer's own recent voice and photo readings (only ever their own). */
+    inputs?: { kind: "voice" | "photo"; text: string; ms: number }[];
   };
 };
+
+const PHONE = new Set(["voice", "camera"]);
 
 const PHASES: Phase[] = ["gather", "brief", "work", "decide", "commit", "make", "live", "ended"];
 const NEED_KINDS: NeedKind[] = ["place", "schedule", "budget", "list", "draft", "image"];
@@ -226,7 +232,8 @@ function readActivity(v: unknown): Activity[] {
       label: str(a.label),
       state: oneOf(a.state, ["running", "done", "failed"] as const, "done"),
       ms: numOrNull(a.ms),
-      source: a.source === "host" ? "host" : source(a.source),
+      source: a.source === "host" ? "host" : PHONE.has(str(a.source)) ? "host" : source(a.source),
+      ...(a.source === "voice" || a.source === "camera" ? { via: a.source } : {}),
       event: strOrNull(a.event),
     }));
 }
@@ -315,6 +322,17 @@ function readMine(v: unknown): Room["mine"] {
         status: oneOf(b.status, ["open", "answered", "skipped"] as const, "open"),
       })),
     brief_closes: strOrNull(m.brief_closes),
+    ...(Array.isArray(m.inputs)
+      ? {
+          inputs: list(m.inputs)
+            .filter((i) => str(i.text) !== "")
+            .map((i) => ({
+              kind: oneOf(i.kind, ["voice", "photo"] as const, "voice"),
+              text: str(i.text),
+              ms: Math.trunc(num(i.ms)),
+            })),
+        }
+      : {}),
     asks: Array.isArray(m.asks)
       ? list(m.asks)
           .filter((a) => str(a.id) !== "" && str(a.summary) !== "")

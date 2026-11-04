@@ -129,6 +129,7 @@ nav:
       - WhatsApp channel: guides/whatsapp.md
       - Glasses view: guides/glasses.md
       - The Mint: guides/mint.md
+      - "Phone inputs: voice and photo": guides/phone-inputs.md
       - Write a Discipline Pack:
           - guides/packs/index.md
           - A complete small pack: guides/packs/example.md
