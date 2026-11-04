@@ -14,7 +14,7 @@ dependencies = [
     "coalitionkit-contracts==0.1.0",
     "coalitionkit-models==0.1.0",
     "cryptography==50.0.2",
-    "pydantic==2.14.1",
+    "pydantic==2.14.2",
     "ruamel.yaml==0.19.1",
 ]
 
