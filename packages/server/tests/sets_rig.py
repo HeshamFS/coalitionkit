@@ -81,11 +81,16 @@ def serve_pack(tmp_path: Path, model: RoomModel, compare: str = COMPARE) -> Gene
 
 
 def pack_room(
-    client: TestClient, seats: int = 3, steward: FakeSteward | None = None
+    client: TestClient,
+    seats: int = 3,
+    steward: FakeSteward | None = None,
+    real_steward: bool = False,
+    goal: str = "Three members need a shared room, a budget and an invitation tomorrow",
+    needs: int = 3,
+    seconds: float = 12.0,
 ) -> tuple[Document, list[Document]]:
     """A room bound to the pack whose every seat has signed."""
     server = server_of(client)
-    goal = "Three members need a shared room, a budget and an invitation tomorrow"
     draft = client.post("/v1/genesis/draft", json={"goal": goal}).json()["draft"]
     draft["roles"] = [{"id": "member", "label": "member", "count": seats}]
     draft["needs"] = []
@@ -98,10 +103,11 @@ def pack_room(
     assert response.status_code == 200, response.text
     room = response.json()
     cid = room["coalition_id"]
-    server.hosts[cid].steward = steward or FakeSteward()
+    if not real_steward:
+        server.hosts[cid].steward = steward or FakeSteward()
     sign(client, cid, room["owner"]["token"], "p1")
     members = [join(client, room) for _ in range(seats - 1)]
     for member in members:
         sign(client, cid, member["token"], member["participant"])
-    until(lambda: len(events(client, cid, "need")) >= 3, what="needs")
+    until(lambda: len(events(client, cid, "need")) >= needs, seconds, "needs")
     return room, members

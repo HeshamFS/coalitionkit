@@ -23,8 +23,26 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `strategy` | no | Allocation strategy and fairness settings (see Strategy names below) |
 | `suggest` | no | How a host may offer this pack for a goal typed in plain language: `keywords` (lowercase words or short phrases) and `examples` (whole example goals), at most 50 of each. A host that suggests packs MUST also offer "no pack", and a suggestion never binds a pack by itself |
 | `lessons` | no | Lesson templates (Markdown with `{{placeholders}}` from a fixed set) the host fills from the log at Dissolve and writes as skills |
+| `compare` | no | Named private sets every seat is asked for and the room compares by PSI (see Compared sets below) |
 | `evals` | yes | At least one scripted scenario |
 | `acceptance` | no | Relative path to the whole-journey acceptance YAML described below |
+
+**Compared sets.** `compare` lists at most four named private sets. The room asks every seated person for each one, keeps the answers in each seat's vault and compares them by PSI, so the room learns only what the set's `mode` allows:
+
+```yaml
+compare:
+  - id: colours                # lowercase letters, digits and hyphens, starting with a letter; at most 32
+    label: Colours we all like
+    question:
+      text: "Which of these colours would you be happy with?"
+      kind: choice             # choice, slots or text
+      options: [red, blue, green, yellow, white]
+      why: "Only the colours everyone picked are shown."   # optional
+    mode: overlap              # overlap (default): the shared values; count: only how many
+    min_seats: 3               # optional; default every seated person
+```
+
+`question.kind` is one of the closed brief kinds. `choice` needs two to twelve distinct options and lets a person pick any number of them; `slots` offers the room's time slots; `text` takes a short list separated by commas or new lines, and each value is trimmed, its spaces collapsed and lowercased before it is compared. `slots` and `text` take no options. `amount` is refused, because a set is matched value by value. Ids are distinct. The loader refuses any other shape and says which rule it broke.
 
 **Core policies.** The Steward ships `no-regulated-advice`, `no-contact-before-consent`, `no-private-field-in-outbound`, `fairness-cap-exceeded` and `no-contact-details-in-room` (blocks a phone number or email address written into a message to the whole Coalition). Each has a known-answer example the Steward must pass before it starts.
 
@@ -74,6 +92,7 @@ A pack MAY mark an extension property with `"x-private": true`. Such values belo
 | `views` | Component order per role and device for composed surfaces; components from the core catalog or the pack's catalog extension |
 | `skills`, `lessons` | Skills are offered to every agent that joins (an MCP resource `coalition://{id}/skills` and the join reply). At Dissolve the host fills each lesson template from the log (placeholders: `goal`, `members`, `tasks`, `allocation`, `decisions`, `changes`, `policy_outcomes`, `duration`) and stores the results as skills, scoped no wider than the events they came from, listed in `skills_written`, and offered to agents that join later Coalitions bound to the same pack. A Coalition without lesson templates writes one generic lesson from the same placeholders |
 | `mint` | Templates added to the Mint for this Coalition only; each template's tests run before a minted agent is enrolled |
+| `compare` | Each seated person's agent asks the declared question beside its own questions, and the answer stays in that seat's vault. A seat whose own agent acts over MCP gives its values by writing the vault key `compare:<id>` (a list of strings) through `POST /v1/agent/vault`. After the offers the host compares each set with the PSI messages (`query`/`answer`, then `match` rounds chained by the first seat that holds values) over the elements `"<id>:<value>"`, and publishes one `coalition.observe` with `source: "document"` whose `content` is `{"common": 1, "set", "values", "compared"}` for `overlap` or `{"common": 1, "set", "count", "compared"}` for `count`. The exchanges between the vaults the host keeps use `reveal: overlap`; in `count` mode only the number leaves the host. With fewer than `min_seats` seats holding values nothing is published. Plans and results may use only the published values |
 | `connectors` | Programs the operator runs out of process for this Coalition. A connector gets only a one-use invitation and joins like any business agent with a signed card; it never receives host settings, keys, tokens or access to the store or to vaults |
 
 **Acceptance journey.** The optional `acceptance` key in `pack.yaml` is a relative path to a YAML file. `coalitionkit pack accept <folder> [--live] [--json]` drives an in-process host from Genesis through Dissolve. All structural objects forbid extra keys. Member roles must exist in the pack; member IDs are `p1` through `pN` in join order. Need indices are zero-based task-template or Gardener need indices. Offers are member messages validated against core and pack schemas. Exactly one distinguishing case is specified:

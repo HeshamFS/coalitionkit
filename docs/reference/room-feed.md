@@ -51,6 +51,11 @@ type Room = {
   }[];
   slots: { id: string; label: string; start: string | null }[];
   common: { slots: string[]; count_private: number | null; compared: number } | null;
+  sets?: {
+    id: string; label: string; mode: "overlap" | "count";
+    state: "asking" | "crossing" | "done";
+    values: string[] | null; count: number | null; compared: number; event: string | null;
+  }[];
   plan_notes: Record<string, { name: string; line: string; source: "model" | "rules" }>;
   results: {
     id: string; need_id: string; kind: string; title: string;
@@ -85,6 +90,7 @@ type Room = {
       task_id: string; title: string; status: string;
       result: string | null; can_mark_done: boolean;
     }[];
+    sets?: Record<string, number>;
   };
 };
 ```
@@ -102,6 +108,8 @@ type Room = {
 - `begin` is only for the owner, before the room has begun.
 - `results[].replaced_by` is the id of the result that replaced this one, or, while that result is still being made, the id of the successor need.
 - `common.count_private` is computed from the viewer's own vault, and is null for a seat that sat out the comparison. It is never stored in the public document.
+- `sets` lists the private sets the bound pack declares under `compare`, present when the room has compared at least one. `values` holds the shared values in `overlap` mode and is null in `count` mode or when nothing was published; `count` is the number of shared values, or null when nothing was published (fewer seats gave values than the set needs). `event` is the id of the `observe` that published it. See [Compared sets](../guides/packs/compare.md).
+- `mine.sets` maps a set id to how many of the viewer's own values stayed private. It is computed from the viewer's own vault, holds only sets this viewer took part in, and is never stored in the public document.
 - `needs[].status` is `no offers` when the offer round is over and nobody has offered on it.
 - An offer's minutes are one person's own estimate for one need, capped by the most time they said they would give to any one job. They are never summed.
 - A late joiner gets a brief and a vault, but is not a decider and is not part of the offer or compare rounds.

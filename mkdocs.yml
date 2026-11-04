@@ -130,6 +130,7 @@ nav:
           - A complete small pack: guides/packs/example.md
           - Vocabulary and roles: guides/packs/vocabulary-and-roles.md
           - Schemas and private fields: guides/packs/schemas.md
+          - Compared sets: guides/packs/compare.md
           - Templates and allocation: guides/packs/templates-and-allocation.md
           - Policies: guides/packs/policies.md
           - Mint templates and connectors: guides/packs/mint-and-connectors.md
