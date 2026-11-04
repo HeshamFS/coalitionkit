@@ -58,3 +58,6 @@ task_templates: templates.yaml
 strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }
 evals: [evals/crossing-diets.yaml, evals/absent-cook.yaml]
 acceptance: acceptance.yaml
+connectors:
+  - name: grocer
+    command: [python, grocer.py]
