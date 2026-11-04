@@ -47,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
     up.add_argument("--pack", type=Path, action="append", default=[])
     up.add_argument("--reset", action="store_true")
     up.add_argument(
+        "--public-url",
+        help="the HTTPS address other devices reach this host at, such as a tunnel's; the host "
+        "still listens on 127.0.0.1 and links, QR codes and origin checks use this address",
+    )
+    up.add_argument(
         "--pace", type=float, default=2.0, help="seconds between demo steps (0 runs at once)"
     )
     commands.add_parser("conform", help="run the optional conformance suite")

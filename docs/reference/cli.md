@@ -25,19 +25,23 @@ options:
 ```text
 usage: coalitionkit up [-h] [--demo | --no-demo] [--members MEMBERS] [--no-web]
                        [--port PORT] [--data-dir DATA_DIR] [--pack PACK] [--reset]
-                       [--pace PACE]
+                       [--public-url PUBLIC_URL] [--pace PACE]
 
 options:
-  -h, --help           show this help message and exit
-  --demo, --no-demo    also create the scripted demo coalition and print its viewer
-                       tokens
-  --members MEMBERS    members in the --demo coalition
+  -h, --help            show this help message and exit
+  --demo, --no-demo     also create the scripted demo coalition and print its viewer
+                        tokens
+  --members MEMBERS     members in the --demo coalition
   --no-web
   --port PORT
   --data-dir DATA_DIR
   --pack PACK
   --reset
-  --pace PACE          seconds between demo steps (0 runs at once)
+  --public-url PUBLIC_URL
+                        the HTTPS address other devices reach this host at, such as a
+                        tunnel's; the host still listens on 127.0.0.1 and links, QR
+                        codes and origin checks use this address
+  --pace PACE           seconds between demo steps (0 runs at once)
 ```
 
 ## `coalitionkit server`
