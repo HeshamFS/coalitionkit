@@ -1,0 +1,200 @@
+site_name: CoalitionKit
+site_description: Open source kit for groups whose AI agents work toward one goal together, with every decision signed by a person.
+site_url: https://heshamfs.github.io/coalitionkit/
+repo_url: https://github.com/HeshamFS/coalitionkit
+repo_name: HeshamFS/coalitionkit
+edit_uri: edit/main/docs/
+copyright: Apache License 2.0
+docs_dir: docs
+strict: true
+
+theme:
+  name: material
+  logo: assets/logo-dark.svg
+  favicon: assets/logo-blue.svg
+  font:
+    text: Geist
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - assets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - packages/contracts/src
+            - packages/vault/src
+            - packages/runtime/src
+            - packages/edges/src
+            - packages/gardener/src
+            - packages/models/src
+            - packages/steward/src
+            - packages/mcp_server/src
+            - packages/acceptance/src
+            - packages/surfaces/src
+            - packages/server/src
+            - packages/cli/src
+            - packages/packs/src
+            - packages/mint/src
+            - packages/channels/src
+            - packages/conformance/src
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 3
+            members_order: source
+            docstring_style: google
+            show_signature_annotations: true
+            separate_signature: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Get started:
+      - get-started/index.md
+      - Install: get-started/install.md
+      - Your first room: get-started/first-room.md
+      - Join from another device: get-started/join-another-device.md
+      - Model keys: get-started/model-keys.md
+      - Troubleshooting: get-started/troubleshooting.md
+  - Concepts:
+      - concepts/index.md
+      - Coalition and room: concepts/coalition-and-room.md
+      - Seats and members: concepts/seats-and-members.md
+      - Helper agents: concepts/helper-agents.md
+      - Needs and offers: concepts/needs-and-offers.md
+      - Briefs: concepts/briefs.md
+      - Plans and fairness: concepts/plans-and-fairness.md
+      - Consent by press and hold: concepts/consent.md
+      - Ripple and change: concepts/ripple-and-change.md
+      - Results: concepts/results.md
+      - The Steward: concepts/steward.md
+      - Signed chain and receipts: concepts/signed-chain-and-receipts.md
+      - Browser verification: concepts/browser-verification.md
+      - Vault and private set intersection: concepts/vault-and-psi.md
+      - Dissolve: concepts/dissolve.md
+      - Lessons as skills: concepts/lessons-as-skills.md
+      - Generative UI and the closed catalog: concepts/generative-ui.md
+      - The Table: concepts/the-table.md
+  - Guides:
+      - guides/index.md
+      - Run and configure a host: guides/run-a-host.md
+      - Deploy a host: guides/deploy.md
+      - Bring your own agent over MCP: guides/mcp-agents.md
+      - Bring your own agent over A2A: guides/a2a-business-agent.md
+      - Google ADK and LangGraph members: guides/adk-member.md
+      - WhatsApp channel: guides/whatsapp.md
+      - Glasses view: guides/glasses.md
+      - The Mint: guides/mint.md
+      - Write a Discipline Pack:
+          - guides/packs/index.md
+          - A complete small pack: guides/packs/example.md
+          - Vocabulary and roles: guides/packs/vocabulary-and-roles.md
+          - Schemas and private fields: guides/packs/schemas.md
+          - Templates and allocation: guides/packs/templates-and-allocation.md
+          - Policies: guides/packs/policies.md
+          - Mint templates and connectors: guides/packs/mint-and-connectors.md
+          - Skills and lessons: guides/packs/skills-and-lessons.md
+          - Evals and acceptance: guides/packs/evals-and-acceptance.md
+  - Reference:
+      - reference/index.md
+      - Command line: reference/cli.md
+      - Environment and settings: reference/settings.md
+      - HTTP routes: reference/http-routes.md
+      - Room feed: reference/room-feed.md
+      - MCP tools and resources: reference/mcp.md
+      - Event types: reference/events.md
+      - The protocol: reference/protocol.md
+      - Schemas: reference/schemas.md
+      - Pack format: reference/pack-format.md
+      - Catalog:
+          - reference/catalog/index.md
+          - Foundations: reference/catalog/family-01.md
+          - Shell, doors and templates: reference/catalog/family-02.md
+          - Conversation and calls: reference/catalog/family-03.md
+          - Forms and flows: reference/catalog/family-04.md
+          - Coalition and people: reference/catalog/family-05.md
+          - Needs, offers, tasks and plans: reference/catalog/family-06.md
+          - Places and time: reference/catalog/family-07.md
+          - Privacy and consent: reference/catalog/family-08.md
+          - Live and proof: reference/catalog/family-09.md
+          - Mint and machines: reference/catalog/family-10.md
+          - Channels, ending and memory: reference/catalog/family-11.md
+      - Conformance levels: reference/conformance.md
+      - Python API:
+          - reference/python/index.md
+          - acceptance: reference/python/acceptance.md
+          - channels: reference/python/channels.md
+          - cli: reference/python/cli.md
+          - conformance: reference/python/conformance.md
+          - contracts: reference/python/contracts.md
+          - edges: reference/python/edges.md
+          - gardener: reference/python/gardener.md
+          - mcp_server: reference/python/mcp_server.md
+          - mint: reference/python/mint.md
+          - models: reference/python/models.md
+          - packs: reference/python/packs.md
+          - runtime: reference/python/runtime.md
+          - server: reference/python/server.md
+          - steward: reference/python/steward.md
+          - surfaces: reference/python/surfaces.md
+          - vault: reference/python/vault.md
+  - Security and privacy:
+      - security/index.md
+      - Threat model: security/threat-model.md
+      - What is private: security/privacy.md
+  - More:
+      - Glossary: glossary.md
+      - FAQ: faq.md
+      - Changelog: changelog.md
+      - Contribute: contributing.md

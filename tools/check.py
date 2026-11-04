@@ -169,6 +169,10 @@ def separation() -> None:
         raise CheckError(str(exc)) from None
 
 
+def generated_docs() -> None:
+    run([sys.executable, "tools/gen_docs.py", "--check"])
+
+
 STEPS: list[tuple[str, Callable[[], None]]] = [
     ("ruff check", ruff_check),
     ("ruff format --check", ruff_format),
@@ -178,6 +182,7 @@ STEPS: list[tuple[str, Callable[[], None]]] = [
     ("pytest", pytest),
     ("agnostic-core rule", agnostic_core),
     ("separation of packs and kit", separation),
+    ("generated docs", generated_docs),
 ]
 
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Panel labels and geometry specified by the approved design sheet.
+// Panel labels and geometry as drawn in the component sheet.
 export const panels = [
   {
     title: "Forms an agent generates",

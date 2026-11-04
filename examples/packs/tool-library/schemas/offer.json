@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "tool-library tool on offer",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tool_kind": { "enum": ["ladder", "drill", "saw", "paint-sprayer", "other"] },
+    "condition": { "enum": ["new", "good", "worn"] },
+    "pickup_note": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "A short note the others see, such as 'back gate, after 17:00'."
+    },
+    "shed_key_code": { "type": "string", "x-private": true },
+    "home_address": { "type": "string", "x-private": true }
+  },
+  "required": ["tool_kind", "condition"]
+}

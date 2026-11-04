@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The owner key bound to a participant at join (``owner_key`` and ``owner_proof``, ADR 018).
+"""The owner key bound to a participant at join (``owner_key`` and ``owner_proof``).
 
 ``owner_proof`` is a compact JWS (detached payload) made with the OWNER key over the JCS form of
 ``{coalition_id, participant, card_url, owner_key}``. The host pins the key it verifies there.

@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+components:
+  ShedNote:
+    props: [title, body]
+    required: [title]
+order:
+  keeper:
+    wide: [Card, ShedNote, Text]
+    compact: [Text, Card]
+    message: [Text]
+  lender:
+    wide: [Card, Text]
+    compact: [Card]
+    message: [Text]

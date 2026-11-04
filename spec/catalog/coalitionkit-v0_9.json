@@ -1,5 +1,5 @@
 {
- "$comment": "Core A2UI catalog for CoalitionKit v0.1. Generic only: discipline views live in pack catalogs (ADR 019). Prop types: string, number (bound {value, event_ref}), integer, boolean, datetime, id, enum (values), binding, subject {kind, id, revision}, scope, child, children, array, object, any. Any prop may instead be a data binding {path}.",
+ "$comment": "Core A2UI catalog for CoalitionKit v0.1. Generic only: discipline views live in pack catalogs. Prop types: string, number (bound {value, event_ref}), integer, boolean, datetime, id, enum (values), binding, subject {kind, id, revision}, scope, child, children, array, object, any. Any prop may instead be a data binding {path}.",
  "catalogId": "coalitionkit/v0_9",
  "a2ui": "v0.9",
  "families": {

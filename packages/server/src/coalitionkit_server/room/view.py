@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""``room_state(viewer)``: the ``room`` key of one viewer's feed state (docs/ux/room-engine.md).
+"""``room_state(viewer)``: the ``room`` key of one viewer's feed state.
 
 Only ``mine`` is private to the viewer. Anything taken from the log is limited to what the
-viewer's own projection lets them see. What later slices own (offers' comparison, plan notes,
-results, stops, changes) is returned empty here, with the contract's shape.
+viewer's own projection lets them see. Parts owned by other modules (offers' comparison, plan notes,
+results, stops, changes) are returned empty here, with the contract's shape.
 """
 
 from __future__ import annotations

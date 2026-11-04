@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Genesis on the host: draft a coalition from a sentence, start it, invite, join.
-// Contract: docs/ux/journey.md (S1). Requests go only to the allowed base (feed/config.ts).
+// Requests go only to the allowed base (feed/config.ts).
 
 import { assertAllowedBase, resolveBase } from "../feed/config";
 import type { CleanupReport } from "../moments/Dissolve";

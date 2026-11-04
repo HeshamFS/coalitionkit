@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "tool-library tool request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tool_kind": {
+      "enum": ["ladder", "drill", "saw", "paint-sprayer", "other"],
+      "description": "The kind of tool wanted."
+    },
+    "days": { "type": "integer", "minimum": 1, "maximum": 14, "description": "How many days." }
+  },
+  "required": ["tool_kind"]
+}

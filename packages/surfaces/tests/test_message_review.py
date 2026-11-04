@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Regressions from review round 1 of the message door."""
+"""Regression tests for the message door."""
 
 from __future__ import annotations
 

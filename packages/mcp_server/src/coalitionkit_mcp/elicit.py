@@ -35,6 +35,27 @@ class ConsentAnswer(BaseModel):
     )
 
 
+#: Said to an agent whose host cannot ask. It names no link and no token: the model must not hold
+#: a way to sign, and the person already holds their own seat's token.
+CANNOT_ASK = (
+    "this MCP host cannot ask your person inside a call, so nothing was signed. Tell them to open "
+    "/signin on this room's host in a browser, with this seat's token, and answer there. Then "
+    "carry on: open_asks shows what is still waiting."
+)
+
+
+def can_ask(ctx: Context) -> bool:
+    """Whether this client declared it can show a person a form (a bare declaration counts)."""
+    capabilities = ctx.client_capabilities
+    declared = capabilities.elicitation if capabilities else None
+    return declared is not None and (declared.form is not None or declared.url is None)
+
+
+def must_be_able_to_ask(ctx: Context) -> None:
+    if not can_ask(ctx):
+        raise CoalitionToolError("not_authorized", CANNOT_ASK)
+
+
 def question_text(coalition_id: str, subject: dict[str, Any], choice: str) -> str:
     return (
         f"Coalition {coalition_id}: record your decision on {subject['kind']} {subject['id']} "
@@ -63,17 +84,20 @@ async def commitment_revision(ctx: Context, coalition_id: str, commitment_id: st
 
 
 async def accept_question(
-    coalition_id: str, revision: Annotated[int, Resolve(charter_revision)]
+    ctx: Context, coalition_id: str, revision: Annotated[int, Resolve(charter_revision)]
 ) -> Elicit[ConsentAnswer]:
+    must_be_able_to_ask(ctx)
     subject = {"kind": "charter", "id": coalition_id, "revision": revision}
     return Elicit(question_text(coalition_id, subject, coalition_id), ConsentAnswer)
 
 
 async def approve_question(
+    ctx: Context,
     coalition_id: str,
     commitment_id: str,
     revision: Annotated[int, Resolve(commitment_revision)],
 ) -> Elicit[ConsentAnswer]:
+    must_be_able_to_ask(ctx)
     subject = {"kind": "commitment", "id": commitment_id, "revision": revision}
     return Elicit(question_text(coalition_id, subject, commitment_id), ConsentAnswer)
 
@@ -82,6 +106,7 @@ async def decide_question(
     ctx: Context, coalition_id: str, subject: Subject, choice: str
 ) -> Elicit[ConsentAnswer]:
     await authorize(ctx, coalition_id)
+    must_be_able_to_ask(ctx)
     if subject.kind != "tension_option" and choice != subject.id:
         raise CoalitionToolError("schema_invalid", "choice must equal the subject id")
     return Elicit(question_text(coalition_id, subject.to_wire(), choice), ConsentAnswer)

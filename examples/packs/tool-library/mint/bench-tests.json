@@ -1,0 +1,7 @@
+{
+  "cases": [
+    { "tool": "write", "arguments_json": "{}" },
+    { "tool": "hold_slot", "arguments_json": "{}" },
+    { "tool": "list_free_slots", "arguments_json": "{\"day\": \"sat\"}" }
+  ]
+}

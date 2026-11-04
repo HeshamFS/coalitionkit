@@ -12,6 +12,7 @@ from mcp_types import CallToolResult
 from coalitionkit_contracts import is_ulid
 
 from .access import authenticate, authorize, deps_of
+from .elicit import CANNOT_ASK, can_ask
 from .errors import CoalitionToolError
 from .results import ok
 
@@ -150,11 +151,16 @@ async def open_asks(coalition_id: str, ctx: Context) -> CallToolResult:
         }
         for a in found
     ]
-    data = {"coalition_id": coalition_id, "asks": asks}
+    data: dict[str, Any] = {"coalition_id": coalition_id, "asks": asks}
+    if asks and not can_ask(ctx):
+        data["note"] = CANNOT_ASK
     return ok(
         "open_asks",
         data,
-        lambda d: f"{len(d['asks'])} open ask(s) in Coalition {coalition_id}.",
+        lambda d: (
+            f"{len(d['asks'])} open ask(s) in Coalition {coalition_id}."
+            + (f" {d['note']}" if "note" in d else "")
+        ),
     )
 
 

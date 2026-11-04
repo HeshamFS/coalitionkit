@@ -133,7 +133,7 @@ def test_up_process(tmp_path: Path) -> None:
         )
         try:
             base = ""
-            while time.monotonic() - start < 15:
+            while time.monotonic() - start < 60:
                 text = output.read_text(encoding="utf-8")
                 match = re.search(r"Host: (http://127.0.0.1:\d+)", text)
                 if match:

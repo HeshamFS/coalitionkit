@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+templates:
+  - id: ladder-saturday
+    title: Borrow a ladder for Saturday
+    requirements: [ladder]
+    ext: { tool_kind: ladder, days: 2 }
+  - id: drill-weekend
+    title: Borrow a drill for the weekend
+    role: lender
+    ext: { tool_kind: drill, days: 3 }
+  - id: sprayer-week
+    title: Borrow a paint sprayer for a week
+    description: A paint sprayer for the fence, for one week.
+    scope: { audience: roles, roles: [keeper, lender] }
+    ext: { tool_kind: paint-sprayer, days: 7 }

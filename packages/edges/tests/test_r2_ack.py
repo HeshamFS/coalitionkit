@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""R2 acknowledgement forms cross the real A2A connection unchanged."""
+"""Acknowledgement forms cross the real A2A connection unchanged."""
 
 from __future__ import annotations
 

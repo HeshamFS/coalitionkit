@@ -52,7 +52,7 @@ export const panels: Record<
     props:
       "runs · canaries · surfaces scanned[] · found (must be 0) · last run · measured values only",
     tone: "measured",
-    badge: "test 2",
+    badge: "canary test",
   },
   ConsentCard: {
     title: "a plan to decide",
@@ -84,9 +84,9 @@ export const panels: Record<
   DurableConsent: {
     title: "standing permissions",
     props:
-      "grants[] {grantee, action, scope, expires, signed} · pending requests · revoke → owner-signed · narrowest scope by default (ADR 016)",
+      "grants[] {grantee, action, scope, expires, signed} · pending requests · revoke → owner-signed · narrowest scope by default",
     tone: "signed",
-    badge: "ADR 015",
+    badge: "owner-signed",
   },
   DecisionLog: {
     title: "who decided what",

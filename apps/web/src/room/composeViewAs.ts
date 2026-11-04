@@ -3,7 +3,7 @@
 //
 // The browser cannot see another participant's scope, so it cannot compute the intersection of
 // the viewer's scope and the target's. Locally it shows only public membership facts (seat, agent,
-// status). Anything richer comes from the host's intersection view (slice S1b), and
+// status). Anything richer comes from the host's intersection view, and
 // `composeViewAs` is the seam where that response replaces this summary.
 import type { ViewerState } from "../feed/delta";
 import { deriveParticipants } from "../feed/derive";

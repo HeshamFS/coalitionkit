@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// The journey's moments, mounted in the room from the viewer's own feed state
-// (docs/ux/journey.md: Theatre J-07, Overlap J-06, Ripple J-10, Chain J-12, Dissolve J-13).
+// The moments (theatre, overlap, ripple, chain, dissolve), mounted in the room from the viewer's own feed state.
 import { useMemo } from "react";
 import { ChainView } from "../chain/ChainView";
 import { chainInputFrom } from "../chain/input";
