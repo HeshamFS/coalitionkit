@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Acceptance test 7 over the real server: kill it, drop its database, race the deciders.
 
-There is no message bus to split: the host uses an in-process bus. What remains is the host process, the database, the deciders and the viewers.
+There is no message bus to split: the host uses an in-process bus. What remains is the host
+process, the database, the deciders and the viewers.
 
 * ``kill_server``: the server process is killed with a decision in flight and started again on
   the same store. Recovery time is kill to the first accepted event after the restart.
