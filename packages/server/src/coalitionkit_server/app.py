@@ -273,10 +273,30 @@ class Server:
             return []
         return self.hosts[coalition_id].skills(participant)
 
+    def offered_over_mcp(self, coalition: str, who: str) -> None:
+        """This seat's own agent acts over MCP, where the room's private questions cannot reach."""
+        if self.room is None or not self.room.drives(coalition):
+            return
+        seats = self.room.read(coalition).get("mcp_seats", [])
+        if who not in seats:
+            self.room.update(coalition, lambda d: d.__setitem__("mcp_seats", [*seats, who]))
+
     async def accept(self, envelope_json: Document, authenticated_sender: str) -> Document:
         port = self.ports.get(str(envelope_json.get("coalition_id", "")))
         if port is None:
             return {"error": {"code": "unknown_participant", "detail": {}, "ref": new_ulid()}}
+        hidden_offer = (
+            envelope_json.get("type") == "coalition.offer"
+            and cast(Document, envelope_json.get("scope") or {}).get("audience") != "coalition"
+        )
+        if (
+            hidden_offer
+            and self.room is not None
+            and self.room.drives(str(envelope_json["coalition_id"]))
+        ):
+            # A plan is as visible as its narrowest source: a hidden offer would hide the plan.
+            detail = {"message": "an offer in this room must have the scope audience 'coalition'"}
+            return {"error": {"code": "schema_invalid", "detail": detail, "ref": new_ulid()}}
         return await port.accept(envelope_json, authenticated_sender)
 
     def close(self) -> None:

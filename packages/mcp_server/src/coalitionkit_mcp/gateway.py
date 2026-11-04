@@ -24,6 +24,16 @@ from .ports import HostedParticipant
 
 #: Everything this server sends is for the host to derive from; it never widens a scope itself.
 HOST_SCOPE: dict[str, Any] = {"audience": "host"}
+ROOM_SCOPE: dict[str, Any] = {"audience": "coalition"}
+ROOM_WIDE = frozenset(
+    "coalition." + kind for kind in ("join", "offer", "commit", "ripple", "done", "leave", "decide")
+)
+
+
+def default_scope(message_type: str) -> dict[str, Any]:
+    """What the room must see goes to the room: a plan is as visible as its narrowest source, so
+    one host-only offer would hide the whole plan from everyone it asks to choose."""
+    return ROOM_SCOPE if message_type in ROOM_WIDE else HOST_SCOPE
 
 
 def build_envelope(
@@ -42,7 +52,7 @@ def build_envelope(
         "type": message_type,
         "sender": hosted.card_url,
         "on_behalf_of": hosted.participant,
-        "scope": dict(HOST_SCOPE if scope is None else scope),
+        "scope": dict(default_scope(message_type) if scope is None else scope),
         "payload": payload,
     }
     envelope["sig"] = sign_envelope(envelope, hosted.agent_key, hosted.agent_kid)

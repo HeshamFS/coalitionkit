@@ -6,10 +6,12 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from google.protobuf.json_format import MessageToDict
-from room_rig import RoomModel, bearer, engine_of, events, serve, sign, until
+from room_rig import RoomModel, bearer, engine_of, events, serve, server_of, until
 from test_room_engine import BRIEF, NEEDS, open_brief, seated_room
 
+from coalitionkit_mcp.gateway import build_envelope, default_scope
 from coalitionkit_server.cards import member_card
+from coalitionkit_server.mcp_port import MCPPort
 
 
 def card_body() -> dict[str, object]:
@@ -56,11 +58,53 @@ def test_a_seat_whose_own_agent_offered_closes_its_brief(
         who = member["participant"]
         assert not engine.read(cid)["briefs"][who]["closed"]
         need = events(client, cid, "need")[0]["payload"]["need_id"]
+        # By hand in the web room the questions stay open: the person can still answer them.
         offered = client.post(
             "/v1/agent/offer",
             json={"need_id": need, "cost": {"minutes": 10, "money": 0, "effort": "low"}},
             headers=bearer(member["token"]),
         )
         assert offered.status_code == 200, offered.text
+        assert not engine.read(cid)["briefs"][who]["closed"]
+        server = server_of(client)
+        person = server.registry.hosted_for(cid, who)
+        payload = {
+            "offer_id": "01M6JWEPH2SBS0PW033FBCTH78",
+            "target": {"kind": "need", "id": need},
+            "capacity": 1,
+            "cost": {"minutes": 10, "money": 0, "effort": "low"},
+            "valid_until": "2099-01-01T00:00:00Z",
+        }
+        over_mcp = build_envelope(person, cid, "coalition.offer", payload)
+        reply = client.portal.call(MCPPort(server).accept, over_mcp, person.card_url)  # type: ignore[union-attr]
+        assert "error" not in reply
         until(lambda: engine.read(cid)["briefs"][who]["closed"], what="the brief to close")
-        assert sign(client, cid, room["owner"]["token"], "p1") == 0
+
+
+def test_mcp_actions_the_room_must_see_go_to_the_room() -> None:
+    for kind in ("join", "offer", "commit", "ripple", "done", "leave", "decide"):
+        assert default_scope("coalition." + kind) == {"audience": "coalition"}
+    assert default_scope("coalition.answer") == {"audience": "host"}
+
+
+def test_a_hidden_offer_is_refused_so_it_cannot_hide_a_plan(tmp_path: Path) -> None:
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
+        room, (member,) = seated_room(tmp_path, client)
+        cid, who = room["coalition_id"], member["participant"]
+        need = events(client, cid, "need")[0]["payload"]["need_id"]
+        server = server_of(client)
+        person = server.registry.hosted_for(cid, who)
+        payload = {
+            "offer_id": "01M6JWEPH2SBS0PW033FBCTH77",
+            "target": {"kind": "need", "id": need},
+            "capacity": 1,
+            "cost": {"minutes": 10, "money": 0, "effort": "low"},
+            "valid_until": "2099-01-01T00:00:00Z",
+        }
+        hidden = build_envelope(person, cid, "coalition.offer", payload, scope={"audience": "host"})
+        reply = client.portal.call(server.accept, hidden, person.card_url)  # type: ignore[union-attr]
+        assert reply["error"]["code"] == "schema_invalid"
+        assert "audience" in reply["error"]["detail"]["message"]
+        open_offer = build_envelope(person, cid, "coalition.offer", payload)
+        reply = client.portal.call(server.accept, open_offer, person.card_url)  # type: ignore[union-attr]
+        assert "error" not in reply
