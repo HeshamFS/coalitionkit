@@ -34,8 +34,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="coalitionkit")
     commands = parser.add_subparsers(dest="command", required=True)
     up = commands.add_parser("up", help="start a local host and room")
-    up.add_argument("--demo", action=argparse.BooleanOptionalAction, default=True)
-    up.add_argument("--members", type=int, default=3)
+    up.add_argument(
+        "--demo",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="also create the scripted demo coalition and print its viewer tokens",
+    )
+    up.add_argument("--members", type=int, default=3, help="members in the --demo coalition")
     up.add_argument("--no-web", action="store_true")
     up.add_argument("--port", type=int)
     up.add_argument("--data-dir", type=Path, default=Path(".coalitionkit"))

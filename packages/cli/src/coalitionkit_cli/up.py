@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+import logging
 import os
 import shutil
 import signal
@@ -97,38 +98,31 @@ def run(args: argparse.Namespace) -> int:
             room_engine="on",
             packs=getattr(args, "pack", []),
         )
-        app = create_server(
-            settings,
-            model_gateway=(
-                demo_gateway(live=bool(os.environ.get("COALITIONKIT_META_API_KEY")))
-                if args.demo
-                else None
-            ),
-        )
+        keyed = bool(os.environ.get("COALITIONKIT_META_API_KEY"))
+        # Without a key the room still walks end to end, on the built-in rules and fixed checks.
+        app = create_server(settings, model_gateway=None if keyed else demo_gateway(live=False))
+        # The SDKs turn on INFO logging; this window is for what its owner acts on.
+        logging.getLogger().setLevel(logging.WARNING)
         server: Server = app.state.server
         try:
-            mode = (
-                "Meta API configured"
-                if os.environ.get("COALITIONKIT_META_API_KEY")
-                else "scripted demo (no model key required)"
-                if args.demo
-                else "no model key configured"
-            )
-            print(f"Mode: {mode}", flush=True)
             print(f"Host: {base} | MCP: {base}/mcp", flush=True)
-            code = server.registry.issue_start()
-            print(f"Start a coalition: {base}/#start={code}", flush=True)
+            print(
+                "Models: Meta API."
+                if keyed
+                else "Models: none set, so the room uses built-in rules. "
+                "Set COALITIONKIT_META_API_KEY for real ones.",
+                flush=True,
+            )
             if args.demo:
                 demo_start(server, data, args.members, base)
-            if dist is None:
-                print(
-                    "No room served. Use viewer tokens as Bearer credentials for the API.",
-                    flush=True,
-                )
-            else:
-                print(f"Open {base}/ and paste a Viewer token, then select Continue.", flush=True)
             print(
                 "Ctrl+C stops the host. Admin token is in admin.token (not displayed).", flush=True
+            )
+            print(
+                "The API and MCP are on the host address; no web room is served."
+                if dist is None
+                else f"\nOpen {base}/ and say what needs doing in one sentence.\n",
+                flush=True,
             )
         except BaseException:
             server.close()

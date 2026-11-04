@@ -6,19 +6,20 @@ From the repository root:
 uv run coalitionkit up
 ```
 
-The host binds only to 127.0.0.1. For each printed `Sign in: p1 ... Viewer token: TOKEN`
-line, open its root URL (`http://127.0.0.1:PORT/`), paste only `TOKEN` into
-**Viewer token** on the room's sign-in screen, then select **Continue**.
-Use a separate browser tab for each participant. The room stores the token in
-that tab. Save the printed tokens to sign in again after restarting.
+The host binds only to 127.0.0.1. Open the printed address and say what needs doing
+in one sentence. You check the draft, open the room, share its code, and enter.
 The printed `/mcp` URL is for hosts. Ctrl+C shuts down the server.
 
-Options: `--no-web`, `--port 8000`, `--data-dir PATH`, `--members 3`,
-`--demo` (default), `--no-demo`, and `--reset`.
-The demo is created once per data directory. Each member's invitation is redeemed
-and a signed join establishes hosted membership before their viewer token is printed.
-Later starts report that the demo already exists and reuse its members and credentials;
-they do not print new tokens. `--reset` creates a fresh demo and credentials.
+Options: `--no-web`, `--port 8000`, `--data-dir PATH`, `--demo`, `--members 3`,
+and `--reset`.
+
+`--demo` also creates a scripted coalition. For each printed
+`Sign in: p1 ... Viewer token: TOKEN` line, open its `/signin` URL, paste only `TOKEN`
+into **Viewer token**, then select **Continue**. Use a separate browser tab for each
+participant. The room stores the token in that tab. Save the printed tokens to sign in
+again after restarting. The demo is created once per data directory. Later starts reuse
+its members and credentials; they do not print new tokens. `--reset` creates a fresh
+demo and credentials.
 
 State lives in `./.coalitionkit/`: SQLite, the host key, private `admin.token`,
 and the chosen port. Restarts reuse that port because it identifies the host.
@@ -26,14 +27,15 @@ Use a new data directory to change ports. `--reset` removes only a directory
 with this command's matching ownership marker; it refuses links and unowned
 folders. Do not reset a directory while another host uses it.
 
-No model key is needed to start and sign in. Model features require configured
-keys. `COALITIONKIT_META_API_KEY` is read by the server from the environment;
+No model key is needed. Without one the room runs on built-in rules and says so.
+`COALITIONKIT_META_API_KEY` is read by the server from the environment;
 the command never displays or saves it. The admin token is never displayed.
 
-An existing `apps/web/dist` is served on the host origin. Otherwise npm builds
-it once, installing missing dependencies with `npm --prefix apps/web ci`.
-Without npm (or after a failed build), the host runs without the room.
-Use `--no-web` to skip the build. API routes stay on the same origin.
+An installed package carries the room's files. From a source checkout, `apps/web/dist`
+is served on the host origin, and npm builds it when it is missing or older than its
+source, installing missing dependencies with `npm --prefix apps/web ci`. If npm is
+missing or the build fails, `up` stops and says why. Use `--no-web` to skip the room.
+API routes stay on the same origin.
 
 ```sh
 uv run coalitionkit server status

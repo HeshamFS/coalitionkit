@@ -19,7 +19,7 @@ export type RippleProps = {
   ripple?: RippleInfo;
   /** People asked again, counted from visible events. Absent means the chip is left out. */
   peopleAsked?: number;
-  /** Measured time to every affected screen in ms. Absent shows the [MEASURED] marker. */
+  /** Measured time to every affected screen in ms. Absent means the chip is left out. */
   measuredMs?: number;
 };
 
@@ -127,10 +127,11 @@ export function Ripple({ nodes, edges, ripple, peopleAsked, measuredMs }: Ripple
         ) : (
           <span className="mo-chip">No change yet: every {word("task")} holds</span>
         )}
-        <span className="mo-chip">
-          change to every affected screen{" "}
-          <b>{typeof measuredMs === "number" ? `${measuredMs} ms` : "[MEASURED]"}</b>
-        </span>
+        {typeof measuredMs === "number" ? (
+          <span className="mo-chip">
+            change to every affected screen <b>{measuredMs} ms</b>
+          </span>
+        ) : null}
         {ripple ? (
           <p className="mo-mono">
             coalition.ripple · invalidates {ripple.invalidated.length} tasks

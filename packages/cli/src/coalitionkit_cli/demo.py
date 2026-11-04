@@ -36,4 +36,4 @@ def demo_start(server: Server, data: Path, members: int, base: str) -> None:
     marker.write_text(coalition, encoding="utf-8")
     print(f"Coalition: {coalition}", flush=True)
     for participant, token in tokens.items():
-        print(f"Sign in: {participant} {base}/ Viewer token: {token}", flush=True)
+        print(f"Sign in: {participant} {base}/signin Viewer token: {token}", flush=True)

@@ -95,7 +95,7 @@ it("renders the other panels from the projection and routes requests to trusted 
   expect(screen.getByText("A · Option A")).toBeInTheDocument();
   expect(screen.getByText("Private notes")).toBeInTheDocument();
   expect(screen.getByText(/spent 0.04 EUR/)).toBeInTheDocument();
-  expect(screen.getAllByText("[MEASURED]").length).toBeGreaterThan(0);
+  expect(screen.queryByText(/\[MEASURED\]|calendars shared|time to first commitment/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Review plan A" }));
   expect(open).toHaveBeenCalledWith("r1");
 });

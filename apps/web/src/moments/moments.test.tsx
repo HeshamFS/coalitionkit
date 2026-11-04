@@ -146,7 +146,7 @@ describe("rippleFrom and Ripple", () => {
     expect(container.querySelectorAll('.mo-node[data-pulse="false"]')).toHaveLength(4);
     expect(screen.getByText(/tasks re-planned/).textContent).toBe("2 of 6 tasks re-planned");
     expect(screen.getByText(/untouched/).textContent).toContain("1 person asked again");
-    expect(screen.getByText("[MEASURED]")).toBeTruthy();
+    expect(screen.queryByText(/change to every affected screen/)).toBeNull();
     expect(screen.getByText("coalition.ripple · invalidates 2 tasks")).toBeTruthy();
   });
   it("shows a measured value only when provided and does nothing without a ripple", () => {
