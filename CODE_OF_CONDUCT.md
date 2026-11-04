@@ -9,7 +9,7 @@ impersonation, and sharing another person's private information without permissi
 are unacceptable. These expectations apply in repository discussions, issues,
 reviews and other spaces representing this project.
 
-Report conduct concerns privately to Hesham Salama at hesham.salama@rub.de.
+Report conduct concerns privately to Hesham Salama at hesham@autonomouslab.io.
 Include links or other evidence when available. Reports will be handled with
 discretion; information is shared only as needed to investigate and respond.
 

@@ -98,7 +98,7 @@ async def live_terms(
     try:
         data: dict[str, Any] = json.loads(found.group(0)) if found else {}
         return max(10, min(120, int(data["minutes"]))), max(1, min(20, int(data["money"])))
-    except ValueError, KeyError, TypeError:
+    except (ValueError, KeyError, TypeError):
         result.live_unparsed += 1
         return 30, 5
 

@@ -113,7 +113,7 @@ def _parse(text: str) -> list[tuple[str, dict[str, Any]]]:
     try:
         data: Any = json.loads(text)
         return [(c["tool"], dict(c["args"])) for c in data["calls"]]
-    except ValueError, KeyError, TypeError:
+    except (ValueError, KeyError, TypeError):
         return []
 
 

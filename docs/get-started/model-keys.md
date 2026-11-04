@@ -17,7 +17,7 @@ The host reads keys from the environment. It never prints or saves them, and the
 | Gardener | `muse-wonder-1.0` | Reads the goal, and names and explains plans. It never builds them: fixed rules do. |
 | Hosted agent | `muse-spark-1.3` | Asks your questions, makes offers, routes what you say. |
 | Composer | `muse-spark-1.3` | Lays out results from the closed catalog. |
-| Steward audit | `meta-models/muse-spark-open` on Baseten | Reviews each message. It is a different model from the agents on purpose. |
+| Steward audit | `meta-models/muse-spark-open-1026` on Baseten | Reviews each message. It is a different model from the agents on purpose. |
 | Vault | `muse-glimmer` on local Ollama | Used by a local vault. |
 
 Change a model with its setting, such as `COALITIONKIT_COMPOSER_MODEL`. All settings are in [Environment and settings](../reference/settings.md).

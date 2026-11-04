@@ -167,7 +167,7 @@ class WhatsAppMount:
             return
         try:
             target[0].sync(target[1])
-        except WhatsAppError, KeyError, ValueError:
+        except (WhatsAppError, KeyError, ValueError):
             log.warning("whatsapp sync deferred")
 
     # -- outbound: committed host events and the retry timer -----------------------------------

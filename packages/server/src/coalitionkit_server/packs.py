@@ -136,7 +136,7 @@ def bind_runtime(host: CoalitionHost, installed: dict[tuple[str, str], Pack]) ->
             require(not private_extension(viewer_schema(pack, kind), extension), "schema_invalid")
             try:
                 pack.validate_schema(kind, extension)
-            except ValidationError, Unresolvable:
+            except (ValidationError, Unresolvable):
                 raise Refusal("schema_invalid") from None
 
     def skills(viewer: str) -> list[Document]:

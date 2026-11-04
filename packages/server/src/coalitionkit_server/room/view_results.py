@@ -74,7 +74,7 @@ def plain_tree(content: Document) -> list[Document]:
     title, data = tidy(content["title"], 80), content["data"]
     try:
         return fixed_tree(content["kind"], title, "", data)
-    except KeyError, TypeError, AttributeError, ValueError:
+    except (KeyError, TypeError, AttributeError, ValueError):
         words = tidy(json.dumps(data, ensure_ascii=False), 2000)
         return fixed_tree("draft", title, "", {"subject": title, "body": words})
 

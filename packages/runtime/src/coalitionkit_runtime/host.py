@@ -8,9 +8,10 @@ from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from typing import Literal, Protocol
+from typing import Generic, Literal, Protocol
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from typing_extensions import TypeVar
 
 from coalitionkit_contracts import (
     HOST_FIELDS,
@@ -71,8 +72,11 @@ class PolicyOutcome(Protocol):
     def paths(self) -> tuple[str, ...]: ...
 
 
+T = TypeVar("T", default=Document | None)
+
+
 @dataclass(frozen=True)
-class Acknowledgement[T = Document | None]:
+class Acknowledgement(Generic[T]):
     accepted: T
     receipt: Document
 
@@ -228,7 +232,7 @@ class CoalitionHost:
             outcome = classify_submission(
                 StoredSubmission(row[0], row[1]) if row else None, sender.card_url, event
             )
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             outcome = "mismatch" if row else "new"
         require(outcome != "mismatch", "duplicate_mismatch")
         if outcome == "replay":
@@ -244,7 +248,7 @@ class CoalitionHost:
         try:
             validate_envelope(event)
             require(event["coalition_id"] == self.coalition_id, "schema_invalid")
-        except SchemaValidationError, ValueError, TypeError:
+        except (SchemaValidationError, ValueError, TypeError):
             raise Refusal("schema_invalid") from None
         state = self._cache.refresh(tx, now)
         if event["type"] in {"coalition.need", "coalition.offer"}:
@@ -493,7 +497,7 @@ class CoalitionHost:
                 result = self._transaction(tx, event, sender, True, sources or [])
         except Refusal as exc:
             return self._error(event, sender, exc.code, exc.detail)
-        except KeyError, TypeError, ValueError:
+        except (KeyError, TypeError, ValueError):
             return self._error(event, sender, "schema_invalid", {})
         self.bus.publish(self.coalition_id, result.receipt["payload"]["seq"])
         return result

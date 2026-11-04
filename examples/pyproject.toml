@@ -3,7 +3,7 @@ name = "coalitionkit-examples"
 version = "0.1.0.dev0"
 description = "CoalitionKit examples: members on real agent frameworks and the interop run"
 license = "Apache-2.0"
-requires-python = ">=3.15"
+requires-python = ">=3.12"
 dependencies = [
     "coalitionkit-contracts",
     "coalitionkit-edges",

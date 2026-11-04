@@ -85,7 +85,7 @@ def exercise(command: Path, cwd: Path, env: dict[str, str], label: str) -> None:
                     status, _ = http_get(base + "/healthz")
                     if status == 200:
                         break
-                except URLError, TimeoutError, ConnectionError:
+                except (URLError, TimeoutError, ConnectionError):
                     pass
                 if time.monotonic() >= deadline:
                     raise RuntimeError("Host readiness timed out")

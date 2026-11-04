@@ -1,6 +1,6 @@
 # Install
 
-CoalitionKit needs Python 3.15.
+CoalitionKit needs Python 3.12 or newer.
 
 ## With pip
 
@@ -17,7 +17,7 @@ To let people compare free times without showing them, install the `psi` extra a
 
 ## From a clone
 
-You need [uv](https://docs.astral.sh/uv/), which fetches Python 3.15 for you, and Node 22 or newer for the web room.
+You need [uv](https://docs.astral.sh/uv/), which fetches Python for you, and Node 22 or newer for the web room.
 
 ```sh
 git clone https://github.com/HeshamFS/coalitionkit

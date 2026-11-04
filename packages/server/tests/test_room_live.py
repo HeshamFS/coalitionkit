@@ -40,7 +40,7 @@ def goal_of(index: int) -> str:
 
 KEY = bool(os.environ.get("COALITIONKIT_META_API_KEY"))
 REAL_STEWARD = bool(os.environ.get("COALITIONKIT_BASETEN_API_KEY"))
-STEWARD_MODEL = "meta-models/muse-spark-open"
+STEWARD_MODEL = "meta-models/muse-spark-open-1026"
 
 
 def answers_for(questions: list[Document], slots: list[str], shift: int) -> dict[str, Any]:
