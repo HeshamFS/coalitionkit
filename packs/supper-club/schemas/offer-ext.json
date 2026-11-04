@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "supper-club I can bring or cook",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "course": { "enum": ["starter", "main", "side", "dessert", "drinks"] },
+    "serves": { "type": "integer", "minimum": 1, "maximum": 30 },
+    "from_photo": {
+      "type": "boolean",
+      "description": "True when the offer came from a photo of the cook's fridge or cupboard."
+    },
+    "allergies": {
+      "type": "string",
+      "x-private": true,
+      "description": "The cook's own allergies. They stay in the vault and never reach the room."
+    },
+    "address": {
+      "type": "string",
+      "x-private": true,
+      "description": "Where the cook's kitchen is. It stays in the vault."
+    }
+  }
+}

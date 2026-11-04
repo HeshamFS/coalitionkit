@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# A person's own diet or allergy, written into a message, is hidden from everyone but the host
+# and the Steward. The shared diet the room found privately stays visible: it names no person.
+id: supper-redact-diet
+applies_to: [coalition.say, coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\b(?:i|we|she|he|they)\s*(?:am|is|are|''m|''s|''re)\s+(?:a\s+|strictly\s+|also\s+)?(?:vegan|vegetarian|pescatarian|coeliac|celiac)\b'
+    - '\b(?:i|we|she|he|they)\s*(?:am|is|are|''m|''s|''re)\s+(?:lactose|gluten|dairy|nut)[- ](?:intolerant|free)\b'
+    - '\b(?:person|cook|guest|friend|seat|p\d+)\s+(?:is|are)\s+(?:a\s+|strictly\s+)?(?:vegan|vegetarian|pescatarian|coeliac|celiac)\b'
+    - '\ballerg(?:y|ic|ies)\b'
+    - '\bintoleran(?:t|ce|ces)\b'
+    - '\banaphyla\w*\b'
+    - '\bepi-?pens?\b'
+    - '\b(?:can''t|cannot|can not|don''t|doesn''t|do not|does not|must not|never)\s+eat\s+(?:any\s+)?(?:meat|fish|nuts?|peanuts?|gluten|dairy|eggs?|wheat|milk|cheese|shellfish)\b'
+then: redact
+explain: "A person's own diet or allergy stays private. The room sees only the diet every cook shares."

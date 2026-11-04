@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+task: course or errand
+resource: time and kitchen
+need: what the dinner needs
+offer: { one: I can bring or cook, other: I can bring or cook }
+commitment: promise

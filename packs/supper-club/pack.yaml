@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: Apache-2.0
+name: supper-club
+version: 1.0.0
+core: ">=0.1,<0.2"
+roles:
+  cook: { may: [charter, offer, decide, commit], label: Cook }
+  guest: { may: [offer, decide, commit], label: Guest }
+  absent-cook: { may: [offer, decide, commit], label: Absent cook }
+  grocer: { may: [offer, decide, commit], label: Grocer }
+suggest:
+  keywords:
+    - dinner
+    - supper
+    - cook
+    - cooking
+    - potluck
+    - menu
+    - courses
+    - dessert
+    - kitchen
+    - feast
+    - cook together
+    - dinner party
+  examples:
+    - "Five of us cook one dinner from our own kitchens on Saturday"
+    - "Plan a potluck supper where everyone brings one course"
+    - "Agree a menu for a dinner party that fits everyone's diet"
+    - "Cook a three-course feast together and share the shopping"
+vocabulary: vocabulary.yaml
+schemas:
+  need: schemas/need-ext.json
+  offer: schemas/offer-ext.json
+compare:
+  - id: diet
+    label: The diet the menu respects
+    question:
+      text: "Which of these do you need the menu to respect?"
+      kind: choice
+      options: [vegetarian, vegan, no gluten, no nuts, no dairy]
+      why: "Your answer stays with your agent. The table sees only what every cook picked."
+    mode: overlap
+  - id: gear
+    label: What every kitchen can do
+    question:
+      text: "What can your kitchen do?"
+      kind: choice
+      options: [oven, hob, grill, blender, microwave]
+      why: "Only what every kitchen can do is shown, so nobody is handed a dish they cannot cook."
+    mode: overlap
+policies:
+  - policies/supper-redact-diet.yaml
+  - policies/supper-no-medical.yaml
+  - policies/supper-no-contact.yaml
+  - policies/supper-redact-address.yaml
+skills: [skills/SKILL.md]
+lessons: [lessons/who-cooks-what.md, lessons/late-course.md]
+task_templates: templates.yaml
+strategy: { allocation: auction, fairness: { weight: 1, max_ratio: 2 } }
+evals: [evals/crossing-diets.yaml, evals/absent-cook.yaml]
+acceptance: acceptance.yaml
+connectors:
+  - name: grocer
+    command: [python, grocer.py]
