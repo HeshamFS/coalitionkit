@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+from importlib.resources import files
 from pathlib import Path
 
 from coalitionkit_server.app import Server
@@ -10,7 +11,9 @@ from coalitionkit_server.genesis import enroll_member
 
 
 async def enroll(server: Server, members: int) -> tuple[str, dict[str, str]]:
-    charter = json.loads(Path(__file__).with_name("charter.json").read_text())
+    charter = json.loads(
+        files("coalitionkit_cli").joinpath("charter.json").read_text(encoding="utf-8")
+    )
     charter["deciders"] = [f"p{i}" for i in range(1, members + 1)]
     created = server.create(charter)
     coalition = str(created["coalition_id"])

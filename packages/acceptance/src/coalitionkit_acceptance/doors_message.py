@@ -12,9 +12,9 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
+from coalitionkit_contracts.resources import spec_path
 from coalitionkit_runtime import SQLiteStore
 from coalitionkit_surfaces import load_catalog
 from coalitionkit_surfaces.message import (
@@ -31,7 +31,7 @@ from .metrics import Recorder
 
 Document = dict[str, Any]
 
-SPEC_CATALOG = Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
+SPEC_CATALOG = spec_path("catalog", "coalitionkit-v0_9.json")
 MEMBERS = ("p1", "p2", "p3", "p4")
 #: Which members each kind of need is scoped to ("all" is the whole Coalition).
 SCOPES: dict[str, list[str] | None] = {

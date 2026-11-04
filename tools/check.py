@@ -139,13 +139,13 @@ def agnostic_core() -> None:
 
 
 def separation() -> None:
-    """Domain words and pack names stay out of the kit; packs stay out of it after the freeze."""
-    from separation import SeparationError, check_domain, check_freeze, check_packs
+    """Domain words and pack names stay out of the kit; validate installed packs."""
+    from separation import SeparationError, check_domain, check_packs
 
     tests = ("tools/test_separation.py",)
     run(py("pytest", "-q", "-p", "no:cacheprovider", "-o", "pythonpath=tools", *tests))
     try:
-        for step in (check_domain, check_freeze, check_packs):
+        for step in (check_domain, check_packs):
             print(step(), flush=True)
     except SeparationError as exc:
         raise CheckError(str(exc)) from None

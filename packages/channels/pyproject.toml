@@ -1,16 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
 [project]
 name = "coalitionkit-channels"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "CoalitionKit message-door transports (WhatsApp Cloud API)"
+readme = {text = "CoalitionKit message-door transports (WhatsApp Cloud API)", content-type = "text/plain"}
 license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Hesham Salama", email = "hesham.salama@rub.de"}]
+keywords = ["agents", "coordination", "a2a", "mcp", "coalition"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.15", "Operating System :: OS Independent", "Topic :: Software Development :: Libraries :: Python Modules"]
 requires-python = ">=3.15"
 dependencies = [
-    "coalitionkit-contracts",
-    "coalitionkit-surfaces",
+    "coalitionkit-contracts==0.1.0",
+    "coalitionkit-surfaces==0.1.0",
     "fastapi==0.162.0",
     "httpx==0.28.1",
     "pydantic==2.14.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/HeshamFS/coalitionkit"
+Repository = "https://github.com/HeshamFS/coalitionkit"
+Issues = "https://github.com/HeshamFS/coalitionkit/issues"
+Changelog = "https://github.com/HeshamFS/coalitionkit/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

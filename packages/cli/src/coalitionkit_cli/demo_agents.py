@@ -1,21 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Load the repository demonstration without adding example dependencies to the CLI."""
+"""Load the packaged neutral demonstration through the composition server."""
 
 import importlib
-import sys
-from pathlib import Path
 from typing import Any
 
 from coalitionkit_server.app import Server
 
 
 def example_module(name: str) -> Any:
-    examples = Path(__file__).resolve().parents[4] / "examples"
-    if not examples.is_dir():
-        raise ValueError("demo member examples require a repository checkout")
-    if str(examples) not in sys.path:
-        sys.path.insert(0, str(examples))
-    return importlib.import_module(name)
+    modules = {
+        "members.demo_runner": "coalitionkit_server.demo.runner",
+        "members.demo_gateway": "coalitionkit_server.demo.gateway",
+        "members.hosted_member.brain": "coalitionkit_server.demo.hosted_brain",
+    }
+    return importlib.import_module(modules[name])
 
 
 def demo_runner(server: Server, coalition: str, pace: float = 2) -> Any:

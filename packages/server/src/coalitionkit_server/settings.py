@@ -10,6 +10,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from coalitionkit_contracts.resources import spec_path
+
 
 def data_dir() -> Path:
     base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_DATA_HOME")
@@ -47,9 +49,7 @@ class Settings(BaseSettings):
     # Where the message door's confirm link points: the web app's /confirm/<code> route.
     # Unset: the server's own public origin (the web app is served from there).
     confirm_link_base: str | None = None
-    catalog_file: Path = (
-        Path(__file__).resolve().parents[4] / "spec" / "catalog" / "coalitionkit-v0_9.json"
-    )
+    catalog_file: Path = spec_path("catalog", "coalitionkit-v0_9.json")
 
     @property
     def effective_confirm_base(self) -> str:
