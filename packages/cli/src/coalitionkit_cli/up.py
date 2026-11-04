@@ -12,6 +12,7 @@ import subprocess
 from contextlib import suppress
 from pathlib import Path
 from types import FrameType
+from urllib.parse import urlsplit
 
 import uvicorn
 from pydantic import SecretStr
@@ -74,6 +75,18 @@ def _older_than_source(web: Path, dist: Path) -> bool:
     return any(p.stat().st_mtime > stamp for p in (web / "src").rglob("*") if p.is_file())
 
 
+def public_base(url: str | None) -> str | None:
+    """The public origin from ``--public-url``: scheme and host only, no path, no credentials."""
+    if not url:
+        return None
+    parts = urlsplit(url.strip())
+    if parts.scheme not in {"http", "https"} or not parts.netloc or "@" in parts.netloc:
+        raise ValueError("--public-url must be an http(s) address such as https://name.example")
+    if parts.path not in {"", "/"} or parts.query or parts.fragment:
+        raise ValueError("--public-url takes an origin only, with no path")
+    return f"{parts.scheme}://{parts.netloc}"
+
+
 def run(args: argparse.Namespace) -> int:
     dist = None if args.no_web else web_dist()
     data = prepare(args.data_dir, args.reset)
@@ -86,7 +99,8 @@ def run(args: argparse.Namespace) -> int:
         port = sock.getsockname()[1]
         sock.listen(128)
         saved_port.write_text(str(port), encoding="utf-8")
-        base = f"http://127.0.0.1:{port}"
+        local = f"http://127.0.0.1:{port}"
+        base = public_base(getattr(args, "public_url", None)) or local
         settings = Settings(
             store=SecretStr(f"sqlite:///{data / 'host.db'}"),
             host_key_file=data / "host.key",
@@ -106,6 +120,12 @@ def run(args: argparse.Namespace) -> int:
         server: Server = app.state.server
         try:
             print(f"Host: {base} | MCP: {base}/mcp", flush=True)
+            if base != local:
+                print(
+                    f"Reached through {base} (listening on {local}). Anyone with that address "
+                    "can start rooms here while it is up; stop the host when you are done.",
+                    flush=True,
+                )
             print(
                 "Models: Meta API."
                 if keyed

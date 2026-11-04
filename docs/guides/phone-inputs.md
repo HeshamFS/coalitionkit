@@ -48,16 +48,13 @@ The [HTTP routes](../reference/http-routes.md) page lists the answers and refusa
 
 Browsers allow the microphone only on HTTPS or on `localhost`. A phone on the same Wi-Fi reaches the host over plain HTTP, so the mic button reports that it cannot record. The camera button is a plain file picker, and it works over HTTP too.
 
-For a demo, put the host behind an HTTPS tunnel. Cloudflare's quick tunnel needs no account:
+For a demo, put the host behind an HTTPS tunnel and give the host that address. Cloudflare's quick tunnel needs no account:
 
 ```bash
-coalitionkit up --port 8801 --data-dir ./host
 cloudflared tunnel --url http://127.0.0.1:8801
+coalitionkit up --port 8801 --data-dir ./host --public-url https://<name>.trycloudflare.com
 ```
 
-It prints an address like `https://<name>.trycloudflare.com`. Know these limits before you use it:
+The tunnel prints the address; `--public-url` makes the host use it for its links, QR codes, MCP address and origin checks, while it keeps listening on `127.0.0.1`. Open the room through that address on every device, including this computer: the start and join routes accept only that origin. Phones scan the QR code, and because the address is HTTPS their microphone and camera work.
 
-- **The room works through it.** The page, the feed, the say box, the brief, voice and photo all use the viewer token, so they work from the tunnel address.
-- **Starting and joining do not.** `coalitionkit up` runs with the `local` start setting. Its start and join routes accept only requests whose `Origin` is the host's own `http://127.0.0.1:<port>`. The tunnel address is refused with 403. Invitation links and QR codes also point at `http://127.0.0.1:<port>`, so a phone cannot open them.
-- **So seat people on the host machine.** Start the room and accept each invitation at `http://127.0.0.1:<port>`. Then open the tunnel address on the phone, choose **Have a token? Sign in**, and paste that seat's viewer token.
-- **The tunnel is public.** Anyone with the address reaches your host. Through the tunnel every request comes from this machine, so a script that sets the host's own `Origin` can still draft and start rooms on your model key. Keep the address private, and stop the tunnel when the demo ends.
+The tunnel is public. Anyone with the address reaches your host and can start rooms on your model key while it is up. Keep the address to the people at the table, and stop the host and the tunnel when the demo ends. See [Join from another device](../get-started/join-another-device.md).
