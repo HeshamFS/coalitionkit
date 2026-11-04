@@ -193,7 +193,7 @@ def unhedged(text: str) -> str:
         " ".join(s for s in re.split(r"(?<=[.!?]) +", line) if not TALKS_ABOUT.search(s))
         for line in text.split(chr(10))
     ]
-    return chr(10).join(kept).strip()
+    return re.sub(chr(10) + "{3,}", chr(10) * 2, chr(10).join(kept)).strip()
 
 
 def plain(text: str, limit: int) -> str:

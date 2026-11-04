@@ -308,6 +308,27 @@ def had_offers(state: State, ids: list[str]) -> set[str]:
     return {str(o["owner"]) for o in state.offers.values() if o["target"]["id"] in ids}
 
 
+async def offer_if_open(
+    engine: RoomEngine,
+    coalition: str,
+    who: str,
+    state: State,
+    item: OfferItem,
+    *,
+    offer_id: str | None = None,
+    valid_until: str | None = None,
+) -> None:
+    """An offer on a need that has moved past offers is simply not needed; it must not make the
+    whole step fail and be retried for ever."""
+    try:
+        await send_offer(
+            engine, coalition, who, state, item, offer_id=offer_id, valid_until=valid_until
+        )
+    except RuntimeError as exc:
+        if "stage_mismatch" not in str(exc):
+            raise
+
+
 async def reoffer(
     engine: RoomEngine, coalition: str, who: str, change: Document, state: State
 ) -> None:
@@ -324,7 +345,7 @@ async def reoffer(
             key = refs.get((who, n["id"]))
             if key is not None:
                 item = OfferItem(need_id=n["id"], minutes=5, money=0, effort="high")
-                await send_offer(
+                await offer_if_open(
                     engine, coalition, who, state, item, offer_id=key, valid_until=past
                 )
         engine.feed_add(coalition, who, "Your offers on what changed are withdrawn.")
@@ -353,7 +374,7 @@ async def reoffer(
         )
     items = checked(reply, needs, lim) or rule_offers(needs, lim)
     for item in items:
-        await send_offer(
+        await offer_if_open(
             engine, coalition, who, state, item, offer_id=refs.get((who, item.need_id))
         )
     if items:

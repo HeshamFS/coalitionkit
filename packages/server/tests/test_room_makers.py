@@ -141,3 +141,9 @@ def test_sentences_that_only_talk_about_being_a_proposal_are_dropped() -> None:
         "We run a fair." + nl + nl + "Please treat this invitation as a proposal while we finish."
     )
     assert makers.unhedged(body) == "We run a fair."
+
+
+def test_dropped_sentences_leave_no_empty_paragraphs() -> None:
+    nl = chr(10)
+    body = "Hi." + nl + nl + "It is a proposal." + nl + nl + "Bye."
+    assert makers.unhedged(body) == "Hi." + nl + nl + "Bye."
