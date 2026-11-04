@@ -99,3 +99,11 @@ def test_the_loader_refuses_a_public_question_it_cannot_publish() -> None:
         {"id": "city", "label": "City", "question": {"text": "Which city?", "kind": "text"}}
     )
     assert ok.search is False
+
+
+def test_the_rules_keep_a_must_see_whole_and_read_an_hour_as_a_schedule() -> None:
+    from coalitionkit_server.room.needs import kind_of, split_goal
+
+    titles = split_goal("Strangers build a tour: find a must-see place in each city, the hour")
+    assert titles[0].startswith("Strangers build a tour: find a must-see place")
+    assert kind_of("The hour that fits everyone") == "schedule"
