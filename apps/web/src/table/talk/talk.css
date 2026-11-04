@@ -101,6 +101,19 @@
   overflow-wrap: anywhere;
   text-align: left;
 }
+/* On a wide window the side column has a fixed height: the thread scrolls in its share, and
+   never squeezes what is asked of the person above it. */
+@media (min-width: 901px) {
+  .tb--wide .tk-thread {
+    flex: 0 1 auto;
+    min-height: 140px;
+    max-height: 42%;
+    overflow: auto;
+  }
+  .tb--wide .tk-thread[data-open="true"] {
+    max-height: 62%;
+  }
+}
 .tk-moved {
   margin: 0;
   padding-left: 18px;
