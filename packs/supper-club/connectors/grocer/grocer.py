@@ -116,7 +116,7 @@ def canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def build_card(base: str, seed: bytes) -> dict[str, Any]:
+def build_card(base: str, seed: bytes, role: str = "grocer") -> dict[str, Any]:
     key = {"crv": "Ed25519", "kty": "OKP", "x": b64url(public_key(seed)), "kid": "agent"}
     card: dict[str, Any] = {
         "name": NAME,
@@ -133,7 +133,7 @@ def build_card(base: str, seed: bytes) -> dict[str, Any]:
                     "params": {
                         "surfaces": ["web"],
                         "keys": [key],
-                        "roles": ["grocer"],
+                        "roles": [role],
                         "vault": "hosted",
                     },
                 }
