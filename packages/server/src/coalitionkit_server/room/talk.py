@@ -170,6 +170,16 @@ def public_words(state: State, doc: Document) -> str:
     return " ".join([goal, *(n["title"] for n in doc["needs"]), *common])
 
 
+def revisable(doc: Document, who: str, asked: list[str], live: set[str]) -> list[str]:
+    """The needs this seat's agent may offer on again: live ones, and never one its own person
+    just said they can no longer do."""
+    change: Document = doc.get("change") or {}
+    moved: list[str] = [str(i) for i in change.get("moved", [])]
+    own = session_key(doc) != "start" and change.get("from") == who
+    dropped: set[str] = set(moved) if own and change.get("withdraw") else set()
+    return [i for i in dict.fromkeys(asked) if i in live and i not in dropped]
+
+
 def changed_of(doc: Document, labels: dict[str, str], who: str) -> Document | None:
     """The change this talk follows, in the words the room already saw, or None."""
     change = doc.get("change")
@@ -223,7 +233,7 @@ async def speak(
         line = Line(to="room", intent="caveat", text=asked_to, re=None)
     said = await send_line(engine, coalition, who, line, (told, asked_to), state, doc, labels)
     revised: list[str] = []
-    wanted = [i for i in (reply.revise if reply else []) if i in {n["id"] for n in live}]
+    wanted = revisable(doc, who, reply.revise if reply else [], {n["id"] for n in live})
     if wanted and thread:
         revised = await revise(engine, coalition, who, wanted[:MAX_REVISE], thread, state)
     return {"said": said, "revised": revised}

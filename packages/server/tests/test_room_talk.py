@@ -192,3 +192,16 @@ def test_the_agents_talk_again_after_a_change(tmp_path: Path) -> None:
         assert after and after[0]["by"] in {"you", "Member 1"}
         assert after[0]["said"] == "I can't find a venue after all"
         assert after[0]["they_can_no_longer_do_them"] is True
+
+
+def test_an_agent_never_offers_again_on_what_its_person_just_dropped() -> None:
+    from coalitionkit_server.room.talk import revisable
+
+    change = {"from": "p2", "text": "I cannot do the costs", "moved": ["n2"], "withdraw": True}
+    doc: dict[str, Any] = {"change": change}
+    live = {"n1", "n2", "n3"}
+    assert revisable(doc, "p2", ["n2", "n1", "n1", "gone"], live) == ["n1"]
+    assert revisable(doc, "p1", ["n2", "n1"], live) == ["n2", "n1"]
+    assert revisable({"change": None}, "p2", ["n2"], live) == ["n2"]
+    kept = {**change, "withdraw": False}
+    assert revisable({"change": kept}, "p2", ["n2"], live) == ["n2"]
