@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from coalitionkit_runtime import Acknowledgement, CoalitionHost
 from coalitionkit_runtime.lifecycle import State
+from coalitionkit_vault._group import SodiumUnavailable
 from coalitionkit_vault.psi import Context, Requester, Responder
 from coalitionkit_vault.store import Facts, Vault
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 
 KEY = "_room_compare"
 SUBJECT = "slots"
+NO_PSI = "This host cannot compare free times: it needs coalitionkit[psi] and libsodium"
 QUERY_MS = 120_000
 
 
@@ -82,6 +84,10 @@ async def advance(engine: RoomEngine, coalition: str) -> None:
         await run(engine, coalition, state, doc, task)
     except Stopped:
         # A held message leaves nothing honest to publish: no crossing, and the room moves on.
+        finish(engine, coalition, [], None)
+    except SodiumUnavailable:
+        # A plain install has no private set intersection. Times stay private and uncompared.
+        engine.note(coalition, "comparing", NO_PSI)
         finish(engine, coalition, [], None)
 
 

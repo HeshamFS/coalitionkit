@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from room_flow import briefs_open, full_room, offers_by, reply_brief
 from room_rig import (
     BRIEF,
@@ -22,6 +23,8 @@ from room_rig import (
 )
 
 from coalitionkit_runtime.steward import FakeSteward, Verdict
+from coalitionkit_server.room import compare
+from coalitionkit_vault._group import SodiumUnavailable
 
 
 def test_times_cross_without_showing_the_lists(tmp_path: Path) -> None:
@@ -282,3 +285,23 @@ def test_the_gate_flow_with_a_helper_reaches_plans(tmp_path: Path) -> None:
         until(lambda: engine.read(cid)["plan_notes"], 30, "plan names")
         assert view_of(engine, cid, "p1")["common"]["slots"] == ["s2", "s3"]
         assert "helper-1" in {o["on_behalf_of"] for o in events(client, cid, "offer")}
+
+
+def test_a_host_without_the_psi_library_moves_on_and_says_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def missing(*args: Any, **kwargs: Any) -> Any:
+        raise SodiumUnavailable("Private set intersection requires coalitionkit[psi]")
+
+    monkeypatch.setattr(compare, "exchange", missing)
+    with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
+        room, (a, b) = full_room(client)
+        cid, engine = room["coalition_id"], engine_of(client)
+        briefs_open(engine, cid, ["p1", a["participant"], b["participant"]])
+        reply_brief(client, room["owner"]["token"], {"q1": None, "q2": 3, "q3": ["s1", "s2"]})
+        reply_brief(client, a["token"], {"q1": None, "q2": 3, "q3": ["s2", "s3"]})
+        reply_brief(client, b["token"], {"q1": None, "q2": 3, "q3": None})
+        until(lambda: (engine.read(cid)["compare"] or {}).get("state") == "done", 40, "compare")
+        labels = [a["label"] for a in view_of(engine, cid, "p1")["activity"]]
+        assert compare.NO_PSI in labels
+        assert engine.may_plan(cid), "the room goes on to plans"
