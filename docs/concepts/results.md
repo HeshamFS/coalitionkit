@@ -1,6 +1,6 @@
 # Results
 
-A **result** is the real thing a need asked for: a budget that adds up, a list, a message to send. It is an event in the log, signed by the agent that made it, and the Steward reviews it like any other message.
+A **result** is the real thing a need asked for: a budget that adds up, a list, a message to send, a poster. It is an event in the log, signed by the agent that made it, and the Steward reviews it like any other message.
 
 ## How one is made
 
@@ -11,13 +11,22 @@ A **result** is the real thing a need asked for: a budget that adds up, a list, 
 
 ## Kinds and exports
 
-| Kind | Holds | Export |
-|---|---|---|
-| `place` | Kinds of place, why each fits, what to check first | None |
-| `schedule` | Ordered steps, with times | ICS |
-| `budget` | Lines, who pays, how it is shared, and the time people offered | CSV |
-| `list` | Items and who brings each | CSV |
-| `draft` | A subject and a body | Text |
+| Kind | Holds | Shown as | Export |
+|---|---|---|---|
+| `place` | Kinds of place, why each fits, what to check first | Cards | None |
+| `schedule` | Ordered steps, with times | `Timeline`, in the viewer's own time | ICS |
+| `budget` | Lines, who pays, how it is shared, and the time people offered | `CostSplit`, in the goal's currency | CSV |
+| `list` | Items and who brings each | `Checklist` | CSV |
+| `draft` | A subject and a body | A card with the message | Text |
+| `image` | A picture, its alt text and the prompt it was drawn from | `Image` | The picture file |
+
+## Pictures
+
+The Gardener makes a need of kind `image` only when the goal asks for a picture, such as a poster, a card, an invitation or a menu. Code turns any other picture it proposes into a draft, so no image is drawn unasked.
+
+The agent that holds the need writes the prompt from the room's public facts only: the goal, the need's title and its detail. No answer from a brief, no vault value and no name goes in. Before the prompt leaves the host it passes the Steward's deterministic policies as if it were a message to the whole room; if one matches, nothing is drawn, the stop is written down, and the result says so and keeps the prompt.
+
+The image model (`muse-image-1.0`) answers with a picture. The host keeps it under its data directory, named by the SHA-256 of its bytes, and serves it to the room's viewers at `GET /v1/room/media/{hash}`. The result holds `{hash, alt, prompt, width, height}`. **Show the work** shows the prompt, and **Download picture** saves the file. With no image key, or when the call fails, the result says why and keeps the prompt.
 
 ## What to trust
 

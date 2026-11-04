@@ -195,9 +195,16 @@ export function AssignmentRow({ p }: Props) {
     </Frame>
   );
 }
+/** An amount as a number for the bar and the total: a bound number, or a string such as "60 EUR". */
+const amountOf = (v: unknown) =>
+  typeof v === "string" ? Number.parseFloat(v.replace(/[^\d.-]/g, "")) || 0 : num(v);
+/** An amount as written: a string stays as the host wrote it, a bare number is in euro. */
+const amountText = (v: unknown) => (typeof v === "string" ? v : `€${str(v)}`);
 export function CostSplit({ p }: Props) {
   const items = rows(p.items),
-    total = items.reduce((sum, r) => sum + num(r.amount), 0);
+    total = items.reduce((sum, r) => sum + amountOf(r.amount), 0),
+    unit =
+      typeof items[0]?.amount === "string" ? str(items[0]?.amount).replace(/^[\d.,\s-]+/, "") : "";
   return (
     <Frame name="CostSplit" className="f06-cost">
       <div className="row f06-cost-stack" aria-hidden="true">
@@ -205,7 +212,7 @@ export function CostSplit({ p }: Props) {
           <span
             key={str(r.label)}
             style={{
-              width: `${total ? (100 * num(r.amount)) / total : 0}%`,
+              width: `${total ? (100 * amountOf(r.amount)) / total : 0}%`,
               background: `var(--seat-${person(r.payer).seat})`,
             }}
           />
@@ -225,7 +232,7 @@ export function CostSplit({ p }: Props) {
               <td>{str(r.label)}</td>
               <td>{str(r.payer)}</td>
               <td className="r num" title={`${str(r.kind)} · ${str(obj(r.amount).event_ref)}`}>
-                €{str(r.amount)}
+                {amountText(r.amount)}
               </td>
             </tr>
           ))}
@@ -235,7 +242,7 @@ export function CostSplit({ p }: Props) {
             </td>
             <td />
             <td className="r num">
-              <b>€{total}</b>
+              <b>{unit ? `${total} ${unit}` : `€${total}`}</b>
             </td>
           </tr>
         </tbody>
