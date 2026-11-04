@@ -2,6 +2,7 @@
 // The thread panel: every line the agents said, in order, drawn with the catalog's
 // `CoalitionThread`. It says whether the room is talking now, which round it is in, whose offers
 // moved because of the talk, and the viewer's own whisper while their agent has not said it yet.
+import { useEffect, useRef } from "react";
 import { CoalitionThread } from "../../components/f03/thread";
 import { useTable } from "../context";
 import type { RoomSeat } from "../room";
@@ -51,13 +52,25 @@ function status(talk: Talk): string {
 export function TalkThread() {
   const { room } = useTable();
   const talk = room.talk ?? EMPTY_TALK;
+  const box = useRef<HTMLElement>(null);
+  const count = talk.thread.length;
+  // Where the thread scrolls in its own share (a wide window), keep the newest line in view.
+  useEffect(() => {
+    const el = box.current;
+    if (el && count > 0) el.scrollTop = el.scrollHeight;
+  }, [count]);
   if (!talk.open && talk.thread.length === 0 && !talk.mine.whisper) return null;
   const moved = talk.revised.map((r) => {
     const titles = r.needs.map((id) => room.needs.find((n) => n.id === id)?.title ?? "a need");
     return `${nameOf(room.seats, r.seat)} changed its offer on ${titles.join(" and ")}.`;
   });
   return (
-    <section className="tk-thread" aria-label="What the agents said" data-open={talk.open}>
+    <section
+      ref={box}
+      className="tk-thread"
+      aria-label="What the agents said"
+      data-open={talk.open}
+    >
       <header>
         <h3>The agents talk</h3>
         <p role="status">{status(talk)}</p>
