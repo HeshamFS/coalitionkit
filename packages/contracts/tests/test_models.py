@@ -69,7 +69,7 @@ def at(value: Any, path: tuple[Any, ...]) -> Any:
 
 
 def test_nineteen_types_and_every_schema_exists() -> None:
-    assert len(MESSAGE_TYPES) == 19
+    assert len(MESSAGE_TYPES) == 20
     assert set(MESSAGE_TYPES) == HOST_ONLY_TYPES | MEMBER_TYPES
     assert not HOST_ONLY_TYPES & MEMBER_TYPES
     assert len(HOST_ONLY_TYPES) == 9
