@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from . import results
+from . import fixed
 from .devices import (
     HOLD_KEY,
     READINGS_KEPT,
@@ -183,7 +183,7 @@ async def confirm(
         "title": title,
         "source": "rules",
         "sources": refs,
-        "components": results.fixed_tree("schedule", title, detail, data),
+        "components": fixed.fixed_tree("schedule", title, detail, data),
         "data": data,
     }
     sent = await engine.submit(
