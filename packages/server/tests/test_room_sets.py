@@ -166,28 +166,34 @@ def test_a_set_waits_for_its_seats_and_publishes_nothing_without_them(tmp_path: 
         until(lambda: engine.may_plan(cid), what="the room to move on")
 
 
-def test_a_seat_with_its_own_agent_gives_values_through_its_vault(tmp_path: Path) -> None:
+def test_a_seat_whose_agent_acts_over_mcp_gives_values_through_its_vault(tmp_path: Path) -> None:
     with serve_pack(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
         room, (a, b) = pack_room(client)
         cid, engine = room["coalition_id"], engine_of(client)
-        briefs_open(engine, cid, ["p1", a["participant"], b["participant"]])
-        # This seat's agent writes its values itself (an outside agent does the same).
+        outside = b["participant"]
+        # The seat's own agent acts over MCP: the host stops asking it the brief.
+        server_of(client).offered_over_mcp(cid, outside)
+        briefs_open(engine, cid, ["p1", a["participant"], outside])
+        until(lambda: engine.read(cid)["briefs"][outside]["closed"], what="its brief to close")
         given = client.post(
             "/v1/agent/vault",
             json={"values": {"compare:colours": ["Green", "blue", "not-an-option"]}},
             headers=bearer(b["token"]),
         )
         assert given.status_code == 200, given.text
-        assert "compare:colours" in given.json()["keys"]
-        for person, colours in ((room["owner"], ["o2", "o3"]), (a, ["o2", "o3", "o4"]), (b, None)):
+        assert given.json()["keys"] == ["compare:colours"], "keys only, never the values"
+        for person, colours in ((room["owner"], ["o2", "o3"]), (a, ["o2", "o3", "o4"])):
             reply_brief(
                 client,
                 person["token"],
                 {"q1": None, "q2": 3, "q3": None, "set-colours": colours, "set-words": None},
             )
         until(lambda: (engine.read(cid)["compare"] or {}).get("state") == "done", 60, "compare")
-        assert published(client, cid)["colours"]["values"] == ["blue", "green"]
-        assert view_of(engine, cid, b["participant"])["mine"]["sets"] == {"colours": 0}
+        found = published(client, cid)["colours"]
+        assert found["values"] == ["blue", "green"] and found["compared"] == 3
+        assert view_of(engine, cid, outside)["mine"]["sets"] == {"colours": 0}
+        log = json.dumps(server_of(client).store.read(cid))
+        assert "not-an-option" not in log and "Green" not in log
 
 
 def test_a_made_list_keeps_to_the_shared_values(monkeypatch: pytest.MonkeyPatch) -> None:
