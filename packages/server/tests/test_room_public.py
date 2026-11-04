@@ -71,8 +71,8 @@ def test_a_public_answer_is_published_once_and_searched_per_seat(
             "https://example.org/Osaka",
         ]
         assert queries == [
-            ("p1", "A must-see stop in each city in Lisbon: A one-hour world tour"),
-            (a["participant"], "A must-see stop in each city in Osaka: A one-hour world tour"),
+            ("p1", "A must-see stop in each city in Lisbon"),
+            (a["participant"], "A must-see stop in each city in Osaka"),
         ], "once per city, by the seat in that city"
         assert b["participant"] not in public.search_places(engine, cid)
 

@@ -68,11 +68,12 @@ def provider(engine: RoomEngine) -> SearchProvider | None:
 def query_for(facts: Document, where: str | None = None) -> str:
     """The words a search sends: the need and the goal, nothing any one person said privately.
 
-    ``where`` is a seat's published answer to a pack's public search question (its city).
+    ``where`` is a seat's published answer to a pack's public search question (its city); the
+    query is then the need and that answer only, so the pages are about the place itself.
     """
     words = f"{facts['need']['title']}: {facts['goal']}"
     if where:
-        words = f"{facts['need']['title']} in {where}: {facts['goal']}"
+        words = f"{facts['need']['title']} in {where}"  # the goal would pull pages about it
     return tidy(" ".join(words.split()), QUERY_MAX)
 
 
