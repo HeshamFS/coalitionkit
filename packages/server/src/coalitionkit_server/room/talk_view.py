@@ -12,7 +12,16 @@ from typing import TYPE_CHECKING
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
-from .talk import listening, pending_whisper, rounds_of, say_events, session_key, settled
+from .talk import (
+    HIDDEN,
+    listening,
+    pending_whisper,
+    rounds_of,
+    said_text,
+    say_events,
+    session_key,
+    settled,
+)
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -53,7 +62,8 @@ def talk_of(
                 "from": e["on_behalf_of"],
                 "to": e["payload"]["to"],
                 "intent": e["payload"]["intent"],
-                "text": e["payload"]["text"],
+                "text": said_text(e, viewer),
+                "redacted": said_text(e, viewer) == HIDDEN,
                 "re": e["payload"].get("re"),
                 "stage": stage_of(e, ripples),
             }

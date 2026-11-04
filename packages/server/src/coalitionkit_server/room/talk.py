@@ -37,6 +37,7 @@ MAX_REVISE = 2
 THREAD_SHOWN = 24
 PRIVATE_STOP = "talk-private-value"
 PRIVATE_EXPLAIN = "The line held one of its person's private answers, so it was not said."
+HIDDEN = "The Steward hid this line: it named something private."
 
 SYSTEM = (
     "You are one person's agent in a small group room, and the agents are talking before the "
@@ -130,7 +131,15 @@ def labels_of(
     return {s["seat"]: s["label"] for s in seats_of(engine, coalition, who, state, doc)}
 
 
-def thread_of(state: State, labels: dict[str, str]) -> list[Document]:
+def said_text(event: Document, viewer: str | None) -> str:
+    """A line's words as ``viewer`` may read them. A line a policy redacted keeps its words for
+    its sender only; everyone else, and every other seat's agent, reads that it was hidden."""
+    if "payload.text" in event["scope"].get("redact", []) and viewer != event["on_behalf_of"]:
+        return HIDDEN
+    return str(event["payload"]["text"])
+
+
+def thread_of(state: State, labels: dict[str, str], who: str | None = None) -> list[Document]:
     return [
         {
             "n": n,
@@ -138,7 +147,7 @@ def thread_of(state: State, labels: dict[str, str]) -> list[Document]:
             "from": labels.get(e["on_behalf_of"], e["on_behalf_of"]),
             "to": "room" if e["payload"]["to"] == "room" else labels.get(e["payload"]["to"], "?"),
             "intent": e["payload"]["intent"],
-            "text": e["payload"]["text"],
+            "text": said_text(e, who),
         }
         for n, e in enumerate(say_events(state), start=1)
     ]
@@ -201,7 +210,7 @@ async def speak(
     """One seat's turn. Returns {said: event id or None, revised: [need ids]}."""
     doc = engine.read(coalition)
     labels = labels_of(engine, coalition, who, state, doc)
-    thread = thread_of(state, labels)
+    thread = thread_of(state, labels, who)
     others = {p for p in people(state, doc) if p != who}
     live = [n for n in doc["needs"] if n["id"] in state.tasks]
     told = given(engine, coalition, who)
