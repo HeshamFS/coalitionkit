@@ -5,7 +5,7 @@ version = "0.1.0"
 description = "CoalitionKit MCP server: any MCP host joins a Coalition with an A2A member's rights"
 readme = {text = "CoalitionKit MCP server: any MCP host joins a Coalition with an A2A member's rights", content-type = "text/plain"}
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 authors = [{name = "Hesham Salama", email = "hesham.salama@rub.de"}]
 keywords = ["agents", "coordination", "a2a", "mcp", "coalition"]
 classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.15", "Operating System :: OS Independent", "Topic :: Software Development :: Libraries :: Python Modules"]
