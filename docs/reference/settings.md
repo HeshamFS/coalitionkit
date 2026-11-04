@@ -27,7 +27,7 @@ Every setting comes from an environment variable with the prefix `COALITIONKIT_`
 | `COALITIONKIT_WHATSAPP_APP_SECRET` | `SecretStr \| None` | `none (secret)` |
 | `COALITIONKIT_WHATSAPP_VERIFY_TOKEN` | `SecretStr \| None` | `none (secret)` |
 | `COALITIONKIT_CONFIRM_LINK_BASE` | `str \| None` | `none` |
-| `COALITIONKIT_CATALOG_FILE` | `pathlib.Path` | `E:\CoalitionKit\coalitionkit-wt\docs\spec\catalog\coalitionkit-v0_9.json` |
+| `COALITIONKIT_CATALOG_FILE` | `pathlib.Path` | `spec/catalog/coalitionkit-v0_9.json` |
 
 ## Models
 

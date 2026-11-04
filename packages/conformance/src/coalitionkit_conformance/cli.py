@@ -16,7 +16,9 @@ from .runner import run
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Coalition Protocol conformance probes")
+    parser = argparse.ArgumentParser(
+        prog="coalitionkit conform", description="Coalition Protocol conformance probes"
+    )
     parser.add_argument("--target", required=True, help="Signed agent card URL")
     parser.add_argument("--level", choices=["member", "vault", "host", "surface"], required=True)
     parser.add_argument("--invite", action="append", default=[], help="Operator invitation code")

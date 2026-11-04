@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Tool shed business agent: joins with a signed card and offers the tools on its shelf.
+"""Tool shed connector, the first half: sign a card, redeem the invitation, work out the offers.
+
+It stops there and prints what it would offer. It does not send a join or an offer, so running
+it spends the invitation. A connector that does real work goes on to send signed messages.
 
 Runs in the kit's connector container: standard library only, read-only, no capabilities.
 It receives one argument, the one-use invitation link, and talks only to the host named in it.

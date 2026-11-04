@@ -37,4 +37,4 @@ coalitionkit pack connectors my-pack --host URL --coalition ID          # print 
 coalitionkit pack connectors my-pack --host URL --coalition ID --run    # run them in a container
 ```
 
-See [`connectors/shed-desk/shed_desk.py`](https://github.com/HeshamFS/coalitionkit/blob/main/examples/packs/tool-library/connectors/shed-desk/shed_desk.py) for a whole connector, using the standard library only.
+[`connectors/shed-desk/shed_desk.py`](https://github.com/HeshamFS/coalitionkit/blob/main/examples/packs/tool-library/connectors/shed-desk/shed_desk.py) shows the first half, using the standard library only: it signs a card, redeems the invitation, and prints the offers it would make. **It stops there.** A connector that does real work goes on to join and send signed offers, as in [Bring your own agent over A2A](../a2a-business-agent.md).

@@ -108,6 +108,8 @@ def field_rows(model: Any, skip: frozenset[str] = frozenset()) -> list[list[obje
         else:
             value: Any = info.default
             default = "none" if value is None else value
+            if isinstance(value, Path):  # never the path of the checkout that wrote the page
+                default = value.resolve().relative_to(ROOT).as_posix()
             if isinstance(value, set):
                 default = sorted(str(v) for v in cast(set[Any], value))
         rows.append([f"`COALITIONKIT_{name.upper()}`", f"`{kind}`", f"`{default}`"])
@@ -137,7 +139,7 @@ def help_text(*words: str) -> str:
         text=True,
         check=False,
         cwd=ROOT,
-        env={**os.environ, "COLUMNS": "90"},
+        env={**os.environ, "COLUMNS": "90", "NO_COLOR": "1", "PYTHON_COLORS": "0"},
     )
     return (done.stdout or done.stderr).strip().replace("__main__.py", "coalitionkit")
 

@@ -43,7 +43,9 @@ from coalitionkit_contracts.owner import jwk_to_public_key
 from coalitionkit_edges.a2a import MemberClient
 
 key = jwk_to_public_key(seat["host_key"])
-client = await MemberClient.connect(http, f"{HOST}/.well-known/agent-card.json", seat["token"], key, "host")
+client = await MemberClient.connect(
+    http, f"{HOST}/.well-known/agent-card.json", seat["token"], key, "host"
+)
 ```
 
 Send `coalition.join` with your card URL, your owner key and an owner proof from `sign_owner_proof`, asking for the `role` you were given. Set `vault` to `local`, since your data stays with you.

@@ -85,14 +85,11 @@ options:
 ## `coalitionkit conform`
 
 ```text
-usage: python.exe -m coalitionkit_cli.main [-h] --target TARGET
-                                           --level {member,vault,host,surface}
-                                           [--invite INVITE]
-                                           [--invites-file INVITES_FILE]
-                                           [--redeem-url REDEEM_URL]
-                                           [--operator {reference}]
-                                           [--admin-token-file ADMIN_TOKEN_FILE]
-                                           [--key KEY] [--timeout TIMEOUT]
+usage: coalitionkit conform [-h] --target TARGET --level {member,vault,host,surface}
+                            [--invite INVITE] [--invites-file INVITES_FILE]
+                            [--redeem-url REDEEM_URL] [--operator {reference}]
+                            [--admin-token-file ADMIN_TOKEN_FILE] [--key KEY]
+                            [--timeout TIMEOUT]
 
 Coalition Protocol conformance probes
 
