@@ -10,7 +10,7 @@ authors = [{name = "Hesham Salama", email = "hesham@autonomouslab.io"}]
 keywords = ["agents", "coordination", "a2a", "mcp", "coalition"]
 classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14", "Programming Language :: Python :: 3.15", "Operating System :: OS Independent", "Topic :: Software Development :: Libraries :: Python Modules"]
 requires-python = ">=3.12"
-dependencies = ["httpx2==2.16.0", "openai==3.40.0", "pydantic==2.14.2", "pydantic-settings==2.16.2"]
+dependencies = ["httpx2==2.16.0", "openai==3.42.0", "pydantic==2.14.2", "pydantic-settings==2.16.2"]
 
 [project.urls]
 Homepage = "https://github.com/HeshamFS/coalitionkit"
