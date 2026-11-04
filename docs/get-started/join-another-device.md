@@ -8,16 +8,21 @@ Use a second browser tab or window. Each tab keeps its own seat, so it acts as a
 
 ## From other devices
 
-A host that other devices can reach needs:
+Give the host an HTTPS address other devices can reach, and tell `coalitionkit up` about it. The quickest way is a tunnel to this computer:
 
-- a public HTTPS address, set as `COALITIONKIT_PUBLIC_BASE_URL`,
-- `COALITIONKIT_GENESIS=admin`, so starting a room needs a single-use code,
-- `COALITIONKIT_ADMIN_TOKEN`, to create those codes.
+```sh
+cloudflared tunnel --url http://127.0.0.1:8000
+```
 
-See [Run and configure a host](../guides/run-a-host.md) and [Deploy a host](../guides/deploy.md).
+It prints an address such as `https://<name>.trycloudflare.com`. Start the host with it:
 
-!!! warning "The web room needs its own hosting"
-    `coalitionkit server serve` serves the API and MCP, not the web room. Only `coalitionkit up` serves the room, and it stays on this computer. To use the room from other devices, host `apps/web/dist` yourself on the same origin as the API.
+```sh
+coalitionkit up --port 8000 --public-url https://<name>.trycloudflare.com
+```
+
+The host still listens on `127.0.0.1`; the tunnel forwards to it. Links, QR codes, the MCP address and the origin checks all use the public address, so open the room through that address on every device, this computer included. Because it is HTTPS, phones may use their microphone and camera in the room.
+
+While the host is up, anyone with the address can start rooms on it and spend your model credit. Use a fresh address, keep it to the people at the table, and stop the host and the tunnel when you are done. For a host that stays up, use `COALITIONKIT_GENESIS=admin` with `COALITIONKIT_ADMIN_TOKEN`, so starting a room needs a single-use code; see [Run and configure a host](../guides/run-a-host.md) and [Deploy a host](../guides/deploy.md).
 
 ## An agent on another computer
 

@@ -131,3 +131,41 @@ def test_up_prints_the_real_reason(tmp_path: Path, capsys: pytest.CaptureFixture
     with patch.object(up, "web_dist", side_effect=FileNotFoundError(reason)):
         assert main(["up", "--data-dir", str(tmp_path / "data")]) == 2
     assert capsys.readouterr().err == f"Could not start: {reason}\n"
+
+
+def test_up_takes_a_public_address_for_other_devices(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("COALITIONKIT_META_API_KEY", raising=False)
+    room = tmp_path / "room"
+    room.mkdir()
+    (room / "index.html").write_text("room")
+    made: list[Any] = []
+
+    def keep(*args: Any, **kwargs: Any) -> Any:
+        made.append(create_server(*args, **kwargs))
+        return made[-1]
+
+    with (
+        patch.object(up, "web_dist", return_value=room),
+        patch.object(up, "create_server", side_effect=keep),
+        patch("uvicorn.Server.serve", new=AsyncMock()),
+    ):
+        argv = ["up", "--data-dir", str(tmp_path / "data"), "--public-url", "https://name.example/"]
+        assert main(argv) == 0
+    made[0].state.server.close()
+    settings = made[0].state.server.settings
+    assert settings.public_base_url == "https://name.example"
+    assert settings.bind_host == "127.0.0.1"
+    printed = capsys.readouterr().out
+    assert "Host: https://name.example | MCP: https://name.example/mcp" in printed
+    assert "Reached through https://name.example (listening on http://127.0.0.1:" in printed
+    assert "Open https://name.example/" in printed
+
+
+def test_a_public_address_is_an_origin_only() -> None:
+    assert up.public_base(None) is None and up.public_base("") is None
+    assert up.public_base(" https://name.example ") == "https://name.example"
+    for bad in ("ftp://name.example", "https://user:pw@name.example", "https://name.example/room"):
+        with pytest.raises(ValueError):
+            up.public_base(bad)
