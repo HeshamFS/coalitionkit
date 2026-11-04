@@ -52,6 +52,7 @@ from .packs import (
 from .registry import Registry
 from .room import RoomEngine
 from .room.activity_ports import A2aActivity, McpActivity
+from .room.device_routes import DEVICE_PATHS
 from .room.inputs import inputs_routes
 from .room.routes import room_routes
 from .room.view import room_state
@@ -464,6 +465,8 @@ AGENT_PATHS = frozenset(
         "/v1/room/photo",
     }
 )
+# Minted devices at the Table (room/device_routes.py).
+ALL_AGENT_PATHS = AGENT_PATHS | DEVICE_PATHS
 
 
 # A picture a room's agent made: read with the viewer token like the feed.
@@ -482,7 +485,7 @@ class Dispatch:
             return
         allowed = (
             (path in {"/v1/feed", "/v1/view-as"} and "feed" in enabled)
-            or (path in AGENT_PATHS and "agent" in enabled)
+            or (path in ALL_AGENT_PATHS and "agent" in enabled)
             or (path.startswith(MEDIA_PATH) and "feed" in enabled)
         )
         if not allowed:

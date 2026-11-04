@@ -17,6 +17,7 @@ from coalitionkit_surfaces.app import Viewer
 
 from ..adapter import Document
 from . import brief, say, seats, work
+from .device_routes import device_routes
 from .media_store import media_routes
 from .view import phase_of
 
@@ -102,3 +103,5 @@ def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
             raise HTTPException(422, "the answer does not fit the question") from None
         result: Document = {"status": status}
         return JSONResponse(result)
+
+    device_routes(app, server, coalition)

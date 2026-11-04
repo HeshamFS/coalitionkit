@@ -251,7 +251,19 @@ class RoomEngine:
 
     # --- the step -----------------------------------------------------------------------------
     async def step(self, coalition: str) -> None:
-        from . import activity, brief, compare, explain, needs, offers, say, seats, talk, work
+        from . import (
+            activity,
+            brief,
+            compare,
+            device_member,
+            explain,
+            needs,
+            offers,
+            say,
+            seats,
+            talk,
+            work,
+        )
 
         host = self.server.hosts[coalition]
         self.flush_checks(coalition)
@@ -270,6 +282,7 @@ class RoomEngine:
         async with self.lock_for(coalition):
             await seats.advance(self, coalition)
         await brief.advance(self, coalition)
+        await device_member.advance(self, coalition)
         await offers.advance(self, coalition)
         await compare.advance(self, coalition)
         await talk.advance(self, coalition)

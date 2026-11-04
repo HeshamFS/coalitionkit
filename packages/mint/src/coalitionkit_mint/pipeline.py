@@ -6,6 +6,7 @@ import json
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Literal
@@ -88,8 +89,15 @@ async def mint(
     media: Media,
     coalition_id: str | None = None,
     templates: TemplateRegistry | None = None,
+    on_stage: Callable[[str], None] | None = None,
 ) -> Minted:
+    """``on_stage`` hears the name of each stage as it starts, for a progress display."""
     entry = None
+
+    def stage(name: str) -> None:
+        if on_stage is not None:
+            on_stage(name)
+
     if template not in {"resource", "device"}:
         if templates is None or coalition_id is None:
             raise MintFailure("pack template requires a bound Coalition")
@@ -110,6 +118,7 @@ async def mint(
     folder.parent.mkdir(parents=True, exist_ok=True)
     try:
         async with asyncio.timeout(90):
+            stage("capture")
             scan_templates(resource_path("coalitionkit_mint", "templates"))
             with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:
                 records, rules = await perceive(
@@ -124,6 +133,7 @@ async def mint(
                     timings,
                 )
             evidence = json.dumps({"records": [r.model_dump() for r in records], "rules": rules})
+            stage("design")
             stage_start = time.monotonic()
             config = (
                 entry.config() if entry else await model_config(gateway, family, evidence, run_id)
@@ -146,11 +156,13 @@ async def mint(
             )
             extra = Attacks.model_validate_json(attacks_reply.text)
             timings["design"] = time.monotonic() - stage_start
+            stage("code")
             stage_start = time.monotonic()
             manifest_hash = generate(folder, config, owner, owner_id)
             sandbox = Sandbox(folder)
             await sandbox.start()
             timings["code"] = time.monotonic() - stage_start
+            stage("attack")
             stage_start = time.monotonic()
             attacks = await prove(sandbox, config, extra)
             if entry is not None:

@@ -2,6 +2,7 @@
 // Your side: one panel by phase, or the other person's screen when you are looking as them.
 import type { Plan } from "../components/f06/plans";
 import { useTable } from "./context";
+import { Devices } from "./mint/Devices";
 import { type SideKind, sideFor } from "./phase";
 import type { RoomSeat } from "./room";
 import { SeeAs } from "./SeeAs";
@@ -54,6 +55,7 @@ export function Side({
           {kind === "commit" && <SideCommit />}
           {kind === "live" && <SideLive />}
           {kind === "ended" && <SideEnded />}
+          <Devices />
         </>
       )}
       <div className="tb-composed">

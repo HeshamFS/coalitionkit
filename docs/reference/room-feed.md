@@ -16,7 +16,8 @@ A viewer follows a room over `GET /v1/feed`, a stream of server-sent events usin
 | Plans | Gardener | `propose`, `tension` | A public name and line per plan, and a private "for you" line per seat |
 | Decide | People | `decide` | none |
 | Commit | Agent asks, person signs | `commit`, `decide(commitment)`, `decide(task)` | none |
-| Make | Assignee's agent | `observe` (source `document`) holding the result, then `done` for helpers | A catalog tree per task |
+| Make | Assignee's agent | `observe` (source `document`) holding the result, then `done` for helpers and devices | A catalog tree per task |
+| Device | A minted device's seat | `offer` on a hold it took, `observe` (source `device`) per reading, `ripple` when a reading crosses its threshold | none |
 | My part | Person | `done` with evidence | none |
 | Say | Anyone | Private note, `observe` (chat) or `ripple` | Route the sentence |
 | Change | Agents, then the people asked | `ripple`, new `offer`, then a Talk stage, `propose`, `tension`, limited to who is affected | As above, for the tasks it touches |
@@ -34,7 +35,7 @@ type Room = {
   closes: string; // the charter deadline: when the room ends by itself
   seats: {
     seat: string; role: string; label: string;
-    kind: "person" | "helper" | "open"; you: boolean;
+    kind: "person" | "helper" | "device" | "open"; you: boolean;
     signed: boolean; state: string;
     busy: { tool: string; args: string; since: string } | null;
   }[];
@@ -112,6 +113,21 @@ type Room = {
     }[];
     inputs: { kind: "voice" | "photo"; text: string; ms: number }[];
   };
+  devices: {
+    id: string; label: string; template: string; // "resource", "device" or a pack template
+    state: "minting" | "approve" | "seated" | "failed";
+    health: "live" | "offline"; owner: string; mine: boolean; can_approve: boolean;
+    stages: { name: string; state: "done" | "running" | "pending"; took: number | null }[];
+    error: string | null; tools: string[]; needs: { id: string; title: string }[];
+    attacks: { passed: number; total: number } | null; manifest: string | null;
+    cost_micro_usd: number | null; elapsed: number | null;
+    fields: { id: string; unit: string; threshold: number }[];
+    reading: { field: string; value: number; unit: string; threshold: number;
+               over: boolean; t: number }[] | null;
+    readings: { field: string; value: number; t: number }[];
+    hold: { need: string; start: string; end: string;
+            state: "held" | "confirmed" | "released" } | null;
+  }[];
 };
 ```
 
@@ -142,6 +158,7 @@ type Room = {
 - A late joiner gets a brief and a vault, but is not a decider and is not part of the offer or compare rounds.
 - `activity[].source` is `voice` on a say or change the person spoke and confirmed, and `camera` on one read from their photo. The Table puts a mic mark by that seat.
 - `mine.inputs` holds the viewer's own last ten voice and photo readings: the words the host read, never the audio or the image. `ms` is how long the reading took. It is kept in the viewer's vault and is in no one else's feed.
+- `devices` lists the [minted devices](../guides/mint.md#in-a-room) of the room and is the same for every viewer, except `mine` and `can_approve`, which are true only for the device's owner. A seat of kind `device` is the seat of one of them. `hold` never carries the hold's nonce or revision: those stay in the device seat's own vault. `reading` is the latest reading, and `readings` keeps the last 24.
 
 ## Results
 

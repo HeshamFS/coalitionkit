@@ -1,0 +1,51 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+.tb-devices {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.tb-dev {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface, transparent);
+}
+.tb-dev h3 {
+  margin: 0;
+  font-size: 15px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.tb-dev-line {
+  margin: 0;
+  font-size: 13px;
+}
+.tb-dev-line[data-over="true"],
+.tb-dev-line[data-state="released"] {
+  color: var(--bad, #b42318);
+}
+.tb-dev-line[data-state="confirmed"] b {
+  color: var(--ok, #067647);
+}
+.tb-dev-form,
+.tb-dev-file {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.tb-dev-form label {
+  display: grid;
+  gap: 2px;
+}
+.tb-dev-form input,
+.tb-dev-form select {
+  max-width: 100%;
+}
+.tb-dev .f10-stages {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
