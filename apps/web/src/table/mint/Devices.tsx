@@ -22,12 +22,22 @@ function Pipeline({ d }: { d: Device }) {
     stages: d.stages.map((s) => ({
       name: s.name,
       state: s.state,
-      took: s.took,
-      detail: s.took === null ? "" : `${s.took.toFixed(1)} s`,
+      took: s.took === null ? null : Math.round(s.took * 10) / 10,
+      detail: "",
       artifacts: [],
     })),
   };
   return <MintPipeline p={p} send={quiet} />;
+}
+
+/** One line once the Mint is through: how long it took, what it cost, what it survived. */
+function Minted({ d }: { d: Device }) {
+  const parts = [
+    d.elapsed === null ? "" : `Minted in ${d.elapsed.toFixed(1)} s`,
+    d.attacks ? `${d.attacks.passed} of ${d.attacks.total} attacks refused` : "",
+    d.cost === null ? "" : `${(d.cost / 1_000_000).toFixed(3)} USD of model calls`,
+  ].filter(Boolean);
+  return <p className="tb-dev-line">{parts.join(" · ")}</p>;
 }
 
 function Approve({ d }: { d: Device }) {
@@ -207,7 +217,7 @@ export function Devices() {
             {d.label} <span className="tb-agenttag">device</span>
           </h3>
           {d.state === "minting" && <Pipeline d={d} />}
-          {d.state === "approve" && <Pipeline d={d} />}
+          {(d.state === "approve" || d.state === "seated") && <Minted d={d} />}
           {d.state === "approve" &&
             (d.canApprove ? <Approve d={d} /> : <p>Waiting for its owner's hold.</p>)}
           {d.state === "seated" && <Seated d={d} />}
