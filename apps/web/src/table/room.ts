@@ -250,7 +250,7 @@ function readResults(v: unknown): RoomResult[] {
       data: r.data ?? null,
       messages: Array.isArray(r.messages) ? r.messages : [],
       replaced_by: strOrNull(r.replaced_by),
-      links: readLinks(r.links),
+      ...(r.links === undefined ? {} : { links: readLinks(r.links) }),
     }));
 }
 
@@ -371,7 +371,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     common: readCommon(raw.common),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),
-    search: readSearches(raw.search),
+    ...(raw.search === undefined ? {} : { search: readSearches(raw.search) }),
     stops: list(raw.stops)
       .filter((s) => str(s.id) !== "")
       .map((s) => ({
