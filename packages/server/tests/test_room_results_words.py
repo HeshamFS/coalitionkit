@@ -2,7 +2,7 @@
 """What a person reads in a result: whole lines and no internals."""
 
 from coalitionkit_server.genesis_draft import read_goal
-from coalitionkit_server.room.makers import short_line
+from coalitionkit_server.room.makers import CLAIMS_AGREED, short_line
 from coalitionkit_server.room.results import shows_internals
 from coalitionkit_server.room.say import OPENS_TO_ROOM
 
@@ -16,7 +16,16 @@ def test_a_line_drops_its_tail_about_being_a_proposal() -> None:
         short_line("Member 2 confirms the place, this whole schedule is a proposal to adjust", 140)
         == "Member 2 confirms the place"
     )
+    assert short_line("Member 1 brings apples as proposal for sharing", 100) == (
+        "Member 1 brings apples"
+    )
     assert short_line("Water and juice", 100) == "Water and juice"
+
+
+def test_a_draft_may_not_claim_what_nobody_agreed() -> None:
+    assert CLAIMS_AGREED.search("For rain, we have agreed to move indoors")
+    assert CLAIMS_AGREED.search("They decided on the park")
+    assert not CLAIMS_AGREED.search("We suggest moving indoors if it rains")
 
 
 def test_internal_fields_and_empty_values_are_refused() -> None:

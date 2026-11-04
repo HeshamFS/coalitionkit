@@ -123,7 +123,15 @@ def measured_of(engine: RoomEngine, coalition: str, state: State, doc: Document)
         spent = f"{unit}{meter['spent']:.2f}"
     return {
         "calendars_shared": len(cmp["took_part"]) if cmp and cmp["state"] == "done" else 0,
-        "minutes": None if started is None else round((engine.now() - float(started)) / 60),
+        "minutes": (
+            None
+            if started is None
+            else round((float(doc.get("ended_at") or engine.now()) - float(started)) / 60)
+        ),
+        "started_at": None
+        if started is None
+        else datetime.fromtimestamp(float(started), UTC).isoformat(),
+        "ended": bool(doc.get("ended_at")),
         "cost": spent,
         # Ending a room deletes its credentials, so the count from before the end stands.
         "vendors": doc.get("outside", 0)

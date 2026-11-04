@@ -108,6 +108,9 @@ export type Measured = {
   minutes: number | null;
   cost: string | null;
   vendors: number | null;
+  // The feed stops for whoever ended the room: their screen counts up to now from this.
+  started_at?: string | null;
+  ended?: boolean;
 };
 
 export type Room = {
@@ -282,6 +285,8 @@ function readMeasured(v: unknown): Measured | null {
     minutes: count(v.minutes),
     cost: strOrNull(v.cost),
     vendors: count(v.vendors),
+    ...(typeof v.started_at === "string" ? { started_at: v.started_at } : {}),
+    ...(v.ended === true ? { ended: true } : {}),
   };
 }
 

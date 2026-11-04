@@ -43,7 +43,9 @@ SYSTEM = (
     "TBD: where something is open, say so in words. Do not invent facts the goal does not "
     "give (entry fees, programmes, guests). The shared times are only times when the people "
     "can all meet; they are not the date of the event unless the goal says so. Nothing the "
-    "people said privately is given to you, so do not guess it. "
+    "people said privately is given to you, so do not guess it. Beyond the signed plan nobody "
+    "has agreed anything: never write that people agreed, decided or confirmed something, and "
+    "never make someone's home the place. "
 )
 KIND_RULES = {
     "draft": (
@@ -184,6 +186,11 @@ SENTENCE_HEDGE = re.compile(
 TALKS_ABOUT = re.compile(
     r"\b(?:a|this|the) (?:proposal|set is a proposal)\b|\bas a proposal\b", re.I
 )
+CLAIMS_AGREED = re.compile(
+    r"\b(?:we|they|everyone|both|all)\s+(?:have\s+|has\s+|all\s+|both\s+)?"
+    r"(?:agreed|decided|confirmed)\b",
+    re.I,
+)
 SAYS_PROPOSAL = re.compile(r" ?This is an? (?:proposal|suggestion)(?: for the group)?\.", re.I)
 # The tail of a short line that only repeats what the screen's mark already says.
 PROPOSAL_TAIL = re.compile(
@@ -195,7 +202,10 @@ PROPOSAL_TAIL = re.compile(
 
 def short_line(text: str, limit: int) -> str:
     """A list item or a step: whole, without a tail about being a proposal."""
-    return tidy(PROPOSAL_TAIL.sub("", text.strip()), limit)
+    line = PROPOSAL_TAIL.sub("", text.strip())
+    return tidy(
+        re.sub(r"\s+as (?:an? )?(?:proposal|suggestion)\b[^.]*", "", line, flags=re.I), limit
+    )
 
 
 def unhedged(text: str) -> str:
@@ -221,6 +231,8 @@ def clean(kind: str, out: BaseModel, facts: Document, names: set[str]) -> Docume
         body = out.body.strip()
         if len(body) < 80 or PLACEHOLDER.search(body) or PLACEHOLDER.search(out.subject):
             return "write the whole message with no placeholders"
+        if CLAIMS_AGREED.search(body):
+            return "nobody has agreed this yet: suggest it instead of saying it was agreed"
         if shows_free_slot(body, facts):
             return (
                 "do not write the shared free times or any clock time: they are when the "

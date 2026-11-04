@@ -286,7 +286,7 @@ class RoomEngine:
 
         def erase(d: Document) -> None:
             d["briefs"], d["offers"], d["held"], d["made"] = {}, {}, {}, {}
-            d["final"], d["ended"] = kept, True
+            d["final"], d["ended"], d["ended_at"] = kept, True, self.now()
 
         self.update(coalition, erase, force=True)
 

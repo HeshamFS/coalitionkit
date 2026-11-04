@@ -161,12 +161,14 @@ function Erased({ counts }: { counts: CleanupCounts }) {
 function Measured() {
   const { room } = useTable();
   const m = room.measured;
+  const [now] = useState(() => Date.now());
   if (!m) return null;
+  const since = m.started_at ? Date.parse(m.started_at) : Number.NaN;
+  const minutes = m.ended || Number.isNaN(since) ? m.minutes : Math.round((now - since) / 60000);
   const lines = [
     m.calendars_shared !== null &&
       `${m.calendars_shared} ${m.calendars_shared === 1 ? "calendar" : "calendars"} compared privately`,
-    m.minutes !== null &&
-      `${m.minutes} ${m.minutes === 1 ? "minute" : "minutes"} from start to end`,
+    minutes !== null && `${minutes} ${minutes === 1 ? "minute" : "minutes"} from start to end`,
     m.cost !== null && `${m.cost} spent on the model`,
     m.vendors !== null && `${m.vendors} ${m.vendors === 1 ? "outside agent" : "outside agents"}`,
   ].filter((l): l is string => typeof l === "string");
@@ -215,7 +217,10 @@ export function SideEnded() {
           <span className="tb-tag">Lessons kept, with no private data in them</span>
           <ul className="tb-list">
             {skills.map((id, index) => (
-              <li key={id}>{counts?.lessons?.[id]?.title || `Lesson ${index + 1}`}</li>
+              <li key={id}>
+                {counts?.lessons?.[id]?.title ||
+                  (index === 0 ? "One lesson for the next room" : "One more")}
+              </li>
             ))}
           </ul>
         </>

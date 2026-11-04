@@ -140,6 +140,8 @@ def test_a_signed_plan_gives_results_of_three_kinds(tmp_path: Path) -> None:
         assert set(view_of(engine, cid, "p1")["measured"]) == {
             "calendars_shared",
             "minutes",
+            "started_at",
+            "ended",
             "cost",
             "vendors",
         }

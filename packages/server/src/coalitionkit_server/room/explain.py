@@ -11,6 +11,7 @@ fallbacks, and every note records where it came from.
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
@@ -45,7 +46,8 @@ FOR_YOU_SYSTEM = (
     "You are one person's agent in a small group room. For each plan, write one plain line "
     "telling that person what the plan means for them, in one short sentence of under 160 "
     "characters: what they would take on, and only if it matters, one thing they told you "
-    "that bears on it. Say only what the data holds. Speak to them as 'you'."
+    "that bears on it. Say only what the data holds. Speak to them as 'you'. Name a day if "
+    "it matters, never a clock time or a time zone: the screen shows times in their own time."
 )
 
 
@@ -236,7 +238,11 @@ async def for_you(
         seat=who,
         only=who,
     )
-    wording = {p.plan_id: tidy(p.line, LINE_MAX) for p in reply.plans} if reply else {}
+    wording = {
+        p.plan_id: tidy(p.line, LINE_MAX)
+        for p in (reply.plans if reply else [])
+        if not re.search(r"\bUTC\b|\b\d{1,2}:\d{2}\b", p.line)
+    }
     cap = limits(given(engine, coalition, who)).cap
     lines: Document = {}
     for plan in todo:

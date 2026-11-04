@@ -3,10 +3,12 @@
 // through the same closed catalog and the same fixed-layout fallback as the feed. A tree can
 // never answer a consent: its actions here only reach the callback this screen passes, and the
 // consent path never sees them.
+
 import { A2uiSurface } from "@a2ui/react/v0_9";
 import type { ActionPayload } from "@a2ui/web_core/v0_9";
 import { useEffect, useMemo, useRef } from "react";
 import { type Surface, SurfaceBook } from "../feed/surfaces";
+import { localTimes } from "./slots";
 
 type Found = { id: string; model: Surface; fallback: boolean } | null;
 
@@ -33,7 +35,7 @@ export function useSurface(messages: unknown[], onAction?: (a: ActionPayload) =>
     if (messages.length === 0) return null;
     const id = surfaceIdOf(messages);
     book.reset();
-    book.apply(id, messages);
+    book.apply(id, localTimes(messages));
     return book.list().find((s) => s.id === id) ?? null;
   }, [book, key]);
 }

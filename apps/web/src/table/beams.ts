@@ -71,7 +71,7 @@ export function commonLine(room: Room): string | null {
     return slot ? slotLabel(slot) : id;
   };
   const fits = c.slots.length
-    ? `${c.slots.map(label).join(" and ")} fits ${c.compared > 0 ? `all ${c.compared}` : "everyone"}.`
+    ? `${c.slots.map(label).join(" and ")} fits ${c.compared === 2 ? "you both" : c.compared > 2 ? `all ${c.compared}` : "everyone"}.`
     : "No time fits everyone yet.";
   if (c.count_private === null) return fits;
   return `${fits} Your other ${c.count_private} stayed private.`;
