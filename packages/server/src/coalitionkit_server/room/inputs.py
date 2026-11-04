@@ -87,7 +87,10 @@ def remember(engine: RoomEngine, coalition: str, who: str, kind: str, text: str,
         kept = list(engine.vault(coalition, who).get(INPUTS, []))
         at = datetime.fromtimestamp(engine.now(), UTC).isoformat()
         item = {"kind": kind, "text": tidy(text, TEXT_MAX), "ms": ms, "at": at}
-        engine.vault_put(coalition, who, INPUTS, [*kept, item][-KEEP:])
+        try:
+            engine.vault_put(coalition, who, INPUTS, [*kept, item][-KEEP:])
+        except ValueError:
+            return  # a seat with no hosted vault here (an agent it brought) keeps nothing
     engine.bump(coalition)
 
 
