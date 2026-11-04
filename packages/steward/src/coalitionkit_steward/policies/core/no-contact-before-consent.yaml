@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 id: no-contact-before-consent
-applies_to: [coalition.observe, coalition.offer, coalition.ripple]
+applies_to: [coalition.observe, coalition.offer, coalition.ripple, coalition.say]
 when:
   addresses_unconsented: true
 then: block

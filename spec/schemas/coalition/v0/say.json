@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coalitionkit.dev/schemas/coalition/v0/say.json",
+  "title": "coalition.say",
+  "description": "Member to host: one line an agent says to the room or to one seat, before plans.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "to",
+    "text",
+    "intent"
+  ],
+  "properties": {
+    "to": {
+      "$ref": "common.json#/$defs/id"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280
+    },
+    "intent": {
+      "enum": [
+        "ask",
+        "answer",
+        "trade",
+        "caveat",
+        "agree",
+        "disagree"
+      ]
+    },
+    "re": {
+      "$ref": "common.json#/$defs/ulid"
+    }
+  }
+}

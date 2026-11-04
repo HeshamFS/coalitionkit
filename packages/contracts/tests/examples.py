@@ -122,6 +122,12 @@ PAYLOADS: dict[str, dict[str, Any]] = {
         "revision": 1,
     },
     "coalition.ripple": {"change": "room closed on Wednesday", "invalidates": [TASK_ID, TASK_ID_2]},
+    "coalition.say": {
+        "to": "room",
+        "text": "I could swap the shopping for the cooking.",
+        "intent": "trade",
+        "re": EVENT_ID,
+    },
     "coalition.done": {
         "task_id": TASK_ID,
         "evidence": [{"kind": "document", "ref": "doc-9", "verified_by": "steward"}],

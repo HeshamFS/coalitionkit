@@ -68,8 +68,8 @@ def at(value: Any, path: tuple[Any, ...]) -> Any:
     return value
 
 
-def test_eighteen_types_and_every_schema_exists() -> None:
-    assert len(MESSAGE_TYPES) == 18
+def test_nineteen_types_and_every_schema_exists() -> None:
+    assert len(MESSAGE_TYPES) == 19
     assert set(MESSAGE_TYPES) == HOST_ONLY_TYPES | MEMBER_TYPES
     assert not HOST_ONLY_TYPES & MEMBER_TYPES
     assert len(HOST_ONLY_TYPES) == 8
@@ -133,6 +133,11 @@ def test_optional_fields_may_be_omitted(message_type: str) -> None:
 
 
 BAD_VALUES: list[tuple[str, dict[str, Any]]] = [
+    ("coalition.say", {"text": ""}),
+    ("coalition.say", {"text": "x" * 281}),
+    ("coalition.say", {"intent": "shout"}),
+    ("coalition.say", {"to": ""}),
+    ("coalition.say", {"re": "not-an-event-id"}),
     ("coalition.offer", {"capacity": 0}),
     ("coalition.offer", {"capacity": 1.5}),
     ("coalition.offer", {"capacity": True}),

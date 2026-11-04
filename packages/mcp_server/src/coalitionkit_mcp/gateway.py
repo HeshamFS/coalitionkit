@@ -26,7 +26,8 @@ from .ports import HostedParticipant
 HOST_SCOPE: dict[str, Any] = {"audience": "host"}
 ROOM_SCOPE: dict[str, Any] = {"audience": "coalition"}
 ROOM_WIDE = frozenset(
-    "coalition." + kind for kind in ("join", "offer", "commit", "ripple", "done", "leave", "decide")
+    "coalition." + kind
+    for kind in ("join", "offer", "commit", "ripple", "done", "leave", "decide", "say")
 )
 
 

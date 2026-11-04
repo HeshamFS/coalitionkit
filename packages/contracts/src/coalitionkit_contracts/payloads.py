@@ -207,6 +207,20 @@ class RipplePayload(WireModel):
     invalidates: UniqueUlids
 
 
+#: The longest line an agent may say in the room's talk.
+SAY_MAX_CHARS = 280
+SayIntent = Literal["ask", "answer", "trade", "caveat", "agree", "disagree"]
+
+
+class SayPayload(WireModel):
+    """One line an agent says before plans: to the room (``to`` is ``room``) or to one seat."""
+
+    to: Id
+    text: Annotated[str, StringConstraints(min_length=1, max_length=SAY_MAX_CHARS)]
+    intent: SayIntent
+    re: Ulid | None = None
+
+
 class Evidence(WireModel):
     kind: Id
     ref: Id
@@ -291,6 +305,7 @@ PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
     "coalition.decide": DecidePayload,
     "coalition.commit": CommitPayload,
     "coalition.ripple": RipplePayload,
+    "coalition.say": SayPayload,
     "coalition.done": DonePayload,
     "coalition.dissolve": DissolvePayload,
     "coalition.projection": ProjectionPayload,
@@ -298,7 +313,7 @@ PAYLOAD_MODELS: Mapping[str, type[WireModel]] = {
     "coalition.error": ErrorPayload,
 }
 
-#: The eighteen message types of v0.1 (coalition.error is a payload, not one of the eighteen).
+#: The nineteen message types of v0.1 (coalition.error is a payload, not one of the nineteen).
 MESSAGE_TYPES: tuple[str, ...] = tuple(t for t in PAYLOAD_MODELS if t != "coalition.error")
 
 #: Types only the host sends; a member that sends one gets ``not_authorized``.
