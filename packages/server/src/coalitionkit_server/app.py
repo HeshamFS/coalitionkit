@@ -55,6 +55,7 @@ from .room.activity_ports import A2aActivity, McpActivity
 from .room.inputs import inputs_routes
 from .room.routes import room_routes
 from .room.view import room_state
+from .room.websearch import RoomSearchPort
 from .settings import Settings, load_key
 from .views import OwnerSigner, ViewerAuth, ViewPort
 from .whatsapp import mount_whatsapp
@@ -506,6 +507,7 @@ def create_server(settings: Settings, model_gateway: ModelGateway | None = None)
             server.registry,
             skills=server,
             activity=McpActivity(server),
+            search=RoomSearchPort(server),
         ),
         public_url=settings.public_base_url + "/mcp",
         issuer_url=settings.public_base_url,

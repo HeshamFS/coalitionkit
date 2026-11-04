@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // The `Room` the host builds per viewer and a reader
 // that never throws: a missing or malformed value becomes an empty one, so the screen still draws.
+
 import type { ViewerState } from "../feed/delta";
+import { type RoomSearch, readLinks, readSearches, type WebLink } from "./search/links";
 import { type Busy, readBusy, readTools, type ToolCallItem } from "./tools/tools";
 
 export type Phase = "gather" | "brief" | "work" | "decide" | "commit" | "make" | "live" | "ended";
@@ -73,6 +75,8 @@ export type RoomResult = {
   data: unknown;
   messages: unknown[];
   replaced_by: string | null;
+  /** Web pages the result came from, when an agent searched. */
+  links?: WebLink[];
 };
 export type Stop = {
   id: string;
@@ -137,6 +141,8 @@ export type Room = {
   common: Common | null;
   plan_notes: Record<string, { name: string; line: string; source: Source }>;
   results: RoomResult[];
+  /** What the agents searched on the web, newest last. */
+  search?: RoomSearch[];
   stops: Stop[];
   checked: number;
   change: Change | null;
@@ -257,6 +263,7 @@ function readResults(v: unknown): RoomResult[] {
       data: r.data ?? null,
       messages: Array.isArray(r.messages) ? r.messages : [],
       replaced_by: strOrNull(r.replaced_by),
+      ...(r.links === undefined ? {} : { links: readLinks(r.links) }),
     }));
 }
 
@@ -389,6 +396,7 @@ export function readRoom(state: ViewerState | null): Room | null {
     common: readCommon(raw.common),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),
+    ...(raw.search === undefined ? {} : { search: readSearches(raw.search) }),
     stops: list(raw.stops)
       .filter((s) => str(s.id) !== "")
       .map((s) => ({

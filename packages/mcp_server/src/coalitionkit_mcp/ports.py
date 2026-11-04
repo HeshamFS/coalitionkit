@@ -92,3 +92,13 @@ class ActivityPort(Protocol):
     async def record(
         self, coalition_id: str, activity: dict[str, Any], start: str | None = None
     ) -> str | None: ...
+
+
+class SearchPort(Protocol):
+    """The host's web search, under its outbound policy. None means search is off."""
+
+    async def web_search(
+        self, participant: str, coalition_id: str, query: str
+    ) -> dict[str, Any] | None:
+        """``{"results": [{title, url, snippet}]}``, or ``{"refused": why}``, or None when off."""
+        ...

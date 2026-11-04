@@ -51,6 +51,8 @@ def place_body(data: Document) -> list[Document]:
         fields = [{"label": "Why it fits", "value": o["why"]}]
         if o.get("check"):
             fields.append({"label": "Check first", "value": o["check"]})
+            if o.get("url"):
+                fields.append({"label": "Found on the web", "value": o["url"]})
         body.append(card(i, o["name"], fields, "estimate"))
     return body
 

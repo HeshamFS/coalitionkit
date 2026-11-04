@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Assembles the MCP server: thirteen tools, three resources, one view, bearer-token auth."""
+"""Assembles the MCP server: the tools, three resources, one view, bearer-token auth."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from .ports import TokenPort
 from .resources import CHARTER_URI, LOG_URI, TASKS_URI, charter, log, my_tasks
 from .tools_consent import accept_charter, approve_commitment, decide
 from .tools_read import VIEW_URI, list_coalitions, my_view, open_asks, pending_questions
+from .tools_search import web_search
 from .tools_write import (
     answer_question,
     commit,
@@ -30,6 +31,8 @@ from .view import make_apps
 
 READ = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
 WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
+#: Reads the open web through the host; sends nothing to the Coalition.
+WEB = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=True)
 
 PLAIN_WRITES = (
     join_coalition,
@@ -41,6 +44,8 @@ PLAIN_WRITES = (
     leave_coalition,
 )
 CONSENT_WRITES = (decide, approve_commitment, accept_charter)
+#: Tools that reach outside the Coalition through the host, under its outbound policy.
+WEB_READS = (web_search,)
 #: The read tools whose results the view can draw; each links to it through its UI metadata.
 VIEW_READS = (list_coalitions, pending_questions, open_asks)
 
@@ -113,6 +118,8 @@ def build_server(deps: Deps, *, public_url: str, issuer_url: str) -> CoalitionMC
     )
     for fn in (*PLAIN_WRITES, *CONSENT_WRITES):
         server.add_tool(fn, annotations=WRITE)
+    for fn in WEB_READS:
+        server.add_tool(fn, annotations=WEB)
     server.resource(CHARTER_URI, name="charter", mime_type="application/json")(charter)
     server.resource(TASKS_URI, name="my-tasks", mime_type="application/json")(my_tasks)
     server.resource(LOG_URI, name="log", mime_type="application/json")(log)

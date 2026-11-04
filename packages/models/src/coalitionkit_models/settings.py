@@ -19,6 +19,7 @@ ROLES: tuple[Role, ...] = ("gardener", "composer", "hosted_agent", "steward", "v
 KeyName = Literal["meta", "baseten", "ollama"]
 Effort = Literal["minimal", "low", "medium", "high"]
 StewardProvider = Literal["meta", "baseten"]
+SearchProviderName = Literal["off", "meta", "ddg", "brave"]
 
 #: Local Ollama accepts any key; the SDK just needs a non-empty one.
 LOCAL_PLACEHOLDER_KEY = "ollama"
@@ -68,6 +69,7 @@ class Settings(BaseSettings):
 
     meta_api_key: SecretStr | None = None
     baseten_api_key: SecretStr | None = None
+    brave_api_key: SecretStr | None = None
 
     meta_base_url: str = "https://api.meta.ai/v1"
     baseten_base_url: str = "https://inference.baseten.co/v1"
@@ -87,6 +89,14 @@ class Settings(BaseSettings):
     segment_model: str = "sam-3.1"
     transcribe_model: str = "muse-voice-transcribe-1.0"
     media_rate_limit_per_minute: int = 120
+
+    # Web search for agents. "off" keeps agents to what the room knows; "meta" uses the
+    # Meta endpoint's built-in web search tool (Responses API), "ddg" the keyless DuckDuckGo
+    # search, "brave" the Brave Search API with COALITIONKIT_BRAVE_API_KEY.
+    search_provider: SearchProviderName = "off"
+    search_model: str = "muse-spark-1.3"
+    search_max_calls: int = 2
+    search_max_results: int = 5
 
     # Reasoning models spend completion tokens on thinking: the budget covers thinking
     # plus the answer. Roles on Ollama (vault) send no effort.
@@ -113,6 +123,11 @@ class Settings(BaseSettings):
     def _fail_closed_in_production(self) -> Self:
         if self.max_attempts < 1:
             raise SettingsError("COALITIONKIT_MAX_ATTEMPTS must be at least 1")
+        if not 1 <= self.search_max_calls <= 5 or not 1 <= self.search_max_results <= 10:
+            raise SettingsError(
+                "COALITIONKIT_SEARCH_MAX_CALLS must be 1 to 5 and "
+                "COALITIONKIT_SEARCH_MAX_RESULTS 1 to 10"
+            )
         if min(self.completion_budget.values(), default=1) < 1:
             raise SettingsError("COALITIONKIT_COMPLETION_BUDGET must be positive")
         if not self.production:

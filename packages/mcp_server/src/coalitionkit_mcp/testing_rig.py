@@ -100,7 +100,7 @@ class FixtureSkills:
 
 
 @contextmanager
-def served_rig(activity: Any = None) -> Generator[Rig]:
+def served_rig(activity: Any = None, search: Any = None) -> Generator[Rig]:
     """A served MCP app on a real localhost port with a FakeHost."""
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -150,7 +150,14 @@ def served_rig(activity: Any = None) -> Generator[Rig]:
     host_key = Ed25519PrivateKey.generate()
     host = FakeHost(HostSigner("https://host.example.org/card.json", host_key, "host-1"))
     app = create_app(
-        Deps(host=host, view=view, tokens=tokens, skills=FixtureSkills(), activity=activity),
+        Deps(
+            host=host,
+            view=view,
+            tokens=tokens,
+            skills=FixtureSkills(),
+            activity=activity,
+            search=search,
+        ),
         public_url=f"http://127.0.0.1:{port}/mcp",
         issuer_url="http://127.0.0.1:1",
         allowed_hosts=["127.0.0.1:*"],

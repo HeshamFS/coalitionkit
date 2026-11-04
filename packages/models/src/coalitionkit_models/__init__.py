@@ -28,6 +28,15 @@ from .media import MediaClient, Transcript, Turn
 from .meter import SYSTEM_PARTICIPANT, BudgetEvent, CostMeter, CostRecord
 from .prices import ModelPrice, PriceTable, load_price_table
 from .sam import Box, Mask, SamParseError, Segment, parse_sam_output
+from .search import (
+    BraveSearch,
+    DdgSearch,
+    MetaSearch,
+    SearchHit,
+    SearchProvider,
+    SearchRun,
+    make_search,
+)
 from .settings import ROLES, Role, Route, Settings, load_settings
 from .structured import ToolCall
 from .wav import WavInfo, validate_wav
@@ -36,6 +45,7 @@ __all__ = [
     "ROLES",
     "SYSTEM_PARTICIPANT",
     "Box",
+    "BraveSearch",
     "BudgetEvent",
     "BudgetExhaustedError",
     "ChatMessage",
@@ -43,10 +53,12 @@ __all__ = [
     "Completion",
     "CostMeter",
     "CostRecord",
+    "DdgSearch",
     "FakeModel",
     "Mask",
     "MediaClient",
     "MediaInputError",
+    "MetaSearch",
     "MissingKeyError",
     "ModelGateway",
     "ModelPrice",
@@ -58,6 +70,9 @@ __all__ = [
     "SamParseError",
     "SchemaValidationError",
     "ScriptedResponse",
+    "SearchHit",
+    "SearchProvider",
+    "SearchRun",
     "Segment",
     "Settings",
     "SettingsError",
@@ -72,6 +87,7 @@ __all__ = [
     "connection_error",
     "load_price_table",
     "load_settings",
+    "make_search",
     "parse_sam_output",
     "status_error",
     "validate_wav",

@@ -171,8 +171,8 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
     """The result's data: the maker's work where it stood, else what code can honestly say."""
     if kind == "place":
         ideas = (made or {}).get("ideas", [])
-        options = [{**i, "provenance": "estimate"} for i in ideas if not echoes(i["name"], facts)]
-        return {"options": options, "chosen": None}
+        options = [{"provenance": "estimate", **i} for i in ideas if not echoes(i["name"], facts)]
+        return {"options": options, "chosen": None, **web_of(made)}
     if kind == "budget":
         return budget_data(facts, made)
     if kind == "schedule":
@@ -180,7 +180,8 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
         return {"items": schedule_items(facts, steps), "steps": steps}
     if kind == "list":
         if made:
-            return {"items": [{**i, "provenance": "estimate"} for i in made["items"]]}
+            items = [{**i, "provenance": "estimate"} for i in made["items"]]
+            return {"items": items, **web_of(made)}
         return {
             "items": [
                 {"label": a["title"], "who": a["who"], "provenance": "signed"}
@@ -188,6 +189,11 @@ def data_for(kind: str, made: Document | None, facts: Document) -> Document:
             ]
         }
     return made or draft_by_rules(facts)
+
+
+def web_of(made: Document | None) -> Document:
+    """The pages a web search found for this result, kept with its data when there are any."""
+    return {"web": made["web"]} if made and made.get("web") else {}
 
 
 def parse_tree(nodes: list[Node]) -> list[Document] | str:
@@ -336,7 +342,7 @@ async def layout(
     shown = {
         k: v
         for k, v in data.items()
-        if k not in {"time", "time_total"} and v not in (None, "", [], {})
+        if k not in {"time", "time_total", "web"} and v not in (None, "", [], {})
     }
     need = {k: facts["need"][k] for k in ("title", "detail")}
     errors: list[str] = []
@@ -407,7 +413,7 @@ async def make(
         return title, data, fixed_tree(kind, title, facts["need"]["detail"], data), source
     made = await makers.make_data(engine, coalition, kind, assignee, task, facts)
     data = data_for(kind, made, facts)
-    source = "model" if made is not None else "rules"
+    source = "model" if made is not None and not made.get("by_rules") else "rules"
     title = title_for(kind, data, facts["need"])
     shown = None
     needs_layout = (kind == "place" and data["options"]) or kind == "list"

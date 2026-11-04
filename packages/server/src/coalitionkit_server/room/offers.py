@@ -19,6 +19,7 @@ from coalitionkit_contracts import new_ulid, validate_payload
 from coalitionkit_runtime.lifecycle import State
 
 from ..adapter import Document
+from . import websearch
 from .brief import given
 from .model import ask
 from .offer_rules import (
@@ -113,6 +114,8 @@ async def person_offers(engine: RoomEngine, coalition: str, who: str, state: Sta
         items = rule_offers(needs, lim)
     for item in items:
         await send_offer(engine, coalition, who, state, item)
+    goal = str(state.charter["goal"])
+    await websearch.at_offer(engine, coalition, who, goal, needs, {i.need_id for i in items})
     names = titles(needs)
     engine.end_activity(
         coalition,
