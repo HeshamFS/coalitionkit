@@ -160,9 +160,9 @@ def test_seat_roles_give_the_host_one_seat() -> None:
 
     pack = SimpleNamespace(
         manifest=SimpleNamespace(
-            roles={"traveller": spec("offer", "decide"), "host": spec("charter", "offer")}
+            roles={"member": spec("offer", "decide"), "host": spec("charter", "offer")}
         )
     )
     roles = seat_roles(cast(Any, pack), 12)
-    assert [(r.id, r.count) for r in roles] == [("host", 1), ("traveller", 11)]
+    assert [(r.id, r.count) for r in roles] == [("host", 1), ("member", 11)]
     assert [(r.id, r.count) for r in seat_roles(None, 4)] == [("member", 4)]

@@ -14,7 +14,7 @@ function standing(over: Partial<Standing> = {}): Standing {
     open: true,
     ends_at: "2030-01-01T00:00:00Z",
     minutes_left: 11.6,
-    pack: "world-tour",
+    pack: "sample-pack",
     budget_usd: 1,
     spent_usd: 0.05,
     ...over,
