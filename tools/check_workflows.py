@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Parse GitHub YAML and enforce the repository's manual-only publication boundary."""
 
+import tomllib
 from pathlib import Path
 from typing import Any, cast
 
@@ -36,7 +37,12 @@ def main() -> None:
             publish: Any = jobs["publish"]
             assert publish["permissions"] == {"id-token": "write"}
             assert publish["needs"] == "build"
-            assert publish["environment"]["name"] == "pypi"
+            assert publish["environment"]["name"] == "pypi-${{ matrix.package }}"
+            names = {
+                tomllib.loads(p.read_text(encoding="utf-8"))["project"]["name"]
+                for p in (ROOT / "packages").glob("*/pyproject.toml")
+            }
+            assert set(publish["strategy"]["matrix"]["package"]) == names
             assert "inputs.publish" in publish["if"] and "refs/heads/main" in publish["if"]
             assert publish["steps"][-1]["uses"] == "pypa/gh-action-pypi-publish@release/v1"
     print(f"{len(files)} GitHub YAML files parsed; CI events and manual-only release guards OK")
