@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from coalitionkit_server.room import makers, results
+from coalitionkit_server.room import fixed, makers, results
 
 
 def test_the_amount_in_the_goal_is_found() -> None:
@@ -76,12 +76,14 @@ def test_every_card_of_a_fixed_tree_is_reachable_from_root() -> None:
         "draft": {"subject": "Hello", "body": "Come to our fair. " * 6},
     }
     for kind, data in cases.items():
-        tree = results.fixed_tree(kind, "Title", "Detail", data)
+        tree = fixed.fixed_tree(kind, "Title", "Detail", data)
         shown = {n["id"] for n in results.reachable(tree)}
         assert {n["id"] for n in tree} == shown, kind
         cards = [n for n in tree if n["component"] == "Card"]
-        wanted = {"place": 3, "schedule": 4, "budget": 2, "list": 1, "draft": 1}[kind]
+        wanted = {"place": 3, "schedule": 2, "budget": 2, "list": 1, "draft": 1}[kind]
         assert len(cards) == wanted, (kind, len(cards))
+        rich = {"schedule": "Timeline", "budget": "CostSplit", "list": "Checklist"}.get(kind)
+        assert rich is None or any(n["component"] == rich for n in tree), kind
 
 
 def test_a_draft_may_not_present_free_slots_as_the_event_time() -> None:

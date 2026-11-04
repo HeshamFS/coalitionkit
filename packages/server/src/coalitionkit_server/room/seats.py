@@ -28,11 +28,12 @@ if TYPE_CHECKING:
 
 LOG = logging.getLogger(__name__)
 # Helpers serve the kinds an agent can make; a schedule needs a person's calendar.
-HELPER_ORDER = ("budget", "list", "draft", "place", "schedule")
+HELPER_ORDER = ("budget", "list", "draft", "image", "place", "schedule")
 HELPER_KINDS = {
     "budget": "Budget",
     "list": "List",
     "draft": "Draft",
+    "image": "Picture",
     "place": "Place",
     "schedule": "Schedule",
 }

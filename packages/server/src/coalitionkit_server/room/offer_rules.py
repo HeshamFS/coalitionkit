@@ -23,7 +23,7 @@ MIN_MINUTES = 5
 MAX_MINUTES = 60 * 24 * 7
 HELPER_MINUTES = 15
 # A first guess at how long one job of each kind takes, before a person's own words adjust it.
-BASE_MINUTES = {"place": 60, "schedule": 30, "budget": 45, "list": 30, "draft": 90}
+BASE_MINUTES = {"place": 60, "schedule": 30, "budget": 45, "list": 30, "draft": 90, "image": 45}
 
 
 class OfferItem(BaseModel):

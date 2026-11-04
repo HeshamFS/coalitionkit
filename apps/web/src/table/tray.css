@@ -188,3 +188,13 @@
 .tb-doc .f01-root-Text span {
   white-space: pre-line;
 }
+/* A picture an agent made is shown whole: a poster is not cut down to a strip. */
+.tb-doc .f01-image img {
+  max-height: min(56vh, 520px);
+  height: auto;
+  object-fit: contain;
+  background: var(--surface-2);
+}
+.tb-doc .f06-cost td.r {
+  white-space: nowrap;
+}

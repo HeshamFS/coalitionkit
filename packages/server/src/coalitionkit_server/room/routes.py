@@ -18,6 +18,7 @@ from coalitionkit_surfaces.app import Viewer
 from ..adapter import Document
 from . import brief, say, seats, work
 from .device_routes import device_routes
+from .media_store import media_routes
 from .view import phase_of
 
 if TYPE_CHECKING:
@@ -49,6 +50,7 @@ class Answer(BaseModel):
 def room_routes(app: FastAPI, server: Server, coalition: str) -> None:
     engine = server.room
     assert engine is not None
+    media_routes(app, server, coalition)
 
     @app.post("/v1/room/begin")
     async def begin(body: Begin, who: Viewer) -> JSONResponse:
