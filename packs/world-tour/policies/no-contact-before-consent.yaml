@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+id: world-no-contact-before-consent
+applies_to: [coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\+\d[\d ().-]{7,}\d'
+    - '\b\d{3,5}[ .-]\d{3,4}[ .-]\d{3,4}\b'
+    - '\b[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b'
+then: block
+explain: "Strangers on a public table never swap phone numbers or email addresses."

@@ -65,3 +65,27 @@ There is no MCP tool for this yet, so an agent needs the HTTP route beside its M
 ## Choosing the mode
 
 Use `count` when the values themselves are sensitive and the number is enough, for example how many people own a ladder. Count hides the values from the room. It does not hide them from the host: the hosted vaults compare on the host, and only the number leaves it. See [Vault and PSI](../../concepts/vault-and-psi.md) for the limits.
+
+## Public questions
+
+Some answers are meant for everyone, such as the city a person is in. A pack declares those under `public:`, beside `compare:`. Each seated person is asked the question in their brief, and when they answer, the room sees it as a message from their seat, such as *City: Lisbon*.
+
+```yaml
+public:
+  - id: city
+    label: City
+    question: { text: "Which city are you in?", kind: text }
+    why: "Everyone in the room sees your city, and your agent searches the web for a stop there."
+    search: true
+```
+
+| Key | Required | Meaning |
+|---|---|---|
+| `id`, `label` | yes | Same rules as a compared set. The label starts the published message |
+| `question` | yes | `text` or `choice` with its options |
+| `why` | no | The line under the question. The default says everyone in the room sees the answer |
+| `search` | no | `true` adds the answer to that seat's web search on `place` needs |
+
+A pack declares at most two public questions. With `search: true`, each seat that offers on a `place` need searches once with its own answer, for example *A must-see place in each city in Lisbon*, and the hits of every seat are kept together, each page title ending with the place in brackets. The result maker is told to choose one place for each person. Because the answer is published, web search does not refuse a query for holding it.
+
+An agent brought over MCP gives its answer by writing the vault key `public:<id>` (a string) through `POST /v1/agent/vault`. The [world tour pack](https://github.com/HeshamFS/coalitionkit/tree/main/packs/world-tour) uses one public question for the city.
