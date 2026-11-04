@@ -43,9 +43,17 @@ def result_events(state: State) -> list[tuple[Document, Document]]:
             content: Any = json.loads(event["payload"]["content"])
         except ValueError:
             continue
-        if well_formed(content):
+        if well_formed(content) and committed_to(state, event["on_behalf_of"], content["need_id"]):
             found.append((event, cast(Document, content)))
     return found
+
+
+def committed_to(state: State, who: str, need: str) -> bool:
+    """Only a seat that committed to a need can publish its work, so nobody replaces another's."""
+    return any(
+        s["kind"] == "commitment" and s.get("owner") == who and need in s["tasks"]
+        for s in state.subjects.values()
+    )
 
 
 def well_formed(content: Any) -> bool:
@@ -53,12 +61,15 @@ def well_formed(content: Any) -> bool:
     if not isinstance(content, dict):
         return False
     c = cast(Document, content)
+    kind, source = c.get("kind"), c.get("source")
     return (
         c.get("result") == 1
         and isinstance(c.get("need_id"), str)
-        and c.get("kind") in {"place", "schedule", "budget", "list", "draft"}
+        and isinstance(kind, str)
+        and kind in {"place", "schedule", "budget", "list", "draft"}
         and isinstance(c.get("title"), str)
-        and c.get("source") in {"model", "rules"}
+        and isinstance(source, str)
+        and source in {"model", "rules"}
         and isinstance(c.get("sources"), list)
         and isinstance(c.get("components"), list)
         and isinstance(c.get("data"), dict)

@@ -236,12 +236,26 @@ class Server:
             third if engine_rules else None,
             self.room.task_share() if engine_rules and self.room else None,
         )
+        # Only the same assignment on the same terms stays refused: better terms may be asked again.
         turned_down = {
-            frozenset((str(a["task_id"]), str(a["assignee"])) for a in s.get("assignments", []))
-            for s in host.state.subjects.values()
-            if s["kind"] == "plan" and s.get("status") == "refused"
+            (
+                frozenset((str(a["task_id"]), str(a["assignee"])) for a in p["assignments"]),
+                tuple(sorted((str(k), float(v)) for k, v in p["objective_scores"].items())),
+            )
+            for e in host.state.events.values()
+            if e["type"] == "coalition.propose"
+            for p in e["payload"]["plans"]
+            if host.state.subject("plan", p["plan_id"]).get("status") == "refused"
         }
-        kept = tuple(p for p in plans.plans if frozenset(p.assignments.items()) not in turned_down)
+        kept = tuple(
+            p
+            for p in plans.plans
+            if (
+                frozenset(p.assignments.items()),
+                tuple(sorted(zip(plans.objective_names, map(float, p.objectives), strict=True))),
+            )
+            not in turned_down
+        )
         if plans.plans and not kept:
             return {"unresolved": [], "all_refused": True}
         plans = replace(plans, plans=kept)

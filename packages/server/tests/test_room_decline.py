@@ -67,5 +67,14 @@ def test_a_no_brings_new_plans_or_says_there_are_none(tmp_path: Path) -> None:
             if stops:
                 assert stops[-1]["policy"] == "plans-refused"
                 assert "turned down" in stops[-1]["explain"]
+                # Better terms are a new question: the same seat may be asked again.
+                before = len(events(client, cid, "propose"))
+                need = events(client, cid, "need")[0]["payload"]["need_id"]
+                cheaper = {"need_id": need, "cost": {"minutes": 1, "money": 0, "effort": "low"}}
+                reply = client.post(
+                    "/v1/agent/offer", json=cheaper, headers=bearer(people[who]["token"])
+                )
+                assert reply.status_code == 200, reply.text
+                until(lambda n=before: len(events(client, cid, "propose")) > n, 30, "a plan again")
                 return
         raise AssertionError("the room kept proposing after every plan was turned down")

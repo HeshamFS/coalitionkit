@@ -42,6 +42,7 @@ KNOCK_PER_CALLER = 5
 KNOCK_POLL_PER_CALLER = 60
 KNOCKS_OPEN_MAX = 20
 KNOCK_LIFETIME = timedelta(minutes=15)
+JOIN_HOLD = timedelta(minutes=5)
 WINDOW_S = 60.0
 
 TABLES = (
@@ -231,10 +232,22 @@ class DoorStore:
             return "whatsapp"
         return "hosted" if hosted and hosted[0] else "a2a"
 
+    def held(self, door: Document) -> list[str]:
+        """Roles of seats handed to an agent with its own card that has not joined yet."""
+        coalition = door["coalition"]
+        since = (datetime.now(UTC) - JOIN_HOLD).isoformat()
+        with self.server.store.transaction(coalition) as tx:
+            rows = tx.execute(
+                "SELECT participant, role FROM server_door_arrivals WHERE coalition = ? AND at > ?",
+                (coalition, since),
+            ).fetchall()
+        members = self.server.hosts[coalition].state.members
+        return [r for p, r in rows if p not in members]
+
     def seats(self, door: Document) -> tuple[int, int, dict[str, int]]:
         arrivals = self.present(door)
         used: dict[str, int] = {}
-        for _, role, _ in arrivals:
+        for role in [*(a[1] for a in arrivals), *self.held(door)]:
             used[role] = used.get(role, 0) + 1
         return sum(r["count"] for r in door["roles"]), len(arrivals), used
 

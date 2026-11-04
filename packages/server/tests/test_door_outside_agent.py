@@ -14,10 +14,13 @@ from test_room_engine import (
     open_brief,  # pyright: ignore[reportUnknownVariableType]
     seated_room,  # pyright: ignore[reportUnknownVariableType]
 )
+from test_room_work import approve_commitments, to_decided
+from test_room_work import model as work_model
 
 from coalitionkit_mcp.gateway import build_envelope, default_scope
 from coalitionkit_server.cards import member_card
 from coalitionkit_server.mcp_port import MCPPort
+from coalitionkit_server.room.work import well_formed
 
 
 def card_body() -> dict[str, object]:
@@ -116,15 +119,62 @@ def test_a_hidden_offer_is_refused_so_it_cannot_hide_a_plan(tmp_path: Path) -> N
         assert "error" not in reply
 
 
-def test_an_outside_result_is_shown_and_a_bad_one_breaks_nothing(tmp_path: Path) -> None:
+def test_two_cards_cannot_take_the_last_seat(tmp_path: Path) -> None:
     with serve(tmp_path, RoomModel(needs=NEEDS, brief=BRIEF)) as client:
-        room, (member,) = seated_room(tmp_path, client)
-        cid, who = room["coalition_id"], member["participant"]
-        need = events(client, cid, "need")[0]["payload"]["need_id"]
-        server = server_of(client)
-        person = server.registry.hosted_for(cid, who)
+        room, _ = seated_room(tmp_path, client, seats=3)
+        code = room["door"]["code"]
+        assert client.post("/v1/door/join", json={"code": code, **card_body()}).status_code == 200
+        second = client.post("/v1/door/join", json={"code": code, **card_body()})
+        assert second.status_code == 409
 
-        def publish(content: dict[str, object]) -> None:
+
+def test_a_malformed_result_is_refused_without_throwing() -> None:
+    good: dict[str, object] = {
+        "result": 1,
+        "need_id": "n",
+        "kind": "draft",
+        "title": "t",
+        "source": "model",
+        "sources": [],
+        "components": [],
+        "data": {},
+    }
+    assert well_formed(good)
+    cases: list[dict[str, object]] = [
+        {"kind": []},
+        {"kind": {}},
+        {"source": []},
+        {"need_id": 1},
+        {"data": []},
+    ]
+    for broken in cases:
+        assert not well_formed({**good, **broken})
+    assert not well_formed([good])
+
+
+def test_only_the_seat_that_committed_can_publish_a_need(tmp_path: Path) -> None:
+    with serve(tmp_path, work_model()) as client:
+        cid, _engine, people = to_decided(client)
+        approve_commitments(client, cid, people)
+        server = server_of(client)
+        host = server.hosts[cid]
+        need, owner = next(
+            (k, t["assignee"]) for k, t in host.state.tasks.items() if t["assignee"] in people
+        )
+        other = next(p for p in people if p != owner)
+
+        def publish(who: str, title: str, kind: str, data: dict[str, object]) -> None:
+            person = server.registry.hosted_for(cid, who)
+            content: dict[str, object] = {
+                "result": 1,
+                "need_id": need,
+                "kind": kind,
+                "title": title,
+                "source": "model",
+                "sources": [],
+                "components": [],
+                "data": data,
+            }
             body = {"source": "document", "content": json.dumps(content)}
             sent = build_envelope(
                 person, cid, "coalition.observe", body, scope={"audience": "coalition"}
@@ -132,20 +182,17 @@ def test_an_outside_result_is_shown_and_a_bad_one_breaks_nothing(tmp_path: Path)
             reply = client.portal.call(server.accept, sent, person.card_url)  # type: ignore[union-attr]
             assert "error" not in reply, reply
 
-        good: dict[str, object] = {
-            "result": 1,
-            "need_id": need,
-            "kind": "draft",
-            "title": "Lunch stop",
-            "source": "model",
-            "sources": [],
-            "components": [],
-            "data": {"subject": "Lunch stop", "body": "The bakery by the lake, at noon."},
+        words: dict[str, object] = {
+            "subject": "Lunch stop",
+            "body": "The bakery by the lake, at noon.",
         }
-        publish(good)
-        publish({"result": 1, "need_id": need})
-        publish({**good, "kind": "budget", "title": "Odd shape", "data": {"nothing": "here"}})
+        publish(other, "Forged", "draft", words)
+        publish(owner, "Lunch stop", "draft", words)
+        publish(owner, "Odd shape", "budget", {"nothing": "here"})
         results = view_of(engine_of(client), cid, "p1")["results"]
-        assert [r["title"] for r in results] == ["Lunch stop", "Odd shape"]
-        assert "The bakery by the lake" in json.dumps(results[0]["messages"])
-        assert results[1]["messages"], "another shape of data is still shown"
+        titles = [r["title"] for r in results]
+        assert "Forged" not in titles
+        assert "Lunch stop" in titles and "Odd shape" in titles
+        shown = next(r for r in results if r["title"] == "Lunch stop")
+        assert "The bakery by the lake" in json.dumps(shown["messages"])
+        assert next(r for r in results if r["title"] == "Odd shape")["messages"]
