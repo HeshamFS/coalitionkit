@@ -36,3 +36,7 @@ The minted processes live in the host's memory. If the host restarts, its device
 
 !!! note
     A live run calls the Meta media models and spends credit. A mint in a room took 50 to 71 seconds and cost 4 to 5 US cents in the runs we measured.
+
+## Time limits
+
+A Mint run must finish within `COALITIONKIT_MINT_TIMEOUT_S` seconds (default 90), and each media tool call within `COALITIONKIT_MINT_TOOL_TIMEOUT_S` (default 15). On a busy host, raise both; a run that is cut off is reported as failed and nothing is enrolled.
