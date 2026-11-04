@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from room_flow import decide_plan
 from room_rig import (
@@ -148,7 +149,9 @@ def snapshot(client: TestClient, cid: str, tasks: set[str]) -> dict[str, tuple[s
     return {t: (state.tasks[t]["status"], str(state.tasks[t]["assignee"])) for t in tasks}
 
 
-def test_a_change_re_plans_only_what_it_touches(tmp_path: Path) -> None:
+def test_a_change_re_plans_only_what_it_touches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     with serve(tmp_path, model()) as client:
         cid, engine, people = finished_work(client)
         host = server_of(client).hosts[cid]
@@ -159,6 +162,27 @@ def test_a_change_re_plans_only_what_it_touches(tmp_path: Path) -> None:
         kept = snapshot(client, cid, others)
         old_result = next(r for r in results_of(client, cid) if r["content"]["need_id"] == costs)
         cut = len(server_of(client).store.read(cid))
+        submit = engine.submit
+
+        async def refuse_change(*args: Any, **kwargs: Any) -> Any:
+            return None if args[2] == "ripple" else await submit(*args, **kwargs)
+
+        with monkeypatch.context() as held:
+            held.setattr(engine, "submit", refuse_change)
+            refused = say(client, people[speaker]["token"], "I can't share the costs anymore")
+            assert refused["stopped"]
+            assert not engine.read(cid)["change_pending"]
+            until(lambda: engine.may_plan(cid), 5, "planner resumes after refusal")
+
+        async def interleave_planning(*args: Any, **kwargs: Any) -> Any:
+            result = await submit(*args, **kwargs)
+            if args[2] == "ripple":
+                # A bus subscriber can wake before the accepted ripple returns to say.
+                assert not engine.may_plan(cid), "re-offering must block planning before publish"
+                server_of(client).gardener.step(cid)
+            return result
+
+        monkeypatch.setattr(engine, "submit", interleave_planning)
         reply = say(client, people[speaker]["token"], "I can't share the costs anymore")
         assert reply["route"] == "change" and reply["event_id"]
         ripple = events(client, cid, "ripple")

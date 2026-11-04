@@ -159,8 +159,12 @@ def main() -> None:
             if not key.startswith(("COALITIONKIT_", "PYTHON", "VIRTUAL_ENV"))
         }
         # Exclude developer tool paths; Windows still needs icacls for private key ACLs.
-        system = str(Path(os.environ["SYSTEMROOT"]) / "System32") if os.name == "nt" else "/usr/bin"
-        env["PATH"] = os.pathsep.join([str(scripts), system])
+        paths = [str(scripts)]
+        if os.name == "nt":
+            paths.append(str(Path(os.environ["SYSTEMROOT"]) / "System32"))
+        env["PATH"] = os.pathsep.join(paths)
+        if shutil.which("node", path=env["PATH"]) is not None:
+            raise RuntimeError("Node must be absent from the smoke environment")
         env["PIP_NO_INDEX"] = "1"
         run(
             [*pip, "install", "--no-index", "--only-binary=:all:", *links, "coalitionkit==0.1.0"],

@@ -407,6 +407,7 @@ class RoomEngine:
                 and d["offers_done"]
                 and done
                 and not d["change_pending"]
+                and not self.lock_for(coalition).locked()
             )
 
     # --- the public document ------------------------------------------------------------------

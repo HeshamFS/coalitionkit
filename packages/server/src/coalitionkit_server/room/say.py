@@ -141,7 +141,11 @@ async def say(engine: RoomEngine, coalition: str, who: str, text: str) -> Docume
     if route == "room":
         return await to_room(engine, coalition, who, text, sentence)
     if route == "change":
-        return await to_change(engine, coalition, who, text, affected, withdraw, sentence, state)
+        # Block the planner before publishing a ripple or successor need.
+        async with engine.lock_for(coalition):
+            return await to_change(
+                engine, coalition, who, text, affected, withdraw, sentence, state
+            )
     return keep_private(engine, coalition, who, text, sentence)
 
 
