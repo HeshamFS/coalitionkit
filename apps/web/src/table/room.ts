@@ -79,6 +79,17 @@ export type Stop = {
   explain: string;
 };
 export type Common = { slots: string[]; count_private: number | null; compared: number };
+/** A set a pack declared, compared by PSI: only the shared values, or only their count. */
+export type SharedSet = {
+  id: string;
+  label: string;
+  mode: "overlap" | "count";
+  state: "asking" | "crossing" | "done";
+  values: string[] | null;
+  count: number | null;
+  compared: number;
+  event: string | null;
+};
 export type Change = {
   text: string;
   /** The seat that caused the change, or null when the host did. */
@@ -128,6 +139,7 @@ export type Room = {
     start: string | null;
   }[];
   common: Common | null;
+  sets?: SharedSet[];
   plan_notes: Record<string, { name: string; line: string; source: Source }>;
   results: RoomResult[];
   stops: Stop[];
@@ -144,6 +156,8 @@ export type Room = {
     feed: { at: string; text: string }[];
     for_you: Record<string, string>;
     tasks: MyTask[];
+    /** Per compared set: how many of your own values stayed private. Yours only. */
+    sets?: Record<string, number>;
   };
 };
 
@@ -256,6 +270,29 @@ function readCommon(v: unknown): Common | null {
   };
 }
 
+function readSets(v: unknown): SharedSet[] {
+  return list(v)
+    .filter((s) => str(s.id) !== "")
+    .map((s) => ({
+      id: str(s.id),
+      label: str(s.label) || str(s.id),
+      mode: oneOf(s.mode, ["overlap", "count"] as const, "overlap"),
+      state: oneOf(s.state, ["asking", "crossing", "done"] as const, "asking"),
+      values: Array.isArray(s.values) ? strings(s.values) : null,
+      count: numOrNull(s.count),
+      compared: Math.max(0, Math.trunc(num(s.compared))),
+      event: strOrNull(s.event),
+    }));
+}
+
+function readPrivate(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isRec(v)) return out;
+  for (const [id, n] of Object.entries(v))
+    if (typeof n === "number" && n >= 0) out[id] = Math.trunc(n);
+  return out;
+}
+
 function readChange(v: unknown): Change | null {
   if (!isRec(v)) return null;
   return {
@@ -330,6 +367,7 @@ function readMine(v: unknown): Room["mine"] {
         result: strOrNull(t.result),
         can_mark_done: t.can_mark_done === true,
       })),
+    ...(isRec(m.sets) ? { sets: readPrivate(m.sets) } : {}),
   };
 }
 
@@ -362,6 +400,7 @@ export function readRoom(state: ViewerState | null): Room | null {
         start: strOrNull(s.start),
       })),
     common: readCommon(raw.common),
+    ...(Array.isArray(raw.sets) ? { sets: readSets(raw.sets) } : {}),
     plan_notes: readNotes(raw.plan_notes),
     results: readResults(raw.results),
     stops: list(raw.stops)
