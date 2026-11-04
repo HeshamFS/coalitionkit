@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from mcp.shared.exceptions import MCPError
 from mcp_types import InputRequiredResult
 
 from coalitionkit_contracts import verify_consent, verify_decision
@@ -37,11 +36,25 @@ async def test_decide_without_the_persons_answer_never_reaches_the_host(rig: Rig
     assert rig.host.calls == []
 
 
-async def test_decide_with_a_client_that_cannot_ask_is_refused(rig: Rig) -> None:
+@pytest.mark.parametrize(
+    ("tool", "arguments"),
+    [
+        ("decide", {**DECIDE, "consent": True, "confirmed": True}),
+        ("accept_charter", {"coalition_id": C1}),
+        ("approve_commitment", {"coalition_id": C1, "commitment_id": COMMITMENT}),
+    ],
+)
+async def test_a_client_that_cannot_ask_is_told_where_the_person_signs(
+    rig: Rig, tool: str, arguments: dict[str, Any]
+) -> None:
     async with rig.connect("p1") as client:
-        with pytest.raises(MCPError) as caught:
-            await client.call_tool("decide", {**DECIDE, "consent": True, "confirmed": True})
-    assert "elicitation capability" in str(caught.value)
+        result = await client.call_tool(tool, arguments)
+    assert result.is_error
+    text = result.content[0].text
+    assert "nothing was signed" in text and "/signin" in text
+    # The agent learns where its person goes, never a token or a link it could sign through.
+    assert "token=" not in text and "http" not in text
+    assert result.structured_content["code"] == "not_authorized"
     assert rig.host.calls == []
 
 
