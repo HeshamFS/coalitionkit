@@ -122,13 +122,16 @@ def generate_plans(
         outcome = strategy.run(problem, problem.task_ids, {})
         if outcome.unresolved:
             return PlanSet((), outcome.unresolved, names)
-        key = tuple(sorted(outcome.chosen.items()))
-        candidate = PlanCandidate(
-            dict(key),
-            _objectives(problem, problem.bid_table(), outcome.chosen, score3),
-            derive_ulid("plan", *(f"{t}={a}" for t, a in key)),
-        )
-        return PlanSet((candidate,), (), names)
+        # The strategy's one plan stands when it keeps to the task-share cap; otherwise the
+        # search below, on the strategy's settings, looks for plans inside the cap.
+        if _fair(outcome.chosen, cfg.max_task_share):
+            key = tuple(sorted(outcome.chosen.items()))
+            candidate = PlanCandidate(
+                dict(key),
+                _objectives(problem, problem.bid_table(), outcome.chosen, score3),
+                derive_ulid("plan", *(f"{t}={a}" for t, a in key)),
+            )
+            return PlanSet((candidate,), (), names)
     table = problem.bid_table()
     task_ids = problem.task_ids
     found: dict[tuple[tuple[str, str], ...], Objectives] = {}

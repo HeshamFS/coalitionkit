@@ -19,6 +19,7 @@ from coalitionkit_models.gateway import ModelGateway
 from coalitionkit_models.media import Transcript
 from coalitionkit_models.sam import Box, Segment
 
+from .limits import tool_seconds
 from .schema import Observations, Record
 
 FPS = 1
@@ -61,7 +62,7 @@ def extract(video: Path, destination: Path) -> list[Path]:
         ],
         capture_output=True,
         check=True,
-        timeout=10,
+        timeout=min(10.0, tool_seconds()),
     )
     metadata = json.loads(probe.stdout)
     if metadata["format"]["format_name"] not in FORMATS:
@@ -95,7 +96,7 @@ def extract(video: Path, destination: Path) -> list[Path]:
         ],
         capture_output=True,
         check=True,
-        timeout=15,
+        timeout=tool_seconds(),
     )
     frames = sorted(destination.glob("*.png"))
     if not frames or len(frames) > MAX_FRAMES:

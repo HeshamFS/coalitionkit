@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+id: supper-redact-address
+applies_to: [coalition.say, coalition.observe, coalition.offer]
+when:
+  any_text_matches:
+    - '\b\d{1,5}[a-z]?\s+(?:[a-z]+\s+){1,2}(?:street|road|avenue|lane|drive|close|square|way)\b'
+    - '\b[a-z]+(?:strasse|straße|weg|allee|gasse|platz)\s+\d{1,4}[a-z]?\b'
+then: redact
+explain: "Kitchen addresses are masked. The room needs to know who cooks, not where they live."

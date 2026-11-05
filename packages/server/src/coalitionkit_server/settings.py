@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     # room starts, and the model reads at most ten sentences for each room allowed.
     room_budget_usd: float | None = Field(default=None, gt=0)
     rooms_per_day: int | None = Field(default=None, ge=1)
+    # The standing room of a public host: with a goal set, the host forms a room from it on its
+    # own clock whenever none is open, bound to the named pack and owned by the host's own seat.
+    # Visitors join it; nobody else starts rooms here. It ends after the minutes, then a new one
+    # forms. ``standing_room_gather_minutes`` is how long it waits for people before it begins.
+    standing_room_goal: str | None = Field(default=None, min_length=1, max_length=500)
+    standing_room_pack: str | None = None
+    standing_room_minutes: float = Field(default=15.0, gt=0, le=1440)
+    standing_room_gather_minutes: float = Field(default=5.0, ge=0, le=1440)
+    standing_room_seats: int = Field(default=12, ge=2, le=64)
     # A file of sample rooms for the first screen. The kit ships none.
     sample_rooms: Path | None = None
     admin_token: SecretStr | None = None

@@ -20,6 +20,7 @@ from coalitionkit_models.gateway import ModelGateway
 
 from .artifact import generate
 from .catalog import TemplateRegistry
+from .limits import pipeline_seconds
 from .perceive import Media, perceive
 from .process import Sandbox
 from .prove import AttackResult, prove
@@ -117,7 +118,7 @@ async def mint(
     folder = folder.resolve()
     folder.parent.mkdir(parents=True, exist_ok=True)
     try:
-        async with asyncio.timeout(90):
+        async with asyncio.timeout(pipeline_seconds()):
             stage("capture")
             scan_templates(resource_path("coalitionkit_mint", "templates"))
             with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:

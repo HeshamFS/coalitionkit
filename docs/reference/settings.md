@@ -24,6 +24,11 @@ Every setting comes from an environment variable with the prefix `COALITIONKIT_`
 | `COALITIONKIT_ROOM_TALK_WAIT_S` | `float` | `45.0` |
 | `COALITIONKIT_ROOM_BUDGET_USD` | `float \| None` | `none` |
 | `COALITIONKIT_ROOMS_PER_DAY` | `int \| None` | `none` |
+| `COALITIONKIT_STANDING_ROOM_GOAL` | `str \| None` | `none` |
+| `COALITIONKIT_STANDING_ROOM_PACK` | `str \| None` | `none` |
+| `COALITIONKIT_STANDING_ROOM_MINUTES` | `float` | `15.0` |
+| `COALITIONKIT_STANDING_ROOM_GATHER_MINUTES` | `float` | `5.0` |
+| `COALITIONKIT_STANDING_ROOM_SEATS` | `int` | `12` |
 | `COALITIONKIT_SAMPLE_ROOMS` | `pathlib.Path \| None` | `none` |
 | `COALITIONKIT_ADMIN_TOKEN` | `SecretStr \| None` | `none (secret)` |
 | `COALITIONKIT_WHATSAPP_TOKEN` | `SecretStr \| None` | `none (secret)` |

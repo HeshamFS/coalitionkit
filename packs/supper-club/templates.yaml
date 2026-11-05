@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# Titles are chosen so the room's kind rules read them as intended: list, place, budget,
+# schedule, schedule, image. "Menu" alone reads as a picture, so the menu need is the dishes.
+templates:
+  - id: dishes-and-shopping
+    title: Dishes and shopping list for six
+    description: The dishes for each course and one shopping list for six people.
+  - id: bakery
+    title: Where to buy fresh bread from a bakery nearby
+    description: A bakery near the cooks that sells fresh bread on the day, with a link.
+  - id: costs
+    title: Share the costs of 120 euro
+    description: Split the 120 euro of shopping fairly between the cooks.
+  - id: oven
+    title: Book the oven time for the roast
+    description: A slot on the shared oven for the roast, one dish at a time.
+    ext: { course: main }
+  - id: cook-schedule
+    title: Cook schedule so every course lands together
+    description: When each cook starts, so every course is ready at the same time.
+    ext: { lands_at: "19:30" }
+  - id: menu-card
+    title: Menu card for the table
+    description: A printed menu card that names each course.

@@ -157,6 +157,12 @@ FOUND_PLACE = (
     "from, copied exactly. Write the way a neighbour would say it across a table, no hedging."
 )
 
+EACH_PLACE = (
+    " The people said where they are under 'public'. Choose one real place for each of them, "
+    "found for their own city (the page title ends with that city in brackets), in that order."
+)
+MOST_PLACES = 6
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "draft": DraftOut,
     "budget": BudgetOut,
@@ -274,7 +280,7 @@ def clean_found(out: FoundPlaceOut, facts: Document) -> Document | str:
                     "provenance": "search",
                 }
             )
-    ideas = ideas[:3]
+    ideas = ideas[: MOST_PLACES if facts.get("public") else 3]
     if any(shows_free_slot(f"{i['why']} {i['check']}", facts) for i in ideas):
         return "do not write the shared free times, a clock time or a deadline in the places"
     if len(ideas) < 2:
@@ -357,7 +363,7 @@ async def make_data(
 ) -> Document | None:
     """What the maker made, checked, or None (the caller then builds what it can by rules)."""
     names = set(facts["people"])
-    keys = ("goal", "need", "plan", "common", "sets", "people", "amount")
+    keys = ("goal", "need", "plan", "common", "sets", "people", "amount", "public")
     shown = {k: facts[k] for k in keys if k in facts}
     hits = None
     if kind == "place" or (kind in {"list", "draft"} and websearch.wants_fact(facts)):
@@ -366,7 +372,11 @@ async def make_data(
     if found:
         shown["found_on_the_web"] = [{k: h[k] for k in ("title", "url", "snippet")} for h in found]
     searched = bool(found) and kind == "place"
-    rules = FOUND_PLACE if searched else KIND_RULES[kind]
+    rules = (
+        (FOUND_PLACE + (EACH_PLACE if facts.get("public") else ""))
+        if searched
+        else KIND_RULES[kind]
+    )
     schema = FoundPlaceOut if searched else SCHEMAS[kind]
     problem = ""
     for _ in range(2):

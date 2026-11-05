@@ -24,6 +24,7 @@ A pack is a folder of data the loader validates before a Coalition can use it. A
 | `suggest` | no | How a host may offer this pack for a goal typed in plain language: `keywords` (lowercase words or short phrases) and `examples` (whole example goals), at most 50 of each. A host that suggests packs MUST also offer "no pack", and a suggestion never binds a pack by itself |
 | `lessons` | no | Lesson templates (Markdown with `{{placeholders}}` from a fixed set) the host fills from the log at Dissolve and writes as skills |
 | `compare` | no | Named private sets every seat is asked for and the room compares by PSI (see Compared sets below) |
+| `public` | no | Questions every seat is asked whose answers are published to the room, such as the city a person is in (see Public questions below) |
 | `evals` | yes | At least one scripted scenario |
 | `acceptance` | no | Relative path to the whole-journey acceptance YAML described below |
 
@@ -43,6 +44,18 @@ compare:
 ```
 
 `question.kind` is one of the closed brief kinds. `choice` needs two to twelve distinct options and lets a person pick any number of them; `slots` offers the room's time slots; `text` takes a short list separated by commas or new lines, and each value is trimmed, its spaces collapsed and lowercased before it is compared. `slots` and `text` take no options. `amount` is refused, because a set is matched value by value. Ids are distinct. The loader refuses any other shape and says which rule it broke.
+
+**Public questions.** `public` lists at most two questions whose answers are not private. The room asks every seated person each one beside the agent's own questions; when a person answers, the host publishes the answer to the whole room as a `coalition.observe` from that person's seat with `source: "chat"` and the content `"<label>: <answer>"`. A question marked `search: true` adds the person's answer to the words of that seat's web searches on `place` needs: each seat whose answer differs searches once with the need's title and its own answer only, and the hits of every seat are kept together for the need's result.
+
+```yaml
+public:
+  - id: city                   # same rule as a compared set id
+    label: City
+    question: { text: "Which city are you in?", kind: text }   # text, or choice with options
+    search: true               # optional; default false
+```
+
+Tell people the answer is public: the brief shows the question's `why` line, which by default says the whole room sees the answer. A seat whose own agent acts over MCP gives its answer by writing the vault key `public:<id>` (a string) through `POST /v1/agent/vault`. A published answer is no longer private, so web search does not refuse a query for holding it.
 
 **Core policies.** The Steward ships `no-regulated-advice`, `no-contact-before-consent`, `no-private-field-in-outbound`, `fairness-cap-exceeded` and `no-contact-details-in-room` (blocks a phone number or email address written into a message to the whole Coalition). Each has a known-answer example the Steward must pass before it starts.
 
@@ -93,6 +106,7 @@ A pack MAY mark an extension property with `"x-private": true`. Such values belo
 | `skills`, `lessons` | Skills are offered to every agent that joins (an MCP resource `coalition://{id}/skills` and the join reply). At Dissolve the host fills each lesson template from the log (placeholders: `goal`, `members`, `tasks`, `allocation`, `decisions`, `changes`, `policy_outcomes`, `duration`) and stores the results as skills, scoped no wider than the events they came from, listed in `skills_written`, and offered to agents that join later Coalitions bound to the same pack. A Coalition without lesson templates writes one generic lesson from the same placeholders |
 | `mint` | Templates added to the Mint for this Coalition only; each template's tests run before a minted agent is enrolled |
 | `compare` | Each seated person's agent asks the declared question beside its own questions, and the answer stays in that seat's vault. A seat whose own agent acts over MCP gives its values by writing the vault key `compare:<id>` (a list of strings) through `POST /v1/agent/vault`. After the offers the host compares each set with the PSI messages (`query`/`answer`, then `match` rounds chained by the first seat that holds values) over the elements `"<id>:<value>"`, and publishes one `coalition.observe` with `source: "document"` whose `content` is `{"common": 1, "set", "values", "compared"}` for `overlap` or `{"common": 1, "set", "count", "compared"}` for `count`. The exchanges between the vaults the host keeps use `reveal: overlap`; in `count` mode only the number leaves the host. With fewer than `min_seats` seats holding values nothing is published. Plans and results may use only the published values |
+| `public` | Each seated person is asked the declared question; the answer is published once as a `coalition.observe` from that seat (`source: "chat"`, content `"<label>: <answer>"`). With `search: true` the answer joins that seat's web search words for `place` needs |
 | `connectors` | Programs the operator runs out of process for this Coalition. A connector gets only a one-use invitation and joins like any business agent with a signed card; it never receives host settings, keys, tokens or access to the store or to vaults |
 
 **Acceptance journey.** The optional `acceptance` key in `pack.yaml` is a relative path to a YAML file. `coalitionkit pack accept <folder> [--live] [--json]` drives an in-process host from Genesis through Dissolve. All structural objects forbid extra keys. Member roles must exist in the pack; member IDs are `p1` through `pN` in join order. Need indices are zero-based task-template or Gardener need indices. Offers are member messages validated against core and pack schemas. Exactly one distinguishing case is specified:

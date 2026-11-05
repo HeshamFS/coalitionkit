@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+task: stop
+resource: an hour
+need: what the tour needs
+offer: { one: I can show, other: I can show }
+commitment: promise

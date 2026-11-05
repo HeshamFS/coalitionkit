@@ -10,6 +10,7 @@ import { KnockCard } from "./KnockCard";
 import { RoomMark } from "./marks";
 import { PublicNav } from "./PublicNav";
 import { closesLabel, listRooms, NO_ROOMS, type Room, type RoomList, spots } from "./rooms";
+import { StandingRoom } from "./StandingRoom";
 import "../genesis/genesis.css";
 import "./landing.css";
 
@@ -79,6 +80,8 @@ export function Landing({
   const [list, setList] = useState<RoomList>(NO_ROOMS);
   const [goal, setGoal] = useState("");
   const [theme, setTheme] = useState<Theme>(() => storedTheme());
+  // A host with a standing room lets visitors join it; it takes no new sentences.
+  const [standing, setStanding] = useState(false);
   // A start link lands here: keep its code for this tab and take it out of the address at once.
   useState(() => takeStartCode());
   useEffect(() => {
@@ -116,7 +119,8 @@ export function Landing({
           <p className="ld-sub">
             Say it in one sentence. A room forms around it, and everyone brings their own agent.
           </p>
-          <div className="ld-ask">
+          <StandingRoom onJoin={onJoin} onFound={setStanding} />
+          <div className="ld-ask" hidden={standing}>
             <Composer
               value={goal}
               onChange={setGoal}

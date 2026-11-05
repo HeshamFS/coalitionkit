@@ -56,7 +56,7 @@ SYSTEM = (
 KEYWORDS: tuple[tuple[Kind, tuple[str, ...]], ...] = (
     ("image", ("poster", "posters", "flyer", "banner", "menu", "picture", "illustration")),
     ("budget", ("budget", "cost", "costs", "money", "pay", "price", "fund", "afford")),
-    ("schedule", ("when", "time", "schedule", "date", "day", "meet", "meeting", "agenda")),
+    ("schedule", ("when", "time", "hour", "schedule", "date", "day", "meet", "meeting", "agenda")),
     ("place", ("where", "place", "room", "venue", "location", "space", "site", "route")),
     ("list", ("list", "bring", "items", "supplies", "buy", "shopping", "inventory", "checklist")),
 )
@@ -98,7 +98,7 @@ def predicate(goal: str) -> str:
     """The part of the goal after "need(s)/want(s)/to", where the things to get done are."""
     text = goal.strip().rstrip(".!?")
     found = re.search(
-        r"\b(?:needs?|wants?|have to|has to|must|should|would like to)\b\s*", text, re.I
+        r"\b(?:needs?|wants?|have to|has to|must|should|would like to)\b(?!-)\s*", text, re.I
     )
     rest = text[found.end() :] if found else text
     return re.sub(r"^(?:to|that|us to)\s+", "", rest, flags=re.I).strip() or text
@@ -129,6 +129,22 @@ def rule_needs(goal: str, drafted: list[str]) -> list[NeedItem]:
     titles = [tidy(t, TITLE_MAX) for t in drafted if t.strip()][:MAX_NEEDS] or split_goal(goal)
     titles = [t[0].upper() + t[1:] for t in titles if t] or [tidy(predicate(goal), TITLE_MAX)]
     return [NeedItem(title=t, kind=kind_of(t), detail="Taken from the goal.") for t in titles]
+
+
+def pack_needs(engine: RoomEngine, coalition: str) -> list[NeedItem] | None:
+    """The bound pack's own task templates as the room's needs, read by the same kind rules.
+    None when the room has no pack or the pack declares no templates."""
+    pack = engine.server.bound_pack(coalition)
+    templates = list(pack.task_templates)[:MAX_NEEDS] if pack is not None else []
+    out: list[NeedItem] = []
+    for template in templates:
+        title = tidy(template.title, TITLE_MAX)
+        if not title:
+            continue
+        title = title[:1].upper() + title[1:]
+        detail = tidy(template.description or "Taken from the pack.", DETAIL_MAX)
+        out.append(NeedItem(title=title, kind=kind_of(title), detail=detail))
+    return out or None
 
 
 def checked(reply: NeedsReply | None, goal: str = "") -> list[NeedItem] | None:
@@ -189,7 +205,8 @@ async def make(engine: RoomEngine, coalition: str, state: State) -> None:
     items: list[NeedItem] | None = None
     slots: list[str] = []
     reply = None
-    # A room built on a pack keeps the pack's own needs; the model only reads open goals.
+    # A room built on a pack keeps the pack's own needs (its task templates, or else the
+    # draft's); the model only reads open goals.
     if not state.charter.get("pack"):
         reply = await ask(
             engine,
@@ -205,6 +222,8 @@ async def make(engine: RoomEngine, coalition: str, state: State) -> None:
     source = "model" if items else "rules"
     if items and reply is not None:
         slots = checked_slots(reply.slots, now, deadline)
+    elif templated := pack_needs(engine, coalition):
+        items, source = templated, "pack"
     else:
         items = rule_needs(goal, drafted)
     if not slots:

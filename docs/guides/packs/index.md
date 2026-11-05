@@ -31,4 +31,4 @@ The full list of keys is in [Pack format](../../reference/pack-format.md).
 
 ## Packs in the repository
 
-[`packs/`](https://github.com/HeshamFS/coalitionkit/tree/main/packs) has three examples: `daily-life`, `science-lab` and `travel-disruption`. [`examples/packs/tool-library`](https://github.com/HeshamFS/coalitionkit/tree/main/examples/packs/tool-library) is the small one these pages use.
+[`packs/`](https://github.com/HeshamFS/coalitionkit/tree/main/packs) has five examples: `daily-life`, `science-lab`, `supper-club` (friends cooking one dinner from their own kitchens, with a private diet compared by PSI), `travel-disruption` and `world-tour` (strangers build a one-hour virtual tour of their cities; the public demo's standing room). [`examples/packs/tool-library`](https://github.com/HeshamFS/coalitionkit/tree/main/examples/packs/tool-library) is the small one these pages use.

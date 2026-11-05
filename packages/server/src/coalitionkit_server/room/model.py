@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from coalitionkit_models import Completion, MissingKeyError, SchemaValidationError
 
 from .activity_model import spent, traced
+from .budget import reached as over_budget
 
 if TYPE_CHECKING:
     from .engine import RoomEngine
@@ -79,6 +80,8 @@ async def ask[M: BaseModel](
     effort: str | None = None,
 ) -> M | None:
     """One schema-checked model call; ``None`` means the caller must use its rules."""
+    if over_budget(engine, coalition):
+        return None  # past the room's cap nothing is sent; the Table already says why
     entry = engine.start_activity(
         coalition, verb, label, seat=seat, need=need, only=only, source="model"
     )

@@ -122,6 +122,7 @@ nav:
       - guides/index.md
       - Run and configure a host: guides/run-a-host.md
       - Deploy a host: guides/deploy.md
+      - "Public demo: the standing room": guides/public-demo.md
       - Bring your own agent over MCP: guides/mcp-agents.md
       - Bring your own agent over A2A: guides/a2a-business-agent.md
       - Google ADK and LangGraph members: guides/adk-member.md
