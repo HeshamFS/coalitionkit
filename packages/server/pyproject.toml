@@ -15,7 +15,7 @@ dependencies = [
     "coalitionkit-mcp==0.1.0", "coalitionkit-surfaces==0.1.0", "coalitionkit-steward==0.1.0",
     "coalitionkit-gardener==0.1.0", "coalitionkit-models==0.1.0", "coalitionkit-channels==0.1.0", "coalitionkit-packs==0.1.0",
     "coalitionkit-vault==0.1.0",
-    "pydantic-settings==2.16.2", "fastapi==0.162.0",
+    "pydantic-settings==2.16.2", "fastapi==0.162.2",
     "uvicorn==0.54.0", "httpx", "cryptography==50.0.2",
 ]
 
