@@ -15,7 +15,7 @@ dependencies = [
     "coalitionkit-runtime==0.1.0",
     "ag-ui-protocol==1.0.0",
     "fastapi==0.162.0",
-    "jsonpatch==1.38",
+    "jsonpatch==1.44",
     "uvicorn==0.54.0",
 ]
 
