@@ -13,7 +13,7 @@ requires-python = ">=3.12"
 dependencies = [
     "coalitionkit-contracts==0.1.0",
     "coalitionkit-surfaces==0.1.0",
-    "fastapi==0.162.0",
+    "fastapi==0.162.2",
     "httpx==0.28.1",
     "pydantic==2.14.2",
 ]

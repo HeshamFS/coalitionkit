@@ -14,7 +14,7 @@ dependencies = [
     "coalitionkit-contracts==0.1.0",
     "coalitionkit-edges==0.1.0",
     "mcp>=2.3.0",
-    "fastapi==0.162.0",
+    "fastapi==0.162.2",
     "uvicorn==0.54.0",
 ]
 
